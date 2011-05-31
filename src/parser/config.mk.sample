@@ -1,0 +1,2 @@
+MYSRC    := /home/nickolai/refsrc/mysql-server
+MYBUILD  := /home/nickolai/refsrc/mysql-server/build
