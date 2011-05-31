@@ -10,6 +10,7 @@
 #include "rpl_handler.h"
 #include "sql_parse.h"
 #include "sql_plugin.h"
+#include "derror.h"
 
 extern int MYSQLparse(void *thd); // from sql_yacc.cc
 
@@ -20,6 +21,9 @@ parse(const char *q)
   THD *t = new THD;
   if (t->store_globals())
     printf("store_globals error\n");
+
+  if (init_errmessage())
+    printf("init_errmessage error\n");
 
   char buf[1024];
   size_t len = strlcpy(buf, q, sizeof(buf));
@@ -74,6 +78,9 @@ main(int ac, char **av)
   global_system_variables.character_set_results    = default_charset_info;
   global_system_variables.character_set_client     = default_charset_info;
   global_system_variables.character_set_filesystem = default_charset_info;
+
+  my_default_lc_messages = my_locale_by_name("en_US");
+  global_system_variables.lc_messages = my_default_lc_messages;
 
   opt_ignore_builtin_innodb = true;
   int plugin_ac = 1;
