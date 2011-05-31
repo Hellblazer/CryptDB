@@ -12,8 +12,6 @@
 #include "sql_plugin.h"
 #include "derror.h"
 
-extern int MYSQLparse(void *thd); // from sql_yacc.cc
-
 static void
 parse(const char *q)
 {
@@ -37,8 +35,9 @@ parse(const char *q)
     bool x = parse_sql(t, &ps, 0);
     t->end_statement();
 
-    printf("q=%s\n", q);
+    printf("q=%s\n", buf);
     printf("x=%s\n", x?"true":"false");
+    printf("command %d\n", lex.sql_command);
   } else {
     printf("parser init error\n");
   }
@@ -92,6 +91,11 @@ main(int ac, char **av)
   //plugin_ref plugin = ha_resolve_by_name(0, &name);
   //global_system_variables.table_plugin = plugin;
 
-  const char *q = "SELECT * FROM t";
+  if (ac != 2) {
+    printf("Usage: %s query\n", av[0]);
+    exit(1);
+  }
+
+  const char *q = av[1];
   parse(q);
 }
