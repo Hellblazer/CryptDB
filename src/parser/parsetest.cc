@@ -24,7 +24,10 @@ parse(const char *q)
     printf("init_errmessage error\n");
 
   char buf[1024];
-  size_t len = strlcpy(buf, q, sizeof(buf));
+  strlcpy(buf, q, sizeof(buf));
+  size_t len = strlen(buf);
+
+  alloc_query(t, buf, len + 1);
 
   Parser_state ps;
   if (!ps.init(t, buf, len)) {
@@ -32,12 +35,23 @@ parse(const char *q)
     t->lex = &lex;
 
     lex_start(t);
-    bool x = parse_sql(t, &ps, 0);
-    t->end_statement();
+    mysql_reset_thd_for_next_command(t);
 
     printf("q=%s\n", buf);
-    printf("x=%s\n", x?"true":"false");
-    printf("command %d\n", lex.sql_command);
+    bool error = parse_sql(t, &ps, 0);
+    if (error) {
+      printf("parse error: %d %d %d\n", error, t->is_fatal_error, t->is_error());
+      printf("parse error: h %p\n", t->get_internal_handler());
+      printf("parse error: %d %s\n", t->is_error(), t->stmt_da->message());
+    } else {
+      printf("command %d\n", lex.sql_command);
+
+      String s;
+      lex.select_lex.print(t, &s, QT_ORDINARY);
+      printf("reconstructed query: %s\n", s.c_ptr());
+    }
+
+    t->end_statement();
   } else {
     printf("parser init error\n");
   }
