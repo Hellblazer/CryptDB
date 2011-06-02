@@ -37,6 +37,8 @@ parse(const char *q)
     lex_start(t);
     mysql_reset_thd_for_next_command(t);
 
+    t->set_db("", 0);
+
     printf("q=%s\n", buf);
     bool error = parse_sql(t, &ps, 0);
     if (error) {
@@ -65,6 +67,7 @@ main(int ac, char **av)
 {
   system_charset_info = &my_charset_utf8_general_ci;
   global_system_variables.character_set_client = system_charset_info;
+  table_alias_charset = &my_charset_bin;
 
   pthread_key_t dummy;
   if (pthread_key_create(&dummy, 0) ||
