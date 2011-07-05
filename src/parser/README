@@ -1,0 +1,7 @@
+% bzr branch lp:mysql-server
+% cd mysql-server
+% mkdir build
+% cd build
+% cmake .. -DWITH_EMBEDDED_SERVER=ON
+
+

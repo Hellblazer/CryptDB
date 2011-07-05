@@ -50,6 +50,7 @@ parse(const char *q)
 
       String s;
       lex.select_lex.print(t, &s, QT_ORDINARY);
+      //lex.unit.print(&s, QT_ORDINARY);
       printf("reconstructed query: %s\n", s.c_ptr());
     }
 
