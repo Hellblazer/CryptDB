@@ -529,6 +529,9 @@ void interactiveTest() {
 
 		cout << "CryptDB=# ";
 		cin.getline(command, len);
+		if (cin.eof())
+			break;
+
 		string commandS = string(command);
 
 		if (commandS.compare("\\q") == 0) {
@@ -3279,6 +3282,7 @@ int main(int argc, char ** argv) {
 
 	if (argc == 1) {
 		interactiveTest();
+		return 0;
 	}
 
 	if (strcmp(argv[1], "single") == 0) {
