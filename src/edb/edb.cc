@@ -371,8 +371,8 @@ Datum search(PG_FUNCTION_ARGS)
 
 struct agg_state {
 	ZZ sum;
-	ZZ n;
-	bool n_set;
+	ZZ n2;
+	bool n2_set;
 	void *rbuf;
 };
 
@@ -398,7 +398,7 @@ agg_clear(UDF_INIT *initid, char *is_null, char *error)
 {
 	agg_state *as = (agg_state *) initid->ptr;
 	as->sum = to_ZZ(1);
-	as->n_set = 0;
+	as->n2_set = 0;
 }
 
 //args will be element to add, constant N2
@@ -406,16 +406,16 @@ my_bool
 agg_add(UDF_INIT *initid, UDF_ARGS *args, char *is_null, char *error)
 {
 	agg_state *as = (agg_state *) initid->ptr;
-	if (!as->n_set) {
-		ZZFromBytes(as->n, (const uint8_t *) args->args[1],
+	if (!as->n2_set) {
+		ZZFromBytes(as->n2, (const uint8_t *) args->args[1],
 			    args->lengths[1]);
-		as->n_set = 1;
+		as->n2_set = 1;
 	}
 
 	ZZ e;
 	ZZFromBytes(e, (const uint8_t *) args->args[0], args->lengths[0]);
 
-	MulMod(as->sum, as->sum, e, as->n);
+	MulMod(as->sum, as->sum, e, as->n2);
 	return true;
 }
 
@@ -484,12 +484,54 @@ func_add_final(PG_FUNCTION_ARGS)
 
 // for update with increment
 #if MYSQL_S
+
+my_bool
+func_add_set_init(UDF_INIT *initid, UDF_ARGS *args, char *message)
+{
+	initid->ptr = 0;
+	return 0;
+}
+
+void
+func_add_set_deinit(UDF_INIT *initid)
+{
+	if (initid->ptr)
+		free(initid->ptr);
+}
+
 char *
-func_add_set(UDF_INIT *initid, UDF_ARGS * args, char *result, unsigned long *length, char * is_null, char * error)
+func_add_set(UDF_INIT *initid, UDF_ARGS *args,
+	     char *result, unsigned long *length,
+	     char *is_null, char *error)
+{
+	uint32_t n2len = args->lengths[2];
+	myassert(initid->ptr == 0,
+		 "func_add_set used twice per init");
+	myassert(args->lengths[0] == n2len,
+		 "length of field differs from N2 len");
+	myassert(args->lengths[1] == n2len,
+		 "length of val differs from N2 len");
+
+	ZZ field, val, n2;
+	ZZFromBytes(field, (const uint8_t *) args->args[0], n2len);
+	ZZFromBytes(val, (const uint8_t *) args->args[1], n2len);
+	ZZFromBytes(n2, (const uint8_t *) args->args[2], n2len);
+
+	ZZ res;
+	MulMod(res, field, val, n2);
+
+	void *rbuf = malloc(n2len);
+	initid->ptr = (char *) rbuf;
+	BytesFromZZ((uint8_t *) rbuf, res, n2len);
+
+	*length = n2len;
+	return result;
+}
+
 #else
+
 Datum
 func_add_set(PG_FUNCTION_ARGS)
-#endif
 {
 	unsigned char * val;
 	unsigned char * N2;
@@ -505,16 +547,12 @@ func_add_set(PG_FUNCTION_ARGS)
 
 	unsigned char * res = homomorphicAdd(field, val, N2, N2Len);
 
-#if MYSQL_S
-	result = (char *)res;
-	*length = N2Len;
-	return result;
-#else
 	bytea * resBytea = (bytea *) palloc(N2Len + VARHDRSZ);
 	SET_VARSIZE(resBytea, N2Len + VARHDRSZ);
 	memcpy(VARDATA(resBytea), res, N2Len);
 	PG_RETURN_BYTEA_P(resBytea);
-#endif
 }
+
+#endif
 
 } /* extern "C" */
