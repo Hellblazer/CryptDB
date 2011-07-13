@@ -1,0 +1,15 @@
+CFG := $(MYPATH)/bin/mysql_config
+
+INCPATH	 :=  -I. \
+	    -I$(SSLPATH)/include/ \
+	    -I$(GMPPATH)/include/ \
+	    -I$(MYPATH)/include/\
+	    -I$(LUAPATH)/include/lua5.1/\
+	    
+LIBPATH	 := -L. -L../ -L$(SSLPATH)/lib -L$(GMPPATH)/lib  -L$(MYPATH)/lib -lmysqlclient -lz -I$(LUAPATH)/lib -llua
+	
+CFLAGS	 := -g -O2 -fno-strict-aliasing -fwrapv -fPIC \
+	   -Wall -Wpointer-arith -Wendif-labels \
+	   -D_GNU_SOURCE  `$(CFG) --cflags` $(INCPATH)
+
+lLIB := 

@@ -1,0 +1,17 @@
+\section{Conclusion}
+\label{s:concl}
+
+This paper presented CryptDB, a practical and novel system for ensuring
+data privacy on an untrusted SQL DBMS server.  CryptDB uses three novel
+ideas to achieve its goal: an {\em SQL-aware encryption strategy},
+{\em adjustable query-based encryption}, and {\em onion encryption}.  As part of
+CryptDB's SQL-aware encryption strategy, we propose optimizations for
+existing cryptographic techniques, as well as a new cryptographic
+mechanism for private joins.  Our prototype of CryptDB requires no
+changes to application or DBMS server code, and uses user-defined
+functions to perform cryptographic operations inside an existing
+DBMS engine, including both Postgres and MySQL\@.  Under a TPC-C
+workload, our prototype incurs a $\tput$ reduction in throughput
+compared to an unencrypted DBMS, making CryptDB a practical
+option for privacy-sensitive data.
+

@@ -1,0 +1,21 @@
+You should probably make it clear up front that CryptDB is aimed at
+transaction processing, and such systems have a predefined workload,
+that is static. Hence, biggest restrictions in your model are not
+so problematic.
+
+Right now you mention restrictions as they come up throughout the text;
+it would be better (in my opinion) to say what they are up front,
+and then explain why restrictions are not so bad.
+
+I was not aware of any practical order preserving crypt-function.
+Your discussion does not increase my confidence.  You might also
+explain what it actually does.  Also, it is a serious disadvantage
+that you coan't do multiplication -- i.e. 10% raise won't work.
+
+Also, no computation and comparison in the same command is problematic.
+
+I am not sure how practical it is to dynamically alter the
+crypto-level.  If you have the transactions in advance, you can compute
+what level each column will run at.  Also you can decide what joins
+have to be allowed and "do the right thing"
+

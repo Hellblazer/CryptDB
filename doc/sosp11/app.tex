@@ -1,0 +1,214 @@
+% !TEX root = paper.tex
+
+\section{Application Case Studies}
+\label{s:apps}
+
+In this section, we explain how \name can be used to secure three
+existing multi-user web applications.  In our examples, annotations
+are shown in bold.  For brevity, we show simplified schemas, ignoring
+irrelevant fields and type specifiers.  Overall, we find that once the
+programmer specifies the principals in the application's schema, and
+the delegation rules for them using {\small \tt HAS\_ACCESS\_TO},
+protecting additional sensitive fields just requires additional
+{\small \tt ENCRYPT\_FOR} annotations.
+
+{\bf phpBB} is a widely-used open source forum with a rich set of
+access control settings. Users are organized in groups; both users and
+groups have a variety of access permissions that the application
+administrator can choose. We already showed how to secure private
+messages between two users in phpBB in Fig.~\ref{fig:privmsg}.  A more
+interesting case is securing access to posts, as shown in
+Fig.~\ref{fig:posts}.  This example shows how to use predicates
+(e.g., {\small \tt IF optionid=...}) to give conditional access to
+principals, and also how one column ({\tt forumid}) can be used to
+represent multiple principals (of different type) with different
+privileges.  There are more ways to access to a post, but we do not
+show them all here for brevity.
+
+% phpBB example
+
+\renewcommand{\FrameSep}{0.05in}
+\begin{figure}[t!]
+\begin{framed}
+\footnotesize
+
+\begin{tabbing}
+
+{\bf PRINC TYPES physical\_user EXTERNAL;} \\
+{\bf PRINC TYPES user, group, forum\_post, forum\_name;}\\
+
+\\
+
+x \= \kill
+
+CREATE TABLE users ( userid int, username varchar(255),\\
+
+\> {\bf PRINC username TYPE physical\_user HAS\_ACCESS\_TO } \\
+\> {\bf ~ ~ ~ PRINC userid TYPE user});\\
+
+\\
+
+CREATE TABLE usergroup ( userid int, groupid int,\\
+
+\> {\bf PRINC userid TYPE user HAS\_ACCESS\_TO } \\
+\> {~ ~ ~ \bf PRINC groupid TYPE group});\\
+
+\\
+
+CREATE TABLE aclgroups ( groupid int, forumid int, optionid int, \\
+
+\> {\bf PRINC groupid TYPE group HAS\_ACCESS\_TO }\\
+\> {\bf ~ ~ ~ PRINC forumid TYPE forum\_post IF optionid=20}, \\
+\> {\bf PRINC groupid TYPE group HAS\_ACCESS\_TO }\\
+\> {\bf ~ ~ ~ PRINC forumid TYPE forum\_name IF optionid=14}); \\
+
+\\
+x \= \kill
+
+
+CREATE TABLE posts ( postid int, forumid int,\\
+\> post text {\bf ENCRYPT\_FOR PRINC forumid TYPE forum\_post});\\
+\\
+CREATE TABLE forum ( forumid int,\\
+\> name varchar(255) {\bf ENCRYPT\_FOR PRINC forumid } \\
+\> {\bf ~ ~ ~ TYPE forum\_name});
+
+\end{tabbing}
+\vspace{-0.15in}
+
+\end{framed}
+
+\vspace{-0.2in}
+\caption{Annotated schema for securing access to posts in phpBB\@. A
+  user has access to see the content of posts in a forum if any of the
+  groups that the user is part of has such permissions, which is indicated
+  by optionid $20$ in the aclgroups table for the corresponding forumid
+  and groupid. Similarly, optionid 14 enables users to see the forum's
+  name.}
+
+\label{fig:posts}
+\end{figure}
+
+% HOTCRP
+
+{\bf HotCRP} is a popular conference review application.  A key policy
+for HotCRP is that PC members cannot see who reviewed their own (or
+conflicted) papers.  Fig.~\ref{fig:hotcrp} shows \name annotations for
+HotCRP's schema to enforce this policy.  Today, HotCRP cannot prevent
+a curious or careless PC chair from logging into the database server
+and seeing who wrote each review for a paper that he is in conflict
+with.  As a result, conferences often set up a second server to review
+the chair's papers or use inconvenient out-of-band emails.  With
+\name, a PC chair cannot learn who wrote each review for his paper,
+even if he breaks into the application or database, since he does not
+have the decryption key.\footnote{Fully implementing this policy would
+  require setting up two PC chairs: a main chair, and a backup chair
+  responsible for reviews of the main chair's papers.  HotCRP allows
+  the PC chair to impersonate other PC members, so \name annotations
+  would be used to prevent the main chair from gaining access to keys
+  of reviewers assigned to his paper.} (We assume the PC chair is not
+malicious, but might be careless, so he won't modify the application
+to log the passwords of PC members to subvert the system.)
+
+
+{\bf grad-apply} is a graduate admissions system used at a major
+university.  We annotated its schema to allow an applicant's folder to be accessed only by the respective applicant and any faculty using: 
+ {\tt \small PRINC reviewers.reviewer\_id TYPE reviewer} (meaning all reviewers) {\tt \small HAS\_ACCESS\_TO candidate\_id} in table candidates, and {\tt \small HAS\_ACCESS\_TO letter\_id} in table letters. The applicant can see all his folder except for letters of recommendation.  Overall, grad-apply has simple access control and therefore simple
+annotations. 
+
+
+%\begin{figure}
+%\renewcommand{\FrameSep}{0.05in}
+%\begin{framed}
+%\footnotesize
+%
+%{\bf PRINC TYPES physical\_contact EXTERNAL;} \\
+%{\bf PRINC TYPES contact, paper;}
+%
+%\begin{tabbing}
+%
+%x \= \kill
+%
+%CREATE TABLE ContactInfo ( contactId int, email varchar(120), \\
+%
+%\> {\bf PRINC email TYPE physical\_contact HAS\_ACCESS\_TO PRINC contactId TYPE contact});\\
+%
+%\\
+%
+%CREATE TABLE PaperConflict( paperId int, contactId int);\\
+%\\
+%
+%{\bf NoConflict(paperId, contactId):} \\
+%\> {\bf (SELECT count(*) FROM PaperConflict c WHERE c.paperId = paperId AND c.contactId = contactId)=0; } \\
+%
+%\\
+%
+%CREATE TABLE PaperReview ( paperId int, \\
+%\> contactId int {\bf ENCRYPT\_FOR PRINC paperId TYPE paper}, \\
+%\> commentsToPC text {\bf ENCRYPT\_FOR PRINC paperId TYPE paper},\\
+%\> {\bf PRINC contactId TYPE contact HAS\_ACCESS\_TO PRINC paperId TYPE paper  IF NoConflict(paperId, contactId)} \\
+%
+%\end{tabbing}
+%
+%\end{framed}
+%
+%\caption{
+%      Annotated schema for securing reviews in HotCRP\@. Reviews and the identity of reviewers providing the review will only be available to assigned reviewers who are not conflicted even if these reviewers are PC Chairs.}
+%\label{fig:posts}
+%\end{figure}
+
+%HOTCRP any PC member can see reviews of a paper and who reviewed it other than conflicted PC members or PC Chairs
+
+\begin{figure}
+\renewcommand{\FrameSep}{0.05in}
+\begin{framed}
+\footnotesize
+
+{\bf PRINC TYPES physical\_contact EXTERNAL;} \\
+{\bf PRINC TYPES contact, review;}
+
+\begin{tabbing}
+
+x \= \kill
+
+
+CREATE TABLE ContactInfo ( contactId int, email varchar(120), \\
+\> {\bf PRINC email TYPE physical\_contact HAS\_ACCESS\_TO } \\
+\> {\bf ~ ~ ~ PRINC contactId TYPE contact});\\
+
+\\
+
+CREATE TABLE PCMember ( contactId int ); \\
+
+CREATE TABLE PaperConflict ( paperId int, contactId int );\\
+\\
+
+{\bf NoConflict (paperId, contactId):} ~ ~ ~ ~ ~ ~ {\tt /*} Define a SQL function {\tt */} \\
+\> {\bf (SELECT count(*) FROM PaperConflict c  WHERE }\\
+\> {~ ~ ~ \bf c.paperId = paperId AND c.contactId = contactId) = 0;} \\
+
+x \= commentsToPC \= text \= {\bf ENCRYPT\_FOR PRINC paperId TYPE review} \= \kill
+\\
+CREATE TABLE PaperReview ( paperId int, \\
+\> reviewerId \> int \> {\bf ENCRYPT\_FOR PRINC paperId TYPE review}, \\
+\> commentsToPC \>text \> {\bf ENCRYPT\_FOR PRINC paperId TYPE review},\\
+
+
+\> {\bf PRINC PCMember.contactId TYPE contact }\\
+\> {\bf ~ ~ ~ HAS\_ACCESS\_TO PRINC paperId TYPE review IF } \\
+\> {\bf ~ ~  ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ NoConflict(paperId, contactId)});
+
+\end{tabbing}
+\vspace{-0.15in}
+\end{framed}
+\vspace{-0.2in}
+\caption{Annotated schema for securing reviews in HotCRP\@. Reviews and
+the identity of reviewers providing the review will only be available to
+PC members (table PCMember includes PC Chairs) who are not conflicted,
+and PC Chairs cannot override this restriction.}
+
+\label{fig:hotcrp}
+\end{figure}
+
+
+

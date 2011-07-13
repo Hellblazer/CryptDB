@@ -1,0 +1,191 @@
+% !TEX root = paper.tex
+
+\section{Security Overview}
+\label{s:model}
+
+Figure~\ref{fig:overview} shows \name's architecture and threat
+models.  \name{} works by intercepting all SQL queries in a {\em
+  database proxy}, which rewrites queries to execute on encrypted
+data.  The proxy encrypts and decrypts all data, and changes some
+query operators, while preserving the semantics of the query.
+The DBMS server never receives decryption keys to the plaintext so it
+never sees sensitive data, ensuring that a curious DBA can never
+learn private information (threat 1).
+
+%; one contribution of \name is a design which requires no changes to
+%the existing DBMS software.  
+
+To guard against application server compromises together with DBMS compromises (threat 2), developers
+may annotate their SQL schema to define different principals, whose
+keys will allow decrypting different parts of the database and make a small change to their applications to provide
+encryption keys to the proxy as described in \S\ref{s:multi}.  
+The
+\name{} proxy determines what parts of the database should be
+encrypted under what key.  The result is that \name guarantees the
+confidentiality of data belonging to users that are not logged in
+during a compromise (e.g., user 2 in Figure~\ref{fig:overview}), and
+who do not log in until the compromise is detected and fixed by
+the administrator.
+
+We now describe the two threat models addressed by \name{}, and the
+security guarantees provided under those threat models.
+
+%Figure~\ref{fig:overview} presents an overview of \name{}'s
+%architecture.  
+%The application is responsible for providing the \name{} proxy with
+%the encryption keys used to encrypt and decrypt database contents.
+%Annotations made by the developer to the application's database schema
+%help 
+
+\subsection{Threat 1: DBMS Server Compromise}
+\label{ss:dbthreat}
+
+%If no schema annotations are provided, \name{} encrypts the entire
+%database using a single key provided by the application.  
+
+In this threat, \name{} guards against a curious DBA who has full access to
+read the data stored in the DBMS server, or against a {\em passive}
+adversary who manages to gain access to the DBMS machine. This includes protection against DBMS software compromises, root access to DBMS machines or even access to the RAM of physical machines.
+%This configuration can help defend against curious database
+%administrators trying to snoop on private data from the DBMS server,
+%as illustrated in Figure~\ref{fig:overview}.  
+With the rise in database consolidation inside enterprise data
+centers, outsourcing of databases to public cloud computing
+infrastructures, and the use of third-party DBAs, this threat is
+increasingly important. %operation and maintenance of databases is either consolidated
+%in an internal data center, or outsourced to the cloud or third-party
+%DBAs, this consideration becomes increasingly important. 
+ 
+
+To overcome this threat, \name{} executes SQL queries over encrypted
+data on the DBMS server.  In so doing, the proxy uses some secret keys to encrypts all data inserted in the DB and queries reaching the DBMS\@.
+ To compute query results, the proxy needs to reveal
+certain relationships among data to the DBMS\@.
+By using SQL-aware encryption that adjusts dynamically to the queries
+presented, \name{} reveals only relations between tuples that are
+necessary for the server to execute the query. \name{} provides the following properties:
+
+
+%\name{} uses {\em SQL-aware encryption} to do this, by revealing
+%different encryptions of the data to the server depending on the kinds
+%of predicates that it needs to compute.  However, \name{}'s {\em
+%  adjustable query-based encryption} reveals only relations between
+%tuples needed by the server to execute the query; in other words,
+
+
+\begin{CompactItemize}
+
+\item Sensitive data is never decrypted at the DBMS server,
+    which never gets the decryption key to the plain data.
+
+  \item If the application requests no relational predicate filtering
+    on a column, nothing about the column content leaks.  If the
+    application requests equality checks on a column, \name{}'s proxy
+    reveals which items repeat in that column.  If the application
+    requests order checks on a column, the proxy reveals the order of
+    the elements in the column.  \name{} never reveals the plaintext
+    data to the DBMS server.
+
+\item The DBMS server cannot process queries 
+%(that is, discover new data relations) 
+  different from the ones requested by the application.
+  
+
+
+\end{CompactItemize}
+
+We believe that these confidentiality properties are about as good as
+one can provide in practice with current encryption technologies.
+
+% \hb{maximum -- don't like maximum; is it true?}
+%confidentiality given the class of computations needed at the server
+%to process SQL queries, with the following properties:
+
+
+In \S\ref{s:eval}, we show that all sensitive fields in the tested
+applications remain encrypted with highly-secure encryption schemes, 
+leaking almost nothing about their content, while some 
+semi-sensitive fields benefit from flexible encryption schemes.
+  In addition, \name{}
+allows the developer to optionally specify the lowest security level
+allowed for a column.  For example, the developer may set the social
+security number or credit card field to allow at most equality checks,
+but not reveal order within the column.  The proxy will disallow
+queries that are inconsistent with the specified security setting.
+
+% \nz{This is really more of a safeguard against bugs in applications that
+%     issue queries they did not mean to..  The threat model / security
+%     guarantees remain the same, so we could move this text to design or
+%     implementation.}
+
+% In certain applications, it may be difficult for a programmer to
+% reason about all of the queries issued by the application, making it
+% difficult to reason about the precise privacy guarantees that \name{}
+% will provide in the face of a curious DBA\@.  In this case, \name{}
+% allows the programmer to optionally make a second kind of schema
+% annotation, by specifying the lowest security level allowed for each
+% column.  For example, the programmer may allow equality checks, but
+% may not want to reveal order within the column.  In this case,
+% \name{}'s proxy will not allow the DBMS server to perform inequality
+% checks, and will reject any query that requires such computations.
+
+We protect confidentiality against any arbitrary attack on the
+database, under the assumptions that the attacker does not change
+queries issued by the application, the query results or the data in
+the DBMS, and that the application and proxy are free of compromise.
+For the first condition, we believe most malicious DBAs are more
+likely to attempt to read the data than to dare to change the data or
+the query results because the latter actions are more likely to be
+discovered. In \S\ref{s:related}, we cite related work concerning data
+integrity that could be used in complement with our work.  For the
+second condition, an adversary that modifies query results may be able
+to trick the application into, for example, sending a user's data to
+the wrong email address, when the user asks the application to email
+him a copy of his own data.  Such active attacks on the DBMS fall
+under the second threat model, which we will now discuss.
+
+%We mention a few approaches for mitigating active attacks on the DBMS
+%server in \S\ref{s:related}.
+
+\subsection{Threat 2: Arbitrary Threats}
+\label{ss:arbthreat}
+
+We now describe the second threat where the application server, proxy,
+and DBMS server infrastructures may be compromised arbitrarily.  The
+approach in threat 1 is insufficient because an adversary compromising
+the application server can get access to the keys used to encrypt the
+entire database.
+
+The solution is to encrypt different data items (e.g., data belonging to
+different users) with different keys.  To determine the key that should
+be used for each data item, developers annotate the application's
+database schema to express finer-grained confidentiality policies.
+% \name{} can provide
+%even stronger guarantees, as shown by threat 2 in
+%Figure~\ref{fig:overview}.  
+A curious DBA still cannot obtain private data by snooping on the DBMS
+server (threat 1), but in addition, an adversary who compromises the
+application server or proxy can now decrypt only data encrypted under
+the keys of currently logged-in users (stored in the \name{} proxy).
+Data of currently inactive users would be encrypted with keys not
+available to the adversary, and would remain confidential. 
+
+In this configuration, \name{} provides strong guarantees in the face
+of {\em arbitrary} server-side compromises, including gaining root
+access to the application server. \name{} at most leaks \textit{the
+  data of currently active users for the duration of the
+  compromise}. By ``duration of a compromise'', we mean the interval
+from the start of the compromise until any trace of the compromise has
+been erased from the system.  For a read SQL injection, the duration of
+the compromise is the moment when the attacker's queries get
+executed. In the above example of an adversary changing the email
+address of a user in the database, we consider the system compromised
+as long as the attacker's email address persists in the database.
+
+Guarantees other than confidentiality, such as data integrity, are
+outside of \name's scope, as are attacks on user machines, such as
+cross-site scripting.
+
+%, an appealing property when
+%outsourcing sensitive applications to cloud-computing providers.
+

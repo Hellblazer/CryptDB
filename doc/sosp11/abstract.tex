@@ -1,0 +1,35 @@
+% !TEX root = paper.tex
+
+\begin{abstract}
+
+  Online applications are vulnerable to the theft of sensitive
+  information because adversaries can exploit software bugs to gain
+  access to private data, and because curious or malicious
+  administrators may capture and leak data.  \name is a system that
+  provides practical and provable confidentiality in the face of these
+  attacks for applications backed by SQL databases.  It works by fully
+  {\em executing SQL queries over encrypted data} using a collection of
+  efficient SQL-aware encryption schemes.  \name also {\em
+    chains encryption keys to user passwords}, so that a data item can
+  be decrypted only using the password of one of the users with access
+  to that data.  As a result, even if the adversary compromises all servers,
+  he or she cannot decrypt the data of any user that is not logged in.
+  Our evaluation shows that \name has low overhead: on a real application, phpBB, \name{} reduces throughput by 
+  $13\%$, and on the TPC-C
+  benchmark by $27\%$ compared to regular
+  Postgres.  Chaining encryption keys to user passwords requires
+  $11$--$13$ unique schema annotations for database schemas of three
+  multi-user web applications to capture their policies.
+
+  % Encrypting each user's data with different keys requires XXX lines of
+  % annotations in phpBB (a popular web bulletin board) and XXX lines of
+  % annotations in the HotCRP conference review system.
+
+%   Importantly, \name does not change the innards of existing DBMSs:
+%   we realized the implementation of \name using client-side query
+%   rewriting/encrypting, user-defined functions, and server-side tables
+%   for public key information. As such, \name is portable; porting
+%   \name to MySQL required changing $86$ lines of code, mostly at the
+%   connectivity layer.
+
+\end{abstract}

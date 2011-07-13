@@ -1,0 +1,24 @@
+#!/usr/bin/gnuplot
+
+#set size 1,1
+#"NimbusSanL-Regu" fontfile "uhvr8a.pfb"
+set terminal postscript colour eps enhanced "Helvetica" 25
+
+set output 'results-temp.ps'
+set border
+set pointsize 1.3
+set grid
+
+#set terminal postscript enhanced color
+#set output '| ps2pdf - plot.pdf'
+
+set xlabel "No. of Clients"
+set ylabel "Transactions/sec"
+set pointsize 4
+set key bottom right
+plot   'fig/data.txt' using 1:3 title " Postgres" with linespoints lw 6, 'fig/data.txt' using 1:4 title " CryptDB" with linespoints lw 6 lc rgb "black", 'fig/data.txt' using 1:2 title " Unoptimized CryptDB" with linespoints lw 6
+   
+ 
+system "epstopdf results-temp.ps"
+system "ps2pdf14 -dPDFSETTINGS=/prepress results-temp.pdf fig/trantput.pdf"
+

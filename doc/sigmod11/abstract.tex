@@ -1,0 +1,27 @@
+\begin{abstract}
+
+  \emph{CryptDB} is a DBMS that provides provable and practical
+  privacy in the face of a compromised database server or curious
+  database administrators. CryptDB works by executing SQL queries over
+  encrypted data.  At its core are three novel ideas: an
+  \textit{SQL-aware encryption strategy} that maps SQL operations
+  to encryption schemes, {\em adjustable query-based encryption}
+  which allows CryptDB to adjust the encryption level of each
+  data item based on user queries, and \textit{onion encryption} to
+  efficiently change data encryption levels.
+  \name{} only empowers the server to execute queries that the users
+  requested, and achieves maximum privacy given the mix of queries
+  issued by the users. The database server fully evaluates queries
+  on encrypted data and sends the result back
+  to the client for final decryption; client machines do not perform
+  any query processing and client-side applications run unchanged. Our
+  evaluation shows that CryptDB has modest overhead: on the TPC-C
+  benchmark on Postgres, CryptDB reduces throughput by $\tput$ compared
+  to regular Postgres. Importantly, CryptDB does not change the
+  innards of existing DBMSs: we realized the implementation of CryptDB
+  using client-side query rewriting/encrypting, user-defined
+  functions, and server-side tables for public key information. As
+  such, CryptDB is portable; porting CryptDB to MySQL required
+  changing $86$ lines of code, mostly at the connectivity layer.
+
+\end{abstract}

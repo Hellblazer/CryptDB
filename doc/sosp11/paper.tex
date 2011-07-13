@@ -1,0 +1,92 @@
+\setlength\paperheight{11in}
+\setlength\paperwidth{8.5in}
+
+\documentclass[9pt,twocolumn]{article}
+\usepackage[9pt,inchmargins,nocopyright]{sigmin}
+\usepackage{color,url,graphicx,hyperref,tabularx,colortbl}
+\usepackage{microtype,times,multirow,amsthm,xspace}
+\usepackage[square,comma,numbers,sort&compress]{natbib}
+\usepackage{float}
+\usepackage{framed}
+
+% \clubpenalty=10000
+% \widowpenalty=10000
+
+\setlength\pdfpageheight{\paperheight}
+\setlength\pdfpagewidth{\paperwidth}
+
+\hyphenation{App-Engine php-BB}
+\renewcommand{\ttdefault}{pxtt}
+\newcommand{\name}{CryptDB\@\xspace}
+
+\begin{document}
+
+%\title{\bf \name: Securing Applications by Processing Queries on Encrypted Data}
+%\title{\bf \name: A Practical Encrypted Relational DBMS}
+\title{\bf Data Confidentiality with Encrypted Query Processing in CryptDB}
+\author{Raluca Ada Popa, Catherine M. S. Redfield, Nickolai Zeldovich, and Hari Balakrishnan \\ \{ralucap, cat\_red, nickolai, hari\}@mit.edu}
+\date{}
+
+\newcommand{\RND}{\mathsf{RND}}
+\newcommand{\DET}{\mathsf{DET}}
+\newcommand{\OPE}{\mathsf{OPE}}
+\newcommand{\OPEJOIN}{\mathsf{OPE}\mathrm{-}\mathsf{JOIN}}
+\newcommand{\HOM}{\mathsf{HOM}}
+\newcommand{\JOIN}{\mathsf{JOIN}}
+\newcommand{\SEARCH}{\mathsf{SEARCH}}
+
+\newcommand{\up}{\texttt{UPDATE}}
+\newcommand{\ins}{\texttt{INSERT}}
+\newcommand{\del}{\texttt{DELETE}}
+\newcommand{\sel}{\texttt{SELECT}}
+
+\newcommand{\rap}[1]{\textcolor{blue}{RAP: #1}}
+\newcommand{\hb}[1]{\textcolor{red}{HB: #1}}
+\newcommand{\nz}[1]{\textcolor{magenta}{NZ: #1}}
+\newcommand{\cmsr}[1]{\textcolor{green}{CR: #1}}
+\newcommand{\todo}[1]{\textcolor{red}{#1}}
+
+
+\newcommand{\tput}{27\%}
+\newcommand{\MK}{\mathsf{MK}}
+\newcommand{\SK}{\mathsf{SK}}
+\newcommand{\PK}{\mathsf{PK}}
+\newcommand{\fu}{\mathsf{FUNC}}
+
+\newcommand{\pr}{$\mathsf{Principal}$}
+\newcommand{\encfor}{$\mathsf{EncFor}$}
+\newcommand{\access}{$\mathsf{HasAccessTo}$}
+\newcommand{\gives}{$\mathsf{GivesPsswdTo}$}
+\newcommand{\und}{$\_$}
+
+
+
+\newcommand{\frontend}{frontend} % change to proxy later?
+
+\newtheorem{definition}{Definition}
+\newtheorem{theorem}{Theorem}
+
+\maketitle
+
+\input{abstract}
+\input{intro}
+\input{model}
+\input{design}
+\input{multi}
+\input{app}
+\input{impl} 
+\input{eval}
+\input{related}
+\input{concl}
+\input{acks}
+
+{
+\scriptsize
+\setlength{\bibsep}{3pt}
+\bibliographystyle{abbrv}
+\bibliography{n-str,cryptdb,n,n-conf}
+}
+
+
+
+\end{document}

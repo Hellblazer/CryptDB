@@ -1,0 +1,15 @@
+INCPATH	 := -I. \
+	    -I$(PGPATH)/include \
+	    -I$(PGPATH)/include/postgresql/server \
+	    -I$(PGPATH)/include/server \
+	    -I$(SSLPATH)/include/ \
+	    -I$(GMPPATH) \
+	
+LIBPATH	 := -L. -L$(PGPATH)/lib -L$(SSLPATH)/lib -L$(GMPPATH)
+
+CFLAGS	 := -g -O2 -fno-strict-aliasing -fwrapv -fPIC \
+	   -Wall -Wpointer-arith -Wendif-labels \
+	   -D_GNU_SOURCE $(INCPATH)
+
+  lLIB := -lpq
+  
