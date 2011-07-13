@@ -57,32 +57,30 @@ void CheckResults(EDBClient * cl, vector<string> in, vector<ResType> out) {
 }
 
 void testCreateDrop(EDBClient * cl) {
-  cl->plain_execute("DROP TABLE IF EXISTS table0");
+  cl->plain_execute("DROP TABLE IF EXISTS table0, table1, table2, table3");
   string sql = "CREATE TABLE t1 (id integer, words text)";
-  cerr << sql << endl;
   assert_s(cl->execute(getCStr(sql)), "Problem creating table t1 (first time)");
-  cerr << sql << endl;
-  assert_s(cl->plain_execute("SELECT * FROM t1"), "t1 (first time) was not created properly");
+  assert_s(cl->plain_execute("SELECT * FROM table0"), "t1 (first time) was not created properly");
 
   cerr << sql << endl;
   sql = "CREATE TABLE t2 (id enc integer, other_id integer, words enc text, other_words text)";
   assert_s(cl->execute(getCStr(sql)), "Problem creating table t2 (first time)");
-  assert_s(cl->plain_execute("SELECT * FROM table0"), "t2 (first time) was not created properly");
+  assert_s(cl->plain_execute("SELECT * FROM table1"), "t2 (first time) was not created properly");
 
   sql = "DROP TABLE t1";
   assert_s(cl->execute(getCStr(sql)), "Problem dropping t1");
-  assert_s(!cl->plain_execute("SELECT * FROM t1"), "t1 not dropped");
+  assert_s(!cl->plain_execute("SELECT * FROM table0"), "t1 not dropped");
   sql = "DROP TABLE t2";
   assert_s(cl->execute(getCStr(sql)), "Problem dropping t2");
-  assert_s(!cl->plain_execute("SELECT * FROM table0"), "t2 not dropped");
+  assert_s(!cl->plain_execute("SELECT * FROM table1"), "t2 not dropped");
 
   sql = "CREATE TABLE t1 (id integer, words text)";
   assert_s(cl->execute(getCStr(sql)), "Problem creating table t1 (second time)");
-  assert_s(cl->plain_execute("SELECT * FROM t1"), "t1 (second time) was not created properly");
+  assert_s(cl->plain_execute("SELECT * FROM table2"), "t1 (second time) was not created properly");
 
   sql = "CREATE TABLE t2 (id enc integer, other_id integer, words enc text, other_words text)";
   assert_s(cl->execute(getCStr(sql)), "Problem creating table t2 (second time)");
-  assert_s(cl->plain_execute("SELECT * FROM table0"), "t2 (second time) was not created properly");
+  assert_s(cl->plain_execute("SELECT * FROM table3"), "t2 (second time) was not created properly");
   
   assert_s(cl->execute("DROP TABLE t1"), "testSelectDrop won't drop t1");
   assert_s(cl->execute("DROP TABLE t2"), "testSelectDrop won't drop t2");
@@ -90,18 +88,18 @@ void testCreateDrop(EDBClient * cl) {
 
 //assumes Select is working
 void testInsert(EDBClient * cl) {
-  assert_s(cl->plain_execute("DROP TABLE IF EXIST table0"), "testInsert could not drop table0 if exists");
+  cl->plain_execute("DROP TABLE IF EXISTS table0, table1, table2, table3, table4");
   assert_s(cl->execute("CREATE TABLE t1 (id integer, age enc integer, salary enc integer, address enc text, name text)"), "testInsert could not create table");
 
   vector<string> tests;
   vector<string> results;
 
-  tests.push_back("INSERT INTO t1 VALUES (1, 21, 100, '24 Rosedale, Toronto, ONT', 'Pat Carlson'");
-  tests.push_back("INSERT INTO t1 (id, age, salary, addesss, name) VALUES (1, 21, 100, '24 Rosedale, Toronto, ONT', 'Pat Carlson'");
-  tests.push_back("INSERT INTO t1 (age, addess, salary, name, id) VALUES (21, '24 Rosedale, Toronto, ONT', 100, 'Pat Carlson', 1");
+  tests.push_back("INSERT INTO t1 VALUES (1, 21, 100, '24 Rosedale, Toronto, ONT', 'Pat Carlson')");
+  tests.push_back("INSERT INTO t1 (id, age, salary, address, name) VALUES (1, 21, 100, '24 Rosedale, Toronto, ONT', 'Pat Carlson')");
+  tests.push_back("INSERT INTO t1 (age, address, salary, name, id) VALUES (21, '24 Rosedale, Toronto, ONT', 100, 'Pat Carlson', 1)");
   tests.push_back("INSERT INTO t1 (id) VALUES (5)");
   tests.push_back("INSERT INTO t1 (age) VALUES (40)");
-  tests.push_back("INSERT INTO t1 (addess) VALUES ('right star to the right')");
+  tests.push_back("INSERT INTO t1 (address) VALUES ('right star to the right')");
   tests.push_back("INSERT INTO t1 (name) VALUES ('Wendy')");
   tests.push_back("INSERT INTO t1 (name, address, id, age) VALUES ('Peter Pan', 'second star to the right and straight on till morning', 42, 10)");
 
@@ -115,7 +113,8 @@ void testInsert(EDBClient * cl) {
 
 //assumes Insert is working
 void testSelect(EDBClient * cl) {
-  assert_s(cl->execute("CREATE TABLE t1 (id integer, age enc integer, salary en integer, address enc text, name text"), "testSelect couldn't create table");
+  cl->plain_execute("DROP TABLE IF EXISTS table0, table1, table2, table3, table4, table5");
+  assert_s(cl->execute("CREATE TABLE t1 (id integer, age enc integer, salary enc integer, address enc text, name text)"), "testSelect couldn't create table");
   assert_s(cl->execute("INSERT INTO t1 VALUES (1, 10, 0, 'first star to the right and straight on till morning', 'Peter Pan')"), "testSelect couldn't insert (1)");
   assert_s(cl->execute("INSERT INTO t1 VALUES (2, 16, 1000, 'Green Gables, 'Anne Shirley')"), "testSelect couldn't insert (2)");
   assert_s(cl->execute("INSERT INTO t1 VALUES (3, 8, 0, 'London', 'Lucy')"), "testSelect couldn't insert (3)");
@@ -265,7 +264,6 @@ void TestSinglePrinc::run(int argc, char ** argv) {
 	unsigned char * masterKey = BytesFromInt(mkey, AES_KEY_BYTES);
 	cl = new EDBClient("localhost", "root", "letmein", "mysql", masterKey);
 
-	assert_s(!cl->plain_execute("SELECT * FROM t1"), "You already have the table mysql.t1.  Please DROP or rename the table to continue.");
 	assert_s(MULTIPRINC == 0, "MULTIPRINC is on.  Please set it to 0 (in params.h)");
 
 	testCreateDrop(cl);
