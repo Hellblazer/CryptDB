@@ -55,8 +55,6 @@ cerr << "trying to drop\n";
 }
 
 void createAll(Connect * conn, CryptoManager * cm) {
-#if MYSQL_S
-
 	myassert(conn->execute("CREATE FUNCTION decrypt_int_sem RETURNS INTEGER SONAME 'edb.so'; "),"failed to create udf decrypt_int_sem ");
 	myassert(conn->execute("CREATE FUNCTION decrypt_int_det RETURNS INTEGER SONAME 'edb.so'; "),"failed to create udf decrypt_int_det");
 	myassert(conn->execute("CREATE FUNCTION encrypt_int_det RETURNS INTEGER SONAME 'edb.so'; "),"failed to create udf encrypt_int_det");
@@ -65,17 +63,16 @@ void createAll(Connect * conn, CryptoManager * cm) {
 	myassert(conn->execute("CREATE AGGREGATE FUNCTION agg RETURNS STRING SONAME 'edb.so'; "),"failed to create udf agg");
 	myassert(conn->execute("CREATE FUNCTION func_add_set RETURNS STRING SONAME 'edb.so'; "),"failed to create udf func_add_set");
 
-#else
-
+	/* old Postgres statements: */
+	/*
 	assert(conn->execute(
-	   "CREATE FUNCTION " DECRYPT_int_sem  " RETURNS bigint  AS " F_PATH " LANGUAGE C; \n "
-	        "CREATE FUNCTION " DECRYPT_int_det  " RETURNS bigint  AS " F_PATH " LANGUAGE C; \n "
-	        "CREATE FUNCTION " DECRYPT_text_sem " RETURNS bytea   AS " F_PATH " LANGUAGE C; \n "
-	        "CREATE FUNCTION " SEARCH           " RETURNS bool    AS " F_PATH " LANGUAGE C; \n "
-	        " CREATE FUNCTION " FUNC_ADD         " RETURNS bytea AS " F_PATH " LANGUAGE C STRICT; \n" //add immutable keywords here?
-	        "CREATE FUNCTION " FUNC_ADD_FINAL " RETURNS bytea AS " F_PATH " LANGUAGE C STRICT; \n "
-	        "CREATE FUNCTION " FUNC_ADD_SET   "RETURNS bytea AS " F_PATH " LANGUAGE C STRICT; \n", "cannot create udfs ");
-
+		"CREATE FUNCTION " DECRYPT_int_sem  " RETURNS bigint  AS " F_PATH " LANGUAGE C; \n"
+	        "CREATE FUNCTION " DECRYPT_int_det  " RETURNS bigint  AS " F_PATH " LANGUAGE C; \n"
+	        "CREATE FUNCTION " DECRYPT_text_sem " RETURNS bytea   AS " F_PATH " LANGUAGE C; \n"
+	        "CREATE FUNCTION " SEARCH           " RETURNS bool    AS " F_PATH " LANGUAGE C; \n"
+	        "CREATE FUNCTION " FUNC_ADD         " RETURNS bytea   AS " F_PATH " LANGUAGE C STRICT; \n"
+	        "CREATE FUNCTION " FUNC_ADD_FINAL   " RETURNS bytea   AS " F_PATH " LANGUAGE C STRICT; \n"
+	        "CREATE FUNCTION " FUNC_ADD_SET     " RETURNS bytea   AS " F_PATH " LANGUAGE C STRICT; \n", "cannot create udfs ");
 
 	string createSumAgg = " CREATE AGGREGATE agg_sum ( basetype = bytea, sfunc = func_add, finalfunc = func_add_final,  stype = bytea, initcond = " + initcond(cm) + ");";
 
@@ -83,9 +80,7 @@ void createAll(Connect * conn, CryptoManager * cm) {
 		cerr << "cannot create aggregation function \n";
 		exit(1);
 	}
-
-#endif
-
+	*/
 }
 
 /*
