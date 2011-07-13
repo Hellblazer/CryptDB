@@ -532,7 +532,7 @@ string marshallVal(unsigned int x, unsigned int digits) {
 	return res;
 }
 
-string marshallVal(unsigned int x) {
+string marshallVal(uint32_t x) {
 
 	int32_t xx = (int32_t) x;
 	string res = "";

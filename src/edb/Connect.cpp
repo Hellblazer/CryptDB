@@ -106,7 +106,7 @@ bool mysql_isBinary(enum_field_types t, int charsetnr) {
 }
 
 string Connect::last_insert_id() {
-	return marshallVal(mysql_insert_id(conn));
+	return marshallVal((uint64_t) mysql_insert_id(conn));
 }
 //returns the data in the last server response
 //TODO: to optimize return pointer to avoid overcopying large result sets?

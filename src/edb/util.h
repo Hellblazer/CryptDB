@@ -415,7 +415,7 @@ list<int> makeList(int val1, int val2);
 
 //returns a Postgres bigint representation in string form for x
 string marshallVal(uint64_t x);
-string marshallVal(unsigned int x);
+string marshallVal(uint32_t x);
 //returns x written on digits, with most significant first
 //if x needs more space than digits, the exact value of x will be returned
 string marshallVal(unsigned int x, unsigned int digits);

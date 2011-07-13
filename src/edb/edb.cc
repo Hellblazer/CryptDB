@@ -41,7 +41,7 @@ typedef long long longlong;
 
 }
 
-#include "../EDB/CryptoManager.h" /* various functions for EDB */
+#include "CryptoManager.h" /* various functions for EDB */
 
 
 extern "C" {
