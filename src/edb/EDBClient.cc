@@ -2932,12 +2932,22 @@ ResType * EDBClient::execute(const char * query, DBResult *  rets) {
 	   // cerr << "sending <" << *queryIt << "> \n";
 		DBResult * reply;
 		reply = NULL;
+
+		struct timeval t0, t1;
+		if (VERBOSE)
+			gettimeofday(&t0, 0);
+
 		if (!conn->execute(*queryIt, reply)) {
 			cerr << "query " << *queryIt << "failed \n";
 			return NULL;
 		}
 
-
+		if (VERBOSE) {
+			gettimeofday(&t1, 0);
+			uint64_t us = t1.tv_usec - t0.tv_usec +
+				      (t1.tv_sec - t0.tv_sec) * 1000000;
+			cerr << "query latency: " << us << " usec" << endl;
+		}
 
 		if (counter < noQueries) {
 
