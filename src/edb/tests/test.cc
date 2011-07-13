@@ -522,23 +522,21 @@ void interactiveTest() {
 	EDBClient * cl = new EDBClient(host, user, pwd, db, masterKey);
 	cl->VERBOSE = true;
 
-
-	cout << "CryptDB=# ";
 	streamsize len = 100;
 	char * command = new char[len];
-	//cin.getline(command, len);
-	//string commandS = string(command);
-	string commandS = "debug;";
 
-	while (commandS.compare("\\q") != 0) {
+	for (;;) {
 
-		if (commandS.size() <= 1) {
-			cout << "CryptDB=# ";
-			cin.getline(command, len);
-			commandS = string(command);
-		}
+		cout << "CryptDB=# ";
+		cin.getline(command, len);
+		if (cin.eof())
+			break;
 
-		if (commandS.compare("load cryptapp") == 0) {
+		string commandS = string(command);
+
+		if (commandS.compare("\\q") == 0) {
+			break;
+		} else if (commandS.compare("load cryptapp") == 0) {
 			cl->execute("CREATE TABLE users (id integer accessto uname, uname text givespsswd); ");
 			cl->execute("CREATE TABLE info (id integer equals users.id , creditcard integer encfor id); ");
 			cl->execute("INSERT INTO activeusers VALUES ('alice', 'secretA');");
@@ -553,249 +551,216 @@ void interactiveTest() {
 			cl->execute("INSERT INTO info VALUES (2, 222);");
 			cl->execute("INSERT INTO info VALUES (3, 333);");
 			cl->execute("INSERT INTO info VALUES (4, 444);");
+		} else if (commandS.compare("load people;") == 0) {
+			int noInserts = 15;
+			for (int i = 0; i < noInserts; i++) {
+				unsigned int val1 = rand() % 10;
+				unsigned int val2 = rand() % 10;
+				string qq = "INSERT INTO people VALUES ( " + marshallVal(val1) + ", " + marshallVal(val2) + ");";
+				cl->execute(getCStr(qq));
+			}
+		} else if (commandS.compare("load all emp;") == 0) {
+			cl->execute("CREATE TABLE emp (id integer, jobid integer);");
 
-		} else
+			int noInserts = 20;
+			for (int i = 0; i < noInserts; i++) {
+				unsigned int val1 = rand() % 10;
+				unsigned int val2 = rand() % 10;
+				string qq = "INSERT INTO emp VALUES ( " + marshallVal(val1) + ", " + marshallVal(val2) + ");";
+				cl->execute(getCStr(qq));
+			}
+		} else if (commandS.find("login") == 0) {
+			list<string> words = parse(getCStr(commandS), delimsStay, delimsGo, keepIntact);
+			list<string>::iterator wordsIt = words.begin();
+			wordsIt++;
+			string uname = getVal(wordsIt);
+			string p = getVal(wordsIt);
+			string query = "INSERT INTO activeusers VALUES ('" + uname + "' , '" + p + "' );" + '\0';
+			cl->execute(getCStr(query));
+		} else if (commandS.find("logout") == 0) {
+			list<string> words = parse(getCStr(commandS), delimsStay, delimsGo, keepIntact);
+			list<string>::iterator wordsIt = words.begin();
+			wordsIt++;
+			string uname = getVal(wordsIt);
+			string query = "DELETE FROM activeusers WHERE uname = '" + uname + "';" + '\0';
+			cl->execute(getCStr(query));
+		} else if (commandS.compare("debug;") == 0) {
+			//assert_s(cl->execute(), "failed");
 
-			if (commandS.compare("load people;") == 0) {
-				int noInserts = 15;
-				for (int i = 0; i < noInserts; i++) {
-					unsigned int val1 = rand() % 10;
-					unsigned int val2 = rand() % 10;
-					string qq = "INSERT INTO people VALUES ( " + marshallVal(val1) + ", " + marshallVal(val2) + ");";
-					cl->execute(getCStr(qq));
-				}
-			} else
+			//debugging of DECRYPTFIRST mode
 
-				if (commandS.compare("load all emp;") == 0) {
-					cl->execute("CREATE TABLE emp (id integer, jobid integer);");
-
-					int noInserts = 20;
-					for (int i = 0; i < noInserts; i++) {
-						unsigned int val1 = rand() % 10;
-						unsigned int val2 = rand() % 10;
-						string qq = "INSERT INTO emp VALUES ( " + marshallVal(val1) + ", " + marshallVal(val2) + ");";
-						cl->execute(getCStr(qq));
-					}
-
-
-				}
-
-				else {
-					if (commandS.find("login") == 0) {
-						list<string> words = parse(getCStr(commandS), delimsStay, delimsGo, keepIntact);
-						list<string>::iterator wordsIt = words.begin();
-						wordsIt++;
-						string uname = getVal(wordsIt);
-						string p = getVal(wordsIt);
-						string query = "INSERT INTO activeusers VALUES ('" + uname + "' , '" + p + "' );" + '\0';
-						cl->execute(getCStr(query));
-
-					} else
-
-						if (commandS.find("logout") == 0) {
-							list<string> words = parse(getCStr(commandS), delimsStay, delimsGo, keepIntact);
-							list<string>::iterator wordsIt = words.begin();
-							wordsIt++;
-							string uname = getVal(wordsIt);
-							string query = "DELETE FROM activeusers WHERE uname = '" + uname + "';" + '\0';
-							cl->execute(getCStr(query));
-						}
-						else
-							if (commandS.compare("debug;") == 0) {
-
-								//assert_s(cl->execute(), "failed");
-
-								//debugging of DECRYPTFIRST mode
-
-								//cl->plain_execute("DROP TABLE IF EXISTS hi;");
-								//assert_s(cl->execute("CREATE TABLE hi (id enc integer, name text);"), "failed");
-								//	assert_s(cl->execute("INSERT INTO hi VALUES (3, '5');"), "failed");
-								//	assert_s(cl->execute("SELECT * FROM hi;"), "failed");
-								//	assert_s(cl->execute("SELECT id, name AS n FROM hi WHERE id = 3;"), "failed");
-								//	assert_s(cl->execute("SELECT * FROM hi WHERE id > 2;"), "failed");
-								//assert_s(cl->execute("SELECT * FROM hi;"), "failed");
+			//cl->plain_execute("DROP TABLE IF EXISTS hi;");
+			//assert_s(cl->execute("CREATE TABLE hi (id enc integer, name text);"), "failed");
+			//	assert_s(cl->execute("INSERT INTO hi VALUES (3, '5');"), "failed");
+			//	assert_s(cl->execute("SELECT * FROM hi;"), "failed");
+			//	assert_s(cl->execute("SELECT id, name AS n FROM hi WHERE id = 3;"), "failed");
+			//	assert_s(cl->execute("SELECT * FROM hi WHERE id > 2;"), "failed");
+			//assert_s(cl->execute("SELECT * FROM hi;"), "failed");
 
 
-								//GENERAL MULTI-KEY DEBUGGING
+			//GENERAL MULTI-KEY DEBUGGING
 
-								 /*
-								cl->plain_execute("DROP TABLE IF EXISTS t1, users, pwdcryptdb__users, cryptdb_public, cryptdb_active0;");
-								assert_s(cl->execute("CREATE TABLE t1 (id integer, post encfor id det text, age encfor id ope bigint);"), "failed");
-								assert_s(cl->execute("CREATE TABLE users (id equals t1.id integer, username givespsswd id text);"), "failed");
-								assert_s(cl->execute("COMMIT ANNOTATIONS;"), "issue when creating tables");
-								assert_s(cl->execute((string("INSERT INTO ") + PWD_TABLE_PREFIX + "users (username, psswd) VALUES ('alice', 'secretalice');").c_str()), "failed to log in user");
-								assert_s(cl->execute((string("DELETE FROM ") + PWD_TABLE_PREFIX + "users  WHERE username = 'alice';").c_str()), "failed to logout user");
-								assert_s(cl->execute((string("INSERT INTO ") + PWD_TABLE_PREFIX + "users (username, psswd) VALUES ('alice', 'secretalice');").c_str()), "failed to log in user");
-								assert_s(cl->execute("INSERT INTO users VALUES (1, 'alice');"), "failed to add alice in users table");
-								assert_s(cl->execute("INSERT INTO t1 VALUES (1, 'there you go', 23);"), "failed to insert");
-								assert_s(cl->execute("SELECT * FROM t1;"), "failed");
+			 /*
+			cl->plain_execute("DROP TABLE IF EXISTS t1, users, pwdcryptdb__users, cryptdb_public, cryptdb_active0;");
+			assert_s(cl->execute("CREATE TABLE t1 (id integer, post encfor id det text, age encfor id ope bigint);"), "failed");
+			assert_s(cl->execute("CREATE TABLE users (id equals t1.id integer, username givespsswd id text);"), "failed");
+			assert_s(cl->execute("COMMIT ANNOTATIONS;"), "issue when creating tables");
+			assert_s(cl->execute((string("INSERT INTO ") + PWD_TABLE_PREFIX + "users (username, psswd) VALUES ('alice', 'secretalice');").c_str()), "failed to log in user");
+			assert_s(cl->execute((string("DELETE FROM ") + PWD_TABLE_PREFIX + "users  WHERE username = 'alice';").c_str()), "failed to logout user");
+			assert_s(cl->execute((string("INSERT INTO ") + PWD_TABLE_PREFIX + "users (username, psswd) VALUES ('alice', 'secretalice');").c_str()), "failed to log in user");
+			assert_s(cl->execute("INSERT INTO users VALUES (1, 'alice');"), "failed to add alice in users table");
+			assert_s(cl->execute("INSERT INTO t1 VALUES (1, 'there you go', 23);"), "failed to insert");
+			assert_s(cl->execute("SELECT * FROM t1;"), "failed");
 
-								assert_s(cl->execute("SELECT post FROM t1 WHERE id = 1 AND age = 23;"), "failed");
-								assert_s(cl->execute("UPDATE t1 SET post = 'hello!' WHERE age > 22 AND id = 1;"), "failed");
-								assert_s(cl->execute((string("INSERT INTO ") + PWD_TABLE_PREFIX + "users (username, psswd) VALUES ('raluca', 'secretraluca');").c_str()), "failed to log in user");
-								assert_s(cl->execute("INSERT INTO users VALUES (2, 'raluca');"), "failed");
-								assert_s(cl->execute("INSERT INTO t1 VALUES (2, 'my text', 5);"), "failed");
-								*/
-
-
-								//PRIVATE MESSAGES EXAMPLE
-								cl->plain_execute("DROP TABLE IF EXISTS users, msgs, privmsg;");
-								assert_s(cl->execute("CREATE TABLE msgs (msgid equals privmsg.msgid integer, msgtext encfor msgid text);"), "failed");
-								assert_s(cl->execute("CREATE TABLE privmsg (msgid integer, recid equals users.userid hasaccessto msgid integer, senderid hasaccessto msgid integer);"), "failed");
-								assert_s(cl->execute("CREATE TABLE users (userid equals privmsg.senderid integer, username givespsswd userid text);"), "failed");
-								assert_s(cl->execute("COMMIT ANNOTATIONS;"), "issue when creating tables");
-								assert_s(cl->execute((string("INSERT INTO ") + PWD_TABLE_PREFIX + "users (username, psswd) VALUES ('alice', 'secretalice');").c_str()), "failed to log in user");
-								assert_s(cl->execute((string("INSERT INTO ") + PWD_TABLE_PREFIX + "users (username, psswd) VALUES ('bob', 'secretbob');").c_str()), "failed to log in user");
-								assert_s(cl->execute("INSERT INTO users VALUES (1, 'alice');"), "failed");
-								assert_s(cl->execute("INSERT INTO users VALUES (2, 'bob');"), "failed");
-								assert_s(cl->execute("INSERT INTO privmsg (msgid, recid, senderid) VALUES (9, 1, 2);"), "failed to send msg");
-								assert_s(cl->execute("INSERT INTO msgs  VALUES (1, 'hello world');"), "failed to insert msg");
-								assert_s(cl->execute("SELECT msgtext from msgs WHERE msgid = 1;"), "failed");
-								assert_s(cl->execute("SELECT msgtext from msgs, privmsg, users WHERE username = 'alice' AND userid = recid AND msgs.msgid = privmsg.msgid;"), "failed");
-
-								//private messages without orphans
-								/* cl->plain_execute("DROP TABLE IF EXISTS users, msgs, privmsg;");
-								assert_s(cl->execute("CREATE TABLE msgs (msgid equals privmsg.msgid integer, msgtext encfor msgid text);"), "failed");
-								assert_s(cl->execute("CREATE TABLE privmsg (msgid integer, recid equals users.userid hasaccessto msgid integer, senderid hasaccessto msgid integer);"), "failed");
-								assert_s(cl->execute("CREATE TABLE users (userid equals privmsg.senderid integer, username givespsswd userid text);"), "failed");
-								assert_s(cl->execute("COMMIT ANNOTATIONS;"), "issue when creating tables");
-								assert_s(cl->execute((string("INSERT INTO ") + PWD_TABLE_PREFIX + "users (username, psswd) VALUES ('alice', 'secretalice');").c_str()), "failed to log in user");
-								assert_s(cl->execute((string("INSERT INTO ") + PWD_TABLE_PREFIX + "users (username, psswd) VALUES ('bob', 'secretbob');").c_str()), "failed to log in user");
-								assert_s(cl->execute("INSERT INTO users VALUES (1, 'alice');"), "failed");
-								assert_s(cl->execute("INSERT INTO users VALUES (2, 'bob');"), "failed");
-								assert_s(cl->execute("INSERT INTO privmsg (msgid, recid, senderid) VALUES (1, 1, 2);"), "failed to send msg");
-								assert_s(cl->execute("INSERT INTO msgs  VALUES (1, 'hello world');"), "failed to insert msg");
-								assert_s(cl->execute("SELECT msgtext from msgs WHERE msgid = 1;"), "failed");
-								assert_s(cl->execute("SELECT msgtext from msgs, privmsg, users WHERE username = 'alice' AND userid = recid AND msgs.msgid = privmsg.msgid;"), "failed");
-								*/
-
-								//USERID, GROUP, FORUM, SQL PRED EXAMPLE
-								//					cl->plain_execute("DROP TABLE IF EXISTS users, usergroup, groupforum, forum;");
-								//					assert_s(cl->execute("CREATE TABLE users (userid integer, username givespsswd userid text);"), "failed");
-								//					assert_s(cl->execute("CREATE TABLE usergroup (userid equals users.userid hasaccessto groupid integer, groupid integer);"), "failed");
-								//					assert_s(cl->execute("CREATE TABLE groupforum (forumid equals forum.forumid integer, groupid equals usergroup.groupid hasaccessto forumid if test(optionid) integer, optionid integer);"), "failed");
-								//					assert_s(cl->execute("CREATE TABLE forum (forumid integer, forumtext encfor forumid text);"), "failed");
-								//					assert_s(cl->plain_execute("DROP FUNCTION IF EXISTS test;"), "failed");
-								//					assert_s(cl->plain_execute("CREATE FUNCTION test (optionid integer) RETURNS bool RETURN optionid=20;"), "failed");
-								//
-								//					//Alice is in group 1, Bob in group 2 and Chris is in group 1 and group 2
-								//					//group 1 can see the forum text, group 2 cannot
-								//					assert_s(cl->execute("INSERT INTO "psswdtable" VALUES ('alice', 'secretalice');"), "failed to log in user");
-								//					assert_s(cl->execute("INSERT INTO "psswdtable" VALUES ('bob', 'secretbob');"), "failed to log in user");
-								//					assert_s(cl->execute("INSERT INTO "psswdtable" VALUES ('chris', 'secretbob');"), "failed to log in user");
-								//
-								//					assert_s(cl->execute("INSERT INTO users (username) VALUES ('alice');"), "failed");
-								//					assert_s(cl->execute("INSERT INTO users (username) VALUES ('bob');"), "failed");
-								//					assert_s(cl->execute("INSERT INTO users (username) VALUES ('chris');"), "failed");
-								//
-								//					assert_s(cl->execute("INSERT INTO usergroup VALUES (1, 1);"), "failed");
-								//					assert_s(cl->execute("INSERT INTO usergroup VALUES (2, 2);"), "failed");
-								//					assert_s(cl->execute("INSERT INTO usergroup VALUES (3, 1);"), "failed");
-								//					assert_s(cl->execute("INSERT INTO usergroup VALUES (3, 2);"), "failed");
-								//
-								//
-								//					assert_s(cl->execute("INSERT INTO groupforum VALUES (1, 1, 14);"), "failed");
-								//					assert_s(cl->execute("INSERT INTO groupforum VALUES (1, 1, 20);"), "failed");
-								//					assert_s(cl->execute("INSERT INTO groupforum VALUES (1, 2, 2);"), "failed");
-								//					assert_s(cl->execute("INSERT INTO groupforum VALUES (1, 2, 0);"), "failed");
-								//
-								//					assert_s(cl->execute("INSERT INTO forum (forumtext) VALUES ('success--you can see forum text');"), "failed");
-								//
-								//					//all users log out, then each log in to have their permissions tested
-								//					assert_s(cl->execute("DELETE FROM "psswdtable" WHERE  username = 'alice';"), "failed");
-								//					assert_s(cl->execute("DELETE FROM "psswdtable" WHERE  username = 'bob';"), "failed");
-								//					assert_s(cl->execute("DELETE FROM "psswdtable" WHERE  username = 'chris';"), "failed");
-								//
-								//
-								//					assert_s(cl->execute("INSERT INTO "psswdtable" VALUES ('alice', 'secretalice');"), "failed to log in user");
-								//
-								//					assert_s(cl->execute("SELECT forumtext from forum  WHERE forumid  = 1;"), "Alice should succeed");
-								//
-								//					assert_s(cl->execute("DELETE FROM "psswdtable" WHERE  username = 'alice';"), "failed");
-								//					assert_s(cl->execute("INSERT INTO "psswdtable" VALUES ('bob', 'secretbob');"), "failed to log in user");
-								//
-								//					assert_s(cl->execute("DELETE FROM "psswdtable" WHERE  username = 'bob';"), "failed");
-								//					assert_s(cl->execute("INSERT INTO "psswdtable" VALUES ('chris', 'secretchris');"), "failed to log in user");
-								//
-								//					assert_s(cl->execute("SELECT forumtext from forum  WHERE forumid  = 1;"), "chris should succeed");
-
-								//					cout << "CryptDB=# ";
-								//					cin.getline(command, len);
-								//				    commandS = string(command);
+			assert_s(cl->execute("SELECT post FROM t1 WHERE id = 1 AND age = 23;"), "failed");
+			assert_s(cl->execute("UPDATE t1 SET post = 'hello!' WHERE age > 22 AND id = 1;"), "failed");
+			assert_s(cl->execute((string("INSERT INTO ") + PWD_TABLE_PREFIX + "users (username, psswd) VALUES ('raluca', 'secretraluca');").c_str()), "failed to log in user");
+			assert_s(cl->execute("INSERT INTO users VALUES (2, 'raluca');"), "failed");
+			assert_s(cl->execute("INSERT INTO t1 VALUES (2, 'my text', 5);"), "failed");
+			*/
 
 
-								//multi-key debugging
+			//PRIVATE MESSAGES EXAMPLE
+			cl->plain_execute("DROP TABLE IF EXISTS users, msgs, privmsg;");
+			assert_s(cl->execute("CREATE TABLE msgs (msgid equals privmsg.msgid integer, msgtext encfor msgid text);"), "failed");
+			assert_s(cl->execute("CREATE TABLE privmsg (msgid integer, recid equals users.userid hasaccessto msgid integer, senderid hasaccessto msgid integer);"), "failed");
+			assert_s(cl->execute("CREATE TABLE users (userid equals privmsg.senderid integer, username givespsswd userid text);"), "failed");
+			assert_s(cl->execute("COMMIT ANNOTATIONS;"), "issue when creating tables");
+			assert_s(cl->execute((string("INSERT INTO ") + PWD_TABLE_PREFIX + "users (username, psswd) VALUES ('alice', 'secretalice');").c_str()), "failed to log in user");
+			assert_s(cl->execute((string("INSERT INTO ") + PWD_TABLE_PREFIX + "users (username, psswd) VALUES ('bob', 'secretbob');").c_str()), "failed to log in user");
+			assert_s(cl->execute("INSERT INTO users VALUES (1, 'alice');"), "failed");
+			assert_s(cl->execute("INSERT INTO users VALUES (2, 'bob');"), "failed");
+			assert_s(cl->execute("INSERT INTO privmsg (msgid, recid, senderid) VALUES (9, 1, 2);"), "failed to send msg");
+			assert_s(cl->execute("INSERT INTO msgs  VALUES (1, 'hello world');"), "failed to insert msg");
+			assert_s(cl->execute("SELECT msgtext from msgs WHERE msgid = 1;"), "failed");
+			assert_s(cl->execute("SELECT msgtext from msgs, privmsg, users WHERE username = 'alice' AND userid = recid AND msgs.msgid = privmsg.msgid;"), "failed");
 
-								/*	cl->plain_execute("DROP TABLE IF EXISTS hi, try, bye;");
-				//some single key debugging
-				assert_s(cl->execute("CREATE TABLE hi (id integer, age enc integer, name enc text);"), "q failed");
-				assert_s(cl->execute("INSERT INTO hi VALUES (3, 9, 'raluca');"), "q failed");
-				assert_s(cl->execute("SELECT * FROM hi WHERE id = 4;"), "q failed");
+			//private messages without orphans
+			/* cl->plain_execute("DROP TABLE IF EXISTS users, msgs, privmsg;");
+			assert_s(cl->execute("CREATE TABLE msgs (msgid equals privmsg.msgid integer, msgtext encfor msgid text);"), "failed");
+			assert_s(cl->execute("CREATE TABLE privmsg (msgid integer, recid equals users.userid hasaccessto msgid integer, senderid hasaccessto msgid integer);"), "failed");
+			assert_s(cl->execute("CREATE TABLE users (userid equals privmsg.senderid integer, username givespsswd userid text);"), "failed");
+			assert_s(cl->execute("COMMIT ANNOTATIONS;"), "issue when creating tables");
+			assert_s(cl->execute((string("INSERT INTO ") + PWD_TABLE_PREFIX + "users (username, psswd) VALUES ('alice', 'secretalice');").c_str()), "failed to log in user");
+			assert_s(cl->execute((string("INSERT INTO ") + PWD_TABLE_PREFIX + "users (username, psswd) VALUES ('bob', 'secretbob');").c_str()), "failed to log in user");
+			assert_s(cl->execute("INSERT INTO users VALUES (1, 'alice');"), "failed");
+			assert_s(cl->execute("INSERT INTO users VALUES (2, 'bob');"), "failed");
+			assert_s(cl->execute("INSERT INTO privmsg (msgid, recid, senderid) VALUES (1, 1, 2);"), "failed to send msg");
+			assert_s(cl->execute("INSERT INTO msgs  VALUES (1, 'hello world');"), "failed to insert msg");
+			assert_s(cl->execute("SELECT msgtext from msgs WHERE msgid = 1;"), "failed");
+			assert_s(cl->execute("SELECT msgtext from msgs, privmsg, users WHERE username = 'alice' AND userid = recid AND msgs.msgid = privmsg.msgid;"), "failed");
+			*/
+
+			//USERID, GROUP, FORUM, SQL PRED EXAMPLE
+			//	cl->plain_execute("DROP TABLE IF EXISTS users, usergroup, groupforum, forum;");
+			//	assert_s(cl->execute("CREATE TABLE users (userid integer, username givespsswd userid text);"), "failed");
+			//	assert_s(cl->execute("CREATE TABLE usergroup (userid equals users.userid hasaccessto groupid integer, groupid integer);"), "failed");
+			//	assert_s(cl->execute("CREATE TABLE groupforum (forumid equals forum.forumid integer, groupid equals usergroup.groupid hasaccessto forumid if test(optionid) integer, optionid integer);"), "failed");
+			//	assert_s(cl->execute("CREATE TABLE forum (forumid integer, forumtext encfor forumid text);"), "failed");
+			//	assert_s(cl->plain_execute("DROP FUNCTION IF EXISTS test;"), "failed");
+			//	assert_s(cl->plain_execute("CREATE FUNCTION test (optionid integer) RETURNS bool RETURN optionid=20;"), "failed");
+			//
+			//	//Alice is in group 1, Bob in group 2 and Chris is in group 1 and group 2
+			//	//group 1 can see the forum text, group 2 cannot
+			//	assert_s(cl->execute("INSERT INTO "psswdtable" VALUES ('alice', 'secretalice');"), "failed to log in user");
+			//	assert_s(cl->execute("INSERT INTO "psswdtable" VALUES ('bob', 'secretbob');"), "failed to log in user");
+			//	assert_s(cl->execute("INSERT INTO "psswdtable" VALUES ('chris', 'secretbob');"), "failed to log in user");
+			//
+			//	assert_s(cl->execute("INSERT INTO users (username) VALUES ('alice');"), "failed");
+			//	assert_s(cl->execute("INSERT INTO users (username) VALUES ('bob');"), "failed");
+			//	assert_s(cl->execute("INSERT INTO users (username) VALUES ('chris');"), "failed");
+			//
+			//	assert_s(cl->execute("INSERT INTO usergroup VALUES (1, 1);"), "failed");
+			//	assert_s(cl->execute("INSERT INTO usergroup VALUES (2, 2);"), "failed");
+			//	assert_s(cl->execute("INSERT INTO usergroup VALUES (3, 1);"), "failed");
+			//	assert_s(cl->execute("INSERT INTO usergroup VALUES (3, 2);"), "failed");
+			//
+			//
+			//	assert_s(cl->execute("INSERT INTO groupforum VALUES (1, 1, 14);"), "failed");
+			//	assert_s(cl->execute("INSERT INTO groupforum VALUES (1, 1, 20);"), "failed");
+			//	assert_s(cl->execute("INSERT INTO groupforum VALUES (1, 2, 2);"), "failed");
+			//	assert_s(cl->execute("INSERT INTO groupforum VALUES (1, 2, 0);"), "failed");
+			//
+			//	assert_s(cl->execute("INSERT INTO forum (forumtext) VALUES ('success--you can see forum text');"), "failed");
+			//
+			//	//all users log out, then each log in to have their permissions tested
+			//	assert_s(cl->execute("DELETE FROM "psswdtable" WHERE  username = 'alice';"), "failed");
+			//	assert_s(cl->execute("DELETE FROM "psswdtable" WHERE  username = 'bob';"), "failed");
+			//	assert_s(cl->execute("DELETE FROM "psswdtable" WHERE  username = 'chris';"), "failed");
+			//
+			//
+			//	assert_s(cl->execute("INSERT INTO "psswdtable" VALUES ('alice', 'secretalice');"), "failed to log in user");
+			//
+			//	assert_s(cl->execute("SELECT forumtext from forum  WHERE forumid  = 1;"), "Alice should succeed");
+			//
+			//	assert_s(cl->execute("DELETE FROM "psswdtable" WHERE  username = 'alice';"), "failed");
+			//	assert_s(cl->execute("INSERT INTO "psswdtable" VALUES ('bob', 'secretbob');"), "failed to log in user");
+			//
+			//	assert_s(cl->execute("DELETE FROM "psswdtable" WHERE  username = 'bob';"), "failed");
+			//	assert_s(cl->execute("INSERT INTO "psswdtable" VALUES ('chris', 'secretchris');"), "failed to log in user");
+			//
+			//	assert_s(cl->execute("SELECT forumtext from forum  WHERE forumid  = 1;"), "chris should succeed");
+
+			//multi-key debugging
+
+			/*	cl->plain_execute("DROP TABLE IF EXISTS hi, try, bye;");
+			//some single key debugging
+			assert_s(cl->execute("CREATE TABLE hi (id integer, age enc integer, name enc text);"), "q failed");
+			assert_s(cl->execute("INSERT INTO hi VALUES (3, 9, 'raluca');"), "q failed");
+			assert_s(cl->execute("SELECT * FROM hi WHERE id = 4;"), "q failed");
+
+			assert_s(cl->execute("UPDATE hi SET age = age + 1, name = 'ana' WHERE id = 3;"), "q failed");
+
+			assert_s(cl->execute("CREATE TABLE try (id enc integer, age integer);"), "q failed");
+			assert_s(cl->execute("INSERT INTO try VALUES (5, 6);"), "q failed");
+			assert_s(cl->execute("SELECT u.*, v.* from hi u, try AS v;"), "q failed");
+
+			cl->outputOnionState();
+
+			assert_s(cl->execute("SELECT * FROM (hi u, try AS v);"),"q failed");
+
+			assert_s(cl->execute("SELECT MAX(id) AS h, MIN(id) as ll FROM try;"),"failed max");
+
+			assert_s(cl->execute("SELECT u.id FROM try t LEFT JOIN try u ON u.id = t.id;"),"");
+
+			assert_s(cl->execute("SELECT * FROM try WHERE id = 5"),"");
+
+			assert_s(cl->execute("SELECT * FROM try WHERE age IN (0,9);"),"");
 
 
+			assert_s(cl->execute("INSERT INTO try VALUES (3, 9), (5, 6), (7,8);"), "");
+			assert_s(cl->execute("SELECT * FROM try WHERE age in (6,8) ORDER BY age ASC LIMIT 2;"),"");
+			assert_s(cl->execute("SELECT * FROM try t WHERE t.age in (6,8) ORDER BY id DESC LIMIT 2;"),"");
 
+			assert_s(cl->execute("CREATE TABLE bye (id integer);"),"failed");
+			assert_s(cl->execute("INSERT INTO bye VALUES (3), (9), (10);"),"failed");
+			assert_s(cl->execute("SELECT * FROM bye WHERE id <> 3;"),"failed");
 
+			assert_s(cl->execute("SELECT COUNT(id) AS my_count FROM try;"),"failed");
+			assert_s(cl->execute("SELECT COUNT(*) AS my_count  FROM try;"),"failed");
+			assert_s(cl->execute("SELECT count(distinct age) AS hello from hi;"),"failed");
 
-				assert_s(cl->execute("UPDATE hi SET age = age + 1, name = 'ana' WHERE id = 3;"), "q failed");
+			assert_s(cl->execute("SELECT MAX(id) AS maximus, MIN(id) AS minimus FROM bye WHERE id > 3;"),"failed");
 
+			assert_s(cl->execute("INSERT INTO bye VALUES (3), (7), (13), (43524)"),"failed");
 
-				assert_s(cl->execute("CREATE TABLE try (id enc integer, age integer);"), "q failed");
-				assert_s(cl->execute("INSERT INTO try VALUES (5, 6);"), "q failed");
-				assert_s(cl->execute("SELECT u.*, v.* from hi u, try AS v;"), "q failed");
+			assert_s(cl->execute("SELECT id i FROM bye where id > 2 ORDER BY i ASC LIMIT 5; "),"failed");
 
-				cl->outputOnionState();
+			assert_s(cl->execute("SELECT id i FROM bye WHERE id in (7,13,3,4) AND (id in (7, 13)) ORDER BY i DESC LIMIT 9; "),"failed");
 
-				assert_s(cl->execute("SELECT * FROM (hi u, try AS v);"),"q failed");
+			assert_s(cl->execute("INSERT INTO bye (id) VALUES (4), (6), (-10)"),"failed");
+			//assert_s(cl->execute(""),"failed");
 
-				assert_s(cl->execute("SELECT MAX(id) AS h, MIN(id) as ll FROM try;"),"failed max");
+			assert_s(cl->execute("DROP TABLE hi;"), "drop failed");
+			assert_s(cl->execute("CREATE TABLE hi (id enc integer, name enc text);"), "failed");
+			assert_s(cl->execute("INSERT INTO  hi VALUES (3, 'ra'), (4, 'c');"), "failed");
 
-				assert_s(cl->execute("SELECT u.id FROM try t LEFT JOIN try u ON u.id = t.id;"),"");
+			assert_s(cl->execute("SELECT * FROM  hi ORDER BY id;"), "order by failed");
 
-				assert_s(cl->execute("SELECT * FROM try WHERE id = 5"),"");
-
-				assert_s(cl->execute("SELECT * FROM try WHERE age IN (0,9);"),"");
-
-
-				assert_s(cl->execute("INSERT INTO try VALUES (3, 9), (5, 6), (7,8);"), "");
-				assert_s(cl->execute("SELECT * FROM try WHERE age in (6,8) ORDER BY age ASC LIMIT 2;"),"");
-				assert_s(cl->execute("SELECT * FROM try t WHERE t.age in (6,8) ORDER BY id DESC LIMIT 2;"),"");
-
-				assert_s(cl->execute("CREATE TABLE bye (id integer);"),"failed");
-				assert_s(cl->execute("INSERT INTO bye VALUES (3), (9), (10);"),"failed");
-				assert_s(cl->execute("SELECT * FROM bye WHERE id <> 3;"),"failed");
-
-				assert_s(cl->execute("SELECT COUNT(id) AS my_count FROM try;"),"failed");
-				assert_s(cl->execute("SELECT COUNT(*) AS my_count  FROM try;"),"failed");
-				assert_s(cl->execute("SELECT count(distinct age) AS hello from hi;"),"failed");
-
-				assert_s(cl->execute("SELECT MAX(id) AS maximus, MIN(id) AS minimus FROM bye WHERE id > 3;"),"failed");
-
-				assert_s(cl->execute("INSERT INTO bye VALUES (3), (7), (13), (43524)"),"failed");
-
-				assert_s(cl->execute("SELECT id i FROM bye where id > 2 ORDER BY i ASC LIMIT 5; "),"failed");
-
-				assert_s(cl->execute("SELECT id i FROM bye WHERE id in (7,13,3,4) AND (id in (7, 13)) ORDER BY i DESC LIMIT 9; "),"failed");
-
-				assert_s(cl->execute("INSERT INTO bye (id) VALUES (4), (6), (-10)"),"failed");
-				//assert_s(cl->execute(""),"failed");
-
-				assert_s(cl->execute("DROP TABLE hi;"), "drop failed");
-				assert_s(cl->execute("CREATE TABLE hi (id enc integer, name enc text);"), "failed");
-				assert_s(cl->execute("INSERT INTO  hi VALUES (3, 'ra'), (4, 'c');"), "failed");
-
-				assert_s(cl->execute("SELECT * FROM  hi ORDER BY id;"), "order by failed");
-
-				cl->outputOnionState();*/
-							}
-							else {
-								cl->execute(command);
-							}
-				}
-
-		cout << "CryptDB=# ";
-		cin.getline(command, len);
-		commandS = string(command);
-
+			cl->outputOnionState();*/
+		} else {
+			cl->execute(command);
+		}
 	}
 
 	cl->exit();
@@ -3317,6 +3282,7 @@ int main(int argc, char ** argv) {
 
 	if (argc == 1) {
 		interactiveTest();
+		return 0;
 	}
 
 	if (strcmp(argv[1], "single") == 0) {

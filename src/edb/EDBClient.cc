@@ -55,8 +55,6 @@ cerr << "trying to drop\n";
 }
 
 void createAll(Connect * conn, CryptoManager * cm) {
-#if MYSQL_S
-
 	myassert(conn->execute("CREATE FUNCTION decrypt_int_sem RETURNS INTEGER SONAME 'edb.so'; "),"failed to create udf decrypt_int_sem ");
 	myassert(conn->execute("CREATE FUNCTION decrypt_int_det RETURNS INTEGER SONAME 'edb.so'; "),"failed to create udf decrypt_int_det");
 	myassert(conn->execute("CREATE FUNCTION encrypt_int_det RETURNS INTEGER SONAME 'edb.so'; "),"failed to create udf encrypt_int_det");
@@ -65,17 +63,16 @@ void createAll(Connect * conn, CryptoManager * cm) {
 	myassert(conn->execute("CREATE AGGREGATE FUNCTION agg RETURNS STRING SONAME 'edb.so'; "),"failed to create udf agg");
 	myassert(conn->execute("CREATE FUNCTION func_add_set RETURNS STRING SONAME 'edb.so'; "),"failed to create udf func_add_set");
 
-#else
-
+	/* old Postgres statements: */
+	/*
 	assert(conn->execute(
-	   "CREATE FUNCTION " DECRYPT_int_sem  " RETURNS bigint  AS " F_PATH " LANGUAGE C; \n "
-	        "CREATE FUNCTION " DECRYPT_int_det  " RETURNS bigint  AS " F_PATH " LANGUAGE C; \n "
-	        "CREATE FUNCTION " DECRYPT_text_sem " RETURNS bytea   AS " F_PATH " LANGUAGE C; \n "
-	        "CREATE FUNCTION " SEARCH           " RETURNS bool    AS " F_PATH " LANGUAGE C; \n "
-	        " CREATE FUNCTION " FUNC_ADD         " RETURNS bytea AS " F_PATH " LANGUAGE C STRICT; \n" //add immutable keywords here?
-	        "CREATE FUNCTION " FUNC_ADD_FINAL " RETURNS bytea AS " F_PATH " LANGUAGE C STRICT; \n "
-	        "CREATE FUNCTION " FUNC_ADD_SET   "RETURNS bytea AS " F_PATH " LANGUAGE C STRICT; \n", "cannot create udfs ");
-
+		"CREATE FUNCTION " DECRYPT_int_sem  " RETURNS bigint  AS " F_PATH " LANGUAGE C; \n"
+	        "CREATE FUNCTION " DECRYPT_int_det  " RETURNS bigint  AS " F_PATH " LANGUAGE C; \n"
+	        "CREATE FUNCTION " DECRYPT_text_sem " RETURNS bytea   AS " F_PATH " LANGUAGE C; \n"
+	        "CREATE FUNCTION " SEARCH           " RETURNS bool    AS " F_PATH " LANGUAGE C; \n"
+	        "CREATE FUNCTION " FUNC_ADD         " RETURNS bytea   AS " F_PATH " LANGUAGE C STRICT; \n"
+	        "CREATE FUNCTION " FUNC_ADD_FINAL   " RETURNS bytea   AS " F_PATH " LANGUAGE C STRICT; \n"
+	        "CREATE FUNCTION " FUNC_ADD_SET     " RETURNS bytea   AS " F_PATH " LANGUAGE C STRICT; \n", "cannot create udfs ");
 
 	string createSumAgg = " CREATE AGGREGATE agg_sum ( basetype = bytea, sfunc = func_add, finalfunc = func_add_final,  stype = bytea, initcond = " + initcond(cm) + ");";
 
@@ -83,9 +80,7 @@ void createAll(Connect * conn, CryptoManager * cm) {
 		cerr << "cannot create aggregation function \n";
 		exit(1);
 	}
-
-#endif
-
+	*/
 }
 
 /*
@@ -1909,18 +1904,18 @@ ResType * EDBClient::rewriteDecryptSelect(const char * query, ResType * dbAnswer
 
 		for (unsigned int j = 0; j < nFields; j++) {
 
+			if (rm.isSalt[j]) { // this is salt
+				cerr << "-- salt \n";
+				salt = unmarshallVal(vals[i+1][j]);
+				continue;
+			}
+
 			// ignore this field if it was requested additionally for multi princ
 			if (MULTIPRINC) {
 				if (!tmkm.returnBitMap[j]) {
 					cerr << "-- ignore \n";
 					continue;
 				}
-			}
-
-			if (rm.isSalt[j]) { // this is salt
-				cerr << "-- salt \n";
-				salt = unmarshallVal(vals[i+1][j]);
-				continue;
 			}
 
 			// this is a value, we need to decrypt it
@@ -2937,12 +2932,22 @@ ResType * EDBClient::execute(const char * query, DBResult *  rets) {
 	   // cerr << "sending <" << *queryIt << "> \n";
 		DBResult * reply;
 		reply = NULL;
+
+		struct timeval t0, t1;
+		if (VERBOSE)
+			gettimeofday(&t0, 0);
+
 		if (!conn->execute(*queryIt, reply)) {
 			cerr << "query " << *queryIt << "failed \n";
 			return NULL;
 		}
 
-
+		if (VERBOSE) {
+			gettimeofday(&t1, 0);
+			uint64_t us = t1.tv_usec - t0.tv_usec +
+				      (t1.tv_sec - t0.tv_sec) * 1000000;
+			cerr << "query latency: " << us << " usec" << endl;
+		}
 
 		if (counter < noQueries) {
 
@@ -3259,6 +3264,7 @@ string EDBClient::crypt(string data, fieldType ft, string fullname, string anonf
 		//optional, for MULTIPRINC
 		TMKM & tmkm, const vector<string> & res) {
 
+	cerr << "crypting type " << ft << " fullname " << fullname << " anonfullname " << anonfullname << " fromlevel " << fromlevel << " tolevel " << tolevel << " salt " << salt << "\n";
 	if (DECRYPTFIRST) { //we don't encrypt values, and they come back decrypted
 		return data;
 	}

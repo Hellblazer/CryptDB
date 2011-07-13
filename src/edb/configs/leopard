@@ -1,9 +1,0 @@
-SSLPATH	 := /usr/local/ssl
-PGPATH := /
-GMPPATH := /Users/raluca/sw
-MYPATH	 := /usr/local/mysql
-
-
-
-
-

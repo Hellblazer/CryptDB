@@ -1,9 +1,0 @@
-SSLPATH	 := /usr/local/ssl
-PGPATH := /usr/local/pgsql
-GMPPATH := /u/raluca/sw
-MYPATH	 := /usr/
-#path where the plugin directory for mysql is to copy .so files there
-MYPLUGINPATH := /usr/lib/mysql/plugin/
-
-#full path for the directory where the source is, to locate edb.so
-#define F_PATH  "/u/raluca/EncryptDB/src/EDB"

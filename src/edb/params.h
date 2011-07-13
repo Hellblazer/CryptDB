@@ -8,16 +8,13 @@
  *
 */
 
-//Postgres vs MySQL in config.h
-#include "configs/config.h"
+// if this bit is set, we are working with MySQL, else we are working with Postgres
+#define MYSQL_S 1
 
 // Multi-principal vs. single-principal (1 vs. 0)
-#define MULTIPRINC 1
-//if cryptapp is set, webapp should also be set
+#define MULTIPRINC 0
 
 
-// in web app mode, we no longer use adjustable encryption
-#define WEBAPP 1
 #define TRAINING 1
 
 

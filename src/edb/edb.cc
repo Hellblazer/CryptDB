@@ -23,7 +23,6 @@
 
 extern "C" {
 
-
 #if MYSQL_S
 
 typedef unsigned long long ulonglong;
@@ -44,50 +43,20 @@ typedef long long longlong;
 #include "CryptoManager.h" /* various functions for EDB */
 
 
-extern "C" {
-
-
-/* These prototypes just prevent possible warnings from gcc. */
 #if MYSQL_S
-
-my_bool decrypt_int_sem_init(UDF_INIT *initid, UDF_ARGS *args,  char *message);
-my_bool decrypt_int_det_init(UDF_INIT *initid __attribute__((unused)), UDF_ARGS *args __attribute__((unused)),  char *message __attribute__((unused)));
-my_bool encrypt_int_det_init(UDF_INIT *initid __attribute__((unused)), UDF_ARGS *args __attribute__((unused)),  char *message __attribute__((unused)));
-longlong decrypt_int_sem(UDF_INIT *initid, UDF_ARGS * args, char * is_null, char * error);
-longlong decrypt_int_det(UDF_INIT *initid, UDF_ARGS * args, char * is_null, char * error);
-longlong encrypt_int_det(UDF_INIT *initid, UDF_ARGS * args, char * is_null, char * error);
-
-//my_bool decrypt_text_sem_init(UDF_INIT *initid __attribute__((unused)), UDF_ARGS *args __attribute__((unused)),  char *message __attribute__((unused)));
-char * decrypt_text_sem(UDF_INIT *initid __attribute__((unused)), UDF_ARGS *args, char *result, unsigned long *length, char *is_null, char *error __attribute__((unused)));
-
-//my_bool search_init(UDF_INIT *initid __attribute__((unused)), UDF_ARGS *args __attribute__((unused)),  char *message __attribute__((unused)));
-longlong search(UDF_INIT *initid, UDF_ARGS * args, char * is_null, char * error);
-
-my_bool agg_init(UDF_INIT *initid __attribute__((unused)), UDF_ARGS *args __attribute__((unused)),  char *message __attribute__((unused)));
-
-//char * agg_init(UDF_INIT *initid, UDF_ARGS * args, char *result, unsigned long *length, char * is_null, char * error);
-char * agg(UDF_INIT *initid, UDF_ARGS * args, char *result, unsigned long *length, char * is_null, char * error);
-
-//void agg_clear_init(UDF_INIT *initid, char *is_null, char *error);
-//char * agg_add_init(UDF_INIT *initid, UDF_ARGS * args, char *result, unsigned long *length, char * is_null, char * error);
-void agg_clear(UDF_INIT *initid, char *is_null, char *error);
-my_bool agg_add(UDF_INIT *initid, UDF_ARGS * args, char *is_null, char * error);
-
-my_bool func_add_set_init(UDF_INIT *initid __attribute__((unused)), UDF_ARGS *args __attribute__((unused)),  char *message __attribute__((unused)));
-//char * func_add_set_init(UDF_INIT *initid, UDF_ARGS * args, char *result, unsigned long *length, char * is_null, char * error);
-char * func_add_set(UDF_INIT *initid, UDF_ARGS * args, char *result, unsigned long *length, char * is_null, char * error);
-
 #else
+/* These prototypes just prevent possible warnings from gcc. */
 
+extern "C" {
 PG_MODULE_MAGIC;
 
 Datum	decrypt_int_sem(PG_FUNCTION_ARGS);
-Datum decrypt_int_det(PG_FUNCTION_ARGS);
-Datum decrypt_text_sem(PG_FUNCTION_ARGS);
-Datum   search(PG_FUNCTION_ARGS);
-Datum  func_add(PG_FUNCTION_ARGS);
-Datum  func_add_final(PG_FUNCTION_ARGS);
-Datum func_add_set(PG_FUNCTION_ARGS);
+Datum	decrypt_int_det(PG_FUNCTION_ARGS);
+Datum	decrypt_text_sem(PG_FUNCTION_ARGS);
+Datum	search(PG_FUNCTION_ARGS);
+Datum	func_add(PG_FUNCTION_ARGS);
+Datum	func_add_final(PG_FUNCTION_ARGS);
+Datum	func_add_set(PG_FUNCTION_ARGS);
 
 PG_FUNCTION_INFO_V1(decrypt_int_sem);
 PG_FUNCTION_INFO_V1(decrypt_int_det);
@@ -96,109 +65,116 @@ PG_FUNCTION_INFO_V1(search);
 PG_FUNCTION_INFO_V1(func_add);
 PG_FUNCTION_INFO_V1(func_add_final);
 PG_FUNCTION_INFO_V1(func_add_set);
+}
 
 #endif
 
+void
+log(string s)
+{
+	/* Writes to the server's error log */
+	fprintf(stderr, "%s\n", s.c_str());
 }
 
-extern "C++" {
-
-void log(string s) {
-	s = "echo " + s + " >> /home/raluca/EncryptDB/src/EDB/mylogs ";
-	if (system(getCStr(s)) < 0) {exit(-1);}
-}
-
-AES_KEY * get_key_SEM(unsigned char * key) {
+AES_KEY *
+get_key_SEM(unsigned char * key)
+{
 	return CryptoManager::get_key_SEM(key);
 }
 
-AES_KEY * get_key_DET(unsigned char * key) {
+AES_KEY *
+get_key_DET(unsigned char * key)
+{
 	return CryptoManager::get_key_DET(key);
 }
 
-uint64_t decrypt_SEM(uint64_t value, AES_KEY * aesKey, uint64_t salt) {
+uint64_t
+decrypt_SEM(uint64_t value, AES_KEY * aesKey, uint64_t salt)
+{
 	return CryptoManager::decrypt_SEM(value, aesKey, salt);
 }
 
-uint64_t decrypt_DET(uint64_t ciph, AES_KEY* aesKey) {
+uint64_t
+decrypt_DET(uint64_t ciph, AES_KEY* aesKey)
+{
 	return CryptoManager::decrypt_DET(ciph, aesKey);
 }
 
-
-uint64_t encrypt_DET(uint64_t plaintext, AES_KEY * aesKey) {
+uint64_t
+encrypt_DET(uint64_t plaintext, AES_KEY * aesKey)
+{
 	return CryptoManager::encrypt_DET(plaintext, aesKey);
 }
 
-
-unsigned char * decrypt_SEM(unsigned char * eValueBytes, unsigned int eValueLen, AES_KEY * aesKey, uint64_t salt) {
+unsigned char *
+decrypt_SEM(unsigned char *eValueBytes, unsigned int eValueLen,
+	    AES_KEY * aesKey, uint64_t salt)
+{
 	return CryptoManager::decrypt_SEM(eValueBytes, eValueLen, aesKey, salt);
-}
-
 }
 
 extern "C" {
 
 #if MYSQL_S
+#define ARGS args
 
-my_bool decrypt_int_sem_init(UDF_INIT *initid, UDF_ARGS *args,  char *message){
-	return 0;
+static uint64_t
+getui(UDF_ARGS * args, int i)
+{
+	return (uint64_t) (*((longlong *) args->args[i]));
 }
 
-my_bool decrypt_int_det_init(UDF_INIT *initid __attribute__((unused)), UDF_ARGS *args __attribute__((unused)),  char *message __attribute__((unused))) { return 0; }
+static unsigned char
+getb(UDF_ARGS * args, int i)
+{
+	return (unsigned char)(*((longlong *) args->args[i]));
+}
 
-my_bool encrypt_int_det_init(UDF_INIT *initid __attribute__((unused)), UDF_ARGS *args __attribute__((unused)),  char *message __attribute__((unused))) { return 0; }
+static unsigned char *
+getba(UDF_ARGS * args, int i, unsigned int & len)
+{
+	len = args->lengths[i];
+	return (unsigned char*) (args->args[i]);
+}
 
-my_bool decrypt_text_sem_init(UDF_INIT *initid __attribute__((unused)), UDF_ARGS *args __attribute__((unused)),  char *message __attribute__((unused))) { return 0; }
-
-
-
-my_bool search_init(UDF_INIT *initid __attribute__((unused)), UDF_ARGS *args __attribute__((unused)),  char *message __attribute__((unused))) { return 0; }
-
-
-my_bool func_add_set_init(UDF_INIT *initid __attribute__((unused)), UDF_ARGS *args __attribute__((unused)),  char *message __attribute__((unused))) {return 0;}
-
-my_bool agg_init(UDF_INIT *initid __attribute__((unused)), UDF_ARGS *args __attribute__((unused)),  char *message __attribute__((unused)))  { return 0; }
-
-
-
-	#define ARGS args
-
-	uint64_t getui(UDF_ARGS * args, int i) {
-		return (uint64_t) (*((longlong *) args->args[i]));
-	}
-
-	unsigned char getb(UDF_ARGS * args, int i) {
-		return (unsigned char)(*((longlong *) args->args[i]));
-	}
-	unsigned char * getba(UDF_ARGS * args, int i, unsigned int & len) {
-		len = args->lengths[i];
-		return (unsigned char*) (args->args[i]);
-	}
-	void * myalloc(unsigned int nb) {
-		return malloc(nb);
-	}
+static void *
+myalloc(unsigned int nb)
+{
+	return malloc(nb);
+}
 
 #else
 
-	#define ARGS PG_FUNCTION_ARGS
+#define ARGS PG_FUNCTION_ARGS
 
-	uint64_t getui(ARGS, int i) {
-		return PG_GETARG_INT64(i);
-	}
-	unsigned char getb(ARGS, int i) {
-		return (unsigned char)PG_GETARG_INT32(i);
-	}
-	unsigned char * getba(ARGS, int i, unsigned int & len) {
-		bytea * eValue = PG_GETARG_BYTEA_P(i);
+uint64_t
+getui(ARGS, int i)
+{
+	return PG_GETARG_INT64(i);
+}
 
-		len = VARSIZE(eValue) - VARHDRSZ;
-		unsigned char * eValueBytes = new unsigned char[len];
-		memcpy(eValueBytes, VARDATA(eValue), len);
-		return eValueBytes;
-	}
-	void * myalloc(ARGS, unsigned int nb) {
-		return palloc(nb);
-	}
+unsigned char
+getb(ARGS, int i)
+{
+	return (unsigned char)PG_GETARG_INT32(i);
+}
+
+unsigned char *
+getba(ARGS, int i, unsigned int & len)
+{
+	bytea * eValue = PG_GETARG_BYTEA_P(i);
+
+	len = VARSIZE(eValue) - VARHDRSZ;
+	unsigned char * eValueBytes = new unsigned char[len];
+	memcpy(eValueBytes, VARDATA(eValue), len);
+	return eValueBytes;
+}
+
+void *
+myalloc(ARGS, unsigned int nb)
+{
+	return palloc(nb);
+}
 
 #endif
 
@@ -228,8 +204,6 @@ Datum decrypt_int_sem(PG_FUNCTION_ARGS)
 #else /* postgres */
 	PG_RETURN_INT64(value);
 #endif
-
-
 }
 
 
@@ -386,58 +360,81 @@ Datum search(PG_FUNCTION_ARGS)
 	}
 
 #if MYSQL_S
-			return 0;
+	return 0;
 #else
-			PG_RETURN_BOOL(true);
+	PG_RETURN_BOOL(true);
 #endif
-
 }
 
 
-//this function is called for every row in a group
 #if MYSQL_S
 
-//need to initialize the initid value
-void agg_clear(UDF_INIT *initid, char *is_null, char *error) {
-//	log("inside agg_clear");
+struct agg_state {
+	ZZ sum;
+	ZZ n;
+	bool n_set;
+	void *rbuf;
+};
 
+my_bool
+agg_init(UDF_INIT *initid, UDF_ARGS *args, char *message)
+{
+	agg_state *as = new agg_state();
+	as->rbuf = malloc(CryptoManager::Paillier_len_bytes);
+	initid->ptr = (char *) as;
+	return 0;
+}
 
-	initid->ptr = (char *) myalloc(CryptoManager::Paillier_len_bytes);
-	memcpy(initid->ptr, BytesFromZZ(to_ZZ(1), CryptoManager::Paillier_len_bytes), CryptoManager::Paillier_len_bytes);
+void
+agg_deinit(UDF_INIT *initid)
+{
+	agg_state *as = (agg_state *) initid->ptr;
+	free(as->rbuf);
+	delete as;
+}
+
+void
+agg_clear(UDF_INIT *initid, char *is_null, char *error)
+{
+	agg_state *as = (agg_state *) initid->ptr;
+	as->sum = to_ZZ(1);
+	as->n_set = 0;
 }
 
 //args will be element to add, constant N2
-my_bool agg_add(UDF_INIT *initid, UDF_ARGS * args, char * is_null, char * error) {
-
-	//log("inside agg_add");
-	unsigned char * bytesA = (unsigned char *)initid->ptr;//passed through iterations
-	unsigned int lenB, lenN2;
-	unsigned char * bytesB = getba(args, 0, lenB);
-	unsigned char * bytesN2 = getba(args, 1, lenN2); //TODO: if N2 is hardcoded, it can be faster
-
-
-	if (lenB != lenN2) {
-		cerr << "error: lenB != lenN2 \n";
-		cerr << "lenB is " << lenB << " lenN2 is " << lenN2 << "\n";
-		return false;
+my_bool
+agg_add(UDF_INIT *initid, UDF_ARGS *args, char *is_null, char *error)
+{
+	agg_state *as = (agg_state *) initid->ptr;
+	if (!as->n_set) {
+		ZZFromBytes(as->n, (const uint8_t *) args->args[1],
+			    args->lengths[1]);
+		as->n_set = 1;
 	}
 
-	//cerr << "lenB is " << lenB << "\n";
-    //cerr << "a is " ; myPrint(bytesA, 10); cerr << "\n";
-    //cerr << "b is " ; myPrint(bytesB, 10); cerr << "\n";
-    //cerr << "n2 is "; myPrint(bytesN2, 10); cerr << "\n";
+	ZZ e;
+	ZZFromBytes(e, (const uint8_t *) args->args[0], args->lengths[0]);
 
-	unsigned char * bytesRes = homomorphicAdd(bytesA, bytesB, bytesN2, lenN2);
-
-	initid->ptr = (char *)bytesRes;
-
+	MulMod(as->sum, as->sum, e, as->n);
 	return true;
-
 }
+
+char *
+agg(UDF_INIT *initid, UDF_ARGS *args, char *result,
+    unsigned long *length, char *is_null, char *error)
+{
+	agg_state *as = (agg_state *) initid->ptr;
+	BytesFromZZ((uint8_t *) as->rbuf, as->sum,
+		    CryptoManager::Paillier_len_bytes);
+	*length = CryptoManager::Paillier_len_bytes;
+	return (char *) as->rbuf;
+}
+
 #else
-Datum func_add(PG_FUNCTION_ARGS) {
 
-
+Datum
+func_add(PG_FUNCTION_ARGS)
+{
 	int lenN2, lenB;
 	unsigned char * bytesN2;
 	unsigned char * bytesA;
@@ -463,56 +460,37 @@ Datum func_add(PG_FUNCTION_ARGS) {
 
 	if (DEBUG) {myPrint(bytesA, lenN2);}
 
-
 	unsigned char * bytesRes = homomorphicAdd(bytesA, bytesB, bytesN2, lenN2);
-
 	//cerr << "product "; myPrint(bytesRes, lenN2); cerr << " ";
 
-
 	memcpy(VARDATA(input), bytesRes, lenN2);
-
 	PG_RETURN_BYTEA_P(input);
 }
-#endif
 
-
-
-
-
-#if MYSQL_S
- //should return value from the init variable
-char * agg(UDF_INIT *initid, UDF_ARGS * args, char *result, unsigned long *length, char * is_null, char * error) {
-
-	//cerr << "in AGG!!!!\n";fflush(stderr);
-	result = initid->ptr;
-	*length = CryptoManager::Paillier_len_bytes;
-	//cerr << "done with agg, just returning\n";
-	return result;
-}
-#else
-Datum func_add_final(PG_FUNCTION_ARGS) {
-
-
-	bytea  * input = PG_GETARG_BYTEA_P(0);
-
+Datum
+func_add_final(PG_FUNCTION_ARGS)
+{
+	bytea * input = PG_GETARG_BYTEA_P(0);
 	int lenN2 = (VARSIZE(input) - VARHDRSZ) / 2;
 
 	bytea * res = (bytea *) palloc(lenN2 + VARHDRSZ);
 
-
 	SET_VARSIZE(res, lenN2+VARHDRSZ);
 	memcpy(VARDATA(res), VARDATA(input), lenN2);
-
 	PG_RETURN_BYTEA_P(res);
 }
+
 #endif
 
+// for update with increment
 #if MYSQL_S
-char * func_add_set(UDF_INIT *initid, UDF_ARGS * args, char *result, unsigned long *length, char * is_null, char * error){
+char *
+func_add_set(UDF_INIT *initid, UDF_ARGS * args, char *result, unsigned long *length, char * is_null, char * error)
 #else
-//for update with increment
-Datum func_add_set(PG_FUNCTION_ARGS) {
+Datum
+func_add_set(PG_FUNCTION_ARGS)
 #endif
+{
 	unsigned char * val;
 	unsigned char * N2;
 	unsigned char * field;
@@ -533,16 +511,10 @@ Datum func_add_set(PG_FUNCTION_ARGS) {
 	return result;
 #else
 	bytea * resBytea = (bytea *) palloc(N2Len + VARHDRSZ);
-
 	SET_VARSIZE(resBytea, N2Len + VARHDRSZ);
 	memcpy(VARDATA(resBytea), res, N2Len);
-
 	PG_RETURN_BYTEA_P(resBytea);
-
 #endif
-
 }
 
-
-
-}
+} /* extern "C" */
