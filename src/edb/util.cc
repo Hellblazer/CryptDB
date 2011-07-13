@@ -204,6 +204,14 @@ string toString(const std::set<string> & lst) {
 	return res;
 }
 
+string toString(unsigned char * key, unsigned int len) {
+	string res;
+	for (unsigned int i = 0; i < len; i++) {
+		res += StringFromVal(key[i]) + " ";
+	}
+	return res;
+}
+
 
 void myPrint(const vector<vector<string> > & d) {
 	unsigned int rows = d.size();

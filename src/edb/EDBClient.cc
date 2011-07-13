@@ -1904,18 +1904,18 @@ ResType * EDBClient::rewriteDecryptSelect(const char * query, ResType * dbAnswer
 
 		for (unsigned int j = 0; j < nFields; j++) {
 
+			if (rm.isSalt[j]) { // this is salt
+				cerr << "-- salt \n";
+				salt = unmarshallVal(vals[i+1][j]);
+				continue;
+			}
+
 			// ignore this field if it was requested additionally for multi princ
 			if (MULTIPRINC) {
 				if (!tmkm.returnBitMap[j]) {
 					cerr << "-- ignore \n";
 					continue;
 				}
-			}
-
-			if (rm.isSalt[j]) { // this is salt
-				cerr << "-- salt \n";
-				salt = unmarshallVal(vals[i+1][j]);
-				continue;
 			}
 
 			// this is a value, we need to decrypt it
@@ -3254,6 +3254,7 @@ string EDBClient::crypt(string data, fieldType ft, string fullname, string anonf
 		//optional, for MULTIPRINC
 		TMKM & tmkm, const vector<string> & res) {
 
+	cerr << "crypting type " << ft << " fullname " << fullname << " anonfullname " << anonfullname << " fromlevel " << fromlevel << " tolevel " << tolevel << " salt " << salt << "\n";
 	if (DECRYPTFIRST) { //we don't encrypt values, and they come back decrypted
 		return data;
 	}
