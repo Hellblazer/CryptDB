@@ -17,14 +17,8 @@ all: test edbcrypto execute cryptdb
 # UDF libraries
 edbcrypto: edb.so
 
-libedbcrypto.so: libedbcrypto.so.1
-	ln -sf $< $@	
-
-libedbcrypto.so.1: libedbcrypto.so.1.0.1
-	ln -sf $< $@
-
-libedbcrypto.so.1.0.1: $(CRYPTO_OBJS)
-	   $(CC) $(LDFLAGS) -shared -o $@ $^ -lntl -lcrypto
+libedbcrypto.so: $(CRYPTO_OBJS)
+	$(CC) $(LDFLAGS) -shared -o $@ $^ -lntl -lcrypto
 
 edb.so: edb.o libedbcrypto.so
 	$(CC)   $(LDFLAGS) $(LIBFLAGS)  -o $@ $^  -ldl $(lLIB)
