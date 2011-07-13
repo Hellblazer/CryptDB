@@ -526,9 +526,9 @@ void interactiveTest() {
 	cout << "CryptDB=# ";
 	streamsize len = 100;
 	char * command = new char[len];
-	//cin.getline(command, len);
-	//string commandS = string(command);
-	string commandS = "debug;";
+	cin.getline(command, len);
+	string commandS = string(command);
+	//string commandS = "debug;";
 
 	while (commandS.compare("\\q") != 0) {
 

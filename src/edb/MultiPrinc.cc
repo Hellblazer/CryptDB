@@ -558,6 +558,7 @@ unsigned char * MultiPrinc::get_key(string fieldName, TempMKM & tmkm) {
 	if (tmkm.encForVal.find(encForField) != tmkm.encForVal.end()) {
 		if (VERBOSE_G) {cerr << "asking get key for " << encForField << " <" << tmkm.encForVal[encForField] << "> \n";}
 		unsigned char * key = accMan->getKey(Prin(encForField, removeApostrophe(tmkm.encForVal[encForField])));
+		cerr << "-- key from accman is " << CryptoManager::marshallKey(key) << "\n";
 		assert_s(key != NULL, "access manager does not have needed key!!");
 		return key;
 	}
@@ -577,7 +578,7 @@ unsigned char * MultiPrinc::get_key(string fieldName, TMKM & tmkm,  const vector
 	if (tmkm.encForVal.find(encForField) != tmkm.encForVal.end()) {
 	    unsigned char * key = accMan->getKey(Prin(encForField, removeApostrophe(tmkm.encForVal[encForField])));
 	    if (VERBOSE_G) {cerr << "using encforval; encForField " << encForField << " val " << tmkm.encForVal[encForField] << " encforreturned index " << tmkm.encForReturned[encForField] << "\n";}
-
+		cerr << "-- key from accman is " << CryptoManager::marshallKey(key) << "\n";
 	    assert_s(key != NULL, "access manager does not have key\n");
 	    return key;
 	}
@@ -585,6 +586,7 @@ unsigned char * MultiPrinc::get_key(string fieldName, TMKM & tmkm,  const vector
 	if (tmkm.encForReturned.find(encForField) != tmkm.encForReturned.end()) {
 		string val = res[tmkm.encForReturned[encForField]];
 	    unsigned char * key = accMan->getKey(Prin(encForField, removeApostrophe(val)));
+		cerr << "-- key from accman is " << CryptoManager::marshallKey(key) << "\n";
 	    if (VERBOSE_G) {cerr << "using encforreturned: get key " << encForField << " val " << val << " encforreturned index " << tmkm.encForReturned[encForField] << "\n";}
 	    assert_s(key != NULL, "access manager does not have needed key\n");
 	    return key;

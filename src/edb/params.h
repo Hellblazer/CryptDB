@@ -13,12 +13,9 @@
 #define F_PATH  "/u/raluca/EncryptDB/src/EDB"
 
 // Multi-principal vs. single-principal (1 vs. 0)
-#define MULTIPRINC 1
-//if cryptapp is set, webapp should also be set
+#define MULTIPRINC 0
 
 
-// in web app mode, we no longer use adjustable encryption
-#define WEBAPP 1
 #define TRAINING 1
 
 

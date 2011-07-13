@@ -52,8 +52,8 @@ using namespace std;
 
 
 // configuration for debugging, testing
-#define ANONTABLES (1-WEBAPP)  //whether to anonymize tables names
-#define ANONDETFIELD (1-WEBAPP) //whether to anonymize the det field
+#define ANONTABLES (1-MULTIPRINC)  //whether to anonymize tables names
+#define ANONDETFIELD (1-MULTIPRINC) //whether to anonymize the det field
 
 typedef unsigned char * binary;
 
@@ -342,6 +342,7 @@ string toString(const list<string> & lst);
 string toString(const vector<bool> & vec);
 string toString(const std::set<string> & lst);
 string toString(const ResType & rt);
+string toString(unsigned char * key, unsigned int len);
 
 bool isEqual(unsigned char * first, unsigned char * second, unsigned int len);
 
@@ -366,7 +367,7 @@ unsigned char* BytesFromZZ(const ZZ & x, unsigned int noBytes);
 
 unsigned char * CharToUChar(const char * s);
 
-//transforms string into unsigned char * where the second is trucated/zero-padded to len bytes
+//transforms string into unsigned char * where the second is truncated/zero-padded to len bytes
 unsigned char * stringToUChar(string s, unsigned int len);
 
 
