@@ -524,9 +524,6 @@ void interactiveTest() {
 
 	streamsize len = 100;
 	char * command = new char[len];
-	cin.getline(command, len);
-	string commandS = string(command);
-	//string commandS = "debug;";
 
 	for (;;) {
 
