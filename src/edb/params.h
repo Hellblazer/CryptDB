@@ -8,8 +8,9 @@
  *
 */
 
-//Postgres vs MySQL in config.h
-#include "configs/config.h"
+// if this bit is set, we are working with MySQL, else we are working with Postgres
+#define MYSQL_S 1
+#define F_PATH  "/u/raluca/EncryptDB/src/EDB"
 
 // Multi-principal vs. single-principal (1 vs. 0)
 #define MULTIPRINC 1

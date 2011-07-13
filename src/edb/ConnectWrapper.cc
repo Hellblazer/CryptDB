@@ -1,5 +1,5 @@
 #include "EDBClient.h"
-#include <lua.hpp>
+#include <lua5.1/lua.hpp>
 
 EDBClient * cl;
 bool initialized = false;
