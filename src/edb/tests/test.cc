@@ -887,29 +887,29 @@ void testCrypto() {
 
 
 void testPaillier() {
-	int noTests = 1000;
-	int nrTestsEval = 1000;
+	int noTests = 100;
+	int nrTestsEval = 100;
 
 	string masterKey = randomBytes(AES_KEY_BYTES);
 	CryptoManager * cm = new CryptoManager(masterKey);
-	/*
+
 	for (int i = 0 ; i < noTests ; i++) {
 		int val = abs(rand() * 398493) % 12345;
 		cerr << "Encrypt " << val << "\n";
-		unsigned char * ciph = cm->encrypt_Paillier(val);
+		string ciph = cm->encrypt_Paillier(val);
 		//myPrint(ciph, CryptoManager::Paillier_len_bytes);
 		int dec = cm->decrypt_Paillier(ciph);
 		//cerr << "\n decrypt to: " << dec << "\n";
 		myassert(val == dec, "decrypted value is incorrect ");
 	}
 
-	unsigned char * homCiph = homomorphicAdd(homomorphicAdd(cm->encrypt_Paillier(123), cm->encrypt_Paillier(234), cm->getPKInfo(), cm->Paillier_len_bytes),
-			cm->encrypt_Paillier(1001), cm->getPKInfo(), cm->Paillier_len_bytes);
+	string homCiph = homomorphicAdd(homomorphicAdd(cm->encrypt_Paillier(123), cm->encrypt_Paillier(234), cm->getPKInfo()),
+			cm->encrypt_Paillier(1001), cm->getPKInfo());
 	myassert(cm->decrypt_Paillier(homCiph) == 1358, "homomorphic property fails! \n");
 	cerr << "decrypt of hom " <<  cm->decrypt_Paillier(homCiph)  << " success!! \n";
 
 	cerr << "Test Paillier SUCCEEDED \n";
-	 */
+
 	cerr << "\n Benchmarking..\n";
 
 	string ciphs[nrTestsEval];
@@ -923,7 +923,6 @@ void testPaillier() {
 	cerr << "encryption takes " << res/noTests << " ms  \n";
 
 
-
 	startTimer();
 	for (int i = 0 ; i < noTests ; i++) {
 		int val = (i+1) * 10;
@@ -934,15 +933,12 @@ void testPaillier() {
 
 	res = readTimer();
 	cerr << "decryption takes " << res/noTests << " ms \n";
-
-
 }
 
 void testUtils() {
 	const char * query = "SELECT sum(1), name, age, year FROM debug WHERE debug.name = 'raluca ?*; ada' AND a+b=5 ORDER BY name;";
 
 	myPrint(parse(query, delimsStay, delimsGo, keepIntact));
-
 }
 
 
@@ -3249,7 +3245,6 @@ void testPKCS() {
 
 	string enc = CryptoManager::encrypt(pk, msg);
 	string dec = CryptoManager::decrypt(sk, enc);
-
 	assert_s(msg == dec, "decryption is not original msg");
 
 	cerr << "msg" << dec << "\n";

@@ -1318,12 +1318,10 @@ CryptoManager::unmarshallKey(const string &key, bool ispk)
 string
 CryptoManager::encrypt(PKCS * key, const string &s)
 {
-	uint len = RSA_size(key);
-
 	string tocipher;
-	tocipher.resize(len);
+	tocipher.resize(RSA_size(key));
 
-	RSA_public_encrypt(s.length(), (const uint8_t*)s.c_str(), (uint8_t*) &tocipher[0], key, RSA_PKCS1_OAEP_PADDING);
+	RSA_public_encrypt(s.length(), (const uint8_t*) s.c_str(), (uint8_t*) &tocipher[0], key, RSA_PKCS1_OAEP_PADDING);
 
 	return tocipher;
 }
@@ -1334,7 +1332,7 @@ CryptoManager::decrypt(PKCS * key, const string &s)
 {
 	assert_s(s.length() == (uint)RSA_size(key), "fromlen is not RSA_size");
 	string toplain;
-	toplain.reserve(s.length());
+	toplain.resize(RSA_size(key));
 
 	uint len = RSA_private_decrypt(s.length(), (const uint8_t*) s.c_str(), (uint8_t*) &toplain[0], key, RSA_PKCS1_OAEP_PADDING);
 	toplain.resize(len);

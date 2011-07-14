@@ -1346,12 +1346,14 @@ bool hasApostrophe(string data) {
 	return ((data[0] == '\'') && (data[data.length()-1] == '\''));
 }
 
-unsigned char * homomorphicAdd (unsigned char * val1,  unsigned char * val2, unsigned char * valn2, int len) {
-	ZZ z1 = ZZFromBytes(val1, len);
-	ZZ z2 = ZZFromBytes(val2, len);
-	ZZ n2 = ZZFromBytes(valn2, len);
+string
+homomorphicAdd(const string &val1, const string &val2, const string &valn2)
+{
+	ZZ z1 = ZZFromString(val1);
+	ZZ z2 = ZZFromString(val2);
+	ZZ n2 = ZZFromString(valn2);
 	ZZ res = MulMod(z1, z2, n2);
-	return BytesFromZZ(res, len);
+	return StringFromZZ(res);
 }
 
 string toLowerCase(string token) {

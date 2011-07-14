@@ -491,7 +491,7 @@ void addIfNotContained(string token1, string token2, list<pair<string, string> >
 string removeApostrophe(string data);
 bool hasApostrophe(string data);
 
-unsigned char * homomorphicAdd (unsigned char * val1, unsigned char * val2, unsigned char * valN2, int lenN2);
+string homomorphicAdd(const string &val1, const string &val2, const string &valN2);
 
 string toLowerCase(string token);
 
