@@ -1,6 +1,5 @@
 #include "OPE.h"
 
-
 #include <openssl/sha.h>
 #include <openssl/rand.h>
 #include <openssl/aes.h>
@@ -93,29 +92,24 @@ public:
 
 	/* Returns a number that has a desired number of bits */
 	ZZ TapeGen(ZZ & lowD, ZZ & highD, ZZ & y, unsigned int desiredNoBits) {
-		unsigned char * lowDBytes = BytesFromZZ(lowD, OPEPlaintextSize/bitsPerByte);
-		unsigned char * highDBytes = BytesFromZZ(highD, OPEPlaintextSize/bitsPerByte);
-		unsigned char * yBytes = BytesFromZZ(y, OPECiphertextSize/bitsPerByte);
+		string lowDBytes = StringFromZZ(lowD);
+		string highDBytes = StringFromZZ(highD);
+		string yBytes = StringFromZZ(y);
 
-		unsigned char * concat = concatenate(lowDBytes, OPEPlaintextSize/bitsPerByte, highDBytes, OPEPlaintextSize/bitsPerByte, yBytes, OPECiphertextSize/bitsPerByte);
+		string concat = lowDBytes + highDBytes + yBytes;
+		unsigned char shaDigest[SHA_DIGEST_LENGTH];
+		SHA1((const uint8_t *) concat.c_str(), concat.length(), shaDigest);
 
-		int concatLen = (OPEPlaintextSize*2 + OPECiphertextSize)/bitsPerByte;
-		//cerr << "concat before SHA "; myPrint(concat, (2*OPEPlaintextSize+OPECiphertextSize)/bitsPerByte); cerr << "\n";
-		unsigned char * shaDigest = new unsigned char[SHA_DIGEST_LENGTH];
-		SHA1(concat, concatLen, shaDigest);
-		concat = adjustLen(shaDigest, SHA_DIGEST_LENGTH, AES_BLOCK_BITS/bitsPerByte);
-		//cerr << "concat "; myPrint(concat, AES_BLOCK_BITS/bitsPerByte); cerr << "\n";
-		unsigned char * seed = new unsigned char[AES_BLOCK_BITS/bitsPerByte];
-
-		//myPrint(key.rd_key, 4*AES_MAXNR + 1); cerr << "\n";
-		AES_encrypt(concat, seed, &key);
+		unsigned char seed[AES_BLOCK_BYTES];
+		AES_encrypt(shaDigest, seed, &key);
 
 		unsigned int desiredBytes = desiredNoBits/bitsPerByte;
 
-
 		if (AES_BLOCK_BITS >= desiredNoBits) {
 			// cerr << "seed "; myPrint(seed, AES_BLOCK_BITS/bitsPerByte); cerr << "\n";
-			return ZZFromBytes(adjustLen(seed, AES_BLOCK_BITS/bitsPerByte, desiredBytes), desiredBytes);
+			string seed_s((char *) seed, AES_BLOCK_BYTES);
+			seed_s.resize(desiredBytes, 0);
+			return ZZFromBytes((const uint8_t *) seed_s.c_str(), desiredBytes);
 		}
 
 		//need to generate more randomness using a PRG
@@ -220,14 +214,13 @@ public:
 
 };
 
-OPE::OPE(unsigned char * key, unsigned int OPEPlaintextSize, unsigned int OPECiphertextSize) {
-
+OPE::OPE(const string &key, unsigned int OPEPlaintextSize, unsigned int OPECiphertextSize)
+{
 	iOPE = new OPEInternals;
 	iOPE->OPEPlaintextSize = OPEPlaintextSize;
 	iOPE->OPECiphertextSize = OPECiphertextSize;
-	myassert(key != NULL);
 
-	if (AES_set_encrypt_key(key, OPE_KEY_SIZE, &iOPE->key) <0) {
+	if (AES_set_encrypt_key((const uint8_t *) key.c_str(), OPE_KEY_SIZE, &iOPE->key) <0) {
 		myassert(false, "problem with AES set encrypt ");
 	}
 }
@@ -236,12 +229,12 @@ OPE::OPE(unsigned char * key, unsigned int OPEPlaintextSize, unsigned int OPECip
 /**
  * requires: size of plaintext is OPEPlaintextSize
  */
-unsigned char * OPE::encrypt(unsigned char * plaintext) {
-
-
-
+string
+OPE::encrypt(const string &plaintext)
+{
 	//transford plaintext to ZZ
-	ZZ m = ZZFromBytes(plaintext, iOPE->OPEPlaintextSize/bitsPerByte);
+	ZZ m = ZZFromBytes((const uint8_t *) plaintext.c_str(),
+			   iOPE->OPEPlaintextSize/bitsPerByte);
 
 	//cerr  << "TO ENCRYPT: " << m << "\n";
 
@@ -252,7 +245,7 @@ unsigned char * OPE::encrypt(unsigned char * plaintext) {
 
 	ZZ res = iOPE->encryptHelper(lowD, highD, lowR, highR, m);
 
-	return BytesFromZZ(res, iOPE->OPECiphertextSize/bitsPerByte);
+	return StringFromZZ(res);
 }
 
 
@@ -290,10 +283,12 @@ uint32_t OPE::decrypt(uint64_t ciphertext) {
 /**
  * requires: size of ciphertext is OPECiphertextSize
  */
-unsigned char * OPE::decrypt(unsigned char * ciphertext) {
-
+string
+OPE::decrypt(const string &ciphertext)
+{
 	//transform plaintext to ZZ
-	ZZ c = ZZFromBytes(ciphertext, iOPE->OPECiphertextSize/bitsPerByte);
+	ZZ c = ZZFromBytes((const uint8_t *) ciphertext.c_str(),
+			   iOPE->OPECiphertextSize/bitsPerByte);
 
 	//cerr << "TO DECRYPT " << c << "\n";
 
@@ -304,11 +299,5 @@ unsigned char * OPE::decrypt(unsigned char * ciphertext) {
 
 	ZZ res = iOPE->decryptHelper(lowD, highD, lowR, highR, c);
 
-	return BytesFromZZ(res, iOPE->OPEPlaintextSize/bitsPerByte);
-
+	return StringFromZZ(res);
 }
-
-
-
-
-

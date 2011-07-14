@@ -607,7 +607,7 @@ int KeyAccess::insert(Prin hasAccess, Prin accessTo) {
 	}
 
 	//check that we're not trying to generate a
-	assert_s(!(meta->isGives(hasAccess.type) && !getKey(hasAccess) && !isInstance(hasAccess)), "cannot create a givesPsswd key");
+	assert_s(!(meta->isGives(hasAccess.type) && (getKey(hasAccess).length() > 0) && !isInstance(hasAccess)), "cannot create a givesPsswd key");
 
 	hasAccess.gen = meta->getGenericPublic(hasAccess.type);
 	accessTo.gen = meta->getGenericPublic(accessTo.type);
@@ -628,7 +628,7 @@ int KeyAccess::insert(Prin hasAccess, Prin accessTo) {
 	}
 
 	//Get key for this accessTo
-	unsigned char * accessToKey;
+	string accessToKey;
 	bool already_in_keys = false;
 
 	//check to see if we already hold keys
@@ -655,8 +655,8 @@ int KeyAccess::insert(Prin hasAccess, Prin accessTo) {
 			this_row.type = hasAccess.type;
 			this_row.gen = hasAccess.gen;
 			this_row.value = it->at(0);
-			unsigned char * key_for_decryption = getKey(this_row);
-			if (key_for_decryption) {
+			string key_for_decryption = getKey(this_row);
+			if (key_for_decryption.length() > 0) {
 				PrinKey accessToPrinKey = decryptSym(it->at(2), key_for_decryption, it->at(3));
 				accessToKey = accessToPrinKey.key;
 				break;
@@ -668,28 +668,26 @@ int KeyAccess::insert(Prin hasAccess, Prin accessTo) {
 		accessToKey = randomBytes(AES_KEY_BYTES);
 	}
 
-	//key exists, but we can't decrypt it?
-	if(!accessToKey) {
+	if(accessToKey.length() == 0) {
 		cerr << "ERROR: cannot decrypt this key" << endl;
 		return -1;
 	}
 
 	//get sym key for hasAccess
 	PrinKey hasAccessPrinKey;
-	unsigned char * hasAccessKey;
+	string hasAccessKey;
 	//if orphan, getPrinKey will generate key
 	hasAccessPrinKey = getPrinKey(hasAccess);
 	hasAccessKey = hasAccessPrinKey.key;
-	unsigned char * encrypted_accessToKey;
+	string encrypted_accessToKey;
 	string string_encrypted_accessToKey;
-	int encrypted_length;
 
-	if(hasAccessKey) {
+	if(hasAccessKey.length() != 0) {
 		uint64_t salt = randomValue();
 		AES_KEY * aes = crypt_man->get_key_SEM(hasAccessKey);
-		encrypted_accessToKey = crypt_man->encrypt_SEM(accessToKey, AES_KEY_BYTES, aes, salt);
+		encrypted_accessToKey = crypt_man->encrypt_SEM(accessToKey, aes, salt);
 		string string_salt = marshallVal(salt);
-		string_encrypted_accessToKey = marshallBinary(encrypted_accessToKey,AES_KEY_BYTES);
+		string_encrypted_accessToKey = marshallBinary(encrypted_accessToKey);
 		sql = "INSERT INTO " + table + "(" + hasAccess.gen + ", " + accessTo.gen + ", Sym_Key, Salt) VALUES ('" + hasAccess.value + "', '" + accessTo.value + "', " + string_encrypted_accessToKey + ", " + string_salt + ");";
 	}
 
@@ -697,9 +695,8 @@ int KeyAccess::insert(Prin hasAccess, Prin accessTo) {
 	else {
 		PKCS * hasAccess_publicKey = getPublicKey(hasAccess);
 		assert_s(hasAccess_publicKey, "Could not access public key");
-		encrypted_accessToKey = crypt_man->encrypt(hasAccess_publicKey,accessToKey,AES_KEY_BYTES,encrypted_length);
-		assert_s(encrypted_accessToKey, "Could not encrypt accessToKey");
-		string_encrypted_accessToKey = marshallBinary(encrypted_accessToKey,encrypted_length);
+		encrypted_accessToKey = crypt_man->encrypt(hasAccess_publicKey,accessToKey);
+		string_encrypted_accessToKey = marshallBinary(encrypted_accessToKey);
 		sql = "INSERT INTO " + table + "(" + hasAccess.gen + ", " + accessTo.gen + ", Asym_Key) VALUES ('" + hasAccess.value + "', '" + accessTo.value + "', " + string_encrypted_accessToKey + ");";
 	}
 
@@ -710,9 +707,9 @@ int KeyAccess::insert(Prin hasAccess, Prin accessTo) {
 	}
 
 	//store key locally if either user is logged on
-	PrinKey accessToPrinKey = buildKey(hasAccess, accessToKey, AES_KEY_BYTES);
+	PrinKey accessToPrinKey = buildKey(hasAccess, accessToKey);
 	accessToPrinKey.principles_with_access.insert(accessTo);
-	if (!already_in_keys && (getKey(hasAccess) || getKey(accessTo))) {
+	if (!already_in_keys && (getKey(hasAccess).length() > 0 || getKey(accessTo).length() > 0)) {
 		addToKeys(accessTo, accessToPrinKey);
 	}
 
@@ -720,12 +717,15 @@ int KeyAccess::insert(Prin hasAccess, Prin accessTo) {
 	if (!isInstance(accessTo)) {
 		sql = "SELECT * FROM " + meta->publicTableName() + " WHERE Type='" + accessTo.gen + "' AND Value='" + accessTo.value + "';";
 		DBResult * dbres;
-		if (!conn->execute(getCStr(sql),dbres)) {
+		if (!conn->execute(getCStr(sql), &dbres)) {
 			cerr << "Problem with sql statement: " << sql << endl;
-		}
-		vector<vector<string> > * res = conn->unpack(dbres);
-		if (res->size() < 2) {
-			GenerateAsymKeys(accessTo,accessToPrinKey);
+		} else {
+			ResType *res = dbres->unpack();
+			delete dbres;
+
+			if (res->size() < 2)
+				GenerateAsymKeys(accessTo,accessToPrinKey);
+			delete res;
 		}
 	}
 
@@ -746,14 +746,19 @@ int KeyAccess::insert(Prin hasAccess, Prin accessTo) {
 		//set up asymmetric encryption
 		sql = "SELECT * FROM " + meta->publicTableName() + " WHERE Type='" + hasAccess.gen + "' AND Value='" + hasAccess.value + "';";
 		DBResult * dbres;
-		if (!conn->execute(getCStr(sql),dbres)) {
+		if (!conn->execute(getCStr(sql), &dbres)) {
 			cerr << "Problem with sql statement: " << sql << endl;
+			assert_s(0, "x");
 		}
-		vector<vector<string> > * res = conn->unpack(dbres);
-		assert_s(hasAccessPrinKey.key, "created hasAccess has no key");
-		if (res->size() < 2) {
+
+		ResType *res = dbres->unpack();
+		delete dbres;
+
+		assert_s(hasAccessPrinKey.key.length() > 0, "created hasAccess has no key");
+		if (res->size() < 2)
 			GenerateAsymKeys(hasAccess,hasAccessPrinKey);
-		}
+		delete res;
+
 		addToKeys(accessTo, accessToPrinKey);
 		addToKeys(hasAccess, hasAccessPrinKey);
 		assert_s(isOrphan(hasAccess), "orphan principle is not checking as orphan");
@@ -803,7 +808,7 @@ int KeyAccess::remove(Prin hasAccess, Prin accessTo) {
 	assert_s(isInstance(accessTo), "accessTo in remove is has not been inserted");
 
 	//remove hasAccess from accessTo's principles_with_access if local key is stored
-	if (getKey(accessTo)) {
+	if (getKey(accessTo).length() > 0) {
 		PrinKey accessTo_key = keys[accessTo];
 		accessTo_key.principles_with_access.erase(hasAccess);
 		keys[accessTo] = accessTo_key;
@@ -872,7 +877,8 @@ int KeyAccess::removeFromOrphans(Prin orphan) {
 	return 0;
 }
 
-unsigned char * KeyAccess::getKey(Prin prin) {
+string
+KeyAccess::getKey(Prin prin) {
 	if(prin.gen == "") {
 		prin.gen = meta->getGenericPublic(prin.type);
 	}
@@ -884,7 +890,7 @@ unsigned char * KeyAccess::getKey(Prin prin) {
 			cerr << "\t" << it->gen << "=" << it->value << endl;
 		}
 	}
-	cerr << "returning null? " << (prinkey.key == NULL) << "\n";
+	cerr << "returning null? " << (prinkey.key.length() == 0) << "\n";
 	return prinkey.key;
 }
 
@@ -898,19 +904,19 @@ PrinKey KeyAccess::getPrinKey(Prin prin) {
 	}
 
 	if(keys.find(prin) != keys.end()) {
-		assert_s(keys[prin].len == AES_KEY_BYTES, "getKey is trying to return a key of the wrong length");
+		assert_s(keys[prin].key.length() == AES_KEY_BYTES, "getKey is trying to return a key of the wrong length");
 		return keys[prin];
 	}
 
 	PrinKey prinkey = getUncached(prin);
-	if (prinkey.len != 0) {
+	if (prinkey.key.length() != 0) {
 	  return prinkey;
 	}
 
 	//is orphan
 	if (!isInstance(prin)) {
-	  unsigned char * key = randomBytes(AES_KEY_BYTES);
-	  prinkey = buildKey(prin, key, AES_KEY_BYTES);
+	  string key = randomBytes(AES_KEY_BYTES);
+	  prinkey = buildKey(prin, key);
 	  addToKeys(prin, prinkey);
 	  GenerateAsymKeys(prin, prinkey);
 	  std::set<Prin> empty_set;
@@ -934,19 +940,25 @@ PKCS * KeyAccess::getPublicKey(Prin prin) {
 	assert_s(isInstance(prin), "prin input to getPublicKey has never been seen before");
 	assert_s(prin.gen != "", "input into getPublicKey has an undefined generic");
 	string sql = "SELECT * FROM " + meta->publicTableName() + " WHERE Type='" + prin.gen + "' AND Value='" + prin.value + "'";
-	DBResult* dbres;
-	if (!conn->execute(getCStr(sql), dbres)) {
+	DBResult * dbres;
+	if (!conn->execute(getCStr(sql), &dbres)) {
 		cerr << "SQL error from query: " << sql << endl;
 		return NULL;
 	}
-	vector< vector<string> > * res = conn->unpack(dbres);
+
+	ResType *res = dbres->unpack();
+	delete dbres;
+
 	if(res->size() < 2) {
 		cerr << "No public key for input to getPublicKey" << endl;
+		delete res;
 		return NULL;
 	}
-	unsigned int length;
-	unsigned char * key = unmarshallBinary(getCStr(res->at(1).at(2)),(res->at(1).at(2)).length(), length);
-	return crypt_man->unmarshallKey(key,length,true);
+
+	string key = unmarshallBinary((*res)[1][2]);
+	delete res;
+
+	return crypt_man->unmarshallKey(key, true);
 }
 
 PrinKey KeyAccess::getSecretKey(Prin prin) {
@@ -958,25 +970,32 @@ PrinKey KeyAccess::getSecretKey(Prin prin) {
 	string sql = "SELECT * FROM " + meta->publicTableName() + " WHERE Type='" + prin.gen + "' AND Value='" + prin.value + "'";
 	DBResult* dbres;
 	PrinKey error;
-	error.len = 0;
-	error.key = NULL;
-	if (!conn->execute(getCStr(sql), dbres)) {
+	if (!conn->execute(sql.c_str(), &dbres)) {
 		cerr << "SQL error from query: " << sql << endl;
 		return error;
 	}
-	vector< vector<string> > * res = conn->unpack(dbres);
+
+	ResType *res = dbres->unpack();
+	delete dbres;
+
 	if(res->size() < 2) {
 		cerr << "No public key for input to getSecretKey" << endl;
+		delete res;
 		return error;
 	}
+
 	string string_key = res->at(1).at(3);
-	return decryptSym(res->at(1).at(3), getKey(prin), res->at(1).at(4));
+	PrinKey x = decryptSym(res->at(1).at(3), getKey(prin), res->at(1).at(4));
+	delete res;
+	return x;
 }
 
-int KeyAccess::insertPsswd(Prin gives, unsigned char * psswd) {
+int
+KeyAccess::insertPsswd(Prin gives, const string &psswd)
+{
 	if(VERBOSE) {
 		cerr << "-->" << gives.type << " " << gives.value << " is logging in with ";
-		myPrint(psswd,AES_KEY_BYTES);
+		myPrint(psswd);
 		cerr << endl;
 	}
 
@@ -985,8 +1004,8 @@ int KeyAccess::insertPsswd(Prin gives, unsigned char * psswd) {
 	gives.gen = meta->getGenericPublic(gives.type);
 	std::set<string> gives_hasAccessTo = meta->getGenHasAccessTo(gives.gen);
 
-	//put password into local keys
-	PrinKey password = buildKey(gives, psswd, AES_KEY_BYTES);
+	// put password into local keys
+	PrinKey password = buildKey(gives, psswd);
 	addToKeys(gives, password);
 
 	//check if this person has a asym key (that is, if gives is an instance that has been inserted before)
@@ -1048,21 +1067,21 @@ int KeyAccess::insertPsswd(Prin gives, unsigned char * psswd) {
 						new_prin.gen = res->at(0).at(1);
 						new_prin.value = row->at(1);
 						accessible_values.insert(new_prin);
-						unsigned char * new_key = getKey(new_prin);
+						string new_key = getKey(new_prin);
 						PrinKey new_prin_key;
 						//if key is not currently held by anyone
-						if (!new_key) {
-							assert_s(getKey(hasAccess_prin),"there is a logical issue with insertPsswd: getKey should have the key for hasAccess");
+						if (new_key.length() == 0) {
+							assert_s(getKey(hasAccess_prin).length() > 0, "there is a logical issue with insertPsswd: getKey should have the key for hasAccess");
 							if (row->at(4) == "X''") { //symmetric key okay
 								new_prin_key = decryptSym(row->at(2), getKey(hasAccess_prin), row->at(3));
 							} else { //use asymmetric
 								PrinKey sec_key = getSecretKey(hasAccess_prin);
-								new_prin_key = decryptAsym(row->at(4), sec_key.key, sec_key.len);
+								new_prin_key = decryptAsym(row->at(4), sec_key.key);
 							}
 						}
 						//if key is currently held by someone else...
 						else {
-							new_prin_key = buildKey(new_prin, new_key, AES_KEY_BYTES);
+							new_prin_key = buildKey(new_prin, new_key);
 						}
 						new_prin_key.principles_with_access.insert(new_prin);
 						new_prin_key.principles_with_access.insert(hasAccess_prin);
@@ -1124,10 +1143,11 @@ int KeyAccess::removePsswd(Prin prin) {
 	return 0;
 }
 
-PrinKey KeyAccess::buildKey(Prin hasAccess, unsigned char * sym_key, int length_sym) {
+PrinKey
+KeyAccess::buildKey(Prin hasAccess, const string &sym_key)
+{
 	PrinKey new_key;
 	new_key.key = sym_key;
-	new_key.len = length_sym;
 	std::set<Prin> prinHasAccess;
 	prinHasAccess.insert(hasAccess);
 	new_key.principles_with_access = prinHasAccess;
@@ -1141,7 +1161,7 @@ int KeyAccess::addToKeys(Prin prin, PrinKey key) {
 	assert_s(key.principles_with_access.find(prin) != key.principles_with_access.end(), "addToKeys hasAccess prin is not in key's principles_with_access");
 	if(VERBOSE) {
 		cerr << "   adding key ";
-		myPrint(key.key, key.len);
+		myPrint(key.key);
 		cerr << " for " << prin.gen << " " << prin.value << endl;
 	}
 
@@ -1220,7 +1240,7 @@ int KeyAccess::removeFromKeys(Prin prin) {
 		return 1;
 	}
 
-	memset(keys[prin].key, '0', keys[prin].len);
+	keys[prin].key.resize(0);
 	keys.erase(prin);
 	return 0;
 }
@@ -1299,7 +1319,9 @@ list<string> KeyAccess::DFS_hasAccess(Prin start) {
 	return results;
 }
 
-vector<vector<string> > * KeyAccess::Select(std::set<Prin> & prin_set, string table_name, string column) {
+vector<vector<string> > *
+KeyAccess::Select(std::set<Prin> & prin_set, string table_name, string column)
+{
 	std::set<Prin>::iterator prin;
 	for(prin = prin_set.begin(); prin != prin_set.end(); prin++) {
 		assert_s(prin->gen != "", "input to Select has no gen");
@@ -1313,11 +1335,13 @@ vector<vector<string> > * KeyAccess::Select(std::set<Prin> & prin_set, string ta
 	}
 	sql += ";";
 	DBResult * dbres;
-	if(!conn->execute(getCStr(sql),dbres)) {
+	if(!conn->execute(sql.c_str(), &dbres)) {
 		cerr << "SQL error with query: " << sql << endl;
 		return NULL;
 	}
-	return conn->unpack(dbres);
+	auto res = dbres->unpack();
+	delete dbres;
+	return res;
 }  
 
 int KeyAccess::SelectCount(std::set<Prin> & prin_set, string table_name) {
@@ -1334,12 +1358,16 @@ int KeyAccess::SelectCount(std::set<Prin> & prin_set, string table_name) {
 	}
 	sql += ";";
 	DBResult * dbres;
-	if(!conn->execute(getCStr(sql),dbres)) {
+	if(!conn->execute(getCStr(sql), &dbres)) {
 		cerr << "SQL error with query: " << sql << endl;
 		return -1;
 	}
-	vector<vector<string> > * res = conn->unpack(dbres);
+
+	auto res = dbres->unpack();
+	delete dbres;
+
 	int size = unmarshallVal(res->at(1).at(0));
+	delete res;
 	return size;
 }
 
@@ -1366,14 +1394,12 @@ int KeyAccess::GenerateAsymKeys(Prin prin, PrinKey prin_key) {
 	  PKCS * rsa_pub_key;
 	  PKCS * rsa_sec_key;
 	  crypt_man->generateKeys(rsa_pub_key,rsa_sec_key);
-	  int length_pub;
-	  unsigned char * pub_key = crypt_man->marshallKey(rsa_pub_key,true,length_pub);
-	  int length_sec;
-	  unsigned char * sec_key = crypt_man->marshallKey(rsa_sec_key,false,length_sec);
-	  unsigned char * encrypted_sec_key = crypt_man->encrypt_SEM(sec_key, length_sec, aes, salt);
+	  string pub_key = crypt_man->marshallKey(rsa_pub_key,true);
+	  string sec_key = crypt_man->marshallKey(rsa_sec_key,false);
+	  string encrypted_sec_key = crypt_man->encrypt_SEM(sec_key, aes, salt);
 	  salt_string = marshallVal(salt);
-	  encrypted_sec_key_string = marshallBinary(encrypted_sec_key,length_sec);
-	  pub_key_string = marshallBinary(pub_key,length_pub);
+	  encrypted_sec_key_string = marshallBinary(encrypted_sec_key);
+	  pub_key_string = marshallBinary(pub_key);
 	}
 	string sql = "INSERT INTO " + meta->publicTableName() + " VALUES ('" + prin.gen + "', '" + prin.value + "', " + pub_key_string + ", " + encrypted_sec_key_string + ", " + salt_string + ");";
 	if (!conn->execute(getCStr(sql))) {
@@ -1383,32 +1409,32 @@ int KeyAccess::GenerateAsymKeys(Prin prin, PrinKey prin_key) {
 	return 0;
 }
 
-PrinKey KeyAccess::decryptSym(string str_encrypted_key, unsigned char * key_for_decrypting, string str_salt) {
+PrinKey
+KeyAccess::decryptSym(string str_encrypted_key, const string &key_for_decrypting, string str_salt)
+{
 	if(VERBOSE) {
 		cerr << "\tuse symmetric decryption" << endl;
 	}
-	unsigned int length;
-	unsigned char * encrypted_key = unmarshallBinary(getCStr(str_encrypted_key), str_encrypted_key.length(),length);
+	string encrypted_key = unmarshallBinary(str_encrypted_key);
 	uint64_t salt = unmarshallVal(str_salt);
 	AES_KEY * aes = crypt_man->get_key_SEM(key_for_decrypting);
-	unsigned char * key = crypt_man->decrypt_SEM(encrypted_key,length,aes,salt);
+	string key = crypt_man->decrypt_SEM(encrypted_key,aes,salt);
 	PrinKey result;
-	result.len = length;
 	result.key = key;
 	return result;
 }
 
-PrinKey KeyAccess::decryptAsym(string str_encrypted_key, unsigned char * secret_key, int secret_key_len) {
+PrinKey
+KeyAccess::decryptAsym(string str_encrypted_key, const string &secret_key)
+{
 	if(VERBOSE) {
 		cerr << "\tuse asymmetric decryption" << endl;
 	}
-	unsigned int length;
-	PKCS * pk_sec_key = crypt_man->unmarshallKey(secret_key,secret_key_len,false);
-	unsigned char * encrypted_key = unmarshallBinary(getCStr(str_encrypted_key),str_encrypted_key.length(),length);
-	unsigned char * key = crypt_man->decrypt(pk_sec_key, encrypted_key, length, secret_key_len);
-	assert_s(secret_key_len == (unsigned int) AES_KEY_BYTES, "Secret key is the wrong length!");
+	PKCS * pk_sec_key = crypt_man->unmarshallKey(secret_key, false);
+	string encrypted_key = unmarshallBinary(str_encrypted_key);
+	string key = crypt_man->decrypt(pk_sec_key, encrypted_key);
+	assert_s(key.length() == (unsigned int) AES_KEY_BYTES, "Secret key is the wrong length!");
 	PrinKey result;
-	result.len = secret_key_len;
 	result.key = key;
 	return result;
 }
@@ -1456,8 +1482,6 @@ PrinKey KeyAccess::getUncached(Prin prin) {
 	}
 
 	PrinKey empty;
-	empty.key = NULL;
-	empty.len = 0;
 
 	if (uncached_keys.find(prin.gen) == uncached_keys.end()) {
 		return empty;
@@ -1477,7 +1501,7 @@ PrinKey KeyAccess::getUncached(Prin prin) {
 				new_prin_key = decryptSym(res->at(1).at(2), getKey(*set_it), res->at(1).at(3));
 			} else { //use asymmetric
 				PrinKey sec_key = getSecretKey(*set_it);
-				new_prin_key = decryptAsym(res->at(1).at(4), sec_key.key, sec_key.len);
+				new_prin_key = decryptAsym(res->at(1).at(4), sec_key.key);
 			}
 			return new_prin_key;
 		}
@@ -1488,7 +1512,7 @@ PrinKey KeyAccess::getUncached(Prin prin) {
 void KeyAccess::finish() {
 	map<Prin, PrinKey>::iterator it;
 	for(it = keys.begin(); it != keys.end(); it++) {
-		memset(it->second.key, '0', it->second.len);
+		it->second.key.resize(0);
 	}
 	keys.clear();
 	meta->~MetaAccess();

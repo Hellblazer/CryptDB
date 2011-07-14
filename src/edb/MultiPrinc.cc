@@ -400,8 +400,15 @@ bool MultiPrinc::checkPsswd(command comm, list<string> & words) {
 			string uname = removeApostrophe(*wordsIt);
 			wordsIt++;
 			string p = removeApostrophe(*wordsIt);
-			unsigned char * psswd = stringToUChar(p, AES_KEY_BYTES);
-			int resacc = accMan->insertPsswd(Prin(type, uname), psswd);
+
+			/*
+			 * XXX
+			 * we should hash this password!
+			 */
+			string passwd = p;
+			passwd.resize(AES_KEY_BYTES);
+
+			int resacc = accMan->insertPsswd(Prin(type, uname), passwd);
 			assert_s(resacc >=0, "access manager insert psswd failed");
 			return true;
 		}
@@ -445,13 +452,16 @@ bool MultiPrinc::checkPredicate(string hasaccess, map<string, string> & vals) {
 		query += ");";
 		DBResult * dbres;
 		if (VERBOSE_G) { cerr << "check pred: " << query << "\n";}
-		assert_s(conn->execute(getCStr(query), dbres), "failure while executing query " + query);
-		ResType * result = conn->unpack(dbres);
+		assert_s(conn->execute(query.c_str(), &dbres), "failure while executing query " + query);
+		ResType * result = dbres->unpack();
+		delete dbres;
 		if (result->at(1).at(0).compare("1") == 0) {
 			if (VERBOSE_G) { cerr << "pred OK\n";}
+			delete result;
 			return true;
 		} else {
 			if (VERBOSE_G) { cerr << "pred NO\n";}
+			delete result;
 			return false;
 		}
 	}
@@ -550,16 +560,17 @@ bool MultiPrinc::isPrincipal(string fullname) {
 }
 
 
-unsigned char * MultiPrinc::get_key(string fieldName, TempMKM & tmkm) {
+string
+MultiPrinc::get_key(string fieldName, TempMKM & tmkm) {
 
 	assert_s(mkm.encForMap.find(fieldName) != mkm.encForMap.end(), "cryptappgetkey gets unencrypted feild <"+fieldName+">");
 	string encForField = mkm.encForMap[fieldName];
 
 	if (tmkm.encForVal.find(encForField) != tmkm.encForVal.end()) {
 		if (VERBOSE_G) {cerr << "asking get key for " << encForField << " <" << tmkm.encForVal[encForField] << "> \n";}
-		unsigned char * key = accMan->getKey(Prin(encForField, removeApostrophe(tmkm.encForVal[encForField])));
+		string key = accMan->getKey(Prin(encForField, removeApostrophe(tmkm.encForVal[encForField])));
 		cerr << "-- key from accman is " << CryptoManager::marshallKey(key) << "\n";
-		assert_s(key != NULL, "access manager does not have needed key!!");
+		assert_s(key.length() > 0, "access manager does not have needed key!!");
 		return key;
 	}
 
@@ -569,26 +580,26 @@ unsigned char * MultiPrinc::get_key(string fieldName, TempMKM & tmkm) {
 
 
 
-unsigned char * MultiPrinc::get_key(string fieldName, TMKM & tmkm,  const vector<string>  & res) {
-
-
+string
+MultiPrinc::get_key(string fieldName, TMKM & tmkm,  const vector<string>  & res)
+{
 	assert_s(mkm.encForMap.find(fieldName) != mkm.encForMap.end(), "cryptappgetkey gets unencrypted field <"+fieldName+">");
 	string encForField = mkm.encForMap[fieldName];
 
 	if (tmkm.encForVal.find(encForField) != tmkm.encForVal.end()) {
-	    unsigned char * key = accMan->getKey(Prin(encForField, removeApostrophe(tmkm.encForVal[encForField])));
+	    string key = accMan->getKey(Prin(encForField, removeApostrophe(tmkm.encForVal[encForField])));
 	    if (VERBOSE_G) {cerr << "using encforval; encForField " << encForField << " val " << tmkm.encForVal[encForField] << " encforreturned index " << tmkm.encForReturned[encForField] << "\n";}
 		cerr << "-- key from accman is " << CryptoManager::marshallKey(key) << "\n";
-	    assert_s(key != NULL, "access manager does not have key\n");
+	    assert_s(key.length() > 0, "access manager does not have key\n");
 	    return key;
 	}
 
 	if (tmkm.encForReturned.find(encForField) != tmkm.encForReturned.end()) {
 		string val = res[tmkm.encForReturned[encForField]];
-	    unsigned char * key = accMan->getKey(Prin(encForField, removeApostrophe(val)));
+	    string key = accMan->getKey(Prin(encForField, removeApostrophe(val)));
 		cerr << "-- key from accman is " << CryptoManager::marshallKey(key) << "\n";
 	    if (VERBOSE_G) {cerr << "using encforreturned: get key " << encForField << " val " << val << " encforreturned index " << tmkm.encForReturned[encForField] << "\n";}
-	    assert_s(key != NULL, "access manager does not have needed key\n");
+	    assert_s(key.length() > 0, "access manager does not have needed key\n");
 	    return key;
 	}
 
