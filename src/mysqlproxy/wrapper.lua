@@ -316,15 +316,24 @@ function pass_to_c(query)
 	current_query[new_queries[#new_queries]] = query
 	return new_queries
 end
-	
 
-function read_query( packet )
+function read_query(packet)
+	local status, err = pcall(read_query_real, packet)
+	if status then
+		return err
+	else
+		print("read_query: " .. err)
+		return proxy.PROXY_SEND_QUERY
+	end
+end
+
+function read_query_real(packet)
 	if string.byte(packet) == proxy.COM_QUERY then
-	   	myprint("-------------------------------New Query--------------------------")
+		myprint("-------------------------------New Query--------------------------")
 		myprint("read_query got query: " .. string.sub(packet, 2))
 		local query = string.sub(packet, 2)
 		local replacing = false
-		if string.match(string.upper(query), 'CREATE') then
+		if query:upper():match('CREATE') then
 		   if use_enc_annotation then
 		      sensitive_enc(query)
 		   else
@@ -369,6 +378,16 @@ function read_query( packet )
 end
 
 function read_query_result(inj)
+	local status, err = pcall(read_query_result_real, inj)
+	if status then
+		return err
+	else
+		print("read_query_result: " .. err)
+		return proxy.PROXY_SEND_RESULT
+	end
+end
+
+function read_query_result_real(inj)
 	local res = assert(inj.resultset)
 	query = inj.query:sub(2,inj.query:len())
 	if(res) and (inj.id == 4) then
