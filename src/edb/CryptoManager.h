@@ -119,6 +119,8 @@ class CryptoManager {
 	static uint32_t decrypt_OPE(uint64_t ciphertext, OPE * ope);
 	static unsigned char * encrypt_OPE(unsigned char * plaintext, OPE * ope);
 	static unsigned char * decrypt_OPE(unsigned char * ciphertext, OPE * ope);
+	// used to encrypt text
+	static uint64_t encrypt_OPE_text_wrapper(const string & plaintext, OPE * ope);
 	uint64_t encrypt_OPE(uint32_t plaintext, string uniqueFieldName);
 
 	//DET: one-way functions

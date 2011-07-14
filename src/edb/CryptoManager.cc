@@ -877,6 +877,25 @@ unsigned char * CryptoManager::encrypt_OPE(unsigned char plaintext[], OPE * ope)
 	return ope->encrypt(plaintext);
 }
 
+uint64_t CryptoManager::encrypt_OPE_text_wrapper(const string & plaintext, OPE * ope) {
+
+	unsigned int len = plaintext.length();
+
+	unsigned int prefix = OPE_PLAINTEXT_SIZE/bitsPerByte;
+
+	uint32_t val = 0;
+
+	for (unsigned i = 0; i < min(prefix, len); i++) {
+		val = val*10 + plaintext[i];
+	}
+
+	for (unsigned int i = 0; i < prefix - len; i++) {
+		val = val * 10 + 0;
+	}
+
+	return ope->encrypt(val);
+
+}
 
 
 unsigned char * CryptoManager::decrypt_OPE(unsigned char ciphertext[], OPE * ope) {
