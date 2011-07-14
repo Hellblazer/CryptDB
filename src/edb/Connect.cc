@@ -37,15 +37,15 @@ Connect::Connect(string server, string user, string passwd,
 }
 
 bool
-Connect::execute(const char * query, DBResult **res)
+Connect::execute(const char * query, DBResult * & res)
 {
 #if MYSQL_S
 	if (mysql_query(conn, query)) {
 		fprintf(stderr, "mysql error: %s\n", mysql_error(conn));
-		*res = 0;
+		res = 0;
 		return false;
 	} else {
-		*res = DBResult::wrap(mysql_store_result(conn));
+		res = DBResult::wrap(mysql_store_result(conn));
 		return true;
 	}
 #else /* postgres */
@@ -69,7 +69,7 @@ bool
 Connect::execute(const char * query)
 {
 	DBResult *aux;
-	bool r = execute(query, &aux);
+	bool r = execute(query, aux);
 	if (r)
 		delete aux;
 	return r;
@@ -140,21 +140,29 @@ DBResult::unpack()
 {
 #if MYSQL_S
 
+	cerr << "a\n";
 	if (n == NULL) {
 		return new ResType();
 	}
+	cerr << "b\n";
 	int rows = mysql_num_rows(n);
 	int cols  = -1;
 	if (rows > 0) {
 		cols = mysql_num_fields(n);
+	} else {
+		return new ResType();
 	}
+	cerr << "c\n";
+
+	ResType *res = new vector<vector<string> >();
 
 
-	ResType *res = new vector<vector<string> >(rows+1);
-
+	cerr << "d\n";
 
 	// first row contains names
-	(*res)[0] = vector<string>(cols);
+	res->push_back(vector<string>(cols));
+
+	cerr << "e\n";
 
 	bool binFlags[cols];
 	for (int j = 0; ; j++) {
@@ -177,7 +185,7 @@ DBResult::unpack()
 			break;
 		unsigned long *lengths = mysql_fetch_lengths(n);
 
-		(*res)[index+1] = vector<string>(cols);
+		res->push_back(vector<string>(cols));
 
 		for (int j = 0; j < cols; j++) {
 			if (binFlags[j] && !DECRYPTFIRST) {

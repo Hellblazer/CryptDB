@@ -181,7 +181,7 @@ EDBClient::EDBClient() {
 ResType * EDBClient::plain_execute(const char * query) {
 	cerr << "in plain execute \n";
 	DBResult * reply;
-	if (!conn->execute(query, &reply)) {
+	if (!conn->execute(query, reply)) {
 		cerr << "failed to execute " << query << "\n";
 		return NULL;
 	}
@@ -2890,7 +2890,7 @@ EDBClient::execute(const char * query)
 
 	if (!isSecure) {
 
-		if (!conn->execute(query, &res)) {
+		if (!conn->execute(query, res)) {
 			fprintf(stderr, "%s failed: %s \n", query, conn->getError());
 			return NULL;
 		}
@@ -2945,7 +2945,7 @@ EDBClient::execute(const char * query)
 		if (VERBOSE)
 			gettimeofday(&t0, 0);
 
-		if (!conn->execute(*queryIt, &reply)) {
+		if (!conn->execute(*queryIt, reply)) {
 			cerr << "query " << *queryIt << "failed \n";
 			return NULL;
 		}

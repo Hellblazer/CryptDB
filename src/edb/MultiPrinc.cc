@@ -452,7 +452,7 @@ bool MultiPrinc::checkPredicate(string hasaccess, map<string, string> & vals) {
 		query += ");";
 		DBResult * dbres;
 		if (VERBOSE_G) { cerr << "check pred: " << query << "\n";}
-		assert_s(conn->execute(query.c_str(), &dbres), "failure while executing query " + query);
+		assert_s(conn->execute(query.c_str(), dbres), "failure while executing query " + query);
 		ResType * result = dbres->unpack();
 		delete dbres;
 		if (result->at(1).at(0).compare("1") == 0) {

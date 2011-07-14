@@ -717,7 +717,7 @@ int KeyAccess::insert(Prin hasAccess, Prin accessTo) {
 	if (!isInstance(accessTo)) {
 		sql = "SELECT * FROM " + meta->publicTableName() + " WHERE Type='" + accessTo.gen + "' AND Value='" + accessTo.value + "';";
 		DBResult * dbres;
-		if (!conn->execute(getCStr(sql), &dbres)) {
+		if (!conn->execute(getCStr(sql), dbres)) {
 			cerr << "Problem with sql statement: " << sql << endl;
 		} else {
 			ResType *res = dbres->unpack();
@@ -746,7 +746,7 @@ int KeyAccess::insert(Prin hasAccess, Prin accessTo) {
 		//set up asymmetric encryption
 		sql = "SELECT * FROM " + meta->publicTableName() + " WHERE Type='" + hasAccess.gen + "' AND Value='" + hasAccess.value + "';";
 		DBResult * dbres;
-		if (!conn->execute(getCStr(sql), &dbres)) {
+		if (!conn->execute(getCStr(sql), dbres)) {
 			cerr << "Problem with sql statement: " << sql << endl;
 			assert_s(0, "x");
 		}
@@ -941,7 +941,7 @@ PKCS * KeyAccess::getPublicKey(Prin prin) {
 	assert_s(prin.gen != "", "input into getPublicKey has an undefined generic");
 	string sql = "SELECT * FROM " + meta->publicTableName() + " WHERE Type='" + prin.gen + "' AND Value='" + prin.value + "'";
 	DBResult * dbres;
-	if (!conn->execute(getCStr(sql), &dbres)) {
+	if (!conn->execute(getCStr(sql), dbres)) {
 		cerr << "SQL error from query: " << sql << endl;
 		return NULL;
 	}
@@ -970,7 +970,7 @@ PrinKey KeyAccess::getSecretKey(Prin prin) {
 	string sql = "SELECT * FROM " + meta->publicTableName() + " WHERE Type='" + prin.gen + "' AND Value='" + prin.value + "'";
 	DBResult* dbres;
 	PrinKey error;
-	if (!conn->execute(sql.c_str(), &dbres)) {
+	if (!conn->execute(sql.c_str(), dbres)) {
 		cerr << "SQL error from query: " << sql << endl;
 		return error;
 	}
@@ -1335,7 +1335,7 @@ KeyAccess::Select(std::set<Prin> & prin_set, string table_name, string column)
 	}
 	sql += ";";
 	DBResult * dbres;
-	if(!conn->execute(sql.c_str(), &dbres)) {
+	if(!conn->execute(sql.c_str(), dbres)) {
 		cerr << "SQL error with query: " << sql << endl;
 		return NULL;
 	}
@@ -1358,7 +1358,7 @@ int KeyAccess::SelectCount(std::set<Prin> & prin_set, string table_name) {
 	}
 	sql += ";";
 	DBResult * dbres;
-	if(!conn->execute(getCStr(sql), &dbres)) {
+	if(!conn->execute(getCStr(sql), dbres)) {
 		cerr << "SQL error with query: " << sql << endl;
 		return -1;
 	}
