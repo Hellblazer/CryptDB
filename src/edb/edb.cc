@@ -1,28 +1,25 @@
-/******************************************************************************
-  Functions that will be dynamically loaded by the postgres server.
-  -- file structured using the examples from postgres tutorial funcs.*
-  -- format:
-  DECRYPT( encrypted value  -- if type is integer, this is bigint; if type is text, this is bytea
-	   key as a sequence of bytes -- eg. AES_KEY_BYTES no. of bytes; use unmarshall
-	   salt  -- eg. bigint
-	   )
-
-//can only search for a word
-  SEARCH (
-           word to be searched -- bytea,
-           the value of the field on which we search, bytea
-
-         )
-
-
- *****************************************************************************/
+/*
+ * There are three or four incompatible memory allocators:
+ *
+ *   palloc / pfree (Postgres-specific)
+ *   malloc / free
+ *   new / delete
+ *   new[] / delete[]
+ *
+ * The Postgres versions of the UDFs likely do not keep track of which
+ * allocator is used in each case.  They might not free memory at all
+ * in some cases, and might free memory with a different allocator than
+ * the one used to initially allocate it.  Beware.
+ *
+ * The MySQL versions of the UDFs are more likely to get this right.
+ */
 
 #define DEBUG 1
 
 #include "util.h"
+#include "CryptoManager.h" /* various functions for EDB */
 
 extern "C" {
-
 #if MYSQL_S
 
 typedef unsigned long long ulonglong;
@@ -36,18 +33,6 @@ typedef long long longlong;
 #include "utils/array.h"
 #include "executor/executor.h"	/* for GetAttributeByName() */
 
-#endif
-
-}
-
-#include "CryptoManager.h" /* various functions for EDB */
-
-
-#if MYSQL_S
-#else
-/* These prototypes just prevent possible warnings from gcc. */
-
-extern "C" {
 PG_MODULE_MAGIC;
 
 Datum	decrypt_int_sem(PG_FUNCTION_ARGS);
@@ -65,55 +50,53 @@ PG_FUNCTION_INFO_V1(search);
 PG_FUNCTION_INFO_V1(func_add);
 PG_FUNCTION_INFO_V1(func_add_final);
 PG_FUNCTION_INFO_V1(func_add_set);
-}
 
 #endif
+}
 
-void
+static void __attribute__((unused))
 log(string s)
 {
 	/* Writes to the server's error log */
 	fprintf(stderr, "%s\n", s.c_str());
 }
 
-AES_KEY *
+static AES_KEY *
 get_key_SEM(unsigned char * key)
 {
 	return CryptoManager::get_key_SEM(key);
 }
 
-AES_KEY *
+static AES_KEY *
 get_key_DET(unsigned char * key)
 {
 	return CryptoManager::get_key_DET(key);
 }
 
-uint64_t
+static uint64_t
 decrypt_SEM(uint64_t value, AES_KEY * aesKey, uint64_t salt)
 {
 	return CryptoManager::decrypt_SEM(value, aesKey, salt);
 }
 
-uint64_t
+static uint64_t
 decrypt_DET(uint64_t ciph, AES_KEY* aesKey)
 {
 	return CryptoManager::decrypt_DET(ciph, aesKey);
 }
 
-uint64_t
+static uint64_t
 encrypt_DET(uint64_t plaintext, AES_KEY * aesKey)
 {
 	return CryptoManager::encrypt_DET(plaintext, aesKey);
 }
 
-unsigned char *
+static unsigned char *
 decrypt_SEM(unsigned char *eValueBytes, unsigned int eValueLen,
 	    AES_KEY * aesKey, uint64_t salt)
 {
 	return CryptoManager::decrypt_SEM(eValueBytes, eValueLen, aesKey, salt);
 }
-
-extern "C" {
 
 #if MYSQL_S
 #define ARGS args
@@ -137,29 +120,23 @@ getba(UDF_ARGS * args, int i, unsigned int & len)
 	return (unsigned char*) (args->args[i]);
 }
 
-static void *
-myalloc(unsigned int nb)
-{
-	return malloc(nb);
-}
-
 #else
 
 #define ARGS PG_FUNCTION_ARGS
 
-uint64_t
+static uint64_t
 getui(ARGS, int i)
 {
 	return PG_GETARG_INT64(i);
 }
 
-unsigned char
+static unsigned char
 getb(ARGS, int i)
 {
 	return (unsigned char)PG_GETARG_INT32(i);
 }
 
-unsigned char *
+static unsigned char *
 getba(ARGS, int i, unsigned int & len)
 {
 	bytea * eValue = PG_GETARG_BYTEA_P(i);
@@ -170,34 +147,31 @@ getba(ARGS, int i, unsigned int & len)
 	return eValueBytes;
 }
 
-void *
-myalloc(ARGS, unsigned int nb)
-{
-	return palloc(nb);
-}
-
 #endif
+
+extern "C" {
 
 #if MYSQL_S
-longlong decrypt_int_sem(UDF_INIT *initid, UDF_ARGS * args, char * is_null, char * error)
+longlong
+decrypt_int_sem(UDF_INIT *initid, UDF_ARGS *args, char *is_null, char *error)
 #else /*postgres*/
-Datum decrypt_int_sem(PG_FUNCTION_ARGS)
+Datum
+decrypt_int_sem(PG_FUNCTION_ARGS)
 #endif
 {
-
 	uint64_t eValue = getui(ARGS, 0);
 
-	unsigned char * key = (unsigned char *) myalloc(AES_KEY_BYTES);
+	unsigned char key[AES_KEY_BYTES];
 	int offset = 1;
 
-	for (unsigned int i = 0; i < AES_KEY_BYTES; i++) {
-		key[i] =  getb(ARGS, offset+i);
-	}
+	for (unsigned int i = 0; i < AES_KEY_BYTES; i++)
+		key[i] = getb(ARGS, offset+i);
 
 	uint64_t salt = getui(args, offset + AES_KEY_BYTES);
 
-	AES_KEY * aesKey = get_key_SEM(key);
+	AES_KEY *aesKey = get_key_SEM(key);
 	uint64_t value = decrypt_SEM(eValue, aesKey, salt);
+	delete aesKey;
 
 #if MYSQL_S
 	return (longlong) value;
@@ -208,25 +182,24 @@ Datum decrypt_int_sem(PG_FUNCTION_ARGS)
 
 
 #if MYSQL_S
-longlong decrypt_int_det(UDF_INIT *initid, UDF_ARGS * args, char * is_null, char * error)
+longlong
+decrypt_int_det(UDF_INIT *initid, UDF_ARGS *args, char *is_null, char *error)
 #else /* postgres */
-Datum decrypt_int_det(PG_FUNCTION_ARGS)
+Datum
+decrypt_int_det(PG_FUNCTION_ARGS)
 #endif
 {
 	uint64_t eValue = getui(ARGS, 0);
 
-	unsigned char * key = (unsigned char *) myalloc(AES_KEY_BYTES);
+	unsigned char key[AES_KEY_BYTES];
 	int offset = 1;
 
-	for (unsigned int i = 0; i < AES_KEY_BYTES; i++) {
+	for (unsigned int i = 0; i < AES_KEY_BYTES; i++)
 		key[i] = getb(ARGS, offset+i);
-	}
 
-	AES_KEY * aesKey = get_key_DET(key);
+	AES_KEY *aesKey = get_key_DET(key);
 	uint64_t value = decrypt_DET(eValue, aesKey);
-
-	free(key);
-	free(aesKey);
+	delete aesKey;
 
 #if MYSQL_S
 	return (longlong) value;
@@ -237,27 +210,25 @@ Datum decrypt_int_det(PG_FUNCTION_ARGS)
 }
 
 
-
 #if MYSQL_S
-longlong encrypt_int_det(UDF_INIT *initid, UDF_ARGS * args, char * is_null, char * error)
+longlong
+encrypt_int_det(UDF_INIT *initid, UDF_ARGS *args, char *is_null, char *error)
 #else /* postgres */
-Datum decrypt_int_det(PG_FUNCTION_ARGS)
+Datum
+decrypt_int_det(PG_FUNCTION_ARGS)
 #endif
 {
 	uint64_t eValue = getui(ARGS, 0);
 
-	unsigned char * key = (unsigned char *) myalloc(AES_KEY_BYTES);
+	unsigned char key[AES_KEY_BYTES];
 	int offset = 1;
 
-	for (unsigned int i = 0; i < AES_KEY_BYTES; i++) {
+	for (unsigned int i = 0; i < AES_KEY_BYTES; i++)
 		key[i] = getb(ARGS, offset+i);
-	}
 
-	AES_KEY * aesKey = get_key_DET(key);
+	AES_KEY *aesKey = get_key_DET(key);
 	uint64_t value = encrypt_DET(eValue, aesKey);
-
-	free(key);
-	free(aesKey);
+	delete aesKey;
 
 #if MYSQL_S
 	return (longlong) value;
@@ -269,56 +240,67 @@ Datum decrypt_int_det(PG_FUNCTION_ARGS)
 
 
 #if MYSQL_S
-char * decrypt_text_sem(UDF_INIT *initid __attribute__((unused)), UDF_ARGS *args, char *result, unsigned long *length, char *is_null, char *error __attribute__((unused)))
+void
+decrypt_text_sem_deinit(UDF_INIT *initid)
+{
+	/*
+	 * in mysql-server/sql/item_func.cc, udf_handler::fix_fields
+	 * initializes initid.ptr=0 for us.
+	 */
+	if (initid->ptr)
+		delete initid->ptr;
+}
+
+char *
+decrypt_text_sem(UDF_INIT *initid, UDF_ARGS *args,
+		 char *result, unsigned long *length,
+		 char *is_null, char *error)
 #else /* postgres */
-Datum decrypt_text_sem(PG_FUNCTION_ARGS)
+Datum
+decrypt_text_sem(PG_FUNCTION_ARGS)
 #endif
 {
 	unsigned int eValueLen;
-	unsigned char * eValueBytes = getba(args, 0, eValueLen);
+	unsigned char *eValueBytes = getba(args, 0, eValueLen);
 
-	unsigned char * key = (unsigned char *) myalloc(AES_KEY_BYTES);
+	unsigned char key[AES_KEY_BYTES];
 	int offset = 1;
 
-	for (unsigned int i = 0; i < AES_KEY_BYTES; i++) {
+	for (unsigned int i = 0; i < AES_KEY_BYTES; i++)
 		key[i] = getb(ARGS,offset+i);
-	}
 
 	uint64_t salt = getui(ARGS, offset + AES_KEY_BYTES);
 
-	AES_KEY * aesKey = get_key_SEM(key);
-	unsigned char * value = decrypt_SEM(eValueBytes, eValueLen, aesKey, salt);
-
-
-	free(key);
-	free(aesKey);
-	//   string s = marshallBinaryOnce(value, eValueLen);
-	//	const char * t = s.c_str();
-	//	unsigned int sLen = s.length();
+	AES_KEY *aesKey = get_key_SEM(key);
+	unsigned char *value = decrypt_SEM(eValueBytes, eValueLen,
+					   aesKey, salt);
+	delete aesKey;
 
 #if MYSQL_S
 	*length = eValueLen;
-	result = (char *)value;
-	//value[eValueLen] = '\0';
 	return (char*) value;
 #else
 	bytea * res = (bytea *) palloc(eValueLen+VARHDRSZ);
 	SET_VARSIZE(res, eValueLen+VARHDRSZ);
-
 	memcpy(VARDATA(res), value, eValueLen);
-
 	PG_RETURN_BYTEA_P(res);
 #endif
 
 }
 
 
-// given field of the form:   len1 word1 len2 word2 len3 word3 ..., where each len is the length of the following "word"
-// search for word which is of the form len word_body where len is the length of the word body
+/*
+ * given field of the form:   len1 word1 len2 word2 len3 word3 ...,
+ * where each len is the length of the following "word",
+ * search for word which is of the form len word_body where len is
+ * the length of the word body
+ */
 #if MYSQL_S
-longlong search(UDF_INIT *initid, UDF_ARGS * args, char * is_null, char * error)
+longlong
+search(UDF_INIT *initid, UDF_ARGS *args, char *is_null, char *error)
 #else
-Datum search(PG_FUNCTION_ARGS)
+Datum
+search(PG_FUNCTION_ARGS)
 #endif
 {
 	unsigned int wordLen;
@@ -484,14 +466,6 @@ func_add_final(PG_FUNCTION_ARGS)
 
 // for update with increment
 #if MYSQL_S
-
-my_bool
-func_add_set_init(UDF_INIT *initid, UDF_ARGS *args, char *message)
-{
-	initid->ptr = 0;
-	return 0;
-}
-
 void
 func_add_set_deinit(UDF_INIT *initid)
 {
