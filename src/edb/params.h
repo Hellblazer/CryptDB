@@ -6,17 +6,16 @@
  *
  *  Configuration parameters.
  *
-*/
+ */
 
-// if this bit is set, we are working with MySQL, else we are working with Postgres
+// if this bit is set, we are working with MySQL, else we are working with
+// Postgres
 #define MYSQL_S 1
 
 // Multi-principal vs. single-principal (1 vs. 0)
 #define MULTIPRINC 0
 
-
 #define TRAINING 1
-
 
 /************* EVAL/DEBUGGING FLAGS ************/
 
@@ -24,7 +23,6 @@
 #define PARSING 0
 //strawman where values are decrypted on the fly before being used
 #define DECRYPTFIRST 0
-
 
 #define ASSERTS_ON true
 

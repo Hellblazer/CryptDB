@@ -11,11 +11,12 @@
 #define TESTSINGLEPRINC_H_
 
 class TestSinglePrinc {
-public:
-	TestSinglePrinc();
-	virtual ~TestSinglePrinc();
+ public:
+    TestSinglePrinc();
+    virtual
+    ~TestSinglePrinc();
 
-	static void run(int argc, char ** argv);
+    static void run(int argc, char ** argv);
 };
 
 #endif /* TESTSINGLEPRINC_H_ */

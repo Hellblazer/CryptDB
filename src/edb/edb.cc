@@ -29,19 +29,19 @@ typedef long long longlong;
 
 #else /* Postgres */
 
-#include "postgres.h"			/* general Postgres declarations */
+#include "postgres.h"                   /* general Postgres declarations */
 #include "utils/array.h"
-#include "executor/executor.h"	/* for GetAttributeByName() */
+#include "executor/executor.h"  /* for GetAttributeByName() */
 
 PG_MODULE_MAGIC;
 
-Datum	decrypt_int_sem(PG_FUNCTION_ARGS);
-Datum	decrypt_int_det(PG_FUNCTION_ARGS);
-Datum	decrypt_text_sem(PG_FUNCTION_ARGS);
-Datum	search(PG_FUNCTION_ARGS);
-Datum	func_add(PG_FUNCTION_ARGS);
-Datum	func_add_final(PG_FUNCTION_ARGS);
-Datum	func_add_set(PG_FUNCTION_ARGS);
+Datum decrypt_int_sem(PG_FUNCTION_ARGS);
+Datum decrypt_int_det(PG_FUNCTION_ARGS);
+Datum decrypt_text_sem(PG_FUNCTION_ARGS);
+Datum search(PG_FUNCTION_ARGS);
+Datum func_add(PG_FUNCTION_ARGS);
+Datum func_add_final(PG_FUNCTION_ARGS);
+Datum func_add_set(PG_FUNCTION_ARGS);
 
 PG_FUNCTION_INFO_V1(decrypt_int_sem);
 PG_FUNCTION_INFO_V1(decrypt_int_det);
@@ -57,46 +57,46 @@ PG_FUNCTION_INFO_V1(func_add_set);
 static void __attribute__((unused))
 log(string s)
 {
-	/* Writes to the server's error log */
-	fprintf(stderr, "%s\n", s.c_str());
+    /* Writes to the server's error log */
+    fprintf(stderr, "%s\n", s.c_str());
 }
 
 static AES_KEY *
 get_key_SEM(const string &key)
 {
-	return CryptoManager::get_key_SEM(key);
+    return CryptoManager::get_key_SEM(key);
 }
 
 static AES_KEY *
 get_key_DET(const string &key)
 {
-	return CryptoManager::get_key_DET(key);
+    return CryptoManager::get_key_DET(key);
 }
 
 static uint64_t
 decrypt_SEM(uint64_t value, AES_KEY * aesKey, uint64_t salt)
 {
-	return CryptoManager::decrypt_SEM(value, aesKey, salt);
+    return CryptoManager::decrypt_SEM(value, aesKey, salt);
 }
 
 static uint64_t
 decrypt_DET(uint64_t ciph, AES_KEY* aesKey)
 {
-	return CryptoManager::decrypt_DET(ciph, aesKey);
+    return CryptoManager::decrypt_DET(ciph, aesKey);
 }
 
 static uint64_t
 encrypt_DET(uint64_t plaintext, AES_KEY * aesKey)
 {
-	return CryptoManager::encrypt_DET(plaintext, aesKey);
+    return CryptoManager::encrypt_DET(plaintext, aesKey);
 }
 
 static string
 decrypt_SEM(unsigned char *eValueBytes, unsigned int eValueLen,
-	    AES_KEY * aesKey, uint64_t salt)
+            AES_KEY * aesKey, uint64_t salt)
 {
-	string c((char *) eValueBytes, eValueLen);
-	return CryptoManager::decrypt_SEM(c, aesKey, salt);
+    string c((char *) eValueBytes, eValueLen);
+    return CryptoManager::decrypt_SEM(c, aesKey, salt);
 }
 
 #if MYSQL_S
@@ -105,20 +105,20 @@ decrypt_SEM(unsigned char *eValueBytes, unsigned int eValueLen,
 static uint64_t
 getui(UDF_ARGS * args, int i)
 {
-	return (uint64_t) (*((longlong *) args->args[i]));
+    return (uint64_t) (*((longlong *) args->args[i]));
 }
 
 static unsigned char
 getb(UDF_ARGS * args, int i)
 {
-	return (unsigned char)(*((longlong *) args->args[i]));
+    return (unsigned char)(*((longlong *) args->args[i]));
 }
 
 static unsigned char *
 getba(UDF_ARGS * args, int i, unsigned int & len)
 {
-	len = args->lengths[i];
-	return (unsigned char*) (args->args[i]);
+    len = args->lengths[i];
+    return (unsigned char*) (args->args[i]);
 }
 
 #else
@@ -128,24 +128,24 @@ getba(UDF_ARGS * args, int i, unsigned int & len)
 static uint64_t
 getui(ARGS, int i)
 {
-	return PG_GETARG_INT64(i);
+    return PG_GETARG_INT64(i);
 }
 
 static unsigned char
 getb(ARGS, int i)
 {
-	return (unsigned char)PG_GETARG_INT32(i);
+    return (unsigned char)PG_GETARG_INT32(i);
 }
 
 static unsigned char *
 getba(ARGS, int i, unsigned int & len)
 {
-	bytea * eValue = PG_GETARG_BYTEA_P(i);
+    bytea * eValue = PG_GETARG_BYTEA_P(i);
 
-	len = VARSIZE(eValue) - VARHDRSZ;
-	unsigned char * eValueBytes = new unsigned char[len];
-	memcpy(eValueBytes, VARDATA(eValue), len);
-	return eValueBytes;
+    len = VARSIZE(eValue) - VARHDRSZ;
+    unsigned char * eValueBytes = new unsigned char[len];
+    memcpy(eValueBytes, VARDATA(eValue), len);
+    return eValueBytes;
 }
 
 #endif
@@ -156,7 +156,7 @@ extern "C" {
 my_bool
 decrypt_int_sem_init(UDF_INIT *initid, UDF_ARGS *args, char *message)
 {
-	return 0;
+    return 0;
 }
 
 longlong
@@ -166,34 +166,33 @@ Datum
 decrypt_int_sem(PG_FUNCTION_ARGS)
 #endif
 {
-	uint64_t eValue = getui(ARGS, 0);
+    uint64_t eValue = getui(ARGS, 0);
 
-	string key;
-	key.resize(AES_KEY_BYTES);
-	int offset = 1;
+    string key;
+    key.resize(AES_KEY_BYTES);
+    int offset = 1;
 
-	for (unsigned int i = 0; i < AES_KEY_BYTES; i++)
-		key[i] = getb(ARGS, offset+i);
+    for (unsigned int i = 0; i < AES_KEY_BYTES; i++)
+        key[i] = getb(ARGS, offset+i);
 
-	uint64_t salt = getui(args, offset + AES_KEY_BYTES);
+    uint64_t salt = getui(args, offset + AES_KEY_BYTES);
 
-	AES_KEY *aesKey = get_key_SEM(key);
-	uint64_t value = decrypt_SEM(eValue, aesKey, salt);
-	delete aesKey;
+    AES_KEY *aesKey = get_key_SEM(key);
+    uint64_t value = decrypt_SEM(eValue, aesKey, salt);
+    delete aesKey;
 
 #if MYSQL_S
-	return (longlong) value;
+    return (longlong) value;
 #else /* postgres */
-	PG_RETURN_INT64(value);
+    PG_RETURN_INT64(value);
 #endif
 }
-
 
 #if MYSQL_S
 my_bool
 decrypt_int_det_init(UDF_INIT *initid, UDF_ARGS *args, char *message)
 {
-	return 0;
+    return 0;
 }
 
 longlong
@@ -203,33 +202,32 @@ Datum
 decrypt_int_det(PG_FUNCTION_ARGS)
 #endif
 {
-	uint64_t eValue = getui(ARGS, 0);
+    uint64_t eValue = getui(ARGS, 0);
 
-	string key;
-	key.resize(AES_KEY_BYTES);
-	int offset = 1;
+    string key;
+    key.resize(AES_KEY_BYTES);
+    int offset = 1;
 
-	for (unsigned int i = 0; i < AES_KEY_BYTES; i++)
-		key[i] = getb(ARGS, offset+i);
+    for (unsigned int i = 0; i < AES_KEY_BYTES; i++)
+        key[i] = getb(ARGS, offset+i);
 
-	AES_KEY *aesKey = get_key_DET(key);
-	uint64_t value = decrypt_DET(eValue, aesKey);
-	delete aesKey;
+    AES_KEY *aesKey = get_key_DET(key);
+    uint64_t value = decrypt_DET(eValue, aesKey);
+    delete aesKey;
 
 #if MYSQL_S
-	return (longlong) value;
+    return (longlong) value;
 #else /* postgres */
-	PG_RETURN_INT64(value);
+    PG_RETURN_INT64(value);
 #endif
 
 }
-
 
 #if MYSQL_S
 my_bool
 encrypt_int_det_init(UDF_INIT *initid, UDF_ARGS *args, char *message)
 {
-	return 0;
+    return 0;
 }
 
 longlong
@@ -239,84 +237,82 @@ Datum
 decrypt_int_det(PG_FUNCTION_ARGS)
 #endif
 {
-	uint64_t eValue = getui(ARGS, 0);
+    uint64_t eValue = getui(ARGS, 0);
 
-	string key;
-	key.resize(AES_KEY_BYTES);
-	int offset = 1;
+    string key;
+    key.resize(AES_KEY_BYTES);
+    int offset = 1;
 
-	for (unsigned int i = 0; i < AES_KEY_BYTES; i++)
-		key[i] = getb(ARGS, offset+i);
+    for (unsigned int i = 0; i < AES_KEY_BYTES; i++)
+        key[i] = getb(ARGS, offset+i);
 
-	AES_KEY *aesKey = get_key_DET(key);
-	uint64_t value = encrypt_DET(eValue, aesKey);
-	delete aesKey;
+    AES_KEY *aesKey = get_key_DET(key);
+    uint64_t value = encrypt_DET(eValue, aesKey);
+    delete aesKey;
 
 #if MYSQL_S
-	return (longlong) value;
+    return (longlong) value;
 #else /* postgres */
-	PG_RETURN_INT64(value);
+    PG_RETURN_INT64(value);
 #endif
 
 }
-
 
 #if MYSQL_S
 my_bool
 decrypt_text_sem_init(UDF_INIT *initid, UDF_ARGS *args, char *message)
 {
-	return 0;
+    return 0;
 }
 
 void
 decrypt_text_sem_deinit(UDF_INIT *initid)
 {
-	/*
-	 * in mysql-server/sql/item_func.cc, udf_handler::fix_fields
-	 * initializes initid.ptr=0 for us.
-	 */
-	if (initid->ptr)
-		delete initid->ptr;
+    /*
+     * in mysql-server/sql/item_func.cc, udf_handler::fix_fields
+     * initializes initid.ptr=0 for us.
+     */
+    if (initid->ptr)
+        delete initid->ptr;
 }
 
 char *
 decrypt_text_sem(UDF_INIT *initid, UDF_ARGS *args,
-		 char *result, unsigned long *length,
-		 char *is_null, char *error)
+                 char *result, unsigned long *length,
+                 char *is_null, char *error)
 #else /* postgres */
 Datum
 decrypt_text_sem(PG_FUNCTION_ARGS)
 #endif
 {
-	unsigned int eValueLen;
-	unsigned char *eValueBytes = getba(args, 0, eValueLen);
+    unsigned int eValueLen;
+    unsigned char *eValueBytes = getba(args, 0, eValueLen);
 
-	string key;
-	key.resize(AES_KEY_BYTES);
-	int offset = 1;
+    string key;
+    key.resize(AES_KEY_BYTES);
+    int offset = 1;
 
-	for (unsigned int i = 0; i < AES_KEY_BYTES; i++)
-		key[i] = getb(ARGS,offset+i);
+    for (unsigned int i = 0; i < AES_KEY_BYTES; i++)
+        key[i] = getb(ARGS,offset+i);
 
-	uint64_t salt = getui(ARGS, offset + AES_KEY_BYTES);
+    uint64_t salt = getui(ARGS, offset + AES_KEY_BYTES);
 
-	AES_KEY *aesKey = get_key_SEM(key);
-	string value = decrypt_SEM(eValueBytes, eValueLen, aesKey, salt);
-	delete aesKey;
+    AES_KEY *aesKey = get_key_SEM(key);
+    string value = decrypt_SEM(eValueBytes, eValueLen, aesKey, salt);
+    delete aesKey;
 
 #if MYSQL_S
-	initid->ptr = strdup(value.c_str());
-	*length = value.length();
-	return (char*) initid->ptr;
+    initid->ptr = strdup(value.c_str());
+    *length = value.length();
+    return (char*) initid->ptr;
 #else
-	bytea * res = (bytea *) palloc(eValueLen+VARHDRSZ);
-	SET_VARSIZE(res, eValueLen+VARHDRSZ);
-	memcpy(VARDATA(res), value, eValueLen);
-	PG_RETURN_BYTEA_P(res);
+    bytea * res = (bytea *) palloc(eValueLen+VARHDRSZ);
+    SET_VARSIZE(res, eValueLen+VARHDRSZ);
+    memcpy(VARDATA(res), value, eValueLen);
+    PG_RETURN_BYTEA_P(res);
 #endif
 
 }
-
 
 /*
  * given field of the form:   len1 word1 len2 word2 len3 word3 ...,
@@ -328,7 +324,7 @@ decrypt_text_sem(PG_FUNCTION_ARGS)
 my_bool
 search_init(UDF_INIT *initid, UDF_ARGS *args, char *message)
 {
-	return 0;
+    return 0;
 }
 
 longlong
@@ -338,113 +334,113 @@ Datum
 search(PG_FUNCTION_ARGS)
 #endif
 {
-	unsigned int wordLen;
-	char * word = (char *)getba(ARGS, 0, wordLen);
-	if (wordLen != (unsigned int)word[0]) {
-		cerr << "ERR: wordLen is not equal to fist byte of word!!! ";
-	}
-	word = word + 1; // +1 skips over the length field
-	//cerr << "given expr to search for has " << wordLen << " length \n";
-	unsigned int fieldLen;
-	char* field = (char *) getba(ARGS, 1, fieldLen);
+    unsigned int wordLen;
+    char * word = (char *)getba(ARGS, 0, wordLen);
+    if (wordLen != (unsigned int)word[0]) {
+        cerr << "ERR: wordLen is not equal to fist byte of word!!! ";
+    }
+    word = word + 1;     // +1 skips over the length field
+    //cerr << "given expr to search for has " << wordLen << " length \n";
+    unsigned int fieldLen;
+    char* field = (char *) getba(ARGS, 1, fieldLen);
 
+    //cerr << "searching for "; myPrint((unsigned char *)word, wordLen); cerr
+    // << " in field "; myPrint((unsigned char *)field, fieldLen); cerr <<
+    // "\n";
 
-	//cerr << "searching for "; myPrint((unsigned char *)word, wordLen); cerr << " in field "; myPrint((unsigned char *)field, fieldLen); cerr << "\n";
+    unsigned int i = 0;
+    while (i < fieldLen) {
+        unsigned int currLen = (unsigned int)field[i];
+        if (currLen != wordLen) {
+            i = i + currLen+1;
+            continue;
+        }
 
-	unsigned int i = 0;
-	while (i < fieldLen) {
-		unsigned int currLen = (unsigned int)field[i];
-		if (currLen != wordLen) {
-			i = i + currLen+1;
-			continue;
-		}
-
-		//need to compare
-		unsigned int j;
-		for (j = 0; j < currLen; j++) {
-			if (field[i+j+1] != word[j]) {
-				break;
-			}
-		}
-		if (j == currLen) {
+        //need to compare
+        unsigned int j;
+        for (j = 0; j < currLen; j++) {
+            if (field[i+j+1] != word[j]) {
+                break;
+            }
+        }
+        if (j == currLen) {
 #if MYSQL_S
-			return 1;
+            return 1;
 #else
-			PG_RETURN_BOOL(true);
+            PG_RETURN_BOOL(true);
 #endif
-		}
-		i = i + currLen + 1;
-	}
+        }
+        i = i + currLen + 1;
+    }
 
 #if MYSQL_S
-	return 0;
+    return 0;
 #else
-	PG_RETURN_BOOL(true);
+    PG_RETURN_BOOL(true);
 #endif
 }
-
 
 #if MYSQL_S
 
 struct agg_state {
-	ZZ sum;
-	ZZ n2;
-	bool n2_set;
-	void *rbuf;
+    ZZ sum;
+    ZZ n2;
+    bool n2_set;
+    void *rbuf;
 };
 
 my_bool
 agg_init(UDF_INIT *initid, UDF_ARGS *args, char *message)
 {
-	agg_state *as = new agg_state();
-	as->rbuf = malloc(CryptoManager::Paillier_len_bytes);
-	initid->ptr = (char *) as;
-	return 0;
+    agg_state *as = new agg_state();
+    as->rbuf = malloc(CryptoManager::Paillier_len_bytes);
+    initid->ptr = (char *) as;
+    return 0;
 }
 
 void
 agg_deinit(UDF_INIT *initid)
 {
-	agg_state *as = (agg_state *) initid->ptr;
-	free(as->rbuf);
-	delete as;
+    agg_state *as = (agg_state *) initid->ptr;
+    free(as->rbuf);
+    delete as;
 }
 
 void
 agg_clear(UDF_INIT *initid, char *is_null, char *error)
 {
-	agg_state *as = (agg_state *) initid->ptr;
-	as->sum = to_ZZ(1);
-	as->n2_set = 0;
+    agg_state *as = (agg_state *) initid->ptr;
+    as->sum = to_ZZ(1);
+    as->n2_set = 0;
 }
 
 //args will be element to add, constant N2
 my_bool
 agg_add(UDF_INIT *initid, UDF_ARGS *args, char *is_null, char *error)
 {
-	agg_state *as = (agg_state *) initid->ptr;
-	if (!as->n2_set) {
-		ZZFromBytes(as->n2, (const uint8_t *) args->args[1],
-			    args->lengths[1]);
-		as->n2_set = 1;
-	}
+    agg_state *as = (agg_state *) initid->ptr;
+    if (!as->n2_set) {
+        ZZFromBytes(as->n2, (const uint8_t *) args->args[1],
+                    args->lengths[1]);
+        as->n2_set = 1;
+    }
 
-	ZZ e;
-	ZZFromBytes(e, (const uint8_t *) args->args[0], args->lengths[0]);
+    ZZ e;
+    ZZFromBytes(e, (const uint8_t *) args->args[0], args->lengths[0]);
 
-	MulMod(as->sum, as->sum, e, as->n2);
-	return true;
+    MulMod(as->sum, as->sum, e, as->n2);
+    return true;
 }
 
 char *
 agg(UDF_INIT *initid, UDF_ARGS *args, char *result,
     unsigned long *length, char *is_null, char *error)
 {
-	agg_state *as = (agg_state *) initid->ptr;
-	BytesFromZZ((uint8_t *) as->rbuf, as->sum,
-		    CryptoManager::Paillier_len_bytes);
-	*length = CryptoManager::Paillier_len_bytes;
-	return (char *) as->rbuf;
+    agg_state *as = (agg_state *) initid->ptr;
+    BytesFromZZ((uint8_t *) as->rbuf, as->sum,
+                CryptoManager::Paillier_len_bytes);
+    *length = CryptoManager::Paillier_len_bytes;
+    return (char *) as->rbuf;
 }
 
 #else
@@ -452,49 +448,48 @@ agg(UDF_INIT *initid, UDF_ARGS *args, char *result,
 Datum
 func_add(PG_FUNCTION_ARGS)
 {
-	int lenN2, lenB;
-	unsigned char * bytesN2;
-	unsigned char * bytesA;
-	unsigned char * bytesB;
+    int lenN2, lenB;
+    unsigned char * bytesN2;
+    unsigned char * bytesA;
+    unsigned char * bytesB;
 
-	bytea * input = PG_GETARG_BYTEA_P(0);
-	lenN2 = (VARSIZE(input)- VARHDRSZ)/2;
-	//cerr << "lenN2 " << lenN2 << "\n";
-	bytesA = (unsigned char *)VARDATA(input);
-	bytesN2 = bytesA+lenN2;
+    bytea * input = PG_GETARG_BYTEA_P(0);
+    lenN2 = (VARSIZE(input)- VARHDRSZ)/2;
+    //cerr << "lenN2 " << lenN2 << "\n";
+    bytesA = (unsigned char *)VARDATA(input);
+    bytesN2 = bytesA+lenN2;
 
+    bytea * inputB = PG_GETARG_BYTEA_P(1);
+    lenB = VARSIZE(inputB) - VARHDRSZ;
+    //cerr << "lenB " << lenB << "\n";
+    bytesB = (unsigned char *)VARDATA(inputB);
 
-	bytea * inputB = PG_GETARG_BYTEA_P(1);
-	lenB = VARSIZE(inputB) - VARHDRSZ;
-	//cerr << "lenB " << lenB << "\n";
-	bytesB = (unsigned char *)VARDATA(inputB);
+    if (lenB != lenN2) {
+        cerr << "error: lenB != lenN2 \n";
+        cerr << "lenB is " << lenB << " lenN2 is " << lenN2 << "\n";
+        PG_RETURN_BYTEA_P(NULL);
+    }
 
-	if (lenB != lenN2) {
-		cerr << "error: lenB != lenN2 \n";
-		cerr << "lenB is " << lenB << " lenN2 is " << lenN2 << "\n";
-		PG_RETURN_BYTEA_P(NULL);
-	}
+    if (DEBUG) {myPrint(bytesA, lenN2); }
 
-	if (DEBUG) {myPrint(bytesA, lenN2);}
+    unsigned char * bytesRes = homomorphicAdd(bytesA, bytesB, bytesN2, lenN2);
+    //cerr << "product "; myPrint(bytesRes, lenN2); cerr << " ";
 
-	unsigned char * bytesRes = homomorphicAdd(bytesA, bytesB, bytesN2, lenN2);
-	//cerr << "product "; myPrint(bytesRes, lenN2); cerr << " ";
-
-	memcpy(VARDATA(input), bytesRes, lenN2);
-	PG_RETURN_BYTEA_P(input);
+    memcpy(VARDATA(input), bytesRes, lenN2);
+    PG_RETURN_BYTEA_P(input);
 }
 
 Datum
 func_add_final(PG_FUNCTION_ARGS)
 {
-	bytea * input = PG_GETARG_BYTEA_P(0);
-	int lenN2 = (VARSIZE(input) - VARHDRSZ) / 2;
+    bytea * input = PG_GETARG_BYTEA_P(0);
+    int lenN2 = (VARSIZE(input) - VARHDRSZ) / 2;
 
-	bytea * res = (bytea *) palloc(lenN2 + VARHDRSZ);
+    bytea * res = (bytea *) palloc(lenN2 + VARHDRSZ);
 
-	SET_VARSIZE(res, lenN2+VARHDRSZ);
-	memcpy(VARDATA(res), VARDATA(input), lenN2);
-	PG_RETURN_BYTEA_P(res);
+    SET_VARSIZE(res, lenN2+VARHDRSZ);
+    memcpy(VARDATA(res), VARDATA(input), lenN2);
+    PG_RETURN_BYTEA_P(res);
 }
 
 #endif
@@ -504,33 +499,33 @@ func_add_final(PG_FUNCTION_ARGS)
 void
 func_add_set_deinit(UDF_INIT *initid)
 {
-	if (initid->ptr)
-		free(initid->ptr);
+    if (initid->ptr)
+        free(initid->ptr);
 }
 
 char *
 func_add_set(UDF_INIT *initid, UDF_ARGS *args,
-	     char *result, unsigned long *length,
-	     char *is_null, char *error)
+             char *result, unsigned long *length,
+             char *is_null, char *error)
 {
-	if (initid->ptr)
-		free(initid->ptr);
+    if (initid->ptr)
+        free(initid->ptr);
 
-	uint32_t n2len = args->lengths[2];
-	ZZ field, val, n2;
-	ZZFromBytes(field, (const uint8_t *) args->args[0], args->lengths[0]);
-	ZZFromBytes(val, (const uint8_t *) args->args[1], args->lengths[1]);
-	ZZFromBytes(n2, (const uint8_t *) args->args[2], args->lengths[2]);
+    uint32_t n2len = args->lengths[2];
+    ZZ field, val, n2;
+    ZZFromBytes(field, (const uint8_t *) args->args[0], args->lengths[0]);
+    ZZFromBytes(val, (const uint8_t *) args->args[1], args->lengths[1]);
+    ZZFromBytes(n2, (const uint8_t *) args->args[2], args->lengths[2]);
 
-	ZZ res;
-	MulMod(res, field, val, n2);
+    ZZ res;
+    MulMod(res, field, val, n2);
 
-	void *rbuf = malloc(n2len);
-	initid->ptr = (char *) rbuf;
-	BytesFromZZ((uint8_t *) rbuf, res, n2len);
+    void *rbuf = malloc(n2len);
+    initid->ptr = (char *) rbuf;
+    BytesFromZZ((uint8_t *) rbuf, res, n2len);
 
-	*length = n2len;
-	return initid->ptr;
+    *length = n2len;
+    return initid->ptr;
 }
 
 #else
@@ -538,24 +533,24 @@ func_add_set(UDF_INIT *initid, UDF_ARGS *args,
 Datum
 func_add_set(PG_FUNCTION_ARGS)
 {
-	unsigned char * val;
-	unsigned char * N2;
-	unsigned char * field;
-	unsigned int valLen, fieldLen, N2Len;
+    unsigned char * val;
+    unsigned char * N2;
+    unsigned char * field;
+    unsigned int valLen, fieldLen, N2Len;
 
-	field = getba(ARGS, 0, fieldLen);
-	val = getba(ARGS, 1, valLen);
-	N2 = getba(ARGS, 2, N2Len);
+    field = getba(ARGS, 0, fieldLen);
+    val = getba(ARGS, 1, valLen);
+    N2 = getba(ARGS, 2, N2Len);
 
-	myassert(fieldLen == N2Len, "length of the field differs from N2 len");
-	myassert(valLen == N2Len, "length of val differs from N2 len");
+    myassert(fieldLen == N2Len, "length of the field differs from N2 len");
+    myassert(valLen == N2Len, "length of val differs from N2 len");
 
-	unsigned char * res = homomorphicAdd(field, val, N2, N2Len);
+    unsigned char * res = homomorphicAdd(field, val, N2, N2Len);
 
-	bytea * resBytea = (bytea *) palloc(N2Len + VARHDRSZ);
-	SET_VARSIZE(resBytea, N2Len + VARHDRSZ);
-	memcpy(VARDATA(resBytea), res, N2Len);
-	PG_RETURN_BYTEA_P(resBytea);
+    bytea * resBytea = (bytea *) palloc(N2Len + VARHDRSZ);
+    SET_VARSIZE(resBytea, N2Len + VARHDRSZ);
+    memcpy(VARDATA(resBytea), res, N2Len);
+    PG_RETURN_BYTEA_P(resBytea);
 }
 
 #endif

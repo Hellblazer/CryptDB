@@ -12,162 +12,178 @@
 #include "params.h"
 #include <stdio.h>
 
-
 //returns the highest security level lower than sl that allows equality
 SECLEVEL highestEq(SECLEVEL sl);
 
 typedef RSA PKCS;
 
 class CryptoManager {
- public:	
-	CryptoManager(const string &masterKey);
-	~CryptoManager();
-	
+ public:
+    CryptoManager(const string &masterKey);
+    ~CryptoManager();
 
     //GENERAL FUNCTION for cryptDB
-	//unmarshall/marshalls values, deals with types, figure out if encrypt/decrypt, computes the right key, deals with onion levels
+    //unmarshall/marshalls values, deals with types, figure out if
+    // encrypt/decrypt, computes the right key, deals with onion levels
 
-   //input: mkey is the master key, the actual key to be used is generated from fullfieldname and tolevel/fromlevel
-   //assumes the two levels are one the same onion
-   // salt need only be provided for semantic encryptions
-   string crypt(AES_KEY * mkey, string data, fieldType ft, string fullfieldname, SECLEVEL fromlevel, SECLEVEL tolevel,
-		   uint64_t salt = 0);
+    //input: mkey is the master key, the actual key to be used is generated
+    // from fullfieldname and tolevel/fromlevel
+    //assumes the two levels are one the same onion
+    // salt need only be provided for semantic encryptions
+    string crypt(AES_KEY * mkey, string data, fieldType ft,
+                 string fullfieldname, SECLEVEL fromlevel, SECLEVEL tolevel,
+                 uint64_t salt = 0);
 
-	//SPECIFIC FUNCTIONS
+    //SPECIFIC FUNCTIONS
 
-	//expects AES_KEY_BYTES long key
-	void setMasterKey(const string &masterKey);
+    //expects AES_KEY_BYTES long key
+    void setMasterKey(const string &masterKey);
 
-	//TODO: these: make one function for the same onion as well as for multiple levels
-	// encrypt with ope onion: value -> opeself -> sem
-	uint64_t encrypt_OPE_onion(string  uniqueFieldName, uint32_t value, uint64_t salt);
-	//encrypt with det onion: value -> DET -> sem
-	uint64_t encrypt_DET_onion(string  uniqueFieldName, uint32_t value, uint64_t salt);
-	uint64_t encrypt_DET_onion(string  uniqueFieldName, string value, uint64_t salt);
-	
+    //TODO: these: make one function for the same onion as well as for
+    // multiple levels
+    // encrypt with ope onion: value -> opeself -> sem
+    uint64_t encrypt_OPE_onion(string uniqueFieldName, uint32_t value,
+                               uint64_t salt);
+    //encrypt with det onion: value -> DET -> sem
+    uint64_t encrypt_DET_onion(string uniqueFieldName, uint32_t value,
+                               uint64_t salt);
+    uint64_t encrypt_DET_onion(string uniqueFieldName, string value,
+                               uint64_t salt);
 
-	//**************** Public Key Cryptosystem (PKCS) ****************************************/
+    //**************** Public Key Cryptosystem (PKCS)
+    // ****************************************/
 
-	static const unsigned int PKCS_bytes_size = 256; //this is the size in openssl
+    static const unsigned int PKCS_bytes_size = 256;     //this is the size in
+                                                         // openssl
 
-	//generates a new key
-	static void generateKeys(PKCS * & pk, PKCS * & sk);
+    //generates a new key
+    static void generateKeys(PKCS * & pk, PKCS * & sk);
 
-	//marshalls a key
-	//if ispk is true, it returns the binary of the public key and sets let to the length returned
-	//is !ispk, it does the same for secret key
-	static string marshallKey(PKCS * mkey, bool ispk);
+    //marshalls a key
+    //if ispk is true, it returns the binary of the public key and sets let to
+    // the length returned
+    //is !ispk, it does the same for secret key
+    static string marshallKey(PKCS * mkey, bool ispk);
 
-	//from a binary key of size keylen, it returns a public key if ispk, else a secret key
-	static PKCS * unmarshallKey(const string &key, bool ispk);
+    //from a binary key of size keylen, it returns a public key if ispk, else
+    // a secret key
+    static PKCS * unmarshallKey(const string &key, bool ispk);
 
-	//using key, it encrypts the data in from of size fromlen
-	//the result is len long
-	static string encrypt(PKCS * key, const string &from);
+    //using key, it encrypts the data in from of size fromlen
+    //the result is len long
+    static string encrypt(PKCS * key, const string &from);
 
-	//using key, it decrypts data at fromcipher, and returns the decrypted value
-	static string decrypt(PKCS * key, const string &fromcipher);
+    //using key, it decrypts data at fromcipher, and returns the decrypted
+    // value
+    static string decrypt(PKCS * key, const string &fromcipher);
 
-	//frees memory allocated by this keyb
-	static void freeKey(PKCS * key);
+    //frees memory allocated by this keyb
+    static void freeKey(PKCS * key);
 
+    //***************************************************************************************/
+    string encrypt_text_DET_onion(string uniqueFieldName, string value,
+                                  uint64_t salt);
 
-	//***************************************************************************************/
-	string encrypt_text_DET_onion(string uniqueFieldName, string value, uint64_t salt);
+    uint32_t encrypt_VAL(string uniqueFieldName, uint32_t value,
+                         uint64_t salt);
+    //result len is same as input len
+    string encrypt_VAL(string uniqueFieldName, string value, uint64_t salt);
 
-	uint32_t encrypt_VAL(string  uniqueFieldName, uint32_t value, uint64_t salt);
-	//result len is same as input len
-	string encrypt_VAL(string uniqueFieldName, string value, uint64_t salt);
-	
-	/**
-	* Returns the key corresponding to the security level given for some master key and 
-	* some unique field name. Result will be AES_KEY_SIZE long.  
-	*/
-	string getKey(const string &uniqueFieldName, SECLEVEL sec);
-	string getKey(AES_KEY * mkey, const string &uniqueFieldName, SECLEVEL sec);
-	
-	static string marshallKey(const string &key);
-	static string unmarshallKey(const string &key);
-	
-	//int32_t encrypt_SEM(int32_t ptext, int salt, unsigned char * key);
-	//int32_t decrypt_SEM(int32_t, const char * ctext, unsigned char * salt, unsigned char * key);
+    /**
+     * Returns the key corresponding to the security level given for some
+     *master key and
+     * some unique field name. Result will be AES_KEY_SIZE long.
+     */
+    string getKey(const string &uniqueFieldName, SECLEVEL sec);
+    string getKey(AES_KEY * mkey, const string &uniqueFieldName, SECLEVEL sec);
 
-	//SEMANTIC
-	//since many values may be encrypted with same key you want to set the key
-	static AES_KEY * get_key_SEM(const string &key);
-	static uint64_t encrypt_SEM(uint64_t ptext, AES_KEY * key, uint64_t salt);
-	static uint64_t decrypt_SEM(uint64_t ctext, AES_KEY * key, uint64_t salt);
-	static uint32_t encrypt_SEM(uint32_t ptext, AES_KEY * key, uint64_t salt);
-	static uint32_t decrypt_SEM(uint32_t ctext, AES_KEY * key, uint64_t salt);
+    static string marshallKey(const string &key);
+    static string unmarshallKey(const string &key);
 
-	//output same len as input
-	static string encrypt_SEM(const string &ptext, AES_KEY *key, uint64_t salt);
-	static string decrypt_SEM(const string &ctext, AES_KEY *key, uint64_t salt);
+    //int32_t encrypt_SEM(int32_t ptext, int salt, unsigned char * key);
+    //int32_t decrypt_SEM(int32_t, const char * ctext, unsigned char * salt,
+    // unsigned char * key);
 
-	//OPE
-	static OPE * get_key_OPE(const string &key); //key must have OPE_KEY_SIZE
-	static uint64_t encrypt_OPE(uint32_t plaintext, OPE * ope);
-	static uint32_t decrypt_OPE(uint64_t ciphertext, OPE * ope);
-	// used to encrypt text
-	static uint64_t encrypt_OPE_text_wrapper(const string & plaintext, OPE * ope);
-	static string encrypt_OPE(const string &plaintext, OPE * ope);
-	static string decrypt_OPE(const string &ciphertext, OPE * ope);
+    //SEMANTIC
+    //since many values may be encrypted with same key you want to set the key
+    static AES_KEY * get_key_SEM(const string &key);
+    static uint64_t encrypt_SEM(uint64_t ptext, AES_KEY * key, uint64_t salt);
+    static uint64_t decrypt_SEM(uint64_t ctext, AES_KEY * key, uint64_t salt);
+    static uint32_t encrypt_SEM(uint32_t ptext, AES_KEY * key, uint64_t salt);
+    static uint32_t decrypt_SEM(uint32_t ctext, AES_KEY * key, uint64_t salt);
 
-	uint64_t encrypt_OPE(uint32_t plaintext, string uniqueFieldName);
+    //output same len as input
+    static string encrypt_SEM(const string &ptext, AES_KEY *key,
+                              uint64_t salt);
+    static string decrypt_SEM(const string &ctext, AES_KEY *key,
+                              uint64_t salt);
 
-	//DET: one-way functions
-	static AES_KEY * get_key_DET(const string &key);
-	static uint64_t encrypt_DET(uint32_t plaintext, AES_KEY * key);
-	static uint64_t encrypt_DET(uint64_t plaintext, AES_KEY * key);
-	static uint64_t encrypt_DET(const string &plaintext, AES_KEY *key);
-	static uint64_t decrypt_DET(uint64_t ciphertext, AES_KEY * key);
+    //OPE
+    static OPE * get_key_OPE(const string &key);     //key must have
+                                                     // OPE_KEY_SIZE
+    static uint64_t encrypt_OPE(uint32_t plaintext, OPE * ope);
+    static uint32_t decrypt_OPE(uint64_t ciphertext, OPE * ope);
+    // used to encrypt text
+    static uint64_t encrypt_OPE_text_wrapper(const string & plaintext,
+                                             OPE * ope);
+    static string encrypt_OPE(const string &plaintext, OPE * ope);
+    static string decrypt_OPE(const string &ciphertext, OPE * ope);
 
-	//encrypts a string such that it can support search, ciph need not be initialized
-	// input len must be set to the sum of the lengths of the words and it will be updated to the length of the ciphertext
-	static string encrypt_DET_search(list<string> * words, AES_KEY * key);
-	static list<string> * decrypt_DET_search(const string &ctext, AES_KEY * key);
+    uint64_t encrypt_OPE(uint32_t plaintext, string uniqueFieldName);
 
-	static string encrypt_DET_wrapper(const string &ptext, AES_KEY * key);
-	static string decrypt_DET_wrapper(const string &ctext, AES_KEY * key);
+    //DET: one-way functions
+    static AES_KEY * get_key_DET(const string &key);
+    static uint64_t encrypt_DET(uint32_t plaintext, AES_KEY * key);
+    static uint64_t encrypt_DET(uint64_t plaintext, AES_KEY * key);
+    static uint64_t encrypt_DET(const string &plaintext, AES_KEY *key);
+    static uint64_t decrypt_DET(uint64_t ciphertext, AES_KEY * key);
 
-	//aggregates
-	static const unsigned int Paillier_len_bytes = PAILLIER_LEN_BYTES;
-	static const unsigned int Paillier_len_bits = Paillier_len_bytes * 8;
-	string encrypt_Paillier(int val);
-	int decrypt_Paillier(const string &ciphertext);
+    //encrypts a string such that it can support search, ciph need not be
+    // initialized
+    // input len must be set to the sum of the lengths of the words and it
+    // will be updated to the length of the ciphertext
+    static string encrypt_DET_search(list<string> * words, AES_KEY * key);
+    static list<string> * decrypt_DET_search(const string &ctext,
+                                             AES_KEY * key);
 
-	string getPKInfo();
-	AES_KEY * getmkey();
+    static string encrypt_DET_wrapper(const string &ptext, AES_KEY * key);
+    static string decrypt_DET_wrapper(const string &ctext, AES_KEY * key);
 
+    //aggregates
+    static const unsigned int Paillier_len_bytes = PAILLIER_LEN_BYTES;
+    static const unsigned int Paillier_len_bits = Paillier_len_bytes * 8;
+    string encrypt_Paillier(int val);
+    int decrypt_Paillier(const string &ciphertext);
+
+    string getPKInfo();
+    AES_KEY * getmkey();
 
     //ENCRYPTION TABLES
 
     //will create encryption tables and will use them
     //noOPE encryptions and noHOM encryptions
-    void createEncryptionTables(int noOPE, int noHOM, list<string>  fieldsWithOPE);
+    void createEncryptionTables(int noOPE, int noHOM,
+                                list<string>  fieldsWithOPE);
     void replenishEncryptionTables();
 
+    //TODO:
+    //batchEncrypt
+    //batchDecrypt
 
-	//TODO:
-	//batchEncrypt
-	//batchDecrypt
-	
  private:
-	AES_KEY * masterKey;
+    AES_KEY * masterKey;
 
-	//Paillier cryptosystem
-	ZZ Paillier_lambda, Paillier_n, Paillier_g, Paillier_n2;
-	ZZ Paillier_dec_denom; //L(g^lambda mod n^2)
-	
-	//encryption tables
-	bool useEncTables;
-	int noOPE, noHOM;
-	map<string, map<int, uint64_t> > OPEEncTable;
-	map<int, list<string> > HOMEncTable;
+    //Paillier cryptosystem
+    ZZ Paillier_lambda, Paillier_n, Paillier_g, Paillier_n2;
+    ZZ Paillier_dec_denom;     //L(g^lambda mod n^2)
 
-	bool VERBOSE;
+    //encryption tables
+    bool useEncTables;
+    int noOPE, noHOM;
+    map<string, map<int, uint64_t> > OPEEncTable;
+    map<int, list<string> > HOMEncTable;
 
-
+    bool VERBOSE;
 
 };
 
