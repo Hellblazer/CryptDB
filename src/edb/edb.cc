@@ -153,6 +153,12 @@ getba(ARGS, int i, unsigned int & len)
 extern "C" {
 
 #if MYSQL_S
+my_bool
+decrypt_int_sem_init(UDF_INIT *initid, UDF_ARGS *args, char *message)
+{
+	return 0;
+}
+
 longlong
 decrypt_int_sem(UDF_INIT *initid, UDF_ARGS *args, char *is_null, char *error)
 #else /*postgres*/
@@ -184,6 +190,12 @@ decrypt_int_sem(PG_FUNCTION_ARGS)
 
 
 #if MYSQL_S
+my_bool
+decrypt_int_det_init(UDF_INIT *initid, UDF_ARGS *args, char *message)
+{
+	return 0;
+}
+
 longlong
 decrypt_int_det(UDF_INIT *initid, UDF_ARGS *args, char *is_null, char *error)
 #else /* postgres */
@@ -214,6 +226,12 @@ decrypt_int_det(PG_FUNCTION_ARGS)
 
 
 #if MYSQL_S
+my_bool
+encrypt_int_det_init(UDF_INIT *initid, UDF_ARGS *args, char *message)
+{
+	return 0;
+}
+
 longlong
 encrypt_int_det(UDF_INIT *initid, UDF_ARGS *args, char *is_null, char *error)
 #else /* postgres */
@@ -244,6 +262,12 @@ decrypt_int_det(PG_FUNCTION_ARGS)
 
 
 #if MYSQL_S
+my_bool
+decrypt_text_sem_init(UDF_INIT *initid, UDF_ARGS *args, char *message)
+{
+	return 0;
+}
+
 void
 decrypt_text_sem_deinit(UDF_INIT *initid)
 {
@@ -301,6 +325,12 @@ decrypt_text_sem(PG_FUNCTION_ARGS)
  * the length of the word body
  */
 #if MYSQL_S
+my_bool
+search_init(UDF_INIT *initid, UDF_ARGS *args, char *message)
+{
+	return 0;
+}
+
 longlong
 search(UDF_INIT *initid, UDF_ARGS *args, char *is_null, char *error)
 #else
