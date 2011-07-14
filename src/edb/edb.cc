@@ -483,18 +483,14 @@ func_add_set(UDF_INIT *initid, UDF_ARGS *args,
 	     char *result, unsigned long *length,
 	     char *is_null, char *error)
 {
-	uint32_t n2len = args->lengths[2];
-	myassert(initid->ptr == 0,
-		 "func_add_set used twice per init");
-	myassert(args->lengths[0] == n2len,
-		 "length of field differs from N2 len");
-	myassert(args->lengths[1] == n2len,
-		 "length of val differs from N2 len");
+	if (initid->ptr)
+		free(initid->ptr);
 
+	uint32_t n2len = args->lengths[2];
 	ZZ field, val, n2;
-	ZZFromBytes(field, (const uint8_t *) args->args[0], n2len);
-	ZZFromBytes(val, (const uint8_t *) args->args[1], n2len);
-	ZZFromBytes(n2, (const uint8_t *) args->args[2], n2len);
+	ZZFromBytes(field, (const uint8_t *) args->args[0], args->lengths[0]);
+	ZZFromBytes(val, (const uint8_t *) args->args[1], args->lengths[1]);
+	ZZFromBytes(n2, (const uint8_t *) args->args[2], args->lengths[2]);
 
 	ZZ res;
 	MulMod(res, field, val, n2);
@@ -504,7 +500,7 @@ func_add_set(UDF_INIT *initid, UDF_ARGS *args,
 	BytesFromZZ((uint8_t *) rbuf, res, n2len);
 
 	*length = n2len;
-	return result;
+	return initid->ptr;
 }
 
 #else
