@@ -33,3 +33,4 @@ parsetest: parsetest.o
 clean:
 	rm -f *.o parsetest
 
+# vim: set noexpandtab:

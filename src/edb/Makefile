@@ -51,3 +51,6 @@ clean:
 	rm -f *.o $(LIBS)
 	cd tests && $(MAKE) clean
 
+.PHONY: install clean indent test
+
+# vim: set noexpandtab:

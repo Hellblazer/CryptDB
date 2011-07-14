@@ -14,3 +14,4 @@ test: $(TEST_OBJS)
 clean: 
 	rm -f *.o test
 
+# vim: set noexpandtab:
