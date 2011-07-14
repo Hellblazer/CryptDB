@@ -333,7 +333,11 @@ function read_query_real(packet)
 		myprint("read_query got query: " .. string.sub(packet, 2))
 		local query = string.sub(packet, 2)
 		local replacing = false
-		if query:upper():match('CREATE') then
+
+		local tk = require('proxy.tokenizer')
+		local tokens = tk.tokenize(query)
+
+		if tokens[1].token_name == 'TK_SQL_CREATE' then
 		   if use_enc_annotation then
 		      sensitive_enc(query)
 		   else
@@ -348,8 +352,7 @@ function read_query_real(packet)
 		   end
 		   proxy.queries:append(3, string.char(proxy.COM_QUERY) .. last_query, { resultset_is_needed = true } )
        		   replacing = true
-		else
-		if cpattern_find(query) then
+		elseif cpattern_find(query) then
 		   myprint("to c")
 		   new_queries = pass_to_c(query)
 		   last_query = new_queries[table.getn(new_queries)]
@@ -369,7 +372,6 @@ function read_query_real(packet)
 		      end
 		   end
        		   replacing = true
-		end
 		end
 		if replacing then
 		   return proxy.PROXY_SEND_QUERY
