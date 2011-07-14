@@ -2120,6 +2120,7 @@ void autoIncTest() {
 }
 
 void accessManagerTest() {
+
 	cerr << "============================= Equation ========================" << endl;
 
 	Equation eq;
@@ -2208,7 +2209,6 @@ void accessManagerTest() {
 
 	//Testing new AccessManager, called AccessManager2
 	cerr << "============================= AccessManager2 ==================================" << endl;
-
 	MetaAccess * meta;
 	meta = new MetaAccess(new Connect("localhost", "root", "letmein", "mysql"),true);
 

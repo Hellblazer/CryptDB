@@ -5,6 +5,8 @@
  *      Author: raluca
  */
 
+#include "EDBClient.h"
+
 #ifndef TESTSINGLEPRINC_H_
 #define TESTSINGLEPRINC_H_
 
