@@ -1,2 +1,2 @@
-set shiftwidth=8
-set softtabstop=8
+set softtabstop=4
+set expandtab
