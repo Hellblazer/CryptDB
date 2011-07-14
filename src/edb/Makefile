@@ -54,6 +54,8 @@ clean:
 indent:
 	uncrustify --no-backup -c ../.uncrustify.cfg $(wildcard *.cc)
 	uncrustify --no-backup -c ../.uncrustify.cfg $(wildcard *.h)
+	uncrustify --no-backup -c ../.uncrustify.cfg $(wildcard tests/*.cc)
+	uncrustify --no-backup -c ../.uncrustify.cfg $(wildcard tests/*.h)
 
 .PHONY: install clean indent test
 
