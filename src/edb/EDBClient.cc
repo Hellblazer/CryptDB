@@ -1965,8 +1965,6 @@ string EDBClient::processOperation(string operation, string op1, string op2, Que
 
 	getTableField(op1, table1, field1, qm, tableMetaMap);
 	string anonTable1 = tableMetaMap[table1]->anonTableName;
-	string anonField1 = tableMetaMap[table1]->fieldMetaMap[field1]->anonFieldNameDET;
-	string anonOp1 = anonTable1 + "." + anonField1;
 
 	fieldType ftype1 = tableMetaMap[table1]->fieldMetaMap[field1]->type;
 
@@ -1994,6 +1992,8 @@ string EDBClient::processOperation(string operation, string op1, string op2, Que
 	}
 
 	if (Operation::isDET(operation)) { //DET
+		string anonField1 = tableMetaMap[table1]->fieldMetaMap[field1]->anonFieldNameDET;
+		string anonOp1 = anonTable1 + "." + anonField1;
 
 		//TODOthis is inconsistent, I added some OPE fields with det encryptions
 		// you also may want to fetch ope only if there is an index on it
@@ -2013,6 +2013,9 @@ string EDBClient::processOperation(string operation, string op1, string op2, Que
 	}
 
 	if (Operation::isILIKE(operation)) { //DET
+		/* XXX soon to be a different onion */
+		string anonField1 = tableMetaMap[table1]->fieldMetaMap[field1]->anonFieldNameDET;
+		string anonOp1 = anonTable1 + "." + anonField1;
 
 		fieldType ftype = tableMetaMap[table1]->fieldMetaMap[field1]->type;
 
@@ -2030,6 +2033,9 @@ string EDBClient::processOperation(string operation, string op1, string op2, Que
 
 	//operation is OPE
 
+	string anonField1 = tableMetaMap[table1]->fieldMetaMap[field1]->anonFieldNameOPE;
+	string anonOp1 = anonTable1 + "." + anonField1;
+
 	FieldMetadata * fm = tableMetaMap[table1]->fieldMetaMap[field1];
 
 	assert_s(Operation::isOPE(operation), " expected OPE , I got " + operation + " \n");
@@ -2043,7 +2049,8 @@ string EDBClient::processOperation(string operation, string op1, string op2, Que
 
 	//cout << "key used to get to OPE level for "<< tokenOperand << "is " <<  CryptoManager::marshallKey(cm->getKey(tokenOperand, OPESELF)) << "\n";
 	res = res + " " + fieldname + " " +  operation + " " +
-			crypt(op2, fm->type, fullName(field1, table1), anonOp1, PLAIN_OPE, OPESELF, 0, tmkm);
+	      crypt(op2, fm->type, fullName(field1, table1),
+		    anonOp1, PLAIN_OPE, OPESELF, 0, tmkm);
 
 	return res;
 }
