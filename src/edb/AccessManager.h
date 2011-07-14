@@ -74,16 +74,13 @@ typedef struct Prin {
 } Prin;
 
 typedef struct PrinKey {
-	unsigned char * key;
-	unsigned int len;
-	//principles currently holding the keys to access this key
+	string key;
+
+	// principles currently holding the keys to access this key
 	std::set<Prin> principles_with_access;
 
 	bool operator==(const PrinKey &a) const {
-		if (a.len != len) {
-			return false;
-		}
-		return isEqual(key,a.key,len);
+		return a.key == key;
 	}
 } PrinKey;
 
@@ -232,7 +229,7 @@ public:
 
 	//returns the symmetric key for the principle Prin, if held
 	//returns keys of length AES_KEY_BYTES
-	unsigned char * getKey(Prin prin);
+	string getKey(Prin prin);
 
 	//returns the symmetric key for the principle Prin, if held
 	//returns keys of length AES_KEY_BYTES
@@ -247,7 +244,7 @@ public:
 	//inserts a givesPsswd value
 	//if the value has access to other principles, all those keys are accessed and decrypted
 	//requires: psswd be of length AES_KEY_BYTES
-	int insertPsswd(Prin gives, unsigned char * psswd);
+	int insertPsswd(Prin gives, const string &psswd);
 
 
 	//removes a givesPsswd value
@@ -277,7 +274,7 @@ private:
 
 	//creates PrinKey
 	//requires: hasAccess and accessTo to have gen field set
-	PrinKey buildKey(Prin hasAccess, unsigned char * sym_key, int length_sym);
+	PrinKey buildKey(Prin hasAccess, const string &sym_key);
 
 	//adds prin to the map keys
 	//if keys already holds this keys, the principles_with_access sets are merged
@@ -312,9 +309,9 @@ private:
 
 	//returns: str_encrypted_key decrypted symmetrically with key_for_decrypting
 	//         principles_with_access is empty
-	PrinKey decryptSym(string str_encrypted_key, unsigned char * key_for_decrypting, string str_salt);
+	PrinKey decryptSym(string str_encrypted_key, const string &key_for_decrypting, string str_salt);
 
-	PrinKey decryptAsym(string str_encrypted_key, unsigned char * secret_key, int secret_key_length);
+	PrinKey decryptAsym(string str_encrypted_key, const string &secret_key);
 
 	bool isInstance(Prin prin);
 	bool isOrphan(Prin prin);

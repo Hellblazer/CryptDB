@@ -55,7 +55,6 @@ using namespace std;
 #define ANONTABLES (1-MULTIPRINC)  //whether to anonymize tables names
 #define ANONDETFIELD (1-MULTIPRINC) //whether to anonymize the det field
 
-typedef unsigned char * binary;
 
 #define psswdtable "activeusers"
 
@@ -83,21 +82,20 @@ const unsigned int bytesOfTextForOPE = 20; //texts may be ordered alphabetically
 // text supports search only on words separated by these separators
 const string wordSeparators = "; .,'-{}()";
 
-const unsigned char dec_first_key[] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 1, 2, 3, 4, 5, 6};
-
+const string dec_first_key = "\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x01\x02\x03\x04\x05\x06";
 const string PWD_TABLE_PREFIX = "pwdcryptdb__";
 
 
 // ============= DATA STRUCTURES ===================================//
 
-#define ResType vector<vector<string> >
+typedef vector<vector<string> > ResType;
 
 #if MYSQL_S
 	#include "mysql.h"
-	typedef MYSQL_RES DBResult;
+	typedef MYSQL_RES DBResult_native;
 #else
 	#include "libpq-fe.h"
-	typedef PGresult DBResult;
+	typedef PGresult DBResult_native;
 #endif
 
 typedef struct SyntaxError {
@@ -274,8 +272,8 @@ typedef struct TempMKM {
 
 
 // extracts (nobytes) bytes from int by placing the most significant bits at the end
-unsigned char * BytesFromInt(uint64_t value, unsigned int noBytes);
-uint64_t IntFromBytes(unsigned char * bytes, unsigned int noBytes);
+string BytesFromInt(uint64_t value, unsigned int noBytes);
+uint64_t IntFromBytes(const unsigned char * bytes, unsigned int noBytes);
 
 void assert_s (bool value, string msg) throw (SyntaxError);
 void myassert(bool value, const char * mess);
@@ -318,25 +316,24 @@ char * getCStr(string value);
 
 const char * removeString(const char * input, string toremove);
 
-unsigned char * concatenate(unsigned char * a, unsigned int aLen, unsigned char * b, unsigned int bLen, unsigned char * c, unsigned int cLen);
-
 //returns a list that consists of lst1 and lst2 concatenated in this order
 list<string> concatenate(const list<string> & lst1, const list<string>  & lst2);
 
 //appends the contents of lst2 to lst1
 void append(list<string> & lst1, const list<string> & lst2);
 
-unsigned char * randomBytes(unsigned int len);
+string randomBytes(unsigned int len);
 uint64_t randomValue();
 
-void myPrint(unsigned char * a, unsigned int aLen);
-void myPrint(char * a);
+void myPrint(const unsigned char * a, unsigned int aLen);
+void myPrint(const char * a);
 void myPrint(const list<string> & lst);
 void myPrint(list<const char *> & lst);
 void myPrint(const vector<string> & vec);
 void myPrint(const vector<vector<string> > & d);
 void myPrint(vector<bool> & bitmap);
-void myPrint(unsigned int * a, unsigned int aLen);
+void myPrint(const unsigned int * a, unsigned int aLen);
+void myPrint(const string &s);
 
 string toString(const list<string> & lst);
 string toString(const vector<bool> & vec);
@@ -358,25 +355,13 @@ ZZ UInt64_tToZZ (uint64_t value);
 unsigned char ByteFromCharA(const char * a);
 
 
-/** Brings array a (of total len n) to the desired len desiredLen. If desiredLen < n, take last desiredLen bits, else pad with zero. */
-unsigned char * adjustLen(unsigned char * a, unsigned int len, unsigned int desiredLen);
-
 unsigned char * copyInto(unsigned char * res, unsigned char * data, unsigned int pos, unsigned int len);
 
 unsigned char* BytesFromZZ(const ZZ & x, unsigned int noBytes);
-
-unsigned char * CharToUChar(const char * s);
-
-//transforms string into unsigned char * where the second is truncated/zero-padded to len bytes
-unsigned char * stringToUChar(string s, unsigned int len);
-
-
-unsigned char *stringToUCharDirect(string input);
+string StringFromZZ(const ZZ &x);
+ZZ ZZFromString(const string &s);
 
 string uCharToStringDirect(unsigned char * input, unsigned int len);
-
-
-char * UCharToChar(unsigned char * s, unsigned int len);
 
 
 /***** ITERATORS *******************/
@@ -424,11 +409,13 @@ string marshallVal(unsigned int x, unsigned int digits);
 uint64_t unmarshallVal(string str); 
 
 //marshalls a binary value into characters readable by Postgres 
-string marshallBinary(unsigned char * binValue, unsigned int len);
+string marshallBinary(const string &s);
 string secondMarshallBinary(unsigned char * binValue, unsigned int len);
-//unmarshalls a char * received from Postgres into a binary and sets newlen to the length of the result
-//marshall and unmarshallBinary are not inverses of each other
-unsigned char * unmarshallBinary(char * value, unsigned int len, unsigned int & newlen);
+// unmarshalls a char * received from Postgres into a binary and
+// sets newlen to the length of the result..
+// marshall and unmarshallBinary are not inverses of each other.
+// XXX why not?
+string unmarshallBinary(const string &s);
 
 void consolidate(list<string> & words);
 

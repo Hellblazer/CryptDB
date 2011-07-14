@@ -70,12 +70,12 @@ public:
 	// -- Determines which key to use for a field
 	// -- They return null if the set of active users cannot decrypt current field
 	// -- the key is to be used for a query
-	unsigned char * get_key(string fieldName, TMKM & tmkm);
+	string get_key(string fieldName, TMKM & tmkm);
 
 	// -- Determines which key to use for a field
 	// -- They return null if the set of active users cannot decrypt current field
 	// -- the key is to be used for a result set
-	unsigned char * get_key(string fieldName, TMKM & tmkm,  const vector<string>  & res);
+	string get_key(string fieldName, TMKM & tmkm,  const vector<string>  & res);
 
 private:
 

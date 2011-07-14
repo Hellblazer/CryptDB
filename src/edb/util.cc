@@ -81,41 +81,33 @@ double timeInMSec(struct timeval tvstart, struct timeval tvend) {
 	return timeInSec(tvstart, tvend) * 1000.0;
 }
 
-
-unsigned char * concatenate(unsigned char * a, unsigned int aLen, unsigned char * b, unsigned int bLen, unsigned char * c, unsigned int cLen) {
-	unsigned int len = aLen + bLen + cLen;
-	unsigned char * result = new unsigned char[len];
-
-	for (unsigned int i = 0; i < aLen; i++) {
-		result[i] = a[i];
-	}
-
-	for (unsigned int i = aLen; i < aLen + bLen; i++) {
-		result[i] =  b[i-aLen];
-	}
-
-	for (unsigned int i = aLen + bLen; i < len; i++) {
-		result[i] =  c[i-aLen-bLen];
-	}
-
-	return result;
+string
+randomBytes(unsigned int len)
+{
+	string s;
+	s.resize(len);
+	RAND_bytes((uint8_t*) &s[0], len);
+	return s;
 }
 
-unsigned char * randomBytes(unsigned int len) {
-	unsigned char * res = new unsigned char[len+4];
-	RAND_bytes(res, len);
-
-	return res;
+uint64_t
+randomValue()
+{
+	return IntFromBytes((const uint8_t*) randomBytes(8).c_str(), 8);
 }
 
-uint64_t randomValue() {
-	return IntFromBytes(randomBytes(8), 8);
-}
-
-void myPrint(unsigned char * a, unsigned int aLen) {
+void
+myPrint(const unsigned char * a, unsigned int aLen)
+{
 	for (unsigned int i = 0; i < aLen; i++) {
 		fprintf(stderr, "%d ", (int)(a[i]-0));
 	}
+}
+
+void
+myPrint(const string &s)
+{
+	myPrint((const uint8_t *) s.c_str(), s.length());
 }
 
 void myPrint(vector<bool> & bitmap) {
@@ -124,7 +116,9 @@ void myPrint(vector<bool> & bitmap) {
 	cout << "\n";
 }
 
-void myPrint(unsigned int * a, unsigned int aLen) {
+void
+myPrint(const unsigned int * a, unsigned int aLen)
+{
 	for (unsigned int i = 0; i < aLen; i++) {
 		fprintf(stderr, "%d ", a[i]);
 	}
@@ -268,39 +262,14 @@ isEqual(unsigned char * first, unsigned char * second, unsigned int len)
 	return memcmp(first, second, len) == 0;
 }
 
-unsigned char * adjustLen(unsigned char * a, unsigned int len, unsigned int desiredLen) {
-	if (len == desiredLen) {
-		return a;
-	}
 
-	unsigned char * result = new unsigned char[desiredLen];
+string
+BytesFromInt(uint64_t value, unsigned int noBytes)
+{
+	string result;
+	result.resize(noBytes);
 
-	if (len > desiredLen) {
-
-		unsigned int offset = len-desiredLen;
-		for (unsigned int i = 0; i < desiredLen; i++) {
-			result[i] = a[i+offset];
-		}
-
-		return result;
-	}
-
-	//len < desiredLen : must pad
-	for (unsigned int i = 0; i < len; i++) {
-		result[i] = a[i];
-	}
-	for (unsigned int i = len; i < desiredLen; i++) {
-		result[i] = 0;
-	}
-
-	return result;
-
-}
-
-
-unsigned char * BytesFromInt(uint64_t value, unsigned int noBytes) {
-  unsigned char * result = (unsigned char *) malloc (noBytes+4);
-	for (unsigned int i = 0 ; i < noBytes; i++) {
+	for (uint i = 0; i < noBytes; i++) {
 		result[noBytes-i-1] = value % 256;
 		value = value / 256;
 	}
@@ -308,7 +277,9 @@ unsigned char * BytesFromInt(uint64_t value, unsigned int noBytes) {
 	return result;
 }
 
-uint64_t IntFromBytes(unsigned char * bytes, unsigned int noBytes) {
+uint64_t
+IntFromBytes(const unsigned char * bytes, unsigned int noBytes)
+{
 	uint64_t value = 0;
 
 	for (unsigned int i = 0; i < noBytes; i++) {
@@ -316,7 +287,7 @@ uint64_t IntFromBytes(unsigned char * bytes, unsigned int noBytes) {
 		value = value * 256 + bval;
 	}
 
-    return value;
+	return value;
 }
 
 unsigned char* BytesFromZZ(const ZZ & x, unsigned int noBytes){
@@ -324,6 +295,21 @@ unsigned char* BytesFromZZ(const ZZ & x, unsigned int noBytes){
 	BytesFromZZ(result, x, noBytes);
 	return result;
 };
+
+string
+StringFromZZ(const ZZ &x)
+{
+	string s;
+	s.resize(NumBytes(x), 0);
+	BytesFromZZ((uint8_t*) &s[0], x, s.length());
+	return s;
+}
+
+ZZ
+ZZFromString(const string &s)
+{
+	return ZZFromBytes((const uint8_t *) s.c_str(), s.length());
+}
 
 string StringFromVal(unsigned int value, unsigned int desiredLen) {
 	string result = "";
@@ -399,33 +385,6 @@ unsigned char * copyInto(unsigned char * res, unsigned char * data, unsigned int
  * The best way to convert between the two (with minimum storage overhead is below)
  *
  *******/
-unsigned char * CharToUChar(const char * s) {
-	ZZ value = to_ZZ(0);
-	unsigned len = strlen(s);
-
-
-	for (unsigned int i = 0; i < len; i++) {
-		value = value * 255 + (s[i]-1);
-	}
-
-	return BytesFromZZ(value, len-1);
-
-
-}
-
-char * UCharToChar(unsigned char * s, unsigned int len) {
-	ZZ value = ZZFromBytes(s, len);
-
-	unsigned int charLen = len + 1;
-	char * result = new char[len];
-
-	for (unsigned int i = 0; i <  charLen; i++) {
-		result[charLen-i-1] = to_int(value % 255 + 1);
-		value = value / 255;
-	}
-
-	return result;
-}
 
 unsigned char * stringToUChar(string s, unsigned int len) {
 	if (s.length() > len) {
@@ -442,18 +401,6 @@ unsigned char * stringToUChar(string s, unsigned int len) {
 		res[i] = s[i];
 	}
 	return res;
-}
-
-unsigned char *stringToUCharDirect(string input) {
-	unsigned int len = input.length();
-	unsigned char * result = new unsigned char[len + 1];
-	result[len] = '\0';
-
-	for (unsigned int i = 0; i < len; i++) {
-		result[i] = input[i];
-	}
-
-	return result;
 }
 
 string uCharToStringDirect(unsigned char * input, unsigned int len) {
@@ -654,59 +601,61 @@ string secondMarshallBinary(unsigned char * v, unsigned int len) {
 
 
 
-string marshallBinary(unsigned char * binValue, unsigned int len) {
-
+string marshallBinary(const string &s) {
 	string result = "X\'";
 
-	for (unsigned int i = 0; i < len; i++) {
-		result = result + toHex((unsigned int)binValue[i]);
-	}
+	for (unsigned int i = 0; i < s.length(); i++)
+		result = result + toHex((unsigned int)s[i]);
 
 	result = result + "\'";
 
 	//cerr << "output from marshall  " << result.c_str() << "\n";
 	return result;
-
 }
 
 #else
 string marshallBinary(unsigned char * binValue, unsigned int len) {
-
 	return secondMarshallBinary(binValue, len);
 
 }
 #endif
 
-unsigned char getFromHex(char * hexValues) {
+static unsigned char
+getFromHex(const char * hexValues)
+{
 	unsigned int v;
 	sscanf(hexValues, "%2x", &v);
 	return (unsigned char) v;
-
 }
 
-unsigned char * unmarshallBinary(char * value, unsigned int len, unsigned int & newlen) {
-	unsigned int offset;
-	//cerr << "input to unmarshall " << value << "\n";
+string
+unmarshallBinary(const string &s)
+{
+	uint offset;
+	uint len = s.length();
+	// cerr << "input to unmarshall " << value << "\n";
+
 #if MYSQL_S
 	offset = 2;
-	myassert(value[0] == 'X', "unmarshallBinary: first char is not x; it is " + value[0]);
-	len = len - 1; //removing last apostrophe
+	myassert(s[0] == 'X',
+		 "unmarshallBinary: first char is not x; it is " + s[0]);
+	len = len - 1; // removing last apostrophe
 #else
-	myassert(value[0] == '\\', "unmarshallBinary: first char is not slash; it is " + value[0]);
-	myassert(value[1] == 'x', "unmarshallBinary: second char is not x; it is " + value[1]);
+	myassert(s[0] == '\\',
+		 "unmarshallBinary: first char is not slash; it is " + s[0]);
+	myassert(s[1] == 'x',
+		 "unmarshallBinary: second char is not x; it is " + s[1]);
 	offset = 2;
 #endif
 
-	myassert((len - offset) % 2 == 0, "unmarshallBinary: newlen is odd! newlen is " + marshallVal(len-offset));
+	myassert((len - offset) % 2 == 0,
+		 "unmarshallBinary: newlen is odd! newlen is " + marshallVal(len-offset));
 
-	newlen = (len-offset)/2;
-	unsigned char * result = new unsigned char[newlen];
+	stringstream ss;
+	for (uint i = 0; i < (len-offset)/2; i++)
+		ss << getFromHex(&s[offset+i*2]);
 
-	for (unsigned int i = 0; i < newlen; i++) {
-		result[i] = getFromHex(value+i*2+offset);
-	}
-
-	return result;
+	return ss.str();
 }
 
 char * copy(const char * v) {

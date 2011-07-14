@@ -62,13 +62,13 @@ log(string s)
 }
 
 static AES_KEY *
-get_key_SEM(unsigned char * key)
+get_key_SEM(const string &key)
 {
 	return CryptoManager::get_key_SEM(key);
 }
 
 static AES_KEY *
-get_key_DET(unsigned char * key)
+get_key_DET(const string &key)
 {
 	return CryptoManager::get_key_DET(key);
 }
@@ -91,11 +91,12 @@ encrypt_DET(uint64_t plaintext, AES_KEY * aesKey)
 	return CryptoManager::encrypt_DET(plaintext, aesKey);
 }
 
-static unsigned char *
+static string
 decrypt_SEM(unsigned char *eValueBytes, unsigned int eValueLen,
 	    AES_KEY * aesKey, uint64_t salt)
 {
-	return CryptoManager::decrypt_SEM(eValueBytes, eValueLen, aesKey, salt);
+	string c((char *) eValueBytes, eValueLen);
+	return CryptoManager::decrypt_SEM(c, aesKey, salt);
 }
 
 #if MYSQL_S
@@ -161,7 +162,8 @@ decrypt_int_sem(PG_FUNCTION_ARGS)
 {
 	uint64_t eValue = getui(ARGS, 0);
 
-	unsigned char key[AES_KEY_BYTES];
+	string key;
+	key.resize(AES_KEY_BYTES);
 	int offset = 1;
 
 	for (unsigned int i = 0; i < AES_KEY_BYTES; i++)
@@ -191,7 +193,8 @@ decrypt_int_det(PG_FUNCTION_ARGS)
 {
 	uint64_t eValue = getui(ARGS, 0);
 
-	unsigned char key[AES_KEY_BYTES];
+	string key;
+	key.resize(AES_KEY_BYTES);
 	int offset = 1;
 
 	for (unsigned int i = 0; i < AES_KEY_BYTES; i++)
@@ -220,7 +223,8 @@ decrypt_int_det(PG_FUNCTION_ARGS)
 {
 	uint64_t eValue = getui(ARGS, 0);
 
-	unsigned char key[AES_KEY_BYTES];
+	string key;
+	key.resize(AES_KEY_BYTES);
 	int offset = 1;
 
 	for (unsigned int i = 0; i < AES_KEY_BYTES; i++)
@@ -263,7 +267,8 @@ decrypt_text_sem(PG_FUNCTION_ARGS)
 	unsigned int eValueLen;
 	unsigned char *eValueBytes = getba(args, 0, eValueLen);
 
-	unsigned char key[AES_KEY_BYTES];
+	string key;
+	key.resize(AES_KEY_BYTES);
 	int offset = 1;
 
 	for (unsigned int i = 0; i < AES_KEY_BYTES; i++)
@@ -272,13 +277,13 @@ decrypt_text_sem(PG_FUNCTION_ARGS)
 	uint64_t salt = getui(ARGS, offset + AES_KEY_BYTES);
 
 	AES_KEY *aesKey = get_key_SEM(key);
-	unsigned char *value = decrypt_SEM(eValueBytes, eValueLen,
-					   aesKey, salt);
+	string value = decrypt_SEM(eValueBytes, eValueLen, aesKey, salt);
 	delete aesKey;
 
 #if MYSQL_S
-	*length = eValueLen;
-	return (char*) value;
+	initid->ptr = strdup(value.c_str());
+	*length = value.length();
+	return (char*) initid->ptr;
 #else
 	bytea * res = (bytea *) palloc(eValueLen+VARHDRSZ);
 	SET_VARSIZE(res, eValueLen+VARHDRSZ);

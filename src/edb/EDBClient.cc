@@ -92,26 +92,15 @@ const char * createInfoTable (CryptoManager * cm) {
 }
  */
 
-string initcond(CryptoManager * cm) {
-
-	unsigned char * res = (unsigned char *) malloc(cm->Paillier_len_bytes * 2);
-	memcpy(res, BytesFromZZ(to_ZZ(1), cm->Paillier_len_bytes), cm->Paillier_len_bytes);
-	memcpy(res+cm->Paillier_len_bytes, cm->getPKInfo(), cm->Paillier_len_bytes);
-
-	return secondMarshallBinary(res, cm->Paillier_len_bytes*2);
-
-}
-
 //============== CONSTRUCTORS ==================================//
 
-EDBClient::EDBClient(string server, string user, string psswd, string dbname, unsigned char * masterKey, uint port) {
+EDBClient::EDBClient(string server, string user, string psswd, string dbname, const string &masterKey, uint port) {
 	//conninfo = "host=farm10 dbname = " + conninfo;
 	this->isSecure = true;
-	this->masterKey = masterKey;
 	this->cm = new CryptoManager(masterKey);
 	mkey = cm->get_key_DET(masterKey);
 
-	string PK = marshallBinary(cm->getPKInfo(), cm->Paillier_len_bytes);
+	string PK = marshallBinary(cm->getPKInfo());
 
 	VERBOSE = VERBOSE_EDBCLIENT;
 	dropOnExit = false;
@@ -138,13 +127,12 @@ EDBClient::EDBClient(string server, string user, string psswd, string dbname, un
 
 }
 
-EDBClient::EDBClient(unsigned char * masterKey) {
+EDBClient::EDBClient(const string &masterKey) {
 	this->isSecure = true;
-	this->masterKey = masterKey;
 	this->cm = new CryptoManager(masterKey);
 	mkey = cm->get_key_DET(masterKey);
 
-	string PK = marshallBinary(cm->getPKInfo(), cm->Paillier_len_bytes);
+	string PK = marshallBinary(cm->getPKInfo());
 
 	VERBOSE = VERBOSE_EDBCLIENT;
 	dropOnExit = false;
@@ -192,12 +180,14 @@ EDBClient::EDBClient() {
 
 ResType * EDBClient::plain_execute(const char * query) {
 	DBResult * reply;
-	if (!conn->execute(query, reply)) {
+	if (!conn->execute(query, &reply)) {
 		cerr << "failed to execute " << query << "\n";
 		return NULL;
 	}
 
-	return conn->unpack(reply);
+	ResType *r = reply->unpack();
+	delete reply;
+	return r;
 }
 
 EDBClient::EDBClient(string server, string user, string psswd, string dbname) {
@@ -687,7 +677,7 @@ list<const char*> EDBClient::rewriteEncryptUpdate(const char * query) throw (Syn
 					resultQuery += anonFieldName + " =  func_add_set (" + anonName2 +  ", "
 				            + crypt(*wordsIt, ft, fullName(field, table), fullName(anonFieldName, tableMetaMap[table]->anonTableName),
 							    	PLAIN_AGG, SEMANTIC_AGG, 0, tmkm) + ", "
-						    + marshallBinary(cm->getPKInfo(), cm->Paillier_len_bytes) + ") ";
+						    + marshallBinary(cm->getPKInfo()) + ") ";
 				}
 			} else {
 				resultQuery = resultQuery + anonFieldName + " = " + anonName2 + op + " " + *wordsIt ;
@@ -1495,7 +1485,7 @@ list<const char*> EDBClient::rewriteSelectHelper(list<string> words, bool isSubq
 				} else {
 					funcname = SUM_AGG;
 					resultQuery += " " + funcname + "( "  + fieldNameForQuery(tm->anonTableName, table, getOnionName(fm, oAGG), fm->type, qm) + ", " +
-							marshallBinary(cm->getPKInfo(), cm->Paillier_len_bytes) + ") ";
+							marshallBinary(cm->getPKInfo()) + ") ";
 				}
 
 				if (MULTIPRINC) {
@@ -2184,10 +2174,9 @@ string EDBClient::processValsToInsert(string field, string table, uint64_t salt,
 			if (equalsIgnoreCase(value,"null")) {value = " ";}
 			assert_s(type == TYPE_TEXT, "given unexpected type");
 			AES_KEY * key = CryptoManager::get_key_SEM(dec_first_key);
-			value = removeApostrophe(value);
-			unsigned char * ptext = stringToUCharDirect(value);
-			unsigned char * cipher = CryptoManager::encrypt_SEM(ptext, value.length(), key, 0);
-			return marshallBinary(cipher, value.length());
+			string ptext = removeApostrophe(value);
+			string cipher = CryptoManager::encrypt_SEM(ptext, key, 0);
+			return marshallBinary(cipher);
 		}
 	}
 
@@ -2203,7 +2192,7 @@ string EDBClient::processValsToInsert(string field, string table, uint64_t salt,
 			res += ", NULL ";
 		}
 		if (fm->exists(fm->anonFieldNameAGG)) {
-			res += ", " + marshallBinary(BytesFromInt(1, CryptoManager::Paillier_len_bytes), CryptoManager::Paillier_len_bytes) ;
+			res += ", " + marshallBinary(BytesFromInt(1, CryptoManager::Paillier_len_bytes)) ;
 		}
 	} else {
 
@@ -2848,7 +2837,7 @@ ResType * EDBClient::decryptResultsWrapper(const char * query, DBResult * dbres)
 	command comm = getCommand(query);
 
 	if (comm == SELECT) {
-		ResType * rets= decryptResults(query, conn->unpack(dbres));
+		ResType * rets = decryptResults(query, dbres->unpack());
 		if (VERBOSE) {
 
 				cerr << "\n\n Decrypted results: \n\n";
@@ -2874,7 +2863,7 @@ ResType * EDBClient::decryptResultsWrapper(const char * query, DBResult * dbres)
 ResType *
 EDBClient::execute(const char * query)
 {
-	DBResult * res = new DBResult();
+	DBResult * res = 0;
 
 	if (VERBOSE) {
 		cout << "Query:\n" << query << "\n";
@@ -2882,15 +2871,17 @@ EDBClient::execute(const char * query)
 
 	if (!isSecure) {
 
-		if (!conn->execute(query, res)) {
-    		fprintf(stderr, "%s failed: %s \n", query, conn->getError());
-    		return NULL;
+		if (!conn->execute(query, &res)) {
+			fprintf(stderr, "%s failed: %s \n", query, conn->getError());
+			return NULL;
 		}
 
 		if (getCommand(query) == SELECT) {
-			return conn->unpack(res);
+			ResType *r = res->unpack();
+			delete res;
+			return r;
 		} else {
-
+			delete res;
 			return new ResType();
 		}
 	}
@@ -2931,7 +2922,7 @@ EDBClient::execute(const char * query)
 		if (VERBOSE)
 			gettimeofday(&t0, 0);
 
-		if (!conn->execute(*queryIt, reply)) {
+		if (!conn->execute(*queryIt, &reply)) {
 			cerr << "query " << *queryIt << "failed \n";
 			return NULL;
 		}
@@ -2944,7 +2935,7 @@ EDBClient::execute(const char * query)
 		}
 
 		if (counter < noQueries) {
-
+			delete reply;
 			//do nothing
 
 		} else {
@@ -2962,10 +2953,12 @@ EDBClient::execute(const char * query)
 			} catch (SyntaxError e) {
 				cerr << e.msg;
 				queries.clear();
+				delete reply;
 				return NULL;
 			}
 
 			queries.clear();
+			delete reply;
 			return rets;
 
 		}
@@ -2993,7 +2986,6 @@ void  EDBClient::exit(bool dropOnExit) {
 
 		if (VERBOSE) {cout << "DROP FUNCTIONS;\n"; }
 	}
-	conn->finish();
 }
 
 void cleanup(map<string, TableMetadata *> & tableMetaMap) {
@@ -3003,12 +2995,10 @@ EDBClient::~EDBClient() {
 
 	dropAll(conn);
 	cout << "DROP FUNCTIONS;";
-	conn->finish();
 
 	//cleanup data structures
 	tableNameMap.clear();
 	cleanup(tableMetaMap);
-	free(masterKey);
 	cm->~CryptoManager();
 
 
@@ -3271,16 +3261,8 @@ string EDBClient::crypt(string data, fieldType ft, string fullname, string anonf
 			return data;
 		}
 		if ((ft == TYPE_TEXT) && (fromlevel > tolevel)) {
-			unsigned int len = 0;
-			unsigned char * aux = unmarshallBinary(getCStr(data), data.length(), len);
-			//cerr << "a\n";
-			unsigned char * aux2 = (unsigned char *)malloc(len+1);
-			//cerr << "b\n";
-			memcpy(aux2, aux, len);
-			//cerr << "c\n";
-			aux2[len] = '\0';
-			//cerr << "d\n";
-			data = string((char *)aux2);
+			string aux = unmarshallBinary(data);
+			data = aux;
 		}
 		//cerr << "crypt returns " << data << "\n";
 		return data;
@@ -3288,7 +3270,7 @@ string EDBClient::crypt(string data, fieldType ft, string fullname, string anonf
 
 	if (MULTIPRINC) {
 		if (tmkm.processingQuery) {
-			unsigned char * key = mp->get_key(fullname, tmkm);
+			string key = mp->get_key(fullname, tmkm);
 			cm->setMasterKey(key);
 			if (VERBOSE_V) {
 				// cerr<<"++> crypting " << anonfullname << " contents " << data << " fromlevel " << fromlevel;
@@ -3297,7 +3279,7 @@ string EDBClient::crypt(string data, fieldType ft, string fullname, string anonf
 			//cerr << "++> crypting " << data << " with key "; myPrint(key, AES_KEY_BYTES); cerr << "\n";
 
 		} else {
-			unsigned char * key = mp->get_key(fullname, tmkm, res);
+			string key = mp->get_key(fullname, tmkm, res);
 			cm->setMasterKey(key);
 			if (VERBOSE_V) {
 				// cerr<<"++> crypting " << anonfullname << " contents " << data << " fromlevel " << fromlevel;

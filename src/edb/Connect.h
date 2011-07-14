@@ -14,40 +14,45 @@
 #include "util.h"
 
 
-
 using namespace std;
 
+class DBResult {
+ private:
+	DBResult();
+
+ public:
+	~DBResult();
+	DBResult_native *n;
+
+	// returns the data in the last server response
+	ResType *unpack();
+
+	static DBResult *wrap(DBResult_native *);
+};
+
 class Connect {
-public:
+ public:
+	// dbname is the name of the local db
+	Connect(string server, string user, string passwd,
+		string dbname, uint port = 0);
 
-	//dbname is the name of the local db
-	Connect(string server, string user, string psswd, string dbname, uint port = 0);
+	// returns true if execution was ok; caller must delete DBResult
+	bool execute(const char * query, DBResult **);
+	bool execute(const char * query);
 
-   //returns true if execution was ok
-	bool execute(const char * query, DBResult * &);
-    bool execute(const char * query);
-
-    //returns error message if a query caused error
+	// returns error message if a query caused error
 	const char * getError();
 
-	string last_insert_id();
+	uint64_t last_insert_id();
 
-	//returns the data in the last server response
-	static ResType * unpack(DBResult *);
+	~Connect();
 
-	void finish();
-
-	virtual ~Connect();
-
+ private:
 #if MYSQL_S
 	MYSQL * conn;
 #else
 	PGconn * conn; //connection
 #endif
-
-private:
-
-
 };
 
 #endif /* CONNECT_H_ */
