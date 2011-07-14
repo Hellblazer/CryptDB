@@ -14,6 +14,7 @@ Cases we should consider in designing our query rewriting framework:
       value, so that we can still use the non-HOM onions for other rows?
   - Determining which principal (in a multi-principal setup) owns what data.
   - Queries touching data belonging to different principals.
+  - NULL values.
 
 Some ideas:
   - Run a small in-memory MySQL server inside of the proxy, with only the schema
