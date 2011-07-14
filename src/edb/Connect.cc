@@ -140,18 +140,18 @@ DBResult::unpack()
 {
 #if MYSQL_S
 
-	cerr << "aa\n";
+	if (n == NULL) {
+		return new ResType();
+	}
 	int rows = mysql_num_rows(n);
-	cerr << "ll\n";
 	int cols  = -1;
 	if (rows > 0) {
 		cols = mysql_num_fields(n);
 	}
 
-	cerr << "m\n";
+
 	ResType *res = new vector<vector<string> >(rows+1);
 
-	cerr << "a\n";
 
 	// first row contains names
 	(*res)[0] = vector<string>(cols);
@@ -170,7 +170,6 @@ DBResult::unpack()
 		(*res)[0][j] = string(field->name);
 	}
 
-	cerr << "b\n";
 
 	for (int index = 0; ; index++) {
 		MYSQL_ROW row = mysql_fetch_row(n);
@@ -196,7 +195,7 @@ DBResult::unpack()
 		}
 	}
 
-	cerr << "c\n";
+
 	return res;
 
 #else /* postgres */
