@@ -231,7 +231,6 @@ void testSelect(EDBClient * cl) {
   res.clear();
 
   query.push_back("SELECT sum(age), max(address), min(salary), COUNT(name), salary FROM t1");
-
   string rows8[2][5] = { {"sum(age)", "max(address)", "min(salary)", "COUNT(name)", "salary"},
 		       {"76", "London", "0", "5", "0"} };
   for (int i = 0; i < 2; i++) {
@@ -243,8 +242,265 @@ void testSelect(EDBClient * cl) {
   }
   reply.push_back(res);
   res.clear();
+
+
   
-  //TODO Where statements
+  query.push_back("SELECT * FROM t1 WHERE id = 1");
+  string rows9[2][5] = { {"id", "age", "salary", "address", "name"},
+			 {"1", "10", "0", "first star to the right and straight on till morning", "Peter Pan"} };
+  for (int i = 0; i < 2; i++) {
+    vector<string> temp;
+    for (int j = 0; j < 5; j++) {
+      temp.push_back(rows9[i][j]);
+    }
+    res.push_back(temp);
+  }
+  reply.push_back(res);
+  res.clear();
+  
+  query.push_back("SELECT * FROM t1 WHERE id>3");
+  string rows10[3][5] = { {"id", "age", "salary", "address", "name"},
+			  {"4", "10", "0", "London", "Edmund"},
+			  {"5", "30", "100000", "221B Baker Street", "Sherlock Holmes"} };
+  for (int i = 0; i < 3; i++) {
+    vector<string> temp;
+    for (int j = 0; j < 5; j++) {
+      temp.push_back(rows10[i][j]);
+    }
+    res.push_back(temp);
+  }
+  reply.push_back(res);
+  res.clear();  
+
+  query.push_back("SELECT * FROM t1 WHERE age = 8");
+  string rows11[2][5] = { {"id", "age", "salary", "address", "name"},
+			  {"3", "8", "0", "London", "Lucy"} };
+  for (int i = 0; i < 2; i++) {
+    vector<string> temp;
+    for (int j = 0; j < 5; j++) {
+      temp.push_back(rows11[i][j]);
+    }
+    res.push_back(temp);
+  }
+  reply.push_back(res);
+  res.clear();
+
+  query.push_back("SELECT * FROM t1 WHERE salary = 15");
+  reply.push_back(res);
+
+  query.push_back("SELECT * FROM t1 WHERE age > 10");
+  string rows12[3][5] = { {"id", "age", "salary", "address", "name"},
+			  {"2", "16", "1000", "Green Gables", "Anne Shirley"},
+			  {"5", "30", "100000", "221B Baker Street", "Sherlock Holmes"} };
+  for (int i = 0; i < 3; i++) {
+    vector<string> temp;
+    for (int j = 0; j < 5; j++) {
+      temp.push_back(rows12[i][j]);
+    }
+    res.push_back(temp);
+  }
+  reply.push_back(res);
+  res.clear();    
+
+  query.push_back("SELECT * FROM t1 WHERE age = 10 AND salary = 0");
+  string rows13[3][5] = { {"id", "age", "salary", "address", "name"},  
+			  {"1", "10", "0", "first star to the right and straight on till morning", "Peter Pan"},
+			  {"4", "10", "0", "London", "Edmund"} };
+  for (int i = 0; i < 3; i++) {
+    vector<string> temp;
+    for (int j = 0; j < 5; j++) {
+      temp.push_back(rows13[i][j]);
+    }
+    res.push_back(temp);
+  }
+  reply.push_back(res);
+  res.clear();
+
+  query.push_back("SELECT * FROM t1 WHERE age = 10 OR salary = 0");
+  string rows14[4][5] = { {"id", "age", "salary", "address", "name"},  
+			  {"1", "10", "0", "first star to the right and straight on till morning", "Peter Pan"},
+			  {"3", "8", "0", "London", "Lucy"}, 
+			  {"4", "10", "0", "London", "Edmund"} };
+  for (int i = 0; i < 4; i++) {
+    vector<string> temp;
+    for (int j = 0; j < 5; j++) {
+      temp.push_back(rows14[i][j]);
+    }
+    res.push_back(temp);
+  }
+  reply.push_back(res);
+  res.clear();
+
+  query.push_back("SELECT * FROM t1 WHERE name = 'Peter Pan'");
+  string rows15[2][5] = { {"id", "age", "salary", "address", "name"},  
+			  {"1", "10", "0", "first star to the right and straight on till morning", "Peter Pan"} };
+  for (int i = 0; i < 2; i++) {
+    vector<string> temp;
+    for (int j = 0; j < 5; j++) {
+      temp.push_back(rows15[i][j]);
+    }
+    res.push_back(temp);
+  }
+  reply.push_back(res);
+  res.clear();  
+  //---------------------------------------------------------------------------------
+
+  query.push_back("SELECT * FROM t1 WHERE address= 'Green Gables'")
+  string rows16[2][5] = { {"id", "age", "salary", "address", "name"},  
+			  {"2", "16", "1000", "Green Gables", "Anne Shirley"} };
+  for (int i = 0; i < 2; i++) {
+    vector<string> temp;
+    for (int j = 0; j < 5; j++) {
+      temp.push_back(rows16[i][j]);
+    }
+    res.push_back(temp);
+  }
+  reply.push_back(res);
+  res.clear();  
+
+  query.push_back("SELECT * FROM t1 WHERE address <= '221C'");
+  string rows17[2][5] = { {"id", "age", "salary", "address", "name"},  
+			  {"5", "30", "100000", "221B Baker Street", "Sherlock Holmes"} };
+  for (int i = 0; i < 2; i++) {
+    vector<string> temp;
+    for (int j = 0; j < 5; j++) {
+      temp.push_back(rows17[i][j]);
+    }
+    res.push_back(temp);
+  }
+  reply.push_back(res);
+  res.clear();  
+
+  query.push_back("SELECT * FROM t1 WHERE address >= 'Green Gables' AND age > 9");
+  string rows18[3][5] = { {"id", "age", "salary", "address", "name"},  
+			  {"2", "16", "1000", "Green Gables", "Anne Shirley"},
+			  {"4", "10", "0", "London", "Edmund"} };
+  for (int i = 0; i < 3; i++) {
+    vector<string> temp;
+    for (int j = 0; j < 5; j++) {
+      temp.push_back(rows18[i][j]);
+    }
+    res.push_back(temp);
+  }
+  reply.push_back(res);
+  res.clear();  
+
+  query.push_back("SELECT * FROM t1 WHERE address >= 'Green Gables' OR age > 9");
+  string rows19[6][5] = { {"id", "age", "salary", "address", "name"},
+			  {"1", "10", "0", "first star to the right and straight on till morning", "Peter Pan"},
+			  {"2", "16", "1000", "Green Gables", "Anne Shirley"},
+			  {"3", "8", "0", "London", "Lucy"},
+			  {"4", "10", "0", "London", "Edmund"},
+			  {"5", "30", "100000", "221B Baker Street", "Sherlock Holmes"} };
+  for (int i = 0; i < 6; i++) {
+    vector<string> temp;
+    for (int j = 0; j < 5; j++) {
+      temp.push_back(rows19[i][j]);
+    }
+    res.push_back(temp);
+  }
+  reply.push_back(res);
+  res.clear();
+
+  query.push_back("SELECT * FROM t1 ORDER BY id");
+  string rows20[6][5] = { {"id", "age", "salary", "address", "name"},
+			  {"1", "10", "0", "first star to the right and straight on till morning", "Peter Pan"},
+			  {"2", "16", "1000", "Green Gables", "Anne Shirley"},
+			  {"3", "8", "0", "London", "Lucy"},
+			  {"4", "10", "0", "London", "Edmund"},
+			  {"5", "30", "100000", "221B Baker Street", "Sherlock Holmes"} };
+  for (int i = 0; i < 6; i++) {
+    vector<string> temp;
+    for (int j = 0; j < 5; j++) {
+      temp.push_back(rows20[i][j]);
+    }
+    res.push_back(temp);
+  }
+  reply.push_back(res);
+  res.clear();
+
+  query.push_back("SELECT * FROM t1 ORDER BY salary");
+  string rows21[6][5] = { {"id", "age", "salary", "address", "name"},
+			  {"1", "10", "0", "first star to the right and straight on till morning", "Peter Pan"},
+			  {"3", "8", "0", "London", "Lucy"},
+			  {"4", "10", "0", "London", "Edmund"},
+			  {"2", "16", "1000", "Green Gables", "Anne Shirley"},
+			  {"5", "30", "100000", "221B Baker Street", "Sherlock Holmes"} };
+  for (int i = 0; i < 6; i++) {
+    vector<string> temp;
+    for (int j = 0; j < 5; j++) {
+      temp.push_back(rows21[i][j]);
+    }
+    res.push_back(temp);
+  }
+  reply.push_back(res);
+  res.clear();
+
+  query.push_back("SELECT * FROM t1 ORDER BY name");
+  string rows22[6][5] = { {"id", "age", "salary", "address", "name"},
+			  {"2", "16", "1000", "Green Gables", "Anne Shirley"},
+			  {"4", "10", "0", "London", "Edmund"},
+			  {"3", "8", "0", "London", "Lucy"},
+			  {"1", "10", "0", "first star to the right and straight on till morning", "Peter Pan"},
+			  {"5", "30", "100000", "221B Baker Street", "Sherlock Holmes"} };
+  for (int i = 0; i < 6; i++) {
+    vector<string> temp;
+    for (int j = 0; j < 5; j++) {
+      temp.push_back(rows22[i][j]);
+    }
+    res.push_back(temp);
+  }
+  reply.push_back(res);
+  res.clear();
+
+  query.push_back("SELECT * FROM t1 ORDER BY address");
+  string rows23[6][5] = { {"id", "age", "salary", "address", "name"},
+			  {"5", "30", "100000", "221B Baker Street", "Sherlock Holmes"},
+			  {"1", "10", "0", "first star to the right and straight on till morning", "Peter Pan"},
+			  {"2", "16", "1000", "Green Gables", "Anne Shirley"},
+			  {"3", "8", "0", "London", "Lucy"},
+			  {"4", "10", "0", "London", "Edmund"} };
+  for (int i = 0; i < 6; i++) {
+    vector<string> temp;
+    for (int j = 0; j < 5; j++) {
+      temp.push_back(rows23[i][j]);
+    }
+    res.push_back(temp);
+  }
+  reply.push_back(res);
+  res.clear();
+
+  query.push_back("SELECT * FROM t1 GROUP BY address");
+  string rows24[5][5] = { {"id", "age", "salary", "address", "name"},
+			  {"5", "30", "100000", "221B Baker Street", "Sherlock Holmes"},
+			  {"1", "10", "0", "first star to the right and straight on till morning", "Peter Pan"},
+			  {"2", "16", "1000", "Green Gables", "Anne Shirley"},
+			  {"3", "8", "0", "London", "Lucy"} };
+  for (int i = 0; i < 5; i++) {
+    vector<string> temp;
+    for (int j = 0; j < 5; j++) {
+      temp.push_back(rows24[i][j]);
+    }
+    res.push_back(temp);
+  }
+  reply.push_back(res);
+  res.clear();
+
+  query.push_back("SELECT * FROM t1 GROUP BY age");
+  string rows25[5][5] = { {"id", "age", "salary", "address", "name"},
+			  {"3", "8", "0", "London", "Lucy"},
+			  {"1", "10", "0", "first star to the right and straight on till morning", "Peter Pan"},
+			  {"2", "16", "1000", "Green Gables", "Anne Shirley"},
+			  {"5", "30", "100000", "221B Baker Street", "Sherlock Holmes"} };
+  for (int i = 0; i < 5; i++) {
+    vector<string> temp;
+    for (int j = 0; j < 5; j++) {
+      temp.push_back(rows25[i][j]);
+    }
+    res.push_back(temp);
+  }
+  reply.push_back(res);
+  res.clear();
 
   CheckResults(cl, query, reply);
 }
