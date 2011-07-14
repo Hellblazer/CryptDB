@@ -119,9 +119,8 @@ void myPrint(unsigned char * a, unsigned int aLen) {
 }
 
 void myPrint(vector<bool> & bitmap) {
-	for (vector<bool>::iterator it = bitmap.begin(); it != bitmap.end(); it++) {
+	for (auto it = bitmap.begin(); it != bitmap.end(); it++)
 		cout << *it << " ";
-	}
 	cout << "\n";
 }
 
@@ -245,17 +244,13 @@ string toString(const ResType & rt) {
 
 
 void myPrint(list<const char *> & lst) {
-	for (list<const char *>::iterator it = lst.begin(); it!=lst.end(); it++) {
+	for (auto it = lst.begin(); it!=lst.end(); it++)
 		fprintf(stderr, " %s \n", *it);
-	}
-
 }
 
 void myPrint(const vector<string> & lst) {
-	for (vector<string>::const_iterator it = lst.begin(); it!=lst.end(); it++) {
+	for (auto it = lst.begin(); it!=lst.end(); it++)
 		fprintf(stderr, " %s \n", it->c_str());
-	}
-
 }
 
 char * getCStr(string value) {
@@ -1327,11 +1322,9 @@ bool contains(string token, const string * values, unsigned int noValues) {
 	return false;
 }
 bool contains(string token, list<string> & values) {
-	for (list<string>::iterator it = values.begin(); it != values.end(); it++) {
-		if (equalsIgnoreCase(*it, token)){
+	for (auto it = values.begin(); it != values.end(); it++)
+		if (equalsIgnoreCase(*it, token))
 			return true;
-		}
-	}
 
 	return false;
 }
@@ -1376,15 +1369,11 @@ const char * removeString(const char * input, string toremove) {
 
 
 bool contains(string token1, string token2, list<pair<string, string> > & lst) {
-	for (list<pair<string, string> >::iterator it = lst.begin(); it != lst.end(); it++) {
-		if ((it->first.compare(token1) == 0) && (it->second.compare(token2) == 0)){
+	for (auto it = lst.begin(); it != lst.end(); it++)
+		if ((it->first.compare(token1) == 0) && (it->second.compare(token2) == 0))
 			return true;
-		}
-	}
 
 	return false;
-
-
 }
 
 void addIfNotContained(string token, list<string> & lst) {
