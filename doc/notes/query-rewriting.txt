@@ -1,0 +1,22 @@
+Cases we should consider in designing our query rewriting framework:
+  - Sub-selects.
+  - Expressions like a+b>c
+    - Maybe pass them to a special UDF that sends expressions for evaluation to the
+      proxy via some back-channel.
+    - Send a superset of the rows to the proxy for filtering (when possible).
+    - Pre-compute expressions like a+b (e.g., Craig's example of date ranges)
+      for evaluating such predicates later.
+  - INSERT INTO .. SELECT ..
+    - Need to pass along multiple ciphertexts of the same data (e.g., all 3 onions).
+  - UPDATE .. SET x=x+1
+    - Invalidates non-HOM onions for certain rows.
+    - Perhaps we should set these non-HOM onions in matching rows to some special
+      value, so that we can still use the non-HOM onions for other rows?
+  - Determining which principal (in a multi-principal setup) owns what data.
+  - Queries touching data belonging to different principals.
+
+Some ideas:
+  - Run a small in-memory MySQL server inside of the proxy, with only the schema
+    loaded (no data), to help process queries (e.g., determine what names mean,
+    what aliases refer to, etc).
+
