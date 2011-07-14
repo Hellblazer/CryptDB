@@ -1,0 +1,8 @@
+- getCStr leaks memory without reason: c_str() is already null-terminated.
+  unfortunately, some callers are assuming they get a private copy..
+
+- check that our keys and ciphertexts are actually random and changing..
+
+- marshalling/escaping code is too complicated and sometimes wrong; e.g.,
+  text seems to encrypt a quoted version of the string.
+
