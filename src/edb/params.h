@@ -22,6 +22,7 @@
 
 //Flags for evaluation of different scenarios:
 #define PARSING 0
+//strawman where values are decrypted on the fly before being used
 #define DECRYPTFIRST 0
 
 
@@ -32,8 +33,8 @@
 //flag for debugging, particularly verbose
 const bool VERBOSE_G = true;
 
-const bool VERBOSE_KEYACCESS = true;
-const bool VERBOSE_EDBCLIENT = false;
-const bool VERBOSE_EDBCLIENT_VERY = false;
+const bool VERBOSE_KEYACCESS = false;
+const bool VERBOSE_EDBCLIENT = true;
+const bool VERBOSE_EDBCLIENT_VERY = true;
 
 #endif   /* _PARAMS_H */

@@ -1959,6 +1959,7 @@ string EDBClient::processOperation(string operation, string op1, string op2, Que
 
 	// fields are encrypted fields
 
+	//the first operand is not a field
 	if (!isField(op1)) {
 		assert_s(Operation::isIN(operation), "only IN statements allowed to have constant on left");
 		if (MULTIPRINC) {
@@ -1974,9 +1975,9 @@ string EDBClient::processOperation(string operation, string op1, string op2, Que
 
 
 	getTableField(op1, table1, field1, qm, tableMetaMap);
+
 	string anonTable1 = tableMetaMap[table1]->anonTableName;
-	string anonField1 = tableMetaMap[table1]->fieldMetaMap[field1]->anonFieldNameDET;
-	string anonOp1 = anonTable1 + "." + anonField1;
+	string anonField1, anonOp1;
 
 	fieldType ftype1 = tableMetaMap[table1]->fieldMetaMap[field1]->type;
 
@@ -1988,6 +1989,10 @@ string EDBClient::processOperation(string operation, string op1, string op2, Que
 			assert_s(false, "join not supported in multi-user mode");
 		}
 		assert_s(Operation::isDET(operation), "operation not supported with join");
+
+		anonField1 = tableMetaMap[table1]->fieldMetaMap[field1]->anonFieldNameDET;
+		anonOp1 = fullName(anonField1, anonTable1);
+
 
 		string table2, field2;
 		getTableField(op2, table2, field2, qm, tableMetaMap);
@@ -2004,6 +2009,9 @@ string EDBClient::processOperation(string operation, string op1, string op2, Que
 	}
 
 	if (Operation::isDET(operation)) { //DET
+
+		anonField1 = tableMetaMap[table1]->fieldMetaMap[field1]->anonFieldNameDET;
+		anonOp1 = fullName(anonField1, anonTable1);
 
 		//TODOthis is inconsistent, I added some OPE fields with det encryptions
 		// you also may want to fetch ope only if there is an index on it
@@ -2023,6 +2031,12 @@ string EDBClient::processOperation(string operation, string op1, string op2, Que
 	}
 
 	if (Operation::isILIKE(operation)) { //DET
+		anonField1 = tableMetaMap[table1]->fieldMetaMap[field1]->anonFieldNameDET;
+		anonOp1 = fullName(anonField1, anonTable1);
+
+		string anonTable1 = tableMetaMap[table1]->anonTableName;
+		string anonField1 = tableMetaMap[table1]->fieldMetaMap[field1]->anonFieldNameDET;
+		string anonOp1 = fullName(anonField1, anonTable1);
 
 		fieldType ftype = tableMetaMap[table1]->fieldMetaMap[field1]->type;
 
@@ -2039,6 +2053,9 @@ string EDBClient::processOperation(string operation, string op1, string op2, Que
 	}
 
 	//operation is OPE
+
+	anonField1 = tableMetaMap[table1]->fieldMetaMap[field1]->anonFieldNameOPE;
+	anonOp1 = fullName(anonField1, anonTable1);
 
 	FieldMetadata * fm = tableMetaMap[table1]->fieldMetaMap[field1];
 
@@ -2920,10 +2937,14 @@ EDBClient::execute(const char * query)
 
 	int counter = 0;
 
+	if (VERBOSE) {
+		cerr << "Translated queries: \n";
+	}
 	for (; queryIt != queries.end() ; queryIt++) {
 		counter++;
 
-	   // cerr << "sending <" << *queryIt << "> \n";
+	    if (VERBOSE) {cerr <<  *queryIt << " \n";}
+
 		DBResult * reply;
 		reply = NULL;
 

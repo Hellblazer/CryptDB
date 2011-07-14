@@ -795,7 +795,7 @@ void getTableField(string token, string & table, string & field, QueryMeta & qm,
 
 }
 
-string fieldNameForQuery(string anontable, string table, string anonfield, fieldType ft, QueryMeta & qm, bool ignoreDecFirst) {
+string fieldNameForQuery(string anontable, string table,  string anonfield, fieldType ft, QueryMeta & qm, bool ignoreDecFirst) {
 
 	string res = "";
 

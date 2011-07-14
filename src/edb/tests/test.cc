@@ -587,6 +587,15 @@ void interactiveTest() {
 		} else if (commandS.compare("debug;") == 0) {
 			//assert_s(cl->execute(), "failed");
 
+
+			cl->plain_execute("DROP TABLE IF EXISTS table0;");
+			assert_s(cl->execute("CREATE TABLE hi (id enc integer);"), "failed");
+			assert_s(cl->execute("INSERT INTO hi VALUES (3);"), "failed");
+			assert_s(cl->execute("SELECT * FROM hi;"), "failed");
+			assert_s(cl->execute("SELECT id FROM hi WHERE id > 2;"), "failed");
+
+
+
 			//debugging of DECRYPTFIRST mode
 
 			//cl->plain_execute("DROP TABLE IF EXISTS hi;");
@@ -621,7 +630,7 @@ void interactiveTest() {
 
 
 			//PRIVATE MESSAGES EXAMPLE
-			cl->plain_execute("DROP TABLE IF EXISTS users, msgs, privmsg;");
+		/*	cl->plain_execute("DROP TABLE IF EXISTS users, msgs, privmsg;");
 			assert_s(cl->execute("CREATE TABLE msgs (msgid equals privmsg.msgid integer, msgtext encfor msgid text);"), "failed");
 			assert_s(cl->execute("CREATE TABLE privmsg (msgid integer, recid equals users.userid hasaccessto msgid integer, senderid hasaccessto msgid integer);"), "failed");
 			assert_s(cl->execute("CREATE TABLE users (userid equals privmsg.senderid integer, username givespsswd userid text);"), "failed");
@@ -634,7 +643,7 @@ void interactiveTest() {
 			assert_s(cl->execute("INSERT INTO msgs  VALUES (1, 'hello world');"), "failed to insert msg");
 			assert_s(cl->execute("SELECT msgtext from msgs WHERE msgid = 1;"), "failed");
 			assert_s(cl->execute("SELECT msgtext from msgs, privmsg, users WHERE username = 'alice' AND userid = recid AND msgs.msgid = privmsg.msgid;"), "failed");
-
+*/
 			//private messages without orphans
 			/* cl->plain_execute("DROP TABLE IF EXISTS users, msgs, privmsg;");
 			assert_s(cl->execute("CREATE TABLE msgs (msgid equals privmsg.msgid integer, msgtext encfor msgid text);"), "failed");
@@ -3164,7 +3173,7 @@ void testTrace(int argc, char ** argv) {
 	unsigned char * masterKey =  BytesFromInt(mkey, AES_KEY_BYTES);
 	EDBClient * cl;
 
-	cl = new EDBClient("localhost", "root", "letmein", "phpbb", masterKey, "5123");
+	cl = new EDBClient("localhost", "root", "letmein", "phpbb", masterKey, 5123);
 
 	cl->VERBOSE = false;
 
