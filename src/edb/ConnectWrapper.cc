@@ -65,7 +65,7 @@ static int pass_queries(lua_State *L) {
   lua_createtable(L, new_queries.size(), 0);
   int top = lua_gettop(L);
   int index = 1;
-  list<const char*>::iterator it = new_queries.begin();
+  auto it = new_queries.begin();
   while(it != new_queries.end()) {
     lua_pushstring(L, (*it));
     lua_rawseti(L,top,index);
@@ -101,7 +101,6 @@ static int add_to_map(lua_State* L) {
 
 
 static int get_map_tables(lua_State *L) {
-  map<string, vector<string> >::iterator outer;
   if (sensitive.size() == 0) {
     if (VERBOSE_G) {
       cerr << "got nothing in sensitive" << endl;
@@ -111,14 +110,13 @@ static int get_map_tables(lua_State *L) {
   if (!lua_checkstack(L, sensitive_size)) {
     assert_s(false, "lua cannot grow stack");
   }
-  for (outer = sensitive.begin(); outer != sensitive.end(); outer++) {
+  for (auto outer = sensitive.begin(); outer != sensitive.end(); outer++) {
     lua_pushstring(L, getCStr(outer->first));
   }
   return sensitive.size();
 }
 
 static int get_auto_names(lua_State *L) {
-  map<string, int>::iterator it;
   if (auto_inc.size() == 0) {
     if (VERBOSE_G) {
       cerr << "got nothing in auto_inc" << endl;
@@ -128,14 +126,13 @@ static int get_auto_names(lua_State *L) {
   if (!lua_checkstack(L, auto_inc_size)) {
     assert_s(false, "lua cannot grow stack");
   }
-  for (it = auto_inc.begin(); it != auto_inc.end(); it++) {
+  for (auto it = auto_inc.begin(); it != auto_inc.end(); it++) {
     lua_pushstring(L, getCStr(it->first));
   }
   return auto_inc.size();
 }  
 
 static int get_auto_numbers(lua_State *L) {
-  map<string, int>::iterator it;
   if (auto_inc.size() == 0) {
     if (VERBOSE_G) {
       cerr << "got nothing in auto_inc" << endl;
@@ -145,16 +142,14 @@ static int get_auto_numbers(lua_State *L) {
   if (!lua_checkstack(L, auto_inc_size)) {
     assert_s(false, "lua cannot grow stack");
   }
-  for (it = auto_inc.begin(); it != auto_inc.end(); it++) {
+  for (auto it = auto_inc.begin(); it != auto_inc.end(); it++) {
     lua_pushnumber(L, it->second);
   }
   return auto_inc.size();
 }
 
 static int get_map_fields(lua_State *L) {
-  map<string, vector<string> >::iterator outer;
   int top, index;
-  vector<string>::iterator inner;
   if (sensitive.size() == 0) {
     if (VERBOSE_G) {
       cerr << "got nothing in sensitive" << endl;
@@ -164,11 +159,11 @@ static int get_map_fields(lua_State *L) {
   if (!lua_checkstack(L, sensitive_size)) {
     assert_s(false, "lua cannot grow stack");
   }
-  for (outer = sensitive.begin(); outer != sensitive.end(); outer++) {
+  for (auto outer = sensitive.begin(); outer != sensitive.end(); outer++) {
     lua_createtable(L, outer->second.size(), 0);
     top = lua_gettop(L);
     index = 1;
-    inner = outer->second.begin();
+    auto inner = outer->second.begin();
     while(inner != outer->second.end()) {
       lua_pushstring(L, getCStr(*inner));
       lua_rawseti(L,top,index);
@@ -230,15 +225,12 @@ void ResultSet::end_row() {
   working_row.clear();
 }
 void ResultSet::PrettyPrint() {
-  std::vector< std::string >::iterator f;
-  for(f = field_names.begin(); f != field_names.end(); f++) {
+  for(auto f = field_names.begin(); f != field_names.end(); f++) {
     std::cout << *f << " ";
   }
   printf("\n--------\n");
-  std::vector<std::vector< std::string> >::iterator outer;
-  for(outer = set.begin(); outer != set.end(); outer++) {
-    std::vector< std::string >::iterator inner;
-    for(inner = (*outer).begin(); inner != (*outer).end(); inner++) {
+  for(auto outer = set.begin(); outer != set.end(); outer++) {
+    for(auto inner = (*outer).begin(); inner != (*outer).end(); inner++) {
       std::cout << *inner << " ";
     }
     std::cout << std::endl;
@@ -304,7 +296,7 @@ static int get_fields(lua_State *L) {
   lua_createtable(L, R->field_names.size(), 0);
   int top = lua_gettop(L);
   int index = 1;
-  std::vector<std::string>::iterator it = R->field_names.begin();
+  auto it = R->field_names.begin();
   while(it != R->field_names.end()) {
     lua_pushstring(L, (*it).c_str());
     lua_rawseti(L,top,index);
@@ -314,14 +306,12 @@ static int get_fields(lua_State *L) {
   return 1;
 }
 static int get_rows(lua_State *L) {
-  std::vector <std::vector <std::string> >::iterator outer;
   int top, index;
-  std::vector<std::string>::iterator inner;
-  for(outer = R->set.begin(); outer != R->set.end(); outer++) {
+  for(auto outer = R->set.begin(); outer != R->set.end(); outer++) {
     lua_createtable(L, (*outer).size(), 0);
     top = lua_gettop(L);
     index = 1;
-    inner = (*outer).begin();
+    auto inner = (*outer).begin();
     while(inner != (*outer).end()) {
       lua_pushstring(L, (*inner).c_str());
       lua_rawseti(L,top,index);
