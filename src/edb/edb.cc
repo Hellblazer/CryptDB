@@ -62,13 +62,13 @@ log(string s)
 }
 
 static AES_KEY *
-get_key_SEM(unsigned char * key)
+get_key_SEM(const string &key)
 {
 	return CryptoManager::get_key_SEM(key);
 }
 
 static AES_KEY *
-get_key_DET(unsigned char * key)
+get_key_DET(const string &key)
 {
 	return CryptoManager::get_key_DET(key);
 }
@@ -91,11 +91,12 @@ encrypt_DET(uint64_t plaintext, AES_KEY * aesKey)
 	return CryptoManager::encrypt_DET(plaintext, aesKey);
 }
 
-static unsigned char *
+static string
 decrypt_SEM(unsigned char *eValueBytes, unsigned int eValueLen,
 	    AES_KEY * aesKey, uint64_t salt)
 {
-	return CryptoManager::decrypt_SEM(eValueBytes, eValueLen, aesKey, salt);
+	string c((char *) eValueBytes, eValueLen);
+	return CryptoManager::decrypt_SEM(c, aesKey, salt);
 }
 
 #if MYSQL_S
@@ -152,6 +153,12 @@ getba(ARGS, int i, unsigned int & len)
 extern "C" {
 
 #if MYSQL_S
+my_bool
+decrypt_int_sem_init(UDF_INIT *initid, UDF_ARGS *args, char *message)
+{
+	return 0;
+}
+
 longlong
 decrypt_int_sem(UDF_INIT *initid, UDF_ARGS *args, char *is_null, char *error)
 #else /*postgres*/
@@ -161,7 +168,8 @@ decrypt_int_sem(PG_FUNCTION_ARGS)
 {
 	uint64_t eValue = getui(ARGS, 0);
 
-	unsigned char key[AES_KEY_BYTES];
+	string key;
+	key.resize(AES_KEY_BYTES);
 	int offset = 1;
 
 	for (unsigned int i = 0; i < AES_KEY_BYTES; i++)
@@ -182,6 +190,12 @@ decrypt_int_sem(PG_FUNCTION_ARGS)
 
 
 #if MYSQL_S
+my_bool
+decrypt_int_det_init(UDF_INIT *initid, UDF_ARGS *args, char *message)
+{
+	return 0;
+}
+
 longlong
 decrypt_int_det(UDF_INIT *initid, UDF_ARGS *args, char *is_null, char *error)
 #else /* postgres */
@@ -191,7 +205,8 @@ decrypt_int_det(PG_FUNCTION_ARGS)
 {
 	uint64_t eValue = getui(ARGS, 0);
 
-	unsigned char key[AES_KEY_BYTES];
+	string key;
+	key.resize(AES_KEY_BYTES);
 	int offset = 1;
 
 	for (unsigned int i = 0; i < AES_KEY_BYTES; i++)
@@ -211,6 +226,12 @@ decrypt_int_det(PG_FUNCTION_ARGS)
 
 
 #if MYSQL_S
+my_bool
+encrypt_int_det_init(UDF_INIT *initid, UDF_ARGS *args, char *message)
+{
+	return 0;
+}
+
 longlong
 encrypt_int_det(UDF_INIT *initid, UDF_ARGS *args, char *is_null, char *error)
 #else /* postgres */
@@ -220,7 +241,8 @@ decrypt_int_det(PG_FUNCTION_ARGS)
 {
 	uint64_t eValue = getui(ARGS, 0);
 
-	unsigned char key[AES_KEY_BYTES];
+	string key;
+	key.resize(AES_KEY_BYTES);
 	int offset = 1;
 
 	for (unsigned int i = 0; i < AES_KEY_BYTES; i++)
@@ -240,6 +262,12 @@ decrypt_int_det(PG_FUNCTION_ARGS)
 
 
 #if MYSQL_S
+my_bool
+decrypt_text_sem_init(UDF_INIT *initid, UDF_ARGS *args, char *message)
+{
+	return 0;
+}
+
 void
 decrypt_text_sem_deinit(UDF_INIT *initid)
 {
@@ -263,7 +291,8 @@ decrypt_text_sem(PG_FUNCTION_ARGS)
 	unsigned int eValueLen;
 	unsigned char *eValueBytes = getba(args, 0, eValueLen);
 
-	unsigned char key[AES_KEY_BYTES];
+	string key;
+	key.resize(AES_KEY_BYTES);
 	int offset = 1;
 
 	for (unsigned int i = 0; i < AES_KEY_BYTES; i++)
@@ -272,13 +301,13 @@ decrypt_text_sem(PG_FUNCTION_ARGS)
 	uint64_t salt = getui(ARGS, offset + AES_KEY_BYTES);
 
 	AES_KEY *aesKey = get_key_SEM(key);
-	unsigned char *value = decrypt_SEM(eValueBytes, eValueLen,
-					   aesKey, salt);
+	string value = decrypt_SEM(eValueBytes, eValueLen, aesKey, salt);
 	delete aesKey;
 
 #if MYSQL_S
-	*length = eValueLen;
-	return (char*) value;
+	initid->ptr = strdup(value.c_str());
+	*length = value.length();
+	return (char*) initid->ptr;
 #else
 	bytea * res = (bytea *) palloc(eValueLen+VARHDRSZ);
 	SET_VARSIZE(res, eValueLen+VARHDRSZ);
@@ -296,6 +325,12 @@ decrypt_text_sem(PG_FUNCTION_ARGS)
  * the length of the word body
  */
 #if MYSQL_S
+my_bool
+search_init(UDF_INIT *initid, UDF_ARGS *args, char *message)
+{
+	return 0;
+}
+
 longlong
 search(UDF_INIT *initid, UDF_ARGS *args, char *is_null, char *error)
 #else
@@ -478,18 +513,14 @@ func_add_set(UDF_INIT *initid, UDF_ARGS *args,
 	     char *result, unsigned long *length,
 	     char *is_null, char *error)
 {
-	uint32_t n2len = args->lengths[2];
-	myassert(initid->ptr == 0,
-		 "func_add_set used twice per init");
-	myassert(args->lengths[0] == n2len,
-		 "length of field differs from N2 len");
-	myassert(args->lengths[1] == n2len,
-		 "length of val differs from N2 len");
+	if (initid->ptr)
+		free(initid->ptr);
 
+	uint32_t n2len = args->lengths[2];
 	ZZ field, val, n2;
-	ZZFromBytes(field, (const uint8_t *) args->args[0], n2len);
-	ZZFromBytes(val, (const uint8_t *) args->args[1], n2len);
-	ZZFromBytes(n2, (const uint8_t *) args->args[2], n2len);
+	ZZFromBytes(field, (const uint8_t *) args->args[0], args->lengths[0]);
+	ZZFromBytes(val, (const uint8_t *) args->args[1], args->lengths[1]);
+	ZZFromBytes(n2, (const uint8_t *) args->args[2], args->lengths[2]);
 
 	ZZ res;
 	MulMod(res, field, val, n2);
@@ -499,7 +530,7 @@ func_add_set(UDF_INIT *initid, UDF_ARGS *args,
 	BytesFromZZ((uint8_t *) rbuf, res, n2len);
 
 	*length = n2len;
-	return result;
+	return initid->ptr;
 }
 
 #else

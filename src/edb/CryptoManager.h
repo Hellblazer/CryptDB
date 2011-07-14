@@ -19,9 +19,8 @@ SECLEVEL highestEq(SECLEVEL sl);
 typedef RSA PKCS;
 
 class CryptoManager {
-    
-    public:	
-	CryptoManager(unsigned char * masterKey);
+ public:	
+	CryptoManager(const string &masterKey);
 	~CryptoManager();
 	
 
@@ -37,7 +36,7 @@ class CryptoManager {
 	//SPECIFIC FUNCTIONS
 
 	//expects AES_KEY_BYTES long key
-	void setMasterKey(unsigned char * masterKey);
+	void setMasterKey(const string &masterKey);
 
 	//TODO: these: make one function for the same onion as well as for multiple levels
 	// encrypt with ope onion: value -> opeself -> sem
@@ -57,94 +56,87 @@ class CryptoManager {
 	//marshalls a key
 	//if ispk is true, it returns the binary of the public key and sets let to the length returned
 	//is !ispk, it does the same for secret key
-	static binary marshallKey(PKCS * mkey, bool ispk, int & len);
+	static string marshallKey(PKCS * mkey, bool ispk);
 
 	//from a binary key of size keylen, it returns a public key if ispk, else a secret key
-	static PKCS * unmarshallKey(binary key, int keylen, bool ispk);
+	static PKCS * unmarshallKey(const string &key, bool ispk);
 
 	//using key, it encrypts the data in from of size fromlen
 	//the result is len long
-	static binary encrypt(PKCS * key, unsigned char * from, int fromlen, int & len);
+	static string encrypt(PKCS * key, const string &from);
 
 	//using key, it decrypts data at fromcipher, and returns the decrypted value
-	static binary decrypt(PKCS * key, unsigned char * fromcipher, int fromlen, int & len);
+	static string decrypt(PKCS * key, const string &fromcipher);
 
 	//frees memory allocated by this keyb
 	static void freeKey(PKCS * key);
 
 
 	//***************************************************************************************/
-
-	//len will contain the size of the ciphertext
-	unsigned char * encrypt_text_DET_onion(string uniqueFieldName, string value, uint64_t salt, unsigned int & len);
-
-
+	string encrypt_text_DET_onion(string uniqueFieldName, string value, uint64_t salt);
 
 	uint32_t encrypt_VAL(string  uniqueFieldName, uint32_t value, uint64_t salt);
 	//result len is same as input len
-	unsigned char *encrypt_VAL(string uniqueFieldName, string value, uint64_t salt);
+	string encrypt_VAL(string uniqueFieldName, string value, uint64_t salt);
 	
 	/**
 	* Returns the key corresponding to the security level given for some master key and 
 	* some unique field name. Result will be AES_KEY_SIZE long.  
 	*/
-	unsigned char* getKey(string uniqueFieldName, SECLEVEL sec);
-	unsigned char * getKey(AES_KEY * mkey, string uniqueFieldName, SECLEVEL sec);
+	string getKey(const string &uniqueFieldName, SECLEVEL sec);
+	string getKey(AES_KEY * mkey, const string &uniqueFieldName, SECLEVEL sec);
 	
-	static string marshallKey(const unsigned char * key);
-	static unsigned char * unmarshallKey(string key);
+	static string marshallKey(const string &key);
+	static string unmarshallKey(const string &key);
 	
 	//int32_t encrypt_SEM(int32_t ptext, int salt, unsigned char * key);
 	//int32_t decrypt_SEM(int32_t, const char * ctext, unsigned char * salt, unsigned char * key);
-	
+
 	//SEMANTIC
 	//since many values may be encrypted with same key you want to set the key
-	static AES_KEY * get_key_SEM(const unsigned char * key);
+	static AES_KEY * get_key_SEM(const string &key);
 	static uint64_t encrypt_SEM(uint64_t ptext, AES_KEY * key, uint64_t salt);
 	static uint64_t decrypt_SEM(uint64_t ctext, AES_KEY * key, uint64_t salt);
 	static uint32_t encrypt_SEM(uint32_t ptext, AES_KEY * key, uint64_t salt);
 	static uint32_t decrypt_SEM(uint32_t ctext, AES_KEY * key, uint64_t salt);
+
 	//output same len as input
-	static unsigned char *encrypt_SEM(string ptext, AES_KEY*key, uint64_t salt);
-	
-	//static string decrypt_SEM_toString(unsigned char *etext, unsigned int elen, AES_KEY*key, uint64_t salt);
+	static string encrypt_SEM(const string &ptext, AES_KEY *key, uint64_t salt);
+	static string decrypt_SEM(const string &ctext, AES_KEY *key, uint64_t salt);
 
-	static unsigned char * encrypt_SEM(unsigned char * & ptext, unsigned int len, AES_KEY * key, uint64_t salt);
-	static unsigned char * decrypt_SEM(unsigned char * ctext, unsigned int len, AES_KEY * key, uint64_t salt);
-
-	
 	//OPE
-	static OPE * get_key_OPE(unsigned char * key); //key must have OPE_KEY_SIZE
+	static OPE * get_key_OPE(const string &key); //key must have OPE_KEY_SIZE
 	static uint64_t encrypt_OPE(uint32_t plaintext, OPE * ope);
 	static uint32_t decrypt_OPE(uint64_t ciphertext, OPE * ope);
-	static unsigned char * encrypt_OPE(unsigned char * plaintext, OPE * ope);
-	static unsigned char * decrypt_OPE(unsigned char * ciphertext, OPE * ope);
 	// used to encrypt text
 	static uint64_t encrypt_OPE_text_wrapper(const string & plaintext, OPE * ope);
+	static string encrypt_OPE(const string &plaintext, OPE * ope);
+	static string decrypt_OPE(const string &ciphertext, OPE * ope);
+
 	uint64_t encrypt_OPE(uint32_t plaintext, string uniqueFieldName);
 
 	//DET: one-way functions
-	static AES_KEY * get_key_DET (const unsigned char * key);
+	static AES_KEY * get_key_DET(const string &key);
 	static uint64_t encrypt_DET(uint32_t plaintext, AES_KEY * key);
 	static uint64_t encrypt_DET(uint64_t plaintext, AES_KEY * key);
-	static uint64_t encrypt_DET(string plaintext, AES_KEY *key);
+	static uint64_t encrypt_DET(const string &plaintext, AES_KEY *key);
 	static uint64_t decrypt_DET(uint64_t ciphertext, AES_KEY * key);
 
 	//encrypts a string such that it can support search, ciph need not be initialized
 	// input len must be set to the sum of the lengths of the words and it will be updated to the length of the ciphertext
-	static void encrypt_DET_search(list<string> * words, AES_KEY * key, unsigned char * & ciph, unsigned int & len);
-	static list<string> * decrypt_DET_search(unsigned char * ciph, unsigned int len,  AES_KEY * key);
+	static string encrypt_DET_search(list<string> * words, AES_KEY * key);
+	static list<string> * decrypt_DET_search(const string &ctext, AES_KEY * key);
 
-	static unsigned char * encrypt_DET_wrapper(string text, AES_KEY * key, unsigned int & len);
-	static string decrypt_DET_wrapper(unsigned char * ctext, unsigned int len, AES_KEY * key);
+	static string encrypt_DET_wrapper(const string &ptext, AES_KEY * key);
+	static string decrypt_DET_wrapper(const string &ctext, AES_KEY * key);
 
 	//aggregates
 	static const unsigned int Paillier_len_bytes = PAILLIER_LEN_BYTES;
 	static const unsigned int Paillier_len_bits = Paillier_len_bytes * 8;
-	unsigned char * encrypt_Paillier(int val);
-	int decrypt_Paillier(unsigned char * ciphertext);
+	string encrypt_Paillier(int val);
+	int decrypt_Paillier(const string &ciphertext);
 
-	unsigned char * getPKInfo();
+	string getPKInfo();
 	AES_KEY * getmkey();
 
 
@@ -160,10 +152,8 @@ class CryptoManager {
 	//batchEncrypt
 	//batchDecrypt
 	
-    private:
-    
+ private:
 	AES_KEY * masterKey;
-	unsigned char * masterKeyBytes;
 
 	//Paillier cryptosystem
 	ZZ Paillier_lambda, Paillier_n, Paillier_g, Paillier_n2;
@@ -173,7 +163,7 @@ class CryptoManager {
 	bool useEncTables;
 	int noOPE, noHOM;
 	map<string, map<int, uint64_t> > OPEEncTable;
-	map<int, list<unsigned char *> > HOMEncTable;
+	map<int, list<string> > HOMEncTable;
 
 	bool VERBOSE;
 

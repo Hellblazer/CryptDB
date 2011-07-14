@@ -8,7 +8,6 @@
 #include "Connect.h"
 
 
-
 Connect::Connect(string server, string user, string passwd,
 		 string dbname, uint port)
 {
@@ -23,10 +22,8 @@ Connect::Connect(string server, string user, string passwd,
 	}
 
 #else /* postgres */
-
-
 	string conninfo = " dbname = " + dbname;
-	conn = PQconnectdb(getCStr(conninfo));
+	conn = PQconnectdb(conninfo.c_str());
 
 	/* Check to see that the backend connection was successfully made */
 	if (PQstatus(conn) != CONNECTION_OK)
@@ -34,194 +31,193 @@ Connect::Connect(string server, string user, string passwd,
 		fprintf(stderr, "Connection to database failed: %s",
 				PQerrorMessage(conn));
 		exit(1);
-
 	}
-
-
 #endif
 
 }
 
-
-//returns true if execution was ok
-bool Connect::execute(const char * query, DBResult * & res) {
-
+bool
+Connect::execute(const char * query, DBResult **res)
+{
 #if MYSQL_S
-
 	if (mysql_query(conn, query)) {
-			fprintf(stderr, "error %s\n", mysql_error(conn));
-			res = NULL;
-			return false;
+		fprintf(stderr, "mysql error: %s\n", mysql_error(conn));
+		*res = 0;
+		return false;
 	} else {
-
-		res = mysql_store_result(conn);
+		*res = DBResult::wrap(mysql_store_result(conn));
 		return true;
 	}
-
 #else /* postgres */
+        *res = PQexec(conn, query);
 
-        res = PQexec(conn, query);
-
-        ExecStatusType status = PQresultStatus(res);
-
-		if ((status == PGRES_COMMAND_OK) || (status == PGRES_TUPLES_OK)) {
-				return true;
-		} else {
-				cerr << "problem with " << query << " error msg: " << PQerrorMessage(conn) << " status " << status << "\n";
-				return false;
-		}
-
+        ExecStatusType status = PQresultStatus(res->n);
+	if ((status == PGRES_COMMAND_OK) || (status == PGRES_TUPLES_OK)) {
+		return true;
+	} else {
+		cerr << "problem with " << query <<
+			" error msg: " << PQerrorMessage(conn) <<
+			" status " << status << "\n";
+		delete *res;
+		*res = 0;
+		return false;
+	}
 #endif
-
 }
 
-bool Connect::execute(const char * query) {
-	DBResult * aux;
-	return execute(query, aux);
+bool
+Connect::execute(const char * query)
+{
+	DBResult *aux;
+	bool r = execute(query, &aux);
+	if (r)
+		delete aux;
+	return r;
 }
-const char * Connect::getError() {
 
+const char *
+Connect::getError()
+{
 #if MYSQL_S
 	return mysql_error(conn);
 #else
 	return PQerrorMessage(conn);
 #endif
-
 }
 
-
-bool mysql_isBinary(enum_field_types t, int charsetnr) {
-	if (((t == MYSQL_TYPE_VAR_STRING) && (charsetnr == 63)) || ((t == MYSQL_TYPE_BLOB) && (charsetnr == 63))) {
+static bool
+mysql_isBinary(enum_field_types t, int charsetnr)
+{
+	if (((t == MYSQL_TYPE_VAR_STRING) && (charsetnr == 63)) ||
+	    ((t == MYSQL_TYPE_BLOB) && (charsetnr == 63)))
+	{
 		return true;
 	} else {
 		return false;
 	}
 }
 
-string Connect::last_insert_id() {
-	return marshallVal((uint64_t) mysql_insert_id(conn));
-}
-//returns the data in the last server response
-//TODO: to optimize return pointer to avoid overcopying large result sets?
-ResType * Connect::unpack(DBResult * lastReply){
-
-#if MYSQL_S
-
-	if (!lastReply) {
-		return new vector<vector<string> >();
-	}
-
-
-	int cols = mysql_num_fields(lastReply);
-
-	int rows =  mysql_num_rows(lastReply);
-
-
-	vector<vector<string> > * res = new vector<vector<string> >(rows+1);
-
-	if (rows == 0) {
-		res->at(0) = vector<string>(cols);
-		MYSQL_FIELD * field;
-		int j = 0;
-		while ((field = mysql_fetch_field(lastReply))) {
-			res->at(0)[j] = string(field->name);
-			j++;
-		}
-
-		assert_s(j == cols, "less fields than cols \n");
-
-		return res;
-	}
-
-	//cerr << "result has " << cols << "cols and " << rows << " rows \n";
-
-
-	bool binFlags[cols];
-
-	//first row contains names
-	res->at(0) = vector<string>(cols);
-	int index= 0;
-	MYSQL_ROW row;
-	unsigned long *lengths;
-	while ((row = mysql_fetch_row(lastReply)) != NULL) {
-		lengths = mysql_fetch_lengths(lastReply);
-		if (index == 0) {
-			MYSQL_FIELD * field;
-			int j = 0;
-			while ((field = mysql_fetch_field(lastReply))) {
-				binFlags[j] = mysql_isBinary(field->type, field->charsetnr);
-				(*res)[0][j] =  string(field->name);
-
-				j++;
-			}
-		}
-
-		index++;
-		(*res)[index] = vector<string>(cols);
-		// long unsigned int * lengths = mysql_fetch_lengths(dbAnswer);
-		for (int j = 0 ; j < cols; j++) {
-
-			if (binFlags[j] && (!DECRYPTFIRST)) {
-				(*res)[index][j] = marshallBinary((unsigned char*)row[j], lengths[j]); //TODO: possible performance loss due to marshall and unmarshall
-			} else {
-
-				if (row[j] == NULL) {
-					(*res)[index][j] = "";
-				} else {
-					(*res)[index][j] = string(row[j]);
-				}
-
-			}
-
-		}
-	}
-
-
-
-	return res;
-
-#else /* postgres */
-
-
-   unsigned int cols = PQnfields(lastReply);
-   unsigned int rows = PQntuples(lastReply);
-
-   if (rows == 0) {
-	   return new ResType();
-   }
-
-   vector<vector<string> > res = new vector<vector<string> >[rows+1];
-
-   //first, fill up first row with names
-   res[0] = new vector[cols];
-   for (unsigned int i = 0; i < cols; i++) {
-		res[0][i] = string(PQfname(dbAnswer, i));
-	}
-
-   //fillup values
-   for (unsigned int i = 0; i < rows; i++) {
-	   for (unsigned int j = 0; j < cols; j++) {
-		   res[i+1][j] = string(PQgetvalue(lastReply, i,j));
-	   }
-   }
-
-   return res;
-
-#endif
-
+uint64_t
+Connect::last_insert_id()
+{
+	return mysql_insert_id(conn);
 }
 
-
-
-void Connect::finish() {
+Connect::~Connect() {
 #if MYSQL_S
 	mysql_close(conn);
 #else /*postgres */
 	PQfinish(conn);
 #endif
+}
+
+
+DBResult::DBResult()
+{
+}
+
+DBResult *
+DBResult::wrap(DBResult_native *n)
+{
+	DBResult *r = new DBResult();
+	r->n = n;
+	return r;
+}
+
+DBResult::~DBResult()
+{
+#if MYSQL_S
+	mysql_free_result(n);
+#else
+	PQclear(n);
+#endif
+}
+
+// returns the data in the last server response
+// TODO: to optimize return pointer to avoid overcopying large result sets?
+ResType *
+DBResult::unpack()
+{
+#if MYSQL_S
+
+	cerr << "aa\n";
+	int rows = mysql_num_rows(n);
+	cerr << "ll\n";
+	int cols  = -1;
+	if (rows > 0) {
+		cols = mysql_num_fields(n);
+	}
+
+	cerr << "m\n";
+	ResType *res = new vector<vector<string> >(rows+1);
+
+	cerr << "a\n";
+
+	// first row contains names
+	(*res)[0] = vector<string>(cols);
+
+	bool binFlags[cols];
+	for (int j = 0; ; j++) {
+		MYSQL_FIELD *field = mysql_fetch_field(n);
+		if (!field)
+			break;
+
+		/*
+		 * XXX why are we losing field->type here?
+		 * should really be visible to our caller..
+		 */
+		binFlags[j] = mysql_isBinary(field->type, field->charsetnr);
+		(*res)[0][j] = string(field->name);
+	}
+
+	cerr << "b\n";
+
+	for (int index = 0; ; index++) {
+		MYSQL_ROW row = mysql_fetch_row(n);
+		if (!row)
+			break;
+		unsigned long *lengths = mysql_fetch_lengths(n);
+
+		(*res)[index+1] = vector<string>(cols);
+
+		for (int j = 0; j < cols; j++) {
+			if (binFlags[j] && !DECRYPTFIRST) {
+				(*res)[index+1][j] = marshallBinary(string(row[j], lengths[j]));
+			} else {
+				if (row[j] == NULL) {
+					/*
+					 * XXX why are we losing NULLs?
+					 */
+					(*res)[index+1][j] = "";
+				} else {
+					(*res)[index+1][j] = string(row[j], lengths[j]);
+				}
+			}
+		}
+	}
+
+	cerr << "c\n";
+	return res;
+
+#else /* postgres */
+
+	unsigned int cols = PQnfields(n);
+	unsigned int rows = PQntuples(n);
+
+	ResType *res = new vector<vector<string> >[rows+1];
+
+	// first, fill up first row with names
+	(*res)[0] = new vector<string>[cols];
+	for (uint i = 0; i < cols; i++)
+		(*res)[0][i] = string(PQfname(dbAnswer, i));
+
+	// fill up values
+	for (uint i = 0; i < rows; i++)
+		for (uint j = 0; j < cols; j++)
+			(*res)[i+1][j] = string(PQgetvalue(n, i, j));
+
+	return res;
+#endif
 
 }
 
-Connect::~Connect() {
-
-}

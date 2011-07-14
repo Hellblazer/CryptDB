@@ -51,5 +51,3 @@ clean:
 	rm -f *.o $(LIBS)
 	cd tests && $(MAKE) clean
 
-installudf:
-

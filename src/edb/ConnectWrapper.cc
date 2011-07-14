@@ -22,7 +22,7 @@ static int init(lua_State *L) {
     cerr << "server = " << server << "; user = " << user << "; password = " << psswd << "; database name = " << dbname << endl;
   }
   uint64_t mkey = 113341234;
-  unsigned char * masterKey = BytesFromInt(mkey, AES_KEY_BYTES);
+  string masterKey = BytesFromInt(mkey, AES_KEY_BYTES);
   cl = new EDBClient(server, user, psswd, dbname, masterKey);
   cl->VERBOSE = VERBOSE_G;
   initialized = true;
