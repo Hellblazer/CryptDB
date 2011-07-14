@@ -911,11 +911,11 @@ list<const char*>  EDBClient::processFilters(list<string>::iterator &  wordsIt, 
 
 				if (comm.compare("order") == 0) {
 					fm->ope_used = true;
-					if (fm->type == TYPE_INTEGER) {
-						if (fm->secLevelOPE == SEMANTIC_OPE) {
-							addIfNotContained(fullName(field, table), fieldsDec.OPEFields);
-						}
+
+					if (fm->secLevelOPE == SEMANTIC_OPE) {
+						addIfNotContained(fullName(field, table), fieldsDec.OPEFields);
 					}
+
 				} else {//group
 					if (fm->secLevelDET == SEMANTIC_DET) {
 						addIfNotContained(fullName(field, table), fieldsDec.DETFields);
@@ -2203,7 +2203,7 @@ string EDBClient::processValsToInsert(string field, string table, uint64_t salt,
 	string res =  "";
 
 	string fullname = fullName(field, table);
-	fieldType type = fm->type;
+
 	string anonTableName = tableMetaMap[table]->anonTableName;
 
 	if (equalsIgnoreCase(value,"null")) {
@@ -2215,34 +2215,22 @@ string EDBClient::processValsToInsert(string field, string table, uint64_t salt,
 		}
 	} else {
 
-		if (type == TYPE_INTEGER) {
-			res +=  " " +
-					crypt(value, TYPE_INTEGER, fullname, fullName(fm->anonFieldNameDET, anonTableName), PLAIN_DET, fm->secLevelDET, salt, tmkm);
+		res +=  " " +
+				crypt(value, fm->type, fullname, fullName(fm->anonFieldNameDET, anonTableName), PLAIN_DET, fm->secLevelDET, salt, tmkm);
 
-			if (VERBOSE_V) {cerr << "just added key from crypt \n";}
+		if (VERBOSE_V) {cerr << "just added key from crypt \n";}
 
-			if (fm->exists(fm->anonFieldNameOPE)) {
-				res += ", " +
-					crypt(value, TYPE_INTEGER, fullname, fullName(fm->anonFieldNameOPE, anonTableName), PLAIN_OPE, fm->secLevelOPE, salt, tmkm);
+		if (fm->exists(fm->anonFieldNameOPE)) {
+			res += ", " +
+					crypt(value, fm->type, fullname, fullName(fm->anonFieldNameOPE, anonTableName), PLAIN_OPE, fm->secLevelOPE, salt, tmkm);
 
-			}
-			if (fm->exists(fm->anonFieldNameAGG)) {
-				res += ", " +
-						crypt(value, TYPE_INTEGER, fullname, fullName(fm->anonFieldNameAGG, anonTableName), PLAIN_AGG, SEMANTIC_AGG, salt, tmkm);
-			}
 		}
-		else {
-			assert_s(type == TYPE_TEXT,  "undefined type");
 
-			//cerr << "before calling crypt for " << fullname << " val " << value << "\n";
-
-			res += " " +
-				crypt(value, TYPE_TEXT, fullname, fullName(fm->anonFieldNameDET, anonTableName), PLAIN_DET, fm->secLevelDET, salt, tmkm);
-
-			if (fm->exists(fm->anonFieldNameOPE)) {
-				res += ",  5 " ; //putting crap for ope cause it's not yet impl
-			}
+		if (fm->exists(fm->anonFieldNameAGG)) {
+			res += ", " +
+					crypt(value, fm->type, fullname, fullName(fm->anonFieldNameAGG, anonTableName), PLAIN_AGG, SEMANTIC_AGG, salt, tmkm);
 		}
+
 	}
 
 	return res;

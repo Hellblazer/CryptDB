@@ -166,6 +166,7 @@ string processCreate(fieldType type, string fieldName, unsigned int index, bool 
 			// create field for DET encryption
 			fm->fieldName = fieldName;
 
+
 			tm->fieldNameMap[fieldName] = fieldName;
 
 			res = res  + fieldName + " "+ TN_I32;

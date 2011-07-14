@@ -127,7 +127,13 @@ SECLEVEL decreaseLevel(SECLEVEL l, fieldType ft,  onion o) {
 	case oOPE: {
 		switch (l) {
 		case SEMANTIC_OPE: {return OPESELF;}
-		case OPESELF: {return OPEJOIN;}
+		case OPESELF: {
+			if (ft == TYPE_TEXT) {
+				return PLAIN_OPE;
+			} else {
+				return OPEJOIN;
+			}
+		}
 		case OPEJOIN: {return PLAIN_OPE;}
 		default: {
 			assert_s(false, "cannot decrease level");
@@ -174,7 +180,14 @@ SECLEVEL increaseLevel(SECLEVEL l, fieldType ft, onion o) {
 		switch (l) {
 		case OPESELF: {return SEMANTIC_OPE;}
 		case OPEJOIN: {return OPESELF;}
-		case PLAIN_OPE: {return OPEJOIN;}
+		case PLAIN_OPE: {
+			if (ft == TYPE_TEXT) {
+				return OPESELF;
+			} else {
+				return OPEJOIN;
+			}
+		}
+
 		default: {
 					assert_s(false, "cannot increase level");
 					return INVALID;
@@ -345,8 +358,20 @@ string CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft, string fu
 				return "";
 			}
 			case oOPE: {
-				return "5";
-				//not yet implemented
+
+				uint64_t val = unmarshallVal(data);
+				if (fromlevel == SEMANTIC_OPE) {
+					AES_KEY * key = get_key_SEM(getKey(mkey, fullfieldname, fromlevel));
+					val = decrypt_SEM(val, key, salt);
+					fromlevel  = decreaseLevel(fromlevel, ft, oOPE);
+					if (fromlevel == tolevel) {
+						return marshallVal(val);
+					}
+				}
+
+				assert_s(false, "should not want to decrypt past OPESELF for text \n");
+
+				return "";
 			}
 			default: {
 				myassert(false, "no valid onion in text \n");
@@ -514,8 +539,41 @@ string CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft, string fu
 			return "";
 		}
 		case oOPE: {
-			return "5";
-			//not yet implemented
+
+			uint64_t val;
+
+			cerr << "A\n";
+			if (fromlevel == PLAIN_OPE) {
+				cerr << "B\n";
+				data = removeApostrophe(data);
+				fromlevel = increaseLevel(fromlevel, ft, oOPE);
+				OPE * key = get_key_OPE(getKey(mkey, fullfieldname, fromlevel));
+				val = encrypt_OPE_text_wrapper(data, key);
+				if (fromlevel == tolevel) {
+					return marshallVal(val);
+				}
+			} else {
+				cerr << "C\n";
+				val = unmarshallVal(data);
+			}
+
+			cerr << "D\n";
+
+			if (fromlevel == OPESELF) {
+				cerr << "E\n";
+				fromlevel  = increaseLevel(fromlevel, ft, oOPE);
+				AES_KEY * key = get_key_SEM(getKey(mkey, fullfieldname, fromlevel));
+				val = encrypt_SEM(val, key, salt);
+				if (fromlevel == tolevel) {
+					return marshallVal(val);
+				}
+			}
+
+
+			assert_s(false, "nothing higher than OPE_SEM");
+
+			return "";
+
 		}
 		default: {
 			myassert(false, "no valid onion in text \n");
@@ -861,13 +919,19 @@ uint64_t CryptoManager::encrypt_OPE_text_wrapper(const string & plaintext, OPE *
 
 	uint32_t val = 0;
 
-	for (unsigned i = 0; i < min(prefix, len); i++) {
-		val = val*10 + plaintext[i];
+	unsigned int mins = min(prefix, len);
+
+	cerr << "mins is " << mins << "\n";
+
+	for (unsigned i = 0; i < mins; i++) {
+		val = val*256 + (unsigned int)plaintext[i];
 	}
 
-	for (unsigned int i = 0; i < prefix - len; i++) {
-		val = val * 10 + 0;
+	for (unsigned int i = 0; i < prefix - mins; i++) {
+		val = val * 256;
 	}
+
+	cerr << "for string " << plaintext << " encrypted val is " << val << "\n";
 
 	return ope->encrypt(val);
 

@@ -568,12 +568,19 @@ void interactiveTest() {
 
 			cl->plain_execute("DROP TABLE IF EXISTS table0;");
 			cerr << "here \n";
-			assert_s(cl->execute("CREATE TABLE hi (id enc integer, name enc text);"), "failed");
+			assert_s(cl->execute("CREATE TABLE hi (id integer, name enc text);"), "failed");
 			assert_s(cl->execute("INSERT INTO hi VALUES (3, 'raluca');"), "failed");
 			assert_s(cl->execute("INSERT INTO hi VALUES (2, 'alice');"), "failed");
 			assert_s(cl->execute("INSERT INTO hi VALUES (1, 'dan');"), "failed");
+			assert_s(cl->execute("INSERT INTO hi VALUES (1, 'lauren');"), "failed");
+			assert_s(cl->execute("INSERT INTO hi VALUES (1, 'aaa');"), "failed");
+			assert_s(cl->execute("INSERT INTO hi VALUES (1, 'xxhello');"), "failed");
+			assert_s(cl->execute("INSERT INTO hi VALUES (1, 'ydan');"), "failed");
+			assert_s(cl->execute("INSERT INTO hi VALUES (1, 'blauren');"), "failed");
+			assert_s(cl->execute("INSERT INTO hi VALUES (1, 'naaa');"), "failed");
+			assert_s(cl->execute("INSERT INTO hi VALUES (1, 'hello');"), "failed");
 			assert_s(cl->execute("SELECT * FROM hi;"), "failed");
-			assert_s(cl->execute("SELECT id FROM hi ORDER BY name;"), "failed");
+			assert_s(cl->execute("SELECT id, name FROM hi ORDER BY name;"), "failed");
 
 
 
