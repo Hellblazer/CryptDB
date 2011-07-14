@@ -51,6 +51,10 @@ clean:
 	rm -f *.o $(LIBS)
 	cd tests && $(MAKE) clean
 
+indent:
+	uncrustify --no-backup -c ../.uncrustify.cfg $(wildcard *.cc)
+	uncrustify --no-backup -c ../.uncrustify.cfg $(wildcard *.h)
+
 .PHONY: install clean indent test
 
 # vim: set noexpandtab:
