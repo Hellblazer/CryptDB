@@ -43,6 +43,15 @@ bool equals(ResType a, ResType b) {
   return true;
 }
 
+void PrintRes(ResType res) {
+  for(auto outer = res.begin(); outer != res.end(); outer++) {
+    for(auto inner = outer->begin(); inner != outer->end(); inner++) {
+      cerr << *inner << " | ";
+    }
+    cerr << endl;
+  }
+}
+
 void CheckSelectResults(EDBClient * cl, vector<string> in, vector<ResType> out) {
   assert_s(in.size() == out.size(), "different numbers of test queries and expected results");
 
@@ -52,7 +61,13 @@ void CheckSelectResults(EDBClient * cl, vector<string> in, vector<ResType> out) 
   while(query_it != in.end()) {
     ResType * test_res = cl->execute(getCStr(*query_it));
     assert_s(test_res, "CheckSelectResults found a query that won't execute");
-    assert_s(equals(*test_res, *res_it), "unexpected result");
+    if(!equals(*test_res, *res_it)) {
+      cerr << "Expected result:" << endl;
+      PrintRes(*res_it);
+      cerr << "Got result:" << endl;
+      PrintRes(*test_res);
+      assert_s(false, "Select test failed");
+    }
     query_it++;
     res_it++;
   }
@@ -70,7 +85,13 @@ void CheckUpdateResults(EDBClient * cl, vector<string> in, vector<ResType> out) 
     query_it++;
     ResType * test_res = cl->execute(getCStr(*query_it));
     assert_s(test_res, "CheckUpdateResults found a query that won't execute");
-    assert_s(equals(*test_res, *res_it), "unexpected result");
+    if(!equals(*test_res, *res_it)) {
+      cerr << "Expected result:" << endl;
+      PrintRes(*res_it);
+      cerr << "Got result:" << endl;
+      PrintRes(*test_res);
+      assert_s(false, "Update or Delete test failed");
+    }
     query_it++;
     res_it++;
   }
@@ -602,12 +623,180 @@ void testUpdate(EDBClient * cl) {
   reply.push_back(res);
   res.clear();
 
+  query.push_back("UPDATE t1 SET salary=55000 WHERE age=30");
+  query.push_back("SELECT * FROM t1");
+  string rows4[7][5] = { {"id", "age", "salary", "address", "name"},
+			 {"1", "10", "0", "first star to the right and straight on till morning","Peter Pan"}, 
+			 {"2", "16", "0", "Green Gables", "Anne Shirley"},
+			 {"3", "8", "0", "London", "Lucy"},
+			 {"4", "10", "0", "London", "Edmund"}, 
+			 {"5", "30", "55000", "221B Baker Street", "Sherlock Holmes"}, 
+			 {"6", "21", "0", "Pemberly", "Elizabeth Darcy"} };
+  for (int i = 0; i < 6; i++) {
+    vector<string> temp;
+    for (int j = 0; j < 5; j++) {
+      temp.push_back(rows4[i][j]);
+    }
+    res.push_back(temp);
+  }
+  reply.push_back(res);
+  res.clear();
+
+  query.push_back("UPDATE t1 SET salary=20000 WHERE address='Pemberly'");
+  query.push_back("SELECT * FROM t1");
+  string rows5[7][5] = { {"id", "age", "salary", "address", "name"},
+			 {"1", "10", "0", "first star to the right and straight on till morning","Peter Pan"}, 
+			 {"2", "16", "0", "Green Gables", "Anne Shirley"},
+			 {"3", "8", "0", "London", "Lucy"},
+			 {"4", "10", "0", "London", "Edmund"}, 
+			 {"5", "30", "55000", "221B Baker Street", "Sherlock Holmes"}, 
+			 {"6", "21", "0", "Pemberly", "Elizabeth Darcy"} };
+  for (int i = 0; i < 6; i++) {
+    vector<string> temp;
+    for (int j = 0; j < 5; j++) {
+      temp.push_back(rows5[i][j]);
+    }
+    res.push_back(temp);
+  }
+  reply.push_back(res);
+  res.clear();
+  
 
   CheckUpdateResults(cl, query, reply);
+
+  cl->execute("DROP TABLE t1;");
 }
 
 void testDelete(EDBClient * cl) {
+  cl->plain_execute("DROP TABLE IF EXISTS table0, table1, table2, table3, table4, table5, table6");
+  assert_s(cl->execute("CREATE TABLE t1 (id integer, age enc integer, salary enc integer, address enc text, name text)"), "testSelect couldn't create table");
+  assert_s(cl->execute("INSERT INTO t1 VALUES (1, 10, 0, 'first star to the right and straight on till morning', 'Peter Pan')"), "testUpdate couldn't insert (1)");
+  assert_s(cl->execute("INSERT INTO t1 VALUES (2, 16, 1000, 'Green Gables', 'Anne Shirley')"), "testUpdate couldn't insert (2)");
+  assert_s(cl->execute("INSERT INTO t1 VALUES (3, 8, 0, 'London', 'Lucy')"), "testUpdate couldn't insert (3)");
+  assert_s(cl->execute("INSERT INTO t1 VALUES (4, 10, 0, 'London', 'Edmund')"), "testUpdate couldn't insert (4)");
+  assert_s(cl->execute("INSERT INTO t1 VALUES (5, 30, 100000, '221B Baker Street', 'Sherlock Holmes')"), "testUpdate couldn't insert (5)");
+  assert_s(cl->execute("INSERT INTO t1 VALUES (6, 21, 20000, 'Pemberly', 'Elizabeth Darcy')"), "testUpdate couldn't insert (6)");
+  assert_s(cl->execute("INSERT INTO t1 VALUES (7, 10000, 1, 'Mordor', 'Sauron')"), "testUpdate couldn't insert (7)");
+  assert_s(cl->execute("INSERT INTO t1 VALUES (8, 25, 100, 'The Heath', 'Eustacia Vye')"), "testUpdate couldn't insert (8)");
 
+  vector<string> query;
+  vector<ResType> reply;
+
+  ResType res;
+
+  query.push_back("DELETE FROM t1 WHERE id=1");
+  query.push_back("SELECT * FROM t1");
+  string rows1[8][5] = { {"id", "age", "salary", "address", "name"},
+			 {"2", "16", "1000", "Green Gables", "Anne Shirley"},
+			 {"3", "8", "0", "London", "Lucy"},
+			 {"4", "10", "0", "London", "Edmund"}, 
+			 {"5", "30", "100000", "221B Baker Street", "Sherlock Holmes"}, 
+			 {"6", "21", "20000", "Pemberly", "Elizabeth Darcy"},
+			 {"7", "10000", "1", "Mordor", "Sauron"},
+			 {"8", "25", "100", "The Heath", "Eustacia Vye"} };
+  for (int i = 0; i < 8; i++) {
+    vector<string> temp;
+    for (int j = 0; j < 5; j++) {
+      temp.push_back(rows1[i][j]);
+    }
+    res.push_back(temp);
+  }
+  reply.push_back(res);
+  res.clear();
+
+  query.push_back("DELETE FROM t1 WHERE age=30");
+  query.push_back("SELECT * FROM t1");
+  string rows2[7][5] = { {"id", "age", "salary", "address", "name"},
+			 {"2", "16", "1000", "Green Gables", "Anne Shirley"},
+			 {"3", "8", "0", "London", "Lucy"},
+			 {"4", "10", "0", "London", "Edmund"}, 
+			 {"6", "21", "20000", "Pemberly", "Elizabeth Darcy"},
+			 {"7", "10000", "1", "Mordor", "Sauron"},
+			 {"8", "25", "100", "The Heath", "Eustacia Vye"} };
+  for (int i = 0; i < 7; i++) {
+    vector<string> temp;
+    for (int j = 0; j < 5; j++) {
+      temp.push_back(rows2[i][j]);
+    }
+    res.push_back(temp);
+  }
+  reply.push_back(res);
+  res.clear();
+
+  query.push_back("DELETE FROM t1 WHERE name='Eustacia Vye'");
+  query.push_back("SELECT * FROM t1");
+  string rows3[6][5] = { {"id", "age", "salary", "address", "name"},
+			 {"2", "16", "1000", "Green Gables", "Anne Shirley"},
+			 {"3", "8", "0", "London", "Lucy"},
+			 {"4", "10", "0", "London", "Edmund"}, 
+			 {"6", "21", "20000", "Pemberly", "Elizabeth Darcy"},
+			 {"7", "10000", "1", "Mordor", "Sauron"} };
+  for (int i = 0; i < 6; i++) {
+    vector<string> temp;
+    for (int j = 0; j < 5; j++) {
+      temp.push_back(rows3[i][j]);
+    }
+    res.push_back(temp);
+  }
+  reply.push_back(res);
+  res.clear();
+
+  query.push_back("DELETE FROM t1 WHERE address='London'");
+  query.push_back("SELECT * FROM t1");
+  string rows4[4][5] = { {"id", "age", "salary", "address", "name"},
+			 {"2", "16", "1000", "Green Gables", "Anne Shirley"},
+			 {"6", "21", "20000", "Pemberly", "Elizabeth Darcy"},
+			 {"7", "10000", "1", "Mordor", "Sauron"} };
+  for (int i = 0; i < 4; i++) {
+    vector<string> temp;
+    for (int j = 0; j < 5; j++) {
+      temp.push_back(rows4[i][j]);
+    }
+    res.push_back(temp);
+  }
+  reply.push_back(res);
+  res.clear();
+
+  query.push_back("DELETE FROM t1 WHERE salary=1");
+  query.push_back("SELECT * FROM t1");
+  string rows5[3][5] = { {"id", "age", "salary", "address", "name"},
+			 {"2", "16", "1000", "Green Gables", "Anne Shirley"},
+			 {"6", "21", "20000", "Pemberly", "Elizabeth Darcy"} };
+  for (int i = 0; i < 3; i++) {
+    vector<string> temp;
+    for (int j = 0; j < 5; j++) {
+      temp.push_back(rows5[i][j]);
+    }
+    res.push_back(temp);
+  }
+  reply.push_back(res);
+  res.clear();
+
+  query.push_back("DELETE FROM t1");
+  query.push_back("SELECT * FROM t1");
+  reply.push_back(res);
+
+  query.push_back("INSERT INTO t1 VALUES (1, 10, 0, 'first star to the right and straight on till morning', 'Peter Pan')");
+  query.push_back("SELECT * FROM t1");
+  string rows6[2][5] = { {"id", "age", "salary", "address", "name"},
+			 {"1", "10", "0", "first star to the right and straight on till morning","Peter Pan"} }; 
+  for (int i = 0; i < 2; i++) {
+    vector<string> temp;
+    for (int j = 0; j < 5; j++) {
+      temp.push_back(rows6[i][j]);
+    }
+    res.push_back(temp);
+  }
+  reply.push_back(res);
+  res.clear();
+
+  query.push_back("DELETE * FROM t1");
+  query.push_back("SELECT * FROM t1");
+  reply.push_back(res);
+
+  CheckUpdateResults(cl, query, reply);
+
+  cl->execute("DROP TABLE t1");
 }
 
 
@@ -619,11 +808,11 @@ void TestSinglePrinc::run(int argc, char ** argv) {
 	assert_s(MULTIPRINC == 0, "MULTIPRINC is on.  Please set it to 0 (in params.h)");
 
 	cerr << "Testing create and drop..." << endl;
-	//testCreateDrop(cl);
+	testCreateDrop(cl);
 	cerr << "Testing insert..." << endl;
-	//testInsert(cl);
+	testInsert(cl);
 	cerr << "Testing select..." << endl;
-	//testSelect(cl);
+	testSelect(cl);
 	cerr << "Testing update..." << endl;
 	testUpdate(cl);
 	cerr << "Testing delete..." << endl;
