@@ -100,25 +100,25 @@ void evaluate_AES(int argc, char ** argv) {
 	if (argc!=2) {
 		cout << "usage ./test noTests \n";
 		exit(1);
-
 	}
+
 	unsigned int notests = 10;
 
-	string key =  randomBytes(AES_KEY_SIZE/bitsPerByte);
-
+	string key = randomBytes(AES_KEY_SIZE/bitsPerByte);
 	string ptext = randomBytes(AES_BLOCK_SIZE/bitsPerByte);
-	unsigned char ctext[AES_BLOCK_SIZE/bitsPerByte];
+
 	AES_KEY aesKey;
-	AES_set_encrypt_key((const uint8_t *) key.c_str(), AES_KEY_SIZE/bitsPerByte, &aesKey);
+	AES_set_encrypt_key((const uint8_t *) key.c_str(), AES_KEY_SIZE, &aesKey);
 
 	timeval startTime, endTime;
 
-	unsigned int tests = 1024*1024*64;
+	unsigned int tests = 1024*1024;
 
 	for (unsigned int j = 0; j < notests; j++) {
 		gettimeofday(&startTime, NULL);
 
 		for (unsigned int i = 0; i < tests; i++) {
+			unsigned char ctext[AES_BLOCK_SIZE/bitsPerByte];
 			AES_encrypt((const uint8_t *) ptext.c_str(), ctext, &aesKey);
 			ptext = string((char *) ctext, AES_BLOCK_BYTES);
 		}
@@ -3322,7 +3322,7 @@ int main(int argc, char ** argv) {
 		testPKCS();
 		return 0;
 	}
-}
+
 /*	if (strcmp(argv[1], "train") == 0) {
 		test_train();
 		return 0;
@@ -3399,11 +3399,7 @@ int main(int argc, char ** argv) {
 	//test_EDBClient_noSecurity();
 	//evaluateMetrics(argc, argv);
   */
-/*
 	if (strcmp(argv[1], "aes") == 0) {
-	  evaluate_AES(argc, argv);
+		evaluate_AES(argc, argv);
 	}
-
-
 }
- */
