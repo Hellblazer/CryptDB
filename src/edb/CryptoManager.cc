@@ -645,18 +645,6 @@ CryptoManager::getKey(AES_KEY * masterKey, const string &uniqueFieldName, SECLEV
 {
 	string id = uniqueFieldName + marshallVal((unsigned int) sec);
 
-	unsigned int resLen = AES_KEY_SIZE/bitsPerByte;
-
-	if (id.length() <= resLen) {
-		/*
-		 * XXX
-		 * So, for really short column names, we don't bother encrypting
-		 * with a random key?!?!!
-		 */
-		return id;
-	}
-
-	//need to take a hash  because it is too big
 	unsigned char shaDigest[SHA_DIGEST_LENGTH];
 	SHA1((const uint8_t *) &id[0], id.length(), shaDigest);
 
