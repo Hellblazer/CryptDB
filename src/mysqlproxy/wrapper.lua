@@ -1,5 +1,4 @@
---assert(package.loadlib("/u/raluca/EncryptDB/src/EDB/libexecute.so","luaopen_resultset"))()
-assert(package.loadlib("/home/kis/EncryptDB/src/EDB/libexecute.so","luaopen_resultset"))()
+assert(package.loadlib(os.getenv("EDBDIR").."/libexecute.so", "luaopen_resultset"))()
 
 current_query = {}
 

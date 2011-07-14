@@ -2,12 +2,15 @@ How to Run Mysql Proxy
 ----------------------
 
 to start proxy:
-  % mysql-proxy --defaults-file=./mysql-proxy.cnf
+  % export EDBDIR=<...>/cryptdb/src/edb
+  % mysql-proxy --plugins=proxy \
+		--max-open-files=1024 \
+		--proxy-lua-script=$EDBDIR/../mysqlproxy/wrapper.lua \
+		--proxy-address=localhost:3307 \
+		--proxy-backend-addresses=localhost:3306
 
 to send a single command to mysql:
   % mysql -u root -pletmein -h 127.0.0.1 -P 3307 -e 'command'
-
-to configure mysql proxy, edit mysql-proxy.cnf
 
 
 Notes
