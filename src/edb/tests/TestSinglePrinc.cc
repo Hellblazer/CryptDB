@@ -517,7 +517,7 @@ void testDelete(EDBClient * cl) {
 void TestSinglePrinc::run(int argc, char ** argv) {
         EDBClient * cl;
 	uint64_t mkey = 113341234;
-	unsigned char * masterKey = BytesFromInt(mkey, AES_KEY_BYTES);
+	string masterKey = BytesFromInt(mkey, AES_KEY_BYTES);
 	cl = new EDBClient("localhost", "root", "letmein", "mysql", masterKey);
 
 	assert_s(MULTIPRINC == 0, "MULTIPRINC is on.  Please set it to 0 (in params.h)");

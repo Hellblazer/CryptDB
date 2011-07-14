@@ -24,9 +24,9 @@ public:
 	 * If no "masterKey" is provided, the current client will not run in the secure mode (queries are plain).
 	 */
 
-	EDBClient(unsigned char * masterKey);
+	EDBClient(const string &masterKey);
 	EDBClient();
-	EDBClient(string server, string user, string psswd, string dbname, unsigned char * masterKey, uint port = 0);//constructor for security
+	EDBClient(string server, string user, string psswd, string dbname, const string &masterKey, uint port = 0);//constructor for security
 	EDBClient(string server, string user, string psswd, string dbname); //constructor for no security
 
 
@@ -97,7 +97,6 @@ private:
 	// Schema state
 	map<string, string> tableNameMap; //map of anonymized table name to table name
 	map<string, TableMetadata *> tableMetaMap; //map of table name to table metadata
-	unsigned char * masterKey;
 	unsigned int totalTables;
 	unsigned int totalIndexes;
 
