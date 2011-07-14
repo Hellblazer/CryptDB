@@ -57,7 +57,10 @@ void CheckResults(EDBClient * cl, vector<string> in, vector<ResType> out) {
 }
 
 void testCreateDrop(EDBClient * cl) {
+  cerr << "createdrop begin" << endl;
+
   cl->plain_execute("DROP TABLE IF EXISTS table0, table1, table2, table3");
+  cerr << "plain okay" << endl;
   string sql = "CREATE TABLE t1 (id integer, words text)";
   assert_s(cl->execute(getCStr(sql)), "Problem creating table t1 (first time)");
   assert_s(cl->plain_execute("SELECT * FROM table0"), "t1 (first time) was not created properly");
@@ -345,7 +348,7 @@ void testSelect(EDBClient * cl) {
   res.clear();  
   //---------------------------------------------------------------------------------
 
-  query.push_back("SELECT * FROM t1 WHERE address= 'Green Gables'")
+  query.push_back("SELECT * FROM t1 WHERE address= 'Green Gables'");
   string rows16[2][5] = { {"id", "age", "salary", "address", "name"},  
 			  {"2", "16", "1000", "Green Gables", "Anne Shirley"} };
   for (int i = 0; i < 2; i++) {
@@ -519,12 +522,17 @@ void TestSinglePrinc::run(int argc, char ** argv) {
 	uint64_t mkey = 113341234;
 	string masterKey = BytesFromInt(mkey, AES_KEY_BYTES);
 	cl = new EDBClient("localhost", "root", "letmein", "mysql", masterKey);
-
 	assert_s(MULTIPRINC == 0, "MULTIPRINC is on.  Please set it to 0 (in params.h)");
 
+	cerr << "Testing create and drop..." << endl;
 	testCreateDrop(cl);
+	cerr << "Testing insert..." << endl;
 	testInsert(cl);
+	cerr << "Testing select..." << endl;
 	testSelect(cl);
+	cerr << "Testing update..." << endl;
 	testUpdate(cl);
+	cerr << "Testing delete..." << endl;
 	testDelete(cl);
+	cerr << "Done!  All tests passed." << endl;
 }
