@@ -37,7 +37,7 @@ class Connect {
 		string dbname, uint port = 0);
 
 	// returns true if execution was ok; caller must delete DBResult
-	bool execute(const char * query, DBResult **);
+	bool execute(const char * query, DBResult *&);
 	bool execute(const char * query);
 
 	// returns error message if a query caused error
