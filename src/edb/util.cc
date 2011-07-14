@@ -262,14 +262,10 @@ char * getCStr(string value) {
 	return result;
 }
 
-bool isEqual(unsigned char * first, unsigned char * second, unsigned int len) {
-	for (unsigned int i = 0; i < len; i++) {
-		if (second[i] != first[i]) {
-			return false;
-		}
-	}
-
-	return true;
+bool
+isEqual(unsigned char * first, unsigned char * second, unsigned int len)
+{
+	return memcmp(first, second, len) == 0;
 }
 
 unsigned char * adjustLen(unsigned char * a, unsigned int len, unsigned int desiredLen) {
