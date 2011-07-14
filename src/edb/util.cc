@@ -547,13 +547,13 @@ string toThreeDigits(unsigned int c) {
 	return string(s);
 }
 
-char * toHex(unsigned int abyte) {
-	char * res =  new char[3];
+char *
+toHex(unsigned char abyte)
+{
+	char * res = new char[3];
 	sprintf(res, "%02x", abyte);
 	return res;
-
 }
-
 
 
 
@@ -601,11 +601,13 @@ string secondMarshallBinary(unsigned char * v, unsigned int len) {
 
 
 
-string marshallBinary(const string &s) {
+string
+marshallBinary(const string &s)
+{
 	string result = "X\'";
 
 	for (unsigned int i = 0; i < s.length(); i++)
-		result = result + toHex((unsigned int)s[i]);
+		result = result + toHex((unsigned char)s[i]);
 
 	result = result + "\'";
 
@@ -614,7 +616,9 @@ string marshallBinary(const string &s) {
 }
 
 #else
-string marshallBinary(unsigned char * binValue, unsigned int len) {
+string
+marshallBinary(unsigned char * binValue, unsigned int len)
+{
 	return secondMarshallBinary(binValue, len);
 
 }
