@@ -21,7 +21,7 @@ class Connect {
 public:
 
 	//dbname is the name of the local db
-	Connect(string server, string user, string psswd, string dbname, string port = "");
+	Connect(string server, string user, string psswd, string dbname, uint port = 0);
 
    //returns true if execution was ok
 	bool execute(const char * query, DBResult * &);

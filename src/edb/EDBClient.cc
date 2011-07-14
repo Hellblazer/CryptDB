@@ -104,7 +104,7 @@ string initcond(CryptoManager * cm) {
 
 //============== CONSTRUCTORS ==================================//
 
-EDBClient::EDBClient(string server, string user, string psswd, string dbname, unsigned char * masterKey, string port) {
+EDBClient::EDBClient(string server, string user, string psswd, string dbname, unsigned char * masterKey, uint port) {
 	//conninfo = "host=farm10 dbname = " + conninfo;
 	this->isSecure = true;
 	this->masterKey = masterKey;
@@ -2844,11 +2844,6 @@ void EDBClient::dropTables() {
 	}
 }
 
-ResType * EDBClient::execute(const char * query) {
-	DBResult * res = new DBResult();
-	return execute(query, res);
-}
-
 ResType * EDBClient::decryptResultsWrapper(const char * query, DBResult * dbres) {
 	command comm = getCommand(query);
 
@@ -2876,11 +2871,10 @@ ResType * EDBClient::decryptResultsWrapper(const char * query, DBResult * dbres)
 
 }
 
-
-ResType * EDBClient::execute(const char * query, DBResult *  rets) {
-
+ResType *
+EDBClient::execute(const char * query)
+{
 	DBResult * res = new DBResult();
-
 
 	if (VERBOSE) {
 		cout << "Query:\n" << query << "\n";

@@ -9,22 +9,15 @@
 
 
 
-Connect::Connect(string server, string user, string psswd, string dbname, string s_port) {
-
-	unsigned int port;
-	if (s_port.length() == 0) {
-		port = 0;
-	} else {
-		port = unmarshallVal(s_port);
-	}
-
+Connect::Connect(string server, string user, string passwd,
+		 string dbname, uint port)
+{
 #if MYSQL_S
-
 	conn = mysql_init(NULL);
 
-
 	/* Connect to database */
-	if (!mysql_real_connect(conn, getCStr(server), getCStr(user), getCStr(psswd), getCStr(dbname), port, NULL, 0)) {
+	if (!mysql_real_connect(conn, server.c_str(), user.c_str(),
+				passwd.c_str(), dbname.c_str(), port, 0, 0)) {
 		fprintf(stderr, "%s\n", mysql_error(conn));
 		exit(1);
 	}

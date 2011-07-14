@@ -26,7 +26,7 @@ public:
 
 	EDBClient(unsigned char * masterKey);
 	EDBClient();
-	EDBClient(string server, string user, string psswd, string dbname, unsigned char * masterKey, string port = "");//constructor for security
+	EDBClient(string server, string user, string psswd, string dbname, unsigned char * masterKey, uint port = 0);//constructor for security
 	EDBClient(string server, string user, string psswd, string dbname); //constructor for no security
 
 
@@ -40,7 +40,6 @@ public:
 
 	//Mode 1: Translation of query, execution of query, and translation of results
 	ResType * execute(const char * query);
-	ResType * execute(const char * query, DBResult * dbres);
 	//no security:
 	ResType * plain_execute(const char * query);
 
