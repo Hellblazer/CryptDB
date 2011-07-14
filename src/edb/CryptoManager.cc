@@ -471,13 +471,16 @@ string CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft, string fu
 		case oDET: {
 			if (fromlevel == PLAIN_DET) {
 
+				/* XXX
+				 * This looks wrong: when do we put the apostrophe back?
+				 */
 				data = removeApostrophe(data);
 
 				fromlevel  = increaseLevel(fromlevel, ft, oDET);
 
 				AES_KEY * key = get_key_DET(getKey(mkey, fullfieldname, fromlevel));
 				string uval = encrypt_DET_wrapper(data, key);
-				//cerr << "crypting " << data << " at DET is " << marshallBinary(uval, newlen) << "  ";
+				//cerr << "crypting " << data << " at DET is " << marshallBinary(uval) << "  ";
 				if (fromlevel == tolevel) {
 					//cerr << "result is " << marshallBinary(uval, newlen);
 					return marshallBinary(uval);
@@ -485,7 +488,7 @@ string CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft, string fu
 				fromlevel = increaseLevel(fromlevel, ft, oDET);
 				key = get_key_SEM(getKey(mkey, fullfieldname, fromlevel));
 				uval = encrypt_SEM(uval, key, salt);
-				//cerr << "at sem is " << marshallBinary(uval, newlen) << "\n";
+				//cerr << "at sem is " << marshallBinary(uval) << "\n";
 				if (fromlevel == tolevel) {
 					return marshallBinary(uval);
 				} else {
@@ -716,30 +719,33 @@ uint64_t getXORValue(uint64_t salt, AES_KEY * aes_key) {
 	return IntFromBytes(ciphertext, AES_BLOCK_BYTES);
 }
 
-uint64_t CryptoManager::encrypt_SEM(uint64_t ptext, AES_KEY * key, uint64_t salt) {
-
+uint64_t CryptoManager::encrypt_SEM(uint64_t ptext, AES_KEY * key, uint64_t salt)
+{
 	return ptext ^ getXORValue(salt, key);
 
 }
 
-uint64_t CryptoManager::decrypt_SEM(uint64_t ctext, AES_KEY * key, uint64_t salt) {
+uint64_t CryptoManager::decrypt_SEM(uint64_t ctext, AES_KEY * key, uint64_t salt)
+{
 	return ctext ^ getXORValue(salt, key);
 }
 
 
-uint32_t CryptoManager::encrypt_SEM(uint32_t ptext, AES_KEY * key, uint64_t salt) {
+uint32_t CryptoManager::encrypt_SEM(uint32_t ptext, AES_KEY * key, uint64_t salt)
+{
 	return ptext ^ (getXORValue(salt, key) % MAX_UINT32_T);
 }
 
 
 
-uint32_t CryptoManager::decrypt_SEM(uint32_t ctext, AES_KEY * key, uint64_t salt) {
+uint32_t CryptoManager::decrypt_SEM(uint32_t ctext, AES_KEY * key, uint64_t salt)
+{
 	return ctext ^ (getXORValue(salt, key) % MAX_UINT32_T);
 }
 
 
-unsigned char * getXorVector(unsigned int len, AES_KEY * key, uint64_t salt) {
-
+unsigned char * getXorVector(unsigned int len, AES_KEY * key, uint64_t salt)
+{
 	unsigned int AESBlocks = len / AES_BLOCK_BYTES;
 	if (AESBlocks * AES_BLOCK_BYTES < len) {
 		AESBlocks++;
@@ -765,7 +771,7 @@ CryptoManager::encrypt_SEM(const string &ptext, AES_KEY * key, uint64_t salt)
 	stringstream ss;
 
 	for (unsigned int i = 0; i < ptext.length(); i++)
-		ss << (((uint8_t)ptext[i]) ^ xorVector[i]);
+		ss << (uint8_t) (((uint8_t)ptext[i]) ^ xorVector[i]);
 
 	//cerr << "result of encrypt sem is len " << len << " data is "; myPrint(result, len);
 	free(xorVector);
@@ -782,7 +788,7 @@ CryptoManager::decrypt_SEM(const string &ctext, AES_KEY * key, uint64_t salt)
 	stringstream ss;
 
 	for (unsigned int i = 0; i < ctext.length(); i++)
-		ss << (((uint8_t)ctext[i]) ^ xorVector[i]);
+		ss << (uint8_t) (((uint8_t)ctext[i]) ^ xorVector[i]);
 
 	//cerr << "Result of decrypt sem has len " << len << " and data is "; myPrint(res, len); cerr << "\n";
 	free(xorVector);
@@ -969,8 +975,7 @@ xorWord(string word, AES_KEY * key, int salt, stringstream *ss)
 	unsigned char * pvec = (unsigned char*) word.c_str();
 
 	for (unsigned int i = 0; i < plen; i++)
-		(*ss) << (pvec[i] ^ xorVector[i]);
-
+		(*ss) << (unsigned char) (pvec[i] ^ xorVector[i]);
 }
 
 static string
@@ -991,10 +996,10 @@ CryptoManager::encrypt_DET_search(list<string> * words, AES_KEY * key)
 	stringstream ss;
 
 	int index = 0;
-	for (list<string>::iterator it = words->begin(); it != words->end(); it++) {
+	for (auto it = words->begin(); it != words->end(); it++) {
 		//cerr << "word len is " << it->length() << "\n";
 		if (it->length() > 255) {*it = it->substr(0, 254);}
-		ss << ((uint8_t)it->length());
+		ss << (uint8_t) it->length();
 
 		xorWord(*it, key, index, &ss);
 		index++;
