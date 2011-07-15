@@ -133,7 +133,7 @@ string
 processCreate(fieldType type, string fieldName, unsigned int index,
               bool encryptField, TableMetadata * tm,
               FieldMetadata * fm)
-throw (SyntaxError)
+throw (CryptDBError)
 {
 
     fm->isEncrypted = encryptField;
@@ -241,7 +241,7 @@ processDecryptionsForOp(string operation, string firstToken,
                         FieldsToDecrypt & fieldsDec, QueryMeta & qm,
                         map<string,
                             TableMetadata *> & tableMetaMap)
-throw (SyntaxError)
+throw (CryptDBError)
 {
 
     string firstTable, firstField, secondTable, secondField;
@@ -590,7 +590,7 @@ getFieldsItSelect(list<string> & words, list<string>::iterator & it)
 
 QueryMeta
 getQueryMeta(command c, list<string> query, map<string, TableMetadata *> & tm)
-throw (SyntaxError)
+throw (CryptDBError)
 {
 
     if (VERBOSE_G) {cerr << "in getquery meta\n"; }
@@ -839,7 +839,7 @@ void
 getTableField(string token, string & table, string & field, QueryMeta & qm,
               map<string,
                   TableMetadata * > & tableMetaMap)
-throw (SyntaxError)
+throw (CryptDBError)
 {
 
     assert_s(isField(

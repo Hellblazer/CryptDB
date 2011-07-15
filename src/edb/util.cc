@@ -38,11 +38,11 @@ myassert(bool value)
 
 void
 assert_s (bool value, string msg)
-throw (SyntaxError)
+throw (CryptDBError)
 {
     if (ASSERTS_ON) {
         if (!value) {
-            SyntaxError se;
+            CryptDBError se;
             se.msg = "ERROR: " + msg + "\n";
             cerr << se.msg << "\n";
             throw se;
@@ -1094,7 +1094,7 @@ getSQLWords(const char * query)
 
 command
 getCommand(const char * queryI)
-throw (SyntaxError)
+throw (CryptDBError)
 {
     char * query = copy(queryI);
 

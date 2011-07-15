@@ -52,7 +52,7 @@ class EDBClient {
     //query must be \0 terminated
     list<const char*> rewriteEncryptQuery(const char * query,
                                           AutoInc * ai = NULL)
-    throw (SyntaxError);
+    throw (CryptDBError);
     //query should be the original, untranslated query
     ResType  * decryptResults(const char * query, ResType * dbAnswer);
 
@@ -76,12 +76,12 @@ class EDBClient {
     // trains client on queries from given file and adjusts schema and
     // security level
     int train(string queryFile)
-    throw (SyntaxError);
+    throw (CryptDBError);
     // creates tables and indexes at the server based on queries seen
     int train_finish()
-    throw (SyntaxError);
+    throw (CryptDBError);
     int create_trained_instance(bool submit = true)
-    throw (SyntaxError);
+    throw (CryptDBError);
 
     //=========== DEBUGGING AND INFO ==============================//
 
@@ -117,12 +117,12 @@ class EDBClient {
     // translating it; they also generate decryption queries
     //the Decrypt functions decrypt the result from the server
     list<const char*> rewriteEncryptCreate(const char * query)
-    throw (SyntaxError);
+    throw (CryptDBError);
     ResType * rewriteDecryptCreate(const char * query, ResType * dbAnswer);
 
     //INSERT
     list<const char*> rewriteEncryptInsert(const char * query, AutoInc * ai)
-    throw (SyntaxError);
+    throw (CryptDBError);
     ResType * rewriteDecryptInsert(const char * query, ResType * dbAnswer);
     //returns the value to be included in an insert a given value of a
     // field/table
@@ -140,60 +140,60 @@ class EDBClient {
                    QueryMeta & qm, string resultQuery,
                    FieldsToDecrypt fieldsDec, TMKM & tmkm,
                    list<const char *> subqueries = list<const char*>())
-    throw (SyntaxError);
+    throw (CryptDBError);
     string processOperation(string operation, string op1, string op2,
                             QueryMeta & qm, string encryptedsubquery,
                             TMKM & tmkm)
-    throw (SyntaxError);
+    throw (CryptDBError);
 
     //UPDATE
     list<const char*> rewriteEncryptUpdate(const char * query)
-    throw (SyntaxError);
+    throw (CryptDBError);
     ResType * rewriteDecryptUpdate(const char * query, ResType * dbAnswer);
 
     //SELECT
     list<const char*> rewriteEncryptSelect(const char * query)
-    throw (SyntaxError);
+    throw (CryptDBError);
     ResType * rewriteDecryptSelect(const char * query, ResType * dbAnswer);
     ResType * decryptResultsWrapper(const char * query, DBResult * dbres);
     //prepared decryptions
     list<const char*>  processDecryptions(FieldsToDecrypt fieldsDec,
                                           TMKM & tmkm)
-    throw (SyntaxError);
+    throw (CryptDBError);
     //isSubquery indicates that the current query is a subquery of a large
     // nested query
     list<const char*> rewriteSelectHelper(
         list<string> words, bool isSubquery = false,
         list<const char*> subqueries = list<const char*>())
-    throw (SyntaxError);
+    throw (CryptDBError);
 
     //DROP
     list<const char*> rewriteEncryptDrop(const char * query)
-    throw (SyntaxError);
+    throw (CryptDBError);
     ResType * rewriteDecryptDrop(const char * query, ResType * dbAnswer);
 
     //DELETE
     list<const char*> rewriteEncryptDelete(const char * query)
-    throw (SyntaxError);
+    throw (CryptDBError);
     ResType * rewriteDecryptDelete(const char * query, ResType * dbAnswer);
 
     //BEGIN
     list<const char*> rewriteEncryptBegin(const char * query)
-    throw (SyntaxError);
+    throw (CryptDBError);
     ResType * rewriteDecryptBegin(const char * query, ResType * dbAnswer);
 
     //COMMIT
     list<const char*> rewriteEncryptCommit(const char * query)
-    throw (SyntaxError);
+    throw (CryptDBError);
     ResType * rewriteDecryptCommit(const char * query, ResType * dbAnswer);
 
     //ALTER
     list<const char*> rewriteEncryptAlter(const char * query)
-    throw (SyntaxError);
+    throw (CryptDBError);
     ResType * rewriteDecryptAlter(const char * query, ResType * dbAnswer);
     list<const char *> processIndex(list<string> & words,
                                     list<string>::iterator & wordsIt)
-    throw (SyntaxError);
+    throw (CryptDBError);
 
     //wrapper for the crypto class - changes master key encryption for
     // multi-keying

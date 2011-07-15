@@ -1539,8 +1539,8 @@ suffix(int no)
                         try {
                                 ress =
                                    tcl->rewriteEncryptQuery(getCStr(query));
-                        } catch (SyntaxError se) {
-                                cerr << "syntax error " << se.msg << "\n";
+                        } catch (CryptDBError se) {
+                                cerr << "CryptDB error " << se.msg << "\n";
                                 exit(1);
                         }
                         outFile << ress.front() << "\n";
@@ -2321,7 +2321,7 @@ suffix(int no)
 
                         //cerr << query << "\n";
                         //cerr << resQuery.front() << "\n";
-                }  catch (SyntaxError se) {
+                }  catch (CryptDBError se) {
                         cerr << se.msg << "\n aborting \n";
                         return;
                 }

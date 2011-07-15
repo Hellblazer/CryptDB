@@ -324,7 +324,7 @@ getType(list<string>::iterator & it, list<string> & words)
 list<const char *>
 EDBClient::processIndex(list<string> & words,
                         list<string>::iterator & wordsIt)
-throw (SyntaxError)
+throw (CryptDBError)
 {
 
     //create index ndx_customer_name
@@ -511,7 +511,7 @@ processAnnotation(MultiPrinc * mp, list<string>::iterator & wordsIt,
 
 list<const char*>
 EDBClient::rewriteEncryptCreate(const char* query)
-throw (SyntaxError)
+throw (CryptDBError)
 {
 
     cerr << "in create \n";
@@ -674,7 +674,7 @@ EDBClient::rewriteDecryptDelete(const char * query,  ResType * dbAnswer)
 //TODO: MULTIPRINC does not have update fully implemented
 list<const char*>
 EDBClient::rewriteEncryptUpdate(const char * query)
-throw (SyntaxError)
+throw (CryptDBError)
 {
 
     //	UPDATE folders SET mitgeec = 'DOC', mitgeecs_app_term = '9/2007' WHERE
@@ -967,7 +967,7 @@ EDBClient::processFilters(list<string>::iterator &  wordsIt,
                           string resultQuery,
                           FieldsToDecrypt fieldsDec, TMKM & tmkm,
                           list<const char *> subqueries)
-throw (SyntaxError)
+throw (CryptDBError)
 {
 
     list<const char* > result;
@@ -1173,7 +1173,7 @@ decryptions:
 
 list<const char*>
 EDBClient::processDecryptions(FieldsToDecrypt fieldsDec, TMKM & tmkm)
-throw (SyntaxError)
+throw (CryptDBError)
 {
 
     list<const char *> result = list<const char *>();
@@ -1449,7 +1449,7 @@ getAnonNames(FieldMetadata * fm)
 }
 list<const char*>
 EDBClient::rewriteEncryptSelect(const char * query)
-throw (SyntaxError)
+throw (CryptDBError)
 {
 
     FieldsToDecrypt fieldsDec;
@@ -1642,7 +1642,7 @@ expandWildCard(list<string> & words, QueryMeta & qm, map<string,
 list<const char*>
 EDBClient::rewriteSelectHelper(list<string> words, bool isSubquery,
                                list<const char *> subqueries)
-throw (SyntaxError)
+throw (CryptDBError)
 {
 
     /***********************
@@ -2288,7 +2288,7 @@ string
 EDBClient::processOperation(string operation, string op1, string op2,
                             QueryMeta & qm, string encryptedsubquery,
                             TMKM & tmkm)
-throw (SyntaxError)
+throw (CryptDBError)
 {
 
     string table1, field1, table2, field2;
@@ -2442,7 +2442,7 @@ throw (SyntaxError)
 
 list<const char*>
 EDBClient::rewriteEncryptDrop(const char * queryI)
-throw (SyntaxError)
+throw (CryptDBError)
 {
     //handles queries of the form DROP TABLE tablename;
 
@@ -2485,7 +2485,7 @@ EDBClient::rewriteDecryptDrop(const char * query, ResType * dbAnswer)
 
 list<const char*>
 EDBClient::rewriteEncryptDelete(const char * query)
-throw (SyntaxError)
+throw (CryptDBError)
 {
 
     /***********************
@@ -2673,7 +2673,7 @@ EDBClient::getInitValue(string field, string table, AutoInc * ai)
 
 list<const char*>
 EDBClient::rewriteEncryptInsert(const char * query, AutoInc * ai)
-throw (SyntaxError)
+throw (CryptDBError)
 {
 
     list<string> words = getSQLWords(query);
@@ -2954,7 +2954,7 @@ EDBClient::rewriteDecryptInsert(const char * query, ResType * dbAnswer)
 
 list<const char*>
 EDBClient::rewriteEncryptCommit(const char * query)
-throw (SyntaxError)
+throw (CryptDBError)
 {
 
     list<string> words = getSQLWords(query);
@@ -2988,7 +2988,7 @@ EDBClient::rewriteDecryptCommit(const char * query, ResType * dbAnswer)
 
 list<const char*>
 EDBClient::rewriteEncryptBegin(const char * query)
-throw (SyntaxError)
+throw (CryptDBError)
 {
 
     list<const char *> res = list<const char*>();
@@ -3005,7 +3005,7 @@ EDBClient::rewriteDecryptBegin(const char * query, ResType * dbAnswer)
 
 list<const char*>
 EDBClient::rewriteEncryptAlter(const char * query)
-throw (SyntaxError)
+throw (CryptDBError)
 {
 
     assert_s(false, "alter needs revision -- look at lower casing as well");
@@ -3174,7 +3174,7 @@ considerQuery(command com, const char * query)
 
 list<const char *>
 EDBClient::rewriteEncryptQuery(const char * query, AutoInc * ai)
-throw (SyntaxError)
+throw (CryptDBError)
 {
 
     if (!isSecure) {
@@ -3356,7 +3356,7 @@ EDBClient::execute(const char * query)
 
     try {
         queries =  rewriteEncryptQuery(query, ai);
-    } catch (SyntaxError se) {
+    } catch (CryptDBError se) {
         cerr << "problem with query " << query << " " << se.msg;
 
         return NULL;
@@ -3415,7 +3415,7 @@ EDBClient::execute(const char * query)
                 //rets->at(0)=vector<string>(1);
                 //rets->at(0).at(0) = "1";
                 rets = decryptResultsWrapper(query, reply);
-            } catch (SyntaxError e) {
+            } catch (CryptDBError e) {
                 cerr << e.msg;
                 queries.clear();
                 delete reply;
@@ -3483,7 +3483,7 @@ getQuery(ifstream & createsFile)
 
 int
 EDBClient::train(string queryFile)
-throw (SyntaxError)
+throw (CryptDBError)
 {
     ifstream infile(queryFile.c_str());
 
@@ -3519,7 +3519,7 @@ throw (SyntaxError)
 
 int
 EDBClient::train_finish()
-throw (SyntaxError)
+throw (CryptDBError)
 {
 
     map<string, TableMetadata *>::iterator it = tableMetaMap.begin();
@@ -3565,7 +3565,7 @@ throw (SyntaxError)
 
 int
 EDBClient::create_trained_instance(bool submit)
-throw (SyntaxError)
+throw (CryptDBError)
 {
 
     string query;
