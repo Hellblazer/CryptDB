@@ -21,6 +21,7 @@
 #include "Equation.h"
 
 #include "TestSinglePrinc.h"
+#include "TestCrypto.h"
 
 using namespace std;
 
@@ -3859,7 +3860,7 @@ testTrace(int argc, char ** argv)
 }
 
 void
-testPKCS()
+test_PKCS()
 {
 
     PKCS * pk,* sk;
@@ -3901,6 +3902,10 @@ main(int argc, char ** argv)
 
     if (strcmp(argv[1], "single") == 0) {
         TestSinglePrinc::run(argc, argv);
+    }
+
+    if (strcmp(argv[1], "crypto") == 0) {
+        TestCrypto::run(argc, argv);
     }
 
     if (strcmp(argv[1], "autoinc") == 0) {
@@ -3959,7 +3964,7 @@ main(int argc, char ** argv)
     }
 
     if (strcmp(argv[1], "pkcs") == 0) {
-        testPKCS();
+        test_PKCS();
         return 0;
     }
 

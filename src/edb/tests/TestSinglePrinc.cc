@@ -719,5 +719,5 @@ TestSinglePrinc::run(int argc, char ** argv)
     testUpdate(cl);
     cerr << "Testing delete..." << endl;
     testDelete(cl);
-    cerr << "Done!  All tests passed." << endl;
+    cerr << "Done!  All single-princ tests passed." << endl;
 }
