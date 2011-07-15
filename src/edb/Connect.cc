@@ -168,10 +168,6 @@ DBResult::unpack()
         if (!field)
             break;
 
-        /*
-         * XXX why are we losing field->type here?
-         * should really be visible to our caller..
-         */
         binFlags[j] = mysql_isBinary(field->type, field->charsetnr);
         (*res)[0][j] = string(field->name);
     }
