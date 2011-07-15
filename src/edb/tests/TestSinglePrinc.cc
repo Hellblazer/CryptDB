@@ -18,7 +18,7 @@ TestSinglePrinc::~TestSinglePrinc()
     // TODO Auto-generated destructor stub
 }
 
-bool
+bool 
 equals(ResType a, ResType b)
 {
     vector<vector<string> >::iterator ita = a.begin();
@@ -56,6 +56,32 @@ PrintRes(ResType res)
         }
         cerr << endl;
     }
+}
+
+ResType
+convert1(string rows[][1], int num_rows) {
+  ResType res;
+  for (int i = 0; i < num_rows; i++) {
+    vector<string> temp;
+    for (int j = 0; j < 1; j++) {
+      temp.push_back(rows[i][j]);
+    }
+    res.push_back(temp);
+  }
+  return res;
+}
+
+ResType
+convert5(string rows[][5], int num_rows) {
+  ResType res;
+  for (int i = 0; i < num_rows; i++) {
+    vector<string> temp;
+    for (int j = 0; j < 5; j++) {
+      temp.push_back(rows[i][j]);
+    }
+    res.push_back(temp);
+  }
+  return res;
 }
 
 void
@@ -236,68 +262,27 @@ testSelect(EDBClient * cl)
                            {"4", "10", "0", "London", "Edmund"},
                            {"5", "30", "100000", "221B Baker Street",
                             "Sherlock Holmes"} };
-    ResType res;
-    for (int i = 0; i < 6; i++) {
-        vector<string> temp;
-        for (int j = 0; j < 5; j++) {
-            temp.push_back(rows1[i][j]);
-        }
-        res.push_back(temp);
-    }
-    reply.push_back(res);
-    res.clear();
+    reply.push_back(convert5(rows1,6));
 
     query.push_back("SELECT max(id) FROM t1");
     string rows2[2][1] = { {"max(id)"},
                            {"5"} };
-    for (int i = 0; i < 2; i++) {
-        vector<string> temp;
-        for (int j = 0; j < 1; j++) {
-            temp.push_back(rows2[i][j]);
-        }
-        res.push_back(temp);
-    }
-    reply.push_back(res);
-    res.clear();
+    reply.push_back(convert1(rows2,2));
 
     query.push_back("SELECT max(salary) FROM t1");
     string rows3[2][1] = { {"max(salary)"},
                            {"100000"} };
-    for (int i = 0; i < 2; i++) {
-        vector<string> temp;
-        for (int j = 0; j < 1; j++) {
-            temp.push_back(rows3[i][j]);
-        }
-        res.push_back(temp);
-    }
-    reply.push_back(res);
-    res.clear();
+    reply.push_back(convert1(rows3,2));
 
     query.push_back("SELECT COUNT(*) FROM t1");
     string rows4[2][1] = { {"COUNT(*)"},
                            {"5"} };
-    for (int i = 0; i < 2; i++) {
-        vector<string> temp;
-        for (int j = 0; j < 1; j++) {
-            temp.push_back(rows4[i][j]);
-        }
-        res.push_back(temp);
-    }
-    reply.push_back(res);
-    res.clear();
+    reply.push_back(convert1(rows4,2));
 
     query.push_back("SELECT COUNT(DISTINCT age) FROM t1");
     string rows5[2][1] = { {"COUNT(DISTINCT age)"},
                            {"4"} };
-    for (int i = 0; i < 2; i++) {
-        vector<string> temp;
-        for (int j = 0; j < 1; j++) {
-            temp.push_back(rows5[i][j]);
-        }
-        res.push_back(temp);
-    }
-    reply.push_back(res);
-    res.clear();
+    reply.push_back(convert1(rows5,2));
 
     query.push_back("SELECT name FROM t1");
     string rows6[6][1] = { {"name"},
@@ -306,15 +291,7 @@ testSelect(EDBClient * cl)
                            {"Lucy"},
                            {"Edmund"},
                            {"Sherlock Holmes"} };
-    for (int i = 0; i < 6; i++) {
-        vector<string> temp;
-        for (int j = 0; j < 1; j++) {
-            temp.push_back(rows6[i][j]);
-        }
-        res.push_back(temp);
-    }
-    reply.push_back(res);
-    res.clear();
+    reply.push_back(convert1(rows6,6));
 
     query.push_back("SELECT address FROM t1");
     string rows7[6][1] = { { "address"},
@@ -324,75 +301,36 @@ testSelect(EDBClient * cl)
                            {"London"},
                            {"London"},
                            {"221B Baker Street"} };
-    for (int i = 0; i < 6; i++) {
-        vector<string> temp;
-        for (int j = 0; j < 1; j++) {
-            temp.push_back(rows7[i][j]);
-        }
-        res.push_back(temp);
-    }
-    reply.push_back(res);
-    res.clear();
+    reply.push_back(convert1(rows7,6));
 
     query.push_back(
         "SELECT sum(age), max(address), min(salary), COUNT(name), salary FROM t1");
-    string rows8[2][5] =
-    { {"sum(age)", "max(address)", "min(salary)", "COUNT(name)", "salary"},
-      {"76", "London", "0", "5", "0"} };
-    for (int i = 0; i < 2; i++) {
-        vector<string> temp;
-        for (int j = 0; j < 5; j++) {
-            temp.push_back(rows8[i][j]);
-        }
-        res.push_back(temp);
-    }
-    reply.push_back(res);
-    res.clear();
+    string rows8[2][5] = { {"sum(age)", "max(address)", "min(salary)", "COUNT(name)", "salary"},
+			   {"76", "London", "0", "5", "0"} };
+    reply.push_back(convert5(rows8,2));
 
     query.push_back("SELECT * FROM t1 WHERE id = 1");
     string rows9[2][5] = { {"id", "age", "salary", "address", "name"},
                            {"1", "10", "0",
                             "first star to the right and straight on till morning",
                             "Peter Pan"} };
-    for (int i = 0; i < 2; i++) {
-        vector<string> temp;
-        for (int j = 0; j < 5; j++) {
-            temp.push_back(rows9[i][j]);
-        }
-        res.push_back(temp);
-    }
-    reply.push_back(res);
-    res.clear();
+    reply.push_back(convert5(rows9,2));
 
     query.push_back("SELECT * FROM t1 WHERE id>3");
     string rows10[3][5] = { {"id", "age", "salary", "address", "name"},
                             {"4", "10", "0", "London", "Edmund"},
                             {"5", "30", "100000", "221B Baker Street",
                              "Sherlock Holmes"} };
-    for (int i = 0; i < 3; i++) {
-        vector<string> temp;
-        for (int j = 0; j < 5; j++) {
-            temp.push_back(rows10[i][j]);
-        }
-        res.push_back(temp);
-    }
-    reply.push_back(res);
-    res.clear();
+    reply.push_back(convert5(rows10,3));
 
     query.push_back("SELECT * FROM t1 WHERE age = 8");
     string rows11[2][5] = { {"id", "age", "salary", "address", "name"},
                             {"3", "8", "0", "London", "Lucy"} };
-    for (int i = 0; i < 2; i++) {
-        vector<string> temp;
-        for (int j = 0; j < 5; j++) {
-            temp.push_back(rows11[i][j]);
-        }
-        res.push_back(temp);
-    }
-    reply.push_back(res);
-    res.clear();
+    reply.push_back(convert5(rows11,2));
 
     query.push_back("SELECT * FROM t1 WHERE salary = 15");
+    ResType res;
+    res.clear();
     reply.push_back(res);
 
     query.push_back("SELECT * FROM t1 WHERE age > 10");
@@ -401,15 +339,7 @@ testSelect(EDBClient * cl)
                              "Anne Shirley"},
                             {"5", "30", "100000", "221B Baker Street",
                              "Sherlock Holmes"} };
-    for (int i = 0; i < 3; i++) {
-        vector<string> temp;
-        for (int j = 0; j < 5; j++) {
-            temp.push_back(rows12[i][j]);
-        }
-        res.push_back(temp);
-    }
-    reply.push_back(res);
-    res.clear();
+    reply.push_back(convert5(rows12,3));
 
     query.push_back("SELECT * FROM t1 WHERE age = 10 AND salary = 0");
     string rows13[3][5] = { {"id", "age", "salary", "address", "name"},
@@ -417,15 +347,7 @@ testSelect(EDBClient * cl)
                              "first star to the right and straight on till morning",
                              "Peter Pan"},
                             {"4", "10", "0", "London", "Edmund"} };
-    for (int i = 0; i < 3; i++) {
-        vector<string> temp;
-        for (int j = 0; j < 5; j++) {
-            temp.push_back(rows13[i][j]);
-        }
-        res.push_back(temp);
-    }
-    reply.push_back(res);
-    res.clear();
+    reply.push_back(convert5(rows13,3));
 
     query.push_back("SELECT * FROM t1 WHERE age = 10 OR salary = 0");
     string rows14[4][5] = { {"id", "age", "salary", "address", "name"},
@@ -434,59 +356,27 @@ testSelect(EDBClient * cl)
                              "Peter Pan"},
                             {"3", "8", "0", "London", "Lucy"},
                             {"4", "10", "0", "London", "Edmund"} };
-    for (int i = 0; i < 4; i++) {
-        vector<string> temp;
-        for (int j = 0; j < 5; j++) {
-            temp.push_back(rows14[i][j]);
-        }
-        res.push_back(temp);
-    }
-    reply.push_back(res);
-    res.clear();
+    reply.push_back(convert5(rows14,4));
 
     query.push_back("SELECT * FROM t1 WHERE name = 'Peter Pan'");
     string rows15[2][5] = { {"id", "age", "salary", "address", "name"},
                             {"1", "10", "0",
                              "first star to the right and straight on till morning",
                              "Peter Pan"} };
-    for (int i = 0; i < 2; i++) {
-        vector<string> temp;
-        for (int j = 0; j < 5; j++) {
-            temp.push_back(rows15[i][j]);
-        }
-        res.push_back(temp);
-    }
-    reply.push_back(res);
-    res.clear();
+    reply.push_back(convert5(rows15,2));
     //---------------------------------------------------------------------------------
 
     query.push_back("SELECT * FROM t1 WHERE address= 'Green Gables'");
     string rows16[2][5] = { {"id", "age", "salary", "address", "name"},
                             {"2", "16", "1000", "Green Gables",
                              "Anne Shirley"} };
-    for (int i = 0; i < 2; i++) {
-        vector<string> temp;
-        for (int j = 0; j < 5; j++) {
-            temp.push_back(rows16[i][j]);
-        }
-        res.push_back(temp);
-    }
-    reply.push_back(res);
-    res.clear();
+    reply.push_back(convert5(rows16,2));
 
     query.push_back("SELECT * FROM t1 WHERE address <= '221C'");
     string rows17[2][5] = { {"id", "age", "salary", "address", "name"},
                             {"5", "30", "100000", "221B Baker Street",
                              "Sherlock Holmes"} };
-    for (int i = 0; i < 2; i++) {
-        vector<string> temp;
-        for (int j = 0; j < 5; j++) {
-            temp.push_back(rows17[i][j]);
-        }
-        res.push_back(temp);
-    }
-    reply.push_back(res);
-    res.clear();
+    reply.push_back(convert5(rows17,2));
 
     query.push_back(
         "SELECT * FROM t1 WHERE address >= 'Green Gables' AND age > 9");
@@ -494,15 +384,7 @@ testSelect(EDBClient * cl)
                             {"2", "16", "1000", "Green Gables",
                              "Anne Shirley"},
                             {"4", "10", "0", "London", "Edmund"} };
-    for (int i = 0; i < 3; i++) {
-        vector<string> temp;
-        for (int j = 0; j < 5; j++) {
-            temp.push_back(rows18[i][j]);
-        }
-        res.push_back(temp);
-    }
-    reply.push_back(res);
-    res.clear();
+    reply.push_back(convert5(rows18,3));
 
     query.push_back(
         "SELECT * FROM t1 WHERE address >= 'Green Gables' OR age > 9");
@@ -516,15 +398,7 @@ testSelect(EDBClient * cl)
                             {"4", "10", "0", "London", "Edmund"},
                             {"5", "30", "100000", "221B Baker Street",
                              "Sherlock Holmes"} };
-    for (int i = 0; i < 6; i++) {
-        vector<string> temp;
-        for (int j = 0; j < 5; j++) {
-            temp.push_back(rows19[i][j]);
-        }
-        res.push_back(temp);
-    }
-    reply.push_back(res);
-    res.clear();
+    reply.push_back(convert5(rows19,6));
 
     query.push_back("SELECT * FROM t1 ORDER BY id");
     string rows20[6][5] = { {"id", "age", "salary", "address", "name"},
@@ -537,15 +411,7 @@ testSelect(EDBClient * cl)
                             {"4", "10", "0", "London", "Edmund"},
                             {"5", "30", "100000", "221B Baker Street",
                              "Sherlock Holmes"} };
-    for (int i = 0; i < 6; i++) {
-        vector<string> temp;
-        for (int j = 0; j < 5; j++) {
-            temp.push_back(rows20[i][j]);
-        }
-        res.push_back(temp);
-    }
-    reply.push_back(res);
-    res.clear();
+    reply.push_back(convert5(rows20,6));
 
     query.push_back("SELECT * FROM t1 ORDER BY salary");
     string rows21[6][5] = { {"id", "age", "salary", "address", "name"},
@@ -558,15 +424,7 @@ testSelect(EDBClient * cl)
                              "Anne Shirley"},
                             {"5", "30", "100000", "221B Baker Street",
                              "Sherlock Holmes"} };
-    for (int i = 0; i < 6; i++) {
-        vector<string> temp;
-        for (int j = 0; j < 5; j++) {
-            temp.push_back(rows21[i][j]);
-        }
-        res.push_back(temp);
-    }
-    reply.push_back(res);
-    res.clear();
+    reply.push_back(convert5(rows21,6));
 
     query.push_back("SELECT * FROM t1 ORDER BY name");
     string rows22[6][5] = { {"id", "age", "salary", "address", "name"},
@@ -579,15 +437,7 @@ testSelect(EDBClient * cl)
                              "Peter Pan"},
                             {"5", "30", "100000", "221B Baker Street",
                              "Sherlock Holmes"} };
-    for (int i = 0; i < 6; i++) {
-        vector<string> temp;
-        for (int j = 0; j < 5; j++) {
-            temp.push_back(rows22[i][j]);
-        }
-        res.push_back(temp);
-    }
-    reply.push_back(res);
-    res.clear();
+    reply.push_back(convert5(rows22,6));
 
     query.push_back("SELECT * FROM t1 ORDER BY address");
     string rows23[6][5] = { {"id", "age", "salary", "address", "name"},
@@ -600,15 +450,7 @@ testSelect(EDBClient * cl)
                              "Anne Shirley"},
                             {"3", "8", "0", "London", "Lucy"},
                             {"4", "10", "0", "London", "Edmund"} };
-    for (int i = 0; i < 6; i++) {
-        vector<string> temp;
-        for (int j = 0; j < 5; j++) {
-            temp.push_back(rows23[i][j]);
-        }
-        res.push_back(temp);
-    }
-    reply.push_back(res);
-    res.clear();
+    reply.push_back(convert5(rows23,6));
 
     query.push_back("SELECT * FROM t1 GROUP BY address ORDER BY address");
     string rows24[5][5] = { {"id", "age", "salary", "address", "name"},
@@ -620,15 +462,7 @@ testSelect(EDBClient * cl)
                             {"2", "16", "1000", "Green Gables",
                              "Anne Shirley"},
                             {"3", "8", "0", "London", "Lucy"} };
-    for (int i = 0; i < 5; i++) {
-        vector<string> temp;
-        for (int j = 0; j < 5; j++) {
-            temp.push_back(rows24[i][j]);
-        }
-        res.push_back(temp);
-    }
-    reply.push_back(res);
-    res.clear();
+    reply.push_back(convert5(rows24,5));
 
     query.push_back("SELECT * FROM t1 GROUP BY age ORDER BY age");
     string rows25[5][5] = { {"id", "age", "salary", "address", "name"},
@@ -640,15 +474,7 @@ testSelect(EDBClient * cl)
                              "Anne Shirley"},
                             {"5", "30", "100000", "221B Baker Street",
                              "Sherlock Holmes"} };
-    for (int i = 0; i < 5; i++) {
-        vector<string> temp;
-        for (int j = 0; j < 5; j++) {
-            temp.push_back(rows25[i][j]);
-        }
-        res.push_back(temp);
-    }
-    reply.push_back(res);
-    res.clear();
+    reply.push_back(convert5(rows25,5));
 
     CheckSelectResults(cl, query, reply);
 
@@ -700,15 +526,7 @@ testUpdate(EDBClient * cl)
                            {"5", "30", "0", "221B Baker Street",
                             "Sherlock Holmes"},
                            {"6", NULL, "0", NULL, NULL} };
-    for (int i = 0; i < 6; i++) {
-        vector<string> temp;
-        for (int j = 0; j < 5; j++) {
-            temp.push_back(rows1[i][j]);
-        }
-        res.push_back(temp);
-    }
-    reply.push_back(res);
-    res.clear();
+    reply.push_back(convert5(rows1,7));
 
     query.push_back("UPDATE t1 SET age=21 WHERE id6");
     query.push_back("SELECT * FROM t1");
@@ -722,15 +540,7 @@ testUpdate(EDBClient * cl)
                            {"5", "30", "0", "221B Baker Street",
                             "Sherlock Holmes"},
                            {"6", "21", "0", NULL, NULL} };
-    for (int i = 0; i < 6; i++) {
-        vector<string> temp;
-        for (int j = 0; j < 5; j++) {
-            temp.push_back(rows2[i][j]);
-        }
-        res.push_back(temp);
-    }
-    reply.push_back(res);
-    res.clear();
+    reply.push_back(convert5(rows2,7));
 
     query.push_back(
         "UPDATE t1 SET address='Pemberly', name='Elizabeth Darcy' WHERE id=6");
@@ -745,15 +555,7 @@ testUpdate(EDBClient * cl)
                            {"5", "30", "0", "221B Baker Street",
                             "Sherlock Holmes"},
                            {"6", "21", "0", "Pemberly", "Elizabeth Darcy"} };
-    for (int i = 0; i < 6; i++) {
-        vector<string> temp;
-        for (int j = 0; j < 5; j++) {
-            temp.push_back(rows3[i][j]);
-        }
-        res.push_back(temp);
-    }
-    reply.push_back(res);
-    res.clear();
+    reply.push_back(convert5(rows3,7));
 
     query.push_back("UPDATE t1 SET salary=55000 WHERE age=30");
     query.push_back("SELECT * FROM t1");
@@ -767,16 +569,8 @@ testUpdate(EDBClient * cl)
                            {"5", "30", "55000", "221B Baker Street",
                             "Sherlock Holmes"},
                            {"6", "21", "0", "Pemberly", "Elizabeth Darcy"} };
-    for (int i = 0; i < 6; i++) {
-        vector<string> temp;
-        for (int j = 0; j < 5; j++) {
-            temp.push_back(rows4[i][j]);
-        }
-        res.push_back(temp);
-    }
-    reply.push_back(res);
-    res.clear();
-
+    reply.push_back(convert5(rows4,7));
+    
     query.push_back("UPDATE t1 SET salary=20000 WHERE address='Pemberly'");
     query.push_back("SELECT * FROM t1");
     string rows5[7][5] = { {"id", "age", "salary", "address", "name"},
@@ -789,15 +583,7 @@ testUpdate(EDBClient * cl)
                            {"5", "30", "55000", "221B Baker Street",
                             "Sherlock Holmes"},
                            {"6", "21", "0", "Pemberly", "Elizabeth Darcy"} };
-    for (int i = 0; i < 6; i++) {
-        vector<string> temp;
-        for (int j = 0; j < 5; j++) {
-            temp.push_back(rows5[i][j]);
-        }
-        res.push_back(temp);
-    }
-    reply.push_back(res);
-    res.clear();
+    reply.push_back(convert5(rows5,7));
 
     CheckUpdateResults(cl, query, reply);
 
@@ -853,15 +639,7 @@ testDelete(EDBClient * cl)
                            {"6", "21", "20000", "Pemberly", "Elizabeth Darcy"},
                            {"7", "10000", "1", "Mordor", "Sauron"},
                            {"8", "25", "100", "The Heath", "Eustacia Vye"} };
-    for (int i = 0; i < 8; i++) {
-        vector<string> temp;
-        for (int j = 0; j < 5; j++) {
-            temp.push_back(rows1[i][j]);
-        }
-        res.push_back(temp);
-    }
-    reply.push_back(res);
-    res.clear();
+    reply.push_back(convert5(rows1,8));
 
     query.push_back("DELETE FROM t1 WHERE age=30");
     query.push_back("SELECT * FROM t1");
@@ -872,15 +650,7 @@ testDelete(EDBClient * cl)
                            {"6", "21", "20000", "Pemberly", "Elizabeth Darcy"},
                            {"7", "10000", "1", "Mordor", "Sauron"},
                            {"8", "25", "100", "The Heath", "Eustacia Vye"} };
-    for (int i = 0; i < 7; i++) {
-        vector<string> temp;
-        for (int j = 0; j < 5; j++) {
-            temp.push_back(rows2[i][j]);
-        }
-        res.push_back(temp);
-    }
-    reply.push_back(res);
-    res.clear();
+    reply.push_back(convert5(rows2,7));
 
     query.push_back("DELETE FROM t1 WHERE name='Eustacia Vye'");
     query.push_back("SELECT * FROM t1");
@@ -890,15 +660,7 @@ testDelete(EDBClient * cl)
                            {"4", "10", "0", "London", "Edmund"},
                            {"6", "21", "20000", "Pemberly", "Elizabeth Darcy"},
                            {"7", "10000", "1", "Mordor", "Sauron"} };
-    for (int i = 0; i < 6; i++) {
-        vector<string> temp;
-        for (int j = 0; j < 5; j++) {
-            temp.push_back(rows3[i][j]);
-        }
-        res.push_back(temp);
-    }
-    reply.push_back(res);
-    res.clear();
+    reply.push_back(convert5(rows3,6));
 
     query.push_back("DELETE FROM t1 WHERE address='London'");
     query.push_back("SELECT * FROM t1");
@@ -906,30 +668,14 @@ testDelete(EDBClient * cl)
                            {"2", "16", "1000", "Green Gables", "Anne Shirley"},
                            {"6", "21", "20000", "Pemberly", "Elizabeth Darcy"},
                            {"7", "10000", "1", "Mordor", "Sauron"} };
-    for (int i = 0; i < 4; i++) {
-        vector<string> temp;
-        for (int j = 0; j < 5; j++) {
-            temp.push_back(rows4[i][j]);
-        }
-        res.push_back(temp);
-    }
-    reply.push_back(res);
-    res.clear();
+    reply.push_back(convert5(rows4,4));
 
     query.push_back("DELETE FROM t1 WHERE salary=1");
     query.push_back("SELECT * FROM t1");
     string rows5[3][5] = { {"id", "age", "salary", "address", "name"},
                            {"2", "16", "1000", "Green Gables", "Anne Shirley"},
                            {"6", "21", "20000", "Pemberly", "Elizabeth Darcy"} };
-    for (int i = 0; i < 3; i++) {
-        vector<string> temp;
-        for (int j = 0; j < 5; j++) {
-            temp.push_back(rows5[i][j]);
-        }
-        res.push_back(temp);
-    }
-    reply.push_back(res);
-    res.clear();
+    reply.push_back(convert5(rows5,3));
 
     query.push_back("DELETE FROM t1");
     query.push_back("SELECT * FROM t1");
@@ -942,15 +688,7 @@ testDelete(EDBClient * cl)
                            {"1", "10", "0",
                             "first star to the right and straight on till morning",
                             "Peter Pan"} };
-    for (int i = 0; i < 2; i++) {
-        vector<string> temp;
-        for (int j = 0; j < 5; j++) {
-            temp.push_back(rows6[i][j]);
-        }
-        res.push_back(temp);
-    }
-    reply.push_back(res);
-    res.clear();
+    reply.push_back(convert5(rows6,2));
 
     query.push_back("DELETE * FROM t1");
     query.push_back("SELECT * FROM t1");
