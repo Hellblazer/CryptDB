@@ -689,12 +689,14 @@ processAgg(list<string>::iterator & wordsIt, list<string> & words,
     int noParen = 0;
 
     while (isKeyword(*wordsIt) && (wordsIt->compare("*"))) {
-        res = *wordsIt;
+        res = res + *wordsIt;
         wordsIt++;
         if (wordsIt->compare("(") == 0) {
             noParen++;
             res = res + "(";
             wordsIt++;
+        } else {
+        	res = res + " ";
         }
     }
 

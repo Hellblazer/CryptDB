@@ -458,9 +458,9 @@ getNameForFilter(FieldMetadata * fm, onion o)
         //for equality type operations use OPE if you can
         if (fm->exists(fm->anonFieldNameOPE) &&
             (fm->secLevelOPE != SEMANTIC_OPE)) {
-            return fm->anonFieldNameDET;
-        } else {
             return fm->anonFieldNameOPE;
+        } else {
+            return fm->anonFieldNameDET;
         }
     }
     if (o == oOPE) {
