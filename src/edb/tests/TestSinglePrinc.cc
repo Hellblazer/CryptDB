@@ -96,16 +96,19 @@ CheckSelectResults(EDBClient * cl, vector<string> in, vector<ResType> out)
 
     while(query_it != in.end()) {
         ResType * test_res = cl->execute(getCStr(*query_it));
-        assert_s(test_res,
-                 "CheckSelectResults found a query that won't execute");
+        if(!test_res) {
+	    cerr << "Query: " << endl;
+	    cerr << "\t" << *query_it << endl;
+	    assert_s(false, "Select or Join query won't execute");
+	}
         if(!equals(*test_res, *res_it)) {
 	    cerr << "From query: " << endl;
 	    cerr << *query_it << endl;
-            cerr << "-----------------------/nExpected result:" << endl;
+            cerr << "-----------------------\nExpected result:" << endl;
             PrintRes(*res_it);
             cerr << "Got result:" << endl;
             PrintRes(*test_res);
-            assert_s(false, "Select test failed");
+            assert_s(false, "Select or Join test failed");
         }
         query_it++;
         res_it++;
@@ -128,8 +131,11 @@ CheckUpdateResults(EDBClient * cl, vector<string> in, vector<ResType> out)
         cl->execute(getCStr(*query_it));
         query_it++;
         ResType * test_res = cl->execute(getCStr(*query_it));
-        assert_s(test_res,
-                 "CheckUpdateResults found a query that won't execute");
+        if(!test_res) {
+	    cerr << "Query: " << endl;
+	    cerr << "\t" << *query_it << endl;
+	    assert_s(false, "Update or Delete query won't execute");
+	}
         if(!equals(*test_res, *res_it)) {
             cerr << "Expected result:" << endl;
             PrintRes(*res_it);
@@ -187,8 +193,8 @@ testCreateDrop(EDBClient * cl)
                  "SELECT * FROM table3"),
              "t2 (second time) was not created properly");
 
-    assert_s(cl->execute("DROP TABLE t1"), "testSelectDrop won't drop t1");
-    assert_s(cl->execute("DROP TABLE t2"), "testSelectDrop won't drop t2");
+    assert_s(cl->execute("DROP TABLE t1"), "testCreateDrop won't drop t1");
+    assert_s(cl->execute("DROP TABLE t2"), "testCreateDrop won't drop t2");
 }
 
 //assumes Select is working
@@ -286,6 +292,11 @@ testSelect(EDBClient * cl)
                            {"4"} };
     reply.push_back(convert1(rows5,2));
 
+    query.push_back("SELECT COUNT(DISTINCT (address)) FROM t1");
+    string rows100[2][1] = { {"COUNT(DISTINCT (address))"},
+                           {"4"} };
+    reply.push_back(convert1(rows100,2));
+
     query.push_back("SELECT name FROM t1");
     string rows6[6][1] = { {"name"},
                            {"Peter Pan"},
@@ -365,7 +376,9 @@ testSelect(EDBClient * cl)
                              "first star to the right and straight on till morning",
                              "Peter Pan"} };
     reply.push_back(convert5(rows15,2));
-    //---------------------------------------------------------------------------------
+
+    //-------------------------------------------------------------------------------
+    //afer the WHERE statement
 
     query.push_back("SELECT * FROM t1 WHERE address= 'Green Gables'");
     string rows16[2][5] = { {"id", "age", "salary", "address", "name"},
@@ -477,17 +490,161 @@ testSelect(EDBClient * cl)
                              "Sherlock Holmes"} };
     reply.push_back(convert5(rows25,5));
 
+    query.push_back("SELECT * FROM t1 ORDER BY age ASC");
+    string rows26[6][5] = { {"id", "age", "salary", "address", "name"},
+                            {"3", "8", "0", "London", "Lucy"},
+                            {"1", "10", "0",
+                             "first star to the right and straight on till morning",
+                             "Peter Pan"},
+			    {"4", "10", "0", "London", "Edmund"}, 
+                            {"2", "16", "1000", "Green Gables",
+                             "Anne Shirley"},
+                            {"5", "30", "100000", "221B Baker Street",
+                             "Sherlock Holmes"} };
+    reply.push_back(convert5(rows26,6));
+
+    query.push_back("SELECT * FROM t1 ORDER BY age DESC");
+    string rows27[6][5] = { {"id", "age", "salary", "address", "name"},
+                            {"5", "30", "100000", "221B Baker Street",
+                             "Sherlock Holmes"},
+                            {"2", "16", "1000", "Green Gables",
+                             "Anne Shirley"},
+                            {"1", "10", "0",
+                             "first star to the right and straight on till morning",
+                             "Peter Pan"},
+			    {"4", "10", "0", "London", "Edmund"}, 
+                            {"3", "8", "0", "London", "Lucy"} };
+    reply.push_back(convert5(rows27,6));
+
+    //------------------------------------------------------------------------------
+    // aliases
+    
+    query.push_back("SELECT sum(age) as z FROM t1");
+    string rows28[2][1] = { {"z"},
+			    {"74"} };
+    reply.push_back(convert1(rows28,2));
+
+    query.push_back("SELECT sum(age) z FROM t1");
+    string rows29[2][1] = { {"z"},
+			    {"74"} };
+    reply.push_back(convert1(rows29,2));
+
+    query.push_back("SELECT min(t.id) a FROM t1 AS t");
+    string rows30[2][1] = { {"a"},
+			    {"1"} };
+    reply.push_back(convert1(rows30,2));
+
+    query.push_back("SELECT t.address AS b FROM t1 t");
+    string rows31[6][1] = { {"b"},
+			    {"first star to the right and straight on till morning"},
+			    {"Green Gables"},
+			    {"London"},
+			    {"London"},
+			    {"221B Baker Street"} };
+    reply.push_back(convert1(rows31,6));
+
     CheckSelectResults(cl, query, reply);
 
     cl->execute("DROP TABLE t1;");
 }
+
+void
+testJoin(EDBClient * cl) {
+    cl->plain_execute(
+        "DROP TABLE IF EXISTS table0, table1, table2, table3, table4, table5, table6, table7");
+    assert_s(cl->execute(
+                 "CREATE TABLE t1 (id integer, age enc integer, salary enc integer, address enc text, name text)"),
+             "testJoin couldn't create table");
+    assert_s(cl->execute(
+                 "INSERT INTO t1 VALUES (1, 10, 0, 'first star to the right and straight on till morning', 'Peter Pan')"),
+             "testJoin couldn't insert (1)");
+    assert_s(cl->execute(
+                 "INSERT INTO t1 VALUES (2, 16, 1000, 'Green Gables', 'Anne Shirley')"),
+             "testJoin couldn't insert (2)");
+    assert_s(cl->execute(
+                 "INSERT INTO t1 VALUES (3, 8, 0, 'London', 'Lucy')"),
+             "testJoin couldn't insert (3)");
+    assert_s(cl->execute(
+                 "INSERT INTO t1 VALUES (4, 10, 0, 'London', 'Edmund')"),
+             "testJoin couldn't insert (4)");
+    assert_s(cl->execute(
+                 "INSERT INTO t1 VALUES (5, 30, 100000, '221B Baker Street', 'Sherlock Holmes')"),
+             "testJoin couldn't insert (5)");
+
+
+    assert_s(cl->execute("CREATE TABLE t2 (id integer, books enc integer, name enc text)"),
+             "testJoin couldn't create second table");
+    assert_s(cl->execute("INSERT INTO t2 VALUES (11, 6, 'Peter Pan')"),
+             "testJoin couldn't insert (1)");
+    assert_s(cl->execute("INSERT INTO t2 VALUES (12, 8, 'Anne Shirley')"),
+             "testJoin couldn't insert (2)");
+    assert_s(cl->execute("INSERT INTO t2 VALUES (13, 7, 'Lucy')"),
+             "testJoin couldn't insert (3)");
+    assert_s(cl->execute("INSERT INTO t2 VALUES (14, 7, 'Edmund')"),
+             "testJoin couldn't insert (4)");
+
+    vector<string> query;
+    vector<ResType> reply;
+
+    query.push_back("SELECT address FROM t1 JOIN t2 ON t1.id=t2.id");
+    string rows1[5][1] = { {"address"}, 
+			   {"first star to the right and straight on till morning"},
+			   {"Green Gables"},
+			   {"London"},
+			   {"London"} };
+    reply.push_back(convert1(rows1,5));
+    query.push_back("SELECT t1.id, t2.id, age, books, t2.name FROM t1 JOIN t2 ON t1.id=t2.id");
+    string rows2[5][5] = { {"t1.id", "t2.id", "age", "books", "t2.name"},
+			   {"1", "1", "10", "6", "Peter Pan"},
+			   {"2", "2", "16", "8", "Anne Shirley"},
+			   {"3", "3", "8", "7", "Lucy"},
+			   {"4", "4", "10", "7", "Edmund"} };
+    reply.push_back(convert5(rows2,5));
+    query.push_back("SELECT t1.id, t2.id, age, books, t2.name FROM t1 INNER JOIN t2 ON t1.id=t2.id");
+    string rows3[5][5] = { {"t1.id", "t2.id", "age", "books", "t2.name"},
+			   {"1", "1", "10", "6", "Peter Pan"},
+			   {"2", "2", "16", "8", "Anne Shirley"},
+			   {"3", "3", "8", "7", "Lucy"},
+			   {"4", "4", "10", "7", "Edmund"} };
+    reply.push_back(convert5(rows3,5));
+
+    query.push_back("SELECT t2.name FROM t1 LEFT JOIN t2 ON t1.id=t2.id");
+    string rows4[6][1] = { {"t2.name"},
+			   {"Peter Pan"},
+			   {"Anne Shirley"},
+			   {"Lucy"},
+			   {"Edmund"},
+			   {"NULL"} };
+    reply.push_back(convert1(rows4,6));
+    query.push_back("SELECT t1.id, age, salary, books, t2.name FROM t1 RIGHT JOIN t2 ON t1.id=t2.id");
+    string rows5[6][5] = { {"t1.id", "age", "salary", "books", "t2.names"},
+			   {"1", "10", "0", "6", "Peter Pan"},
+			   {"2", "16", "1000", "8", "Anne Shirley"},
+			   {"3", "8", "0", "7", "Lucy"},
+			   {"4", "10", "0", "7", "Edmund"},
+			   {"NULL", "NULL", "NULL", "7", "Harry Potter"} };
+    reply.push_back(convert5(rows5,6));
+    query.push_back("SELECT t1.id, age, salary, books, t2.name FROM t1 FULL JOIN t2 ON t1.id=t2.id");    
+    string rows6[7][5] = { {"t1.id", "age", "salary", "books", "t2.names"},
+			   {"1", "10", "0", "6", "Peter Pan"},
+			   {"2", "16", "1000", "8", "Anne Shirley"},
+			   {"3", "8", "0", "7", "Lucy"},
+			   {"4", "10", "0", "7", "Edmund"},
+			   {"NULL", "NULL", "NULL", "7", "Harry Potter"} };
+    reply.push_back(convert5(rows6,7));			   
+    
+
+    CheckSelectResults(cl, query, reply);
+
+}
+
 
 //assumes Select works
 void
 testUpdate(EDBClient * cl)
 {
     cl->plain_execute(
-        "DROP TABLE IF EXISTS table0, table1, table2, table3, table4, table5, table6");
+        "DROP TABLE IF EXISTS table0, table1, table2, table3, table4, table5, table6, table7, table8, table9");
     assert_s(cl->execute(
                  "CREATE TABLE t1 (id integer, age enc integer, salary enc integer, address enc text, name text)"),
              "testSelect couldn't create table");
@@ -595,7 +752,7 @@ void
 testDelete(EDBClient * cl)
 {
     cl->plain_execute(
-        "DROP TABLE IF EXISTS table0, table1, table2, table3, table4, table5, table6");
+        "DROP TABLE IF EXISTS table0, table1, table2, table3, table4, table5, table6, table7, table8, table9, table10");
     assert_s(cl->execute(
                  "CREATE TABLE t1 (id integer, age enc integer, salary enc integer, address enc text, name text)"),
              "testSelect couldn't create table");
@@ -716,6 +873,8 @@ TestSinglePrinc::run(int argc, char ** argv)
     testInsert(cl);
     cerr << "Testing select..." << endl;
     testSelect(cl);
+    cerr << "Testing join..." << endl;
+    testJoin(cl);
     cerr << "Testing update..." << endl;
     testUpdate(cl);
     cerr << "Testing delete..." << endl;
