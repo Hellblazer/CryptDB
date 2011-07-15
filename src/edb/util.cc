@@ -1282,7 +1282,7 @@ mirrorUntilTerm(list<string>::iterator & it, list<string> & words,
                 string terms[], unsigned int noTerms, bool stopAfterTerm,
                 bool skipParenBlock)
 {
-    string res = " ";
+    string res = "";
     while ((it!=words.end()) && (!contains(*it, terms, noTerms)) ) {
         if (skipParenBlock) {
             string paren = processParen(it, words);

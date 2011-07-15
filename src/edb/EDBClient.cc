@@ -3744,7 +3744,7 @@ EDBClient::crypt(string data, fieldType ft, string fullname,
                  const vector<string> & res)
 {
 
-    cerr << "crypting type " << ft << " fullname " << fullname <<
+    cerr << "crypting data " << data << " type " << ft << " fullname " << fullname <<
     " anonfullname " << anonfullname << " fromlevel " << fromlevel <<
     " tolevel " << tolevel << " salt " << salt << "\n";
     if (DECRYPTFIRST) {     //we don't encrypt values, and they come back

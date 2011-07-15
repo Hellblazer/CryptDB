@@ -942,7 +942,7 @@ fieldNameForResponse(string table, string field, string origName,
         return origName;
     }
 
-    if (table.length() == 0) {
+    if (!isTableField(origName)) {
         //no table included
         return field;
     } else {
