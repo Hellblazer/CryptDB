@@ -1114,11 +1114,9 @@ groupings:
             if (comm.compare("group") == 0) {
                 anonField = getNameForFilter(fm, oDET);
             } else {
-                if (fm->type == TYPE_INTEGER) {
-                    anonField = getNameForFilter(fm, oOPE);
-                } else {
-                    anonField = getNameForFilter(fm, oDET);
-                }
+            	//order by
+                anonField = getNameForFilter(fm, oOPE);
+
             }
 
             resultQuery = resultQuery + " " +
@@ -1870,11 +1868,15 @@ throw (CryptDBError)
             string realname = *wordsIt;
             getTableField(realname, table, field, qm, tableMetaMap);
 
-            string anonName =
-                getOnionName(tableMetaMap[table]->fieldMetaMap[field],oOPE);
-
             TableMetadata * tm = tableMetaMap[table];
             FieldMetadata * fm = tm->fieldMetaMap[field];
+
+            assert_s(fm->type != TYPE_TEXT, "min, max not fully implemented for text");
+
+            string anonName =
+                getOnionName(fm,oOPE);
+
+
 
             if (fm->isEncrypted) {
                 if (DECRYPTFIRST) {
@@ -1906,7 +1908,9 @@ throw (CryptDBError)
             assert_s(wordsIt->compare(
                          ")") == 0, " missing ) in max expression \n");
             wordsIt++;
+            cerr << "resultQuery before processAlias " << resultQuery << "\n";
             resultQuery = resultQuery + processAlias(wordsIt, words);
+            cerr << "resultQuery after processAlias " << resultQuery << "\n";
             continue;
         }
 

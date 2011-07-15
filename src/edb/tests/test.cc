@@ -659,9 +659,9 @@ interactiveTest()
                          "CREATE TABLE hi (id integer, name enc text);"),
                      "failed");
             assert_s(cl->execute(
-                         "INSERT INTO hi VALUES (3, 'raluca');"), "failed");
+                         "INSERT INTO hi VALUES (3, 'first star');"), "failed");
             assert_s(cl->execute(
-                         "INSERT INTO hi VALUES (2, 'alice');"), "failed");
+                         "INSERT INTO hi VALUES (2, 'Green');"), "failed");
             assert_s(cl->execute(
                          "INSERT INTO hi VALUES (1, 'dan');"), "failed");
             assert_s(cl->execute(
@@ -678,7 +678,6 @@ interactiveTest()
                          "INSERT INTO hi VALUES (1, 'naaa');"), "failed");
             assert_s(cl->execute(
                          "INSERT INTO hi VALUES (1, 'hello');"), "failed");
-            assert_s(cl->execute("SELECT * FROM hi;"), "failed");
             assert_s(cl->execute(
                          "SELECT id, name FROM hi ORDER BY name;"), "failed");
 

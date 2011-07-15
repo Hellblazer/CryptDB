@@ -756,13 +756,13 @@ closingparen:
     }
 
     string alias = getAlias(wordsIt, words);
+    string palias = processAlias(wordsIt, words);
 
     if (forquery) {
-        res += processAlias(wordsIt, words);
+        res += palias;
         return res;
     } else {
-        if (alias.length() > 0) {
-            processAlias(wordsIt, words);
+    	if (alias.length() > 0) {
             return alias;
         } else {
             return res;

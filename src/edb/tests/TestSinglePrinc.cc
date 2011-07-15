@@ -335,10 +335,10 @@ testSelect(EDBClient * cl)
     res.clear();
 
     query.push_back(
-        "SELECT sum(age), max(address), min(salary), COUNT(name), salary FROM t1");
+        "SELECT sum(age), max(salary), min(salary), COUNT(name), address FROM t1");
     string rows8[2][5] =
-    { {"sum(age)", "max(address)", "min(salary)", "COUNT(name)", "salary"},
-      {"76", "London", "0", "5", "0"} };
+    { {"sum(age)", "max(salary)", "min(salary)", "COUNT(name)", "address"},
+      {"74",        "100000",     "0",           "5",           "first star to the right and straight on till morning"} };
     for (int i = 0; i < 2; i++) {
         vector<string> temp;
         for (int j = 0; j < 5; j++) {
