@@ -99,7 +99,9 @@ CheckSelectResults(EDBClient * cl, vector<string> in, vector<ResType> out)
         assert_s(test_res,
                  "CheckSelectResults found a query that won't execute");
         if(!equals(*test_res, *res_it)) {
-            cerr << "Expected result:" << endl;
+	    cerr << "From query: " << endl;
+	    cerr << *query_it << endl;
+            cerr << "-----------------------/nExpected result:" << endl;
             PrintRes(*res_it);
             cerr << "Got result:" << endl;
             PrintRes(*test_res);
@@ -303,10 +305,9 @@ testSelect(EDBClient * cl)
                            {"221B Baker Street"} };
     reply.push_back(convert1(rows7,6));
 
-    query.push_back(
-        "SELECT sum(age), max(address), min(salary), COUNT(name), salary FROM t1");
-    string rows8[2][5] = { {"sum(age)", "max(address)", "min(salary)", "COUNT(name)", "salary"},
-			   {"76", "London", "0", "5", "0"} };
+    query.push_back("SELECT sum(age), max(salary), min(salary), COUNT(name), address FROM t1");
+    string rows8[2][5] = { {"sum(age)", "max(salary)", "min(salary)", "COUNT(name)", "address"},
+			   {"74",        "100000",     "0",           "5",           "first star to the right and straight on till morning"} };
     reply.push_back(convert5(rows8,2));
 
     query.push_back("SELECT * FROM t1 WHERE id = 1");

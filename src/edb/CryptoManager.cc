@@ -982,8 +982,10 @@ CryptoManager::encrypt_OPE_text_wrapper(const string & plaintext, OPE * ope)
 
     cerr << "mins is " << mins << "\n";
 
+    string p2 = toLowerCase(plaintext.substr(0, mins));
+
     for (unsigned i = 0; i < mins; i++) {
-        val = val*256 + (unsigned int)plaintext[i];
+        val = val*256 + (unsigned int)p2[i];
     }
 
     for (unsigned int i = 0; i < prefix - mins; i++) {
