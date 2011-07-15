@@ -2717,6 +2717,7 @@ throw (CryptDBError)
     resultQuery = resultQuery + tableMetaMap[table]->anonTableName + " ";
     roll<string>(wordsIt, 1);
 
+    std::set<string> fieldsIncluded;
     list<string> fields;
     list<string> fieldsToAdd;
     list<string> princsToAdd;
@@ -2738,8 +2739,8 @@ throw (CryptDBError)
         wordsIt++;
 
         while (wordsIt->compare(")") != 0) {
-
-            fields.push_back(*wordsIt);
+			fields.push_back(*wordsIt);
+            fieldsIncluded.insert(*wordsIt);
             resultQuery = resultQuery + " " + processInsert(*wordsIt, table,
                                                             tm);
             wordsIt++;
@@ -2758,21 +2759,12 @@ throw (CryptDBError)
 
         for (addit = tm->fieldNames.begin(); addit!=tm->fieldNames.end();
              addit++) {
-            if (!contains(*addit, fields)) {
-                if (tm->fieldMetaMap[*addit]->isEncrypted)  {
+            if (fieldsIncluded.find(*addit) == fieldsIncluded.end()) {
+            	if (tm->fieldMetaMap[*addit]->isEncrypted)  {
                     fieldsToAdd.push_back(*addit);
                 }
                 if (MULTIPRINC) {
-                    if (VERBOSE) {
-                        //cerr << "asking hasAccessTo " << fullName(*addit,
-                        // table) << "and get hi ";
-                        //accMan->hasAccess(fullName(*addit, table)); cerr <<
-                        // "\n";
-                        //cerr << "asking hasAccessTo groupforum.forumid and
-                        // get ";
-                        //myPrint(accMan->hasAccess("groupforum.forumid"));
-                        // cerr << "\n";
-                    }
+
                     if (mp->isPrincipal(fullName(*addit, table))) {
                         if (VERBOSE) { cerr << "add to princs " << *addit <<
                                        "\n"; }
@@ -3305,6 +3297,7 @@ EDBClient::decryptResultsWrapper(const char * query, DBResult * dbres)
     command comm = getCommand(query);
 
     if (comm == SELECT) {
+    	cerr << "going in select\n";
         ResType * rets = decryptResults(query, dbres->unpack());
         if (VERBOSE) {
 
@@ -3322,6 +3315,7 @@ EDBClient::decryptResultsWrapper(const char * query, DBResult * dbres)
         return rets;
     }
 
+    cerr << "return empty results \n";
     //empty result
     return new ResType();
 
@@ -3410,6 +3404,7 @@ EDBClient::execute(const char * query)
         } else {
             assert_s(counter == noQueries, "counter differs from noQueries");
 
+            cerr << "onto decrypt results \n";
             ResType * rets;
             try {
 
@@ -3426,8 +3421,10 @@ EDBClient::execute(const char * query)
                 return NULL;
             }
 
+            cerr << "donet with decrypt results\n";
             queries.clear();
             delete reply;
+            cerr << "returning \n";
             return rets;
 
         }

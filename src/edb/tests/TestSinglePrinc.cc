@@ -5,17 +5,23 @@
  *
  */
 
+
+/*
+ * TODO: add tests for NULL (inserts with some fields null, selects)
+ */
+
 #include "TestSinglePrinc.h"
+
 
 TestSinglePrinc::TestSinglePrinc()
 {
-    // TODO Auto-generated constructor stub
+
 
 }
 
 TestSinglePrinc::~TestSinglePrinc()
 {
-    // TODO Auto-generated destructor stub
+
 }
 
 bool 
@@ -125,7 +131,7 @@ CheckUpdateResults(EDBClient * cl, vector<string> in, vector<ResType> out)
     vector<ResType>::iterator res_it = out.begin();
 
     while(query_it != in.end()) {
-        cl->execute(getCStr(*query_it));
+        assert_s(cl->execute(getCStr(*query_it)), "Query failed, Update or Delete test failed \n");
         query_it++;
         ResType * test_res = cl->execute(getCStr(*query_it));
         assert_s(test_res,
@@ -480,6 +486,8 @@ testSelect(EDBClient * cl)
     CheckSelectResults(cl, query, reply);
 
     cl->execute("DROP TABLE t1;");
+
+
 }
 
 //assumes Select works
@@ -487,7 +495,7 @@ void
 testUpdate(EDBClient * cl)
 {
     cl->plain_execute(
-        "DROP TABLE IF EXISTS table0, table1, table2, table3, table4, table5, table6");
+        "DROP TABLE IF EXISTS table0, table1, table2, table3, table4, table5, table6, table7;");
     assert_s(cl->execute(
                  "CREATE TABLE t1 (id integer, age enc integer, salary enc integer, address enc text, name text)"),
              "testSelect couldn't create table");
@@ -507,7 +515,7 @@ testUpdate(EDBClient * cl)
                  "INSERT INTO t1 VALUES (5, 30, 100000, '221B Baker Street', 'Sherlock Holmes')"),
              "testUpdate couldn't insert (5)");
     assert_s(cl->execute(
-                 "INSERT INTO t1 (id) VALUES (6)"),
+                 "INSERT INTO t1 VALUES (6, 11, 0, 'hi', 'noone')"),
              "testUpdate couldn't insert (6)");
 
     vector<string> query;
@@ -526,10 +534,12 @@ testUpdate(EDBClient * cl)
                            {"4", "10", "0", "London", "Edmund"},
                            {"5", "30", "0", "221B Baker Street",
                             "Sherlock Holmes"},
-                           {"6", NULL, "0", NULL, NULL} };
+                           {"6", "11", "0", "hi", "noone"} };
     reply.push_back(convert5(rows1,7));
 
-    query.push_back("UPDATE t1 SET age=21 WHERE id6");
+
+
+    query.push_back("UPDATE t1 SET age=21 WHERE id = 6");
     query.push_back("SELECT * FROM t1");
     string rows2[7][5] = { {"id", "age", "salary", "address", "name"},
                            {"1", "10", "0",
@@ -540,8 +550,9 @@ testUpdate(EDBClient * cl)
                            {"4", "10", "0", "London", "Edmund"},
                            {"5", "30", "0", "221B Baker Street",
                             "Sherlock Holmes"},
-                           {"6", "21", "0", NULL, NULL} };
+                           {"6", "21", "0", "hi", "noone"} };
     reply.push_back(convert5(rows2,7));
+
 
     query.push_back(
         "UPDATE t1 SET address='Pemberly', name='Elizabeth Darcy' WHERE id=6");
@@ -557,6 +568,9 @@ testUpdate(EDBClient * cl)
                             "Sherlock Holmes"},
                            {"6", "21", "0", "Pemberly", "Elizabeth Darcy"} };
     reply.push_back(convert5(rows3,7));
+
+    cerr << "c\n";
+
 
     query.push_back("UPDATE t1 SET salary=55000 WHERE age=30");
     query.push_back("SELECT * FROM t1");
@@ -583,8 +597,9 @@ testUpdate(EDBClient * cl)
                            {"4", "10", "0", "London", "Edmund"},
                            {"5", "30", "55000", "221B Baker Street",
                             "Sherlock Holmes"},
-                           {"6", "21", "0", "Pemberly", "Elizabeth Darcy"} };
+                           {"6", "21", "20000", "Pemberly", "Elizabeth Darcy"} };
     reply.push_back(convert5(rows5,7));
+
 
     CheckUpdateResults(cl, query, reply);
 
@@ -691,7 +706,7 @@ testDelete(EDBClient * cl)
                             "Peter Pan"} };
     reply.push_back(convert5(rows6,2));
 
-    query.push_back("DELETE * FROM t1");
+    query.push_back("DELETE  FROM t1");
     query.push_back("SELECT * FROM t1");
     reply.push_back(res);
 
