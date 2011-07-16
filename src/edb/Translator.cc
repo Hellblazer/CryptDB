@@ -501,8 +501,10 @@ isTable(string token, const map<string, TableMetadata *> & tm)
 // < 0 : insensitive field
 // = 0 : other: constant, operation, etc.
 int
-isSensitive(string tok, QueryMeta & qm, map<string, TableMetadata *> & tm)
+isSensitive(string tok, QueryMeta & qm, map<string, TableMetadata *> & tm, string & fieldname)
 {
+
+	fieldname = tok;
 
     if (!isField(tok)) {
         return 0;
@@ -511,10 +513,15 @@ isSensitive(string tok, QueryMeta & qm, map<string, TableMetadata *> & tm)
     string table, field;
     getTableField(tok, table, field, qm, tm);
 
-    if (tm[table]->fieldMetaMap[field]->isEncrypted) {
+    FieldMetadata * fm = tm[table]->fieldMetaMap[field];
+
+    if (fm->isEncrypted) {
         return 1;
     } else {
-        return -1;
+        if (tm[table]->hasEncrypted) {
+        	fieldname = fieldNameForQuery(tm[table]->anonTableName, table, field, fm->type, qm);
+        }
+    	return -1;
     }
 
 }
@@ -548,9 +555,10 @@ processSensitive(list<string>::iterator & it, list<string> & words,
         if (newit->compare(")") == 0) {
             openParen--;
         }
-        res += " " + *newit;
+        string newtok;
+        int iss = isSensitive(*newit, qm, tm, newtok);
 
-        int iss = isSensitive(*newit, qm, tm);
+        res += " " + newtok;
 
         if (iss > 0) {
             foundSensitive = true;
@@ -736,7 +744,7 @@ processAgg(list<string>::iterator & wordsIt, list<string> & words,
             res = res + *wordsIt;
         }
     } else {
-        res = res + fieldNameForResponse(table, field, *wordsIt, qm);
+        res = res + fieldNameForResponse(table, field, *wordsIt, qm, true);
     }
 
 closingparen:
@@ -938,12 +946,15 @@ fieldNameForQuery(string anontable, string table,  string anonfield,
 
 string
 fieldNameForResponse(string table, string field, string origName,
-                     QueryMeta & qm)
+                     QueryMeta & qm, bool isAgg)
 {
     if (origName.compare("*") == 0) {
         return origName;
     }
 
+    if (!isAgg) {
+    	return field;
+    }
     if (!isTableField(origName)) {
         //no table included
         return field;

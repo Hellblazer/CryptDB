@@ -94,7 +94,7 @@ string fieldNameForQuery(string anontable, string table, string anonfield,
 //should allow *
 //does not consider field aliases
 string fieldNameForResponse(string table, string field, string origName,
-                            QueryMeta & qm);
+                            QueryMeta & qm, bool isAgg = false);
 
 string anonFieldNameForDecrypt(FieldMetadata * fm);
 

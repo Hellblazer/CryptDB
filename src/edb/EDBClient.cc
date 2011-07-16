@@ -1030,6 +1030,7 @@ throw (CryptDBError)
 
         if (!iss) {
             //the current operation does not have sensitive fields
+        	cerr << "no sensitive fields \n";
             resultQuery = resultQuery + " " + res;
             continue;
         }
@@ -1051,6 +1052,7 @@ throw (CryptDBError)
             subqueries.pop_front();
         }
 
+        cerr << "before processop for " << operand1 << " " << operand2 << "\n";
         resultQuery = resultQuery +
                       processOperation(op, operand1, operand2,  qm, subquery,
                                        tmkm);
@@ -2132,7 +2134,7 @@ getResMeta(list<string> words, vector<vector<string> > & vals, QueryMeta & qm,
         if (alias.length() != 0) {
             rm.namesForRes[i] = alias;
         } else {
-            rm.namesForRes[i] =  field;
+            rm.namesForRes[i] =  fieldNameForResponse(table, field, currToken, qm);
         }
 
         processAlias(wordsIt, words);
@@ -2266,13 +2268,10 @@ EDBClient::rewriteDecryptSelect(const char * query, ResType * dbAnswer)
             string fullAnonName = fullName(getOnionName(fm,
                                                         rm.o[j]),
                                            tableMetaMap[table]->anonTableName);
-            rets->at(i+
-                     1).at(index) =
-                crypt(vals[i+1][j], fm->type, fullName(field,
+            rets->at(i+1).at(index) = crypt(vals[i+1][j], fm->type, fullName(field,
                                                        table),
                       fullAnonName,
-                      getLevelForOnion(fm,
-                                       rm.o[j]), getLevelPlain(rm.o[j]), salt,
+                      getLevelForOnion(fm, rm.o[j]), getLevelPlain(rm.o[j]), salt,
                       tmkm, vals[i+1]);
 
             index++;
@@ -2329,8 +2328,9 @@ throw (CryptDBError)
 
     string res = "";
 
+    cerr << "operands " << op1 << " " << op2 << "\n";
     if (isField(op1) && isField(op2)) {    //join
-
+    	cerr << "IN JOIN\n";
         if (MULTIPRINC) {
             assert_s(false, "join not supported in multi-user mode");
         }
@@ -2347,17 +2347,18 @@ throw (CryptDBError)
         FieldMetadata * fm2 = tm2->fieldMetaMap[field2];
         string anonTable2 = tm2->anonTableName;
         string anonField2 = fm2->anonFieldNameDET;
-        string anonOp2 = anonTable2 + "." + anonField2;
+        string anonOp2 = fullName(anonField2, anonTable2);
         fieldType ftype2 = fm2->type;
 
         res =
-            fieldNameForQuery(anonTable1, table1, field1, ftype1,
+            fieldNameForQuery(anonTable1, table1, anonField1, ftype1,
                               qm) + " " + operation + " " +
-            fieldNameForQuery(anonTable2, table2, field2, ftype2,
+            fieldNameForQuery(anonTable2, table2, anonField2, ftype2,
                               qm) + " ";
 
         return res;
     }
+    cerr << "NOT IN JOIN\n";
 
     if (Operation::isDET(operation)) {     //DET
 

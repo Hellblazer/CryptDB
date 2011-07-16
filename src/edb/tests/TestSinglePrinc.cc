@@ -605,7 +605,7 @@ testJoin(EDBClient * cl) {
 			   {"London"} };
     reply.push_back(convert1(rows1,5));
     query.push_back("SELECT t1.id, t2.id, age, books, t2.name FROM t1, t2 WHERE t1.id=t2.id");
-    string rows2[5][5] = { {"t1.id", "t2.id", "age", "books", "t2.name"},
+    string rows2[5][5] = { {"id", "id", "age", "books", "name"},
 			   {"1", "1", "10", "6", "Peter Pan"},
 			   {"2", "2", "16", "8", "Anne Shirley"},
 			   {"3", "3", "8", "7", "Lucy"},

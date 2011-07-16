@@ -98,7 +98,7 @@ Schema annotations for multi-principal only:
 they are equivalent
 -- for now, the current annotation is (shown with examples)
 
-   CREATE TABLE priv_msgs_to (id integer, 
+   ...TODO...
 
 
 
