@@ -96,9 +96,9 @@ typedef MYSQL_RES DBResult_native;
 typedef PGresult DBResult_native;
 #endif
 
-typedef struct SyntaxError {
+typedef struct CryptDBError {
     string msg;
-} SyntaxError;
+} CryptDBError;
 
 typedef enum fieldType {TYPE_TEXT, TYPE_INTEGER, TYPE_AGG_RESULT_COUNT,
                         TYPE_AGG_RESULT_SUM, TYPE_AGG_RESULT_SET,
@@ -287,7 +287,7 @@ string BytesFromInt(uint64_t value, unsigned int noBytes);
 uint64_t IntFromBytes(const unsigned char * bytes, unsigned int noBytes);
 
 void assert_s (bool value, string msg)
-throw (SyntaxError);
+throw (CryptDBError);
 void myassert(bool value, const char * mess);
 void myassert(bool value, string mess);
 
@@ -461,7 +461,7 @@ list<string> parse(const char * str, const char * delimsStay,
                    const char * keepIntact);
 
 command getCommand(const char * queryI)
-throw (SyntaxError);
+throw (CryptDBError);
 
 //returns a string representing a value pointed to by it and advances it
 string getVal(list<string>::iterator & it);

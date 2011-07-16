@@ -133,7 +133,7 @@ string
 processCreate(fieldType type, string fieldName, unsigned int index,
               bool encryptField, TableMetadata * tm,
               FieldMetadata * fm)
-throw (SyntaxError)
+throw (CryptDBError)
 {
 
     fm->isEncrypted = encryptField;
@@ -241,7 +241,7 @@ processDecryptionsForOp(string operation, string firstToken,
                         FieldsToDecrypt & fieldsDec, QueryMeta & qm,
                         map<string,
                             TableMetadata *> & tableMetaMap)
-throw (SyntaxError)
+throw (CryptDBError)
 {
 
     string firstTable, firstField, secondTable, secondField;
@@ -590,7 +590,7 @@ getFieldsItSelect(list<string> & words, list<string>::iterator & it)
 
 QueryMeta
 getQueryMeta(command c, list<string> query, map<string, TableMetadata *> & tm)
-throw (SyntaxError)
+throw (CryptDBError)
 {
 
     if (VERBOSE_G) {cerr << "in getquery meta\n"; }
@@ -689,12 +689,14 @@ processAgg(list<string>::iterator & wordsIt, list<string> & words,
     int noParen = 0;
 
     while (isKeyword(*wordsIt) && (wordsIt->compare("*"))) {
-        res = *wordsIt;
+        res = res + *wordsIt;
         wordsIt++;
         if (wordsIt->compare("(") == 0) {
             noParen++;
             res = res + "(";
             wordsIt++;
+        } else {
+        	res = res + " ";
         }
     }
 
@@ -754,13 +756,13 @@ closingparen:
     }
 
     string alias = getAlias(wordsIt, words);
+    string palias = processAlias(wordsIt, words);
 
     if (forquery) {
-        res += processAlias(wordsIt, words);
+        res += palias;
         return res;
     } else {
-        if (alias.length() > 0) {
-            processAlias(wordsIt, words);
+    	if (alias.length() > 0) {
             return alias;
         } else {
             return res;
@@ -837,7 +839,7 @@ void
 getTableField(string token, string & table, string & field, QueryMeta & qm,
               map<string,
                   TableMetadata * > & tableMetaMap)
-throw (SyntaxError)
+throw (CryptDBError)
 {
 
     assert_s(isField(
@@ -942,7 +944,7 @@ fieldNameForResponse(string table, string field, string origName,
         return origName;
     }
 
-    if (table.length() == 0) {
+    if (!isTableField(origName)) {
         //no table included
         return field;
     } else {

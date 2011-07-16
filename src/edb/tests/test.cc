@@ -21,6 +21,7 @@
 #include "Equation.h"
 
 #include "TestSinglePrinc.h"
+#include "TestCrypto.h"
 
 using namespace std;
 
@@ -659,9 +660,9 @@ interactiveTest()
                          "CREATE TABLE hi (id integer, name enc text);"),
                      "failed");
             assert_s(cl->execute(
-                         "INSERT INTO hi VALUES (3, 'raluca');"), "failed");
+                         "INSERT INTO hi VALUES (3, 'first star');"), "failed");
             assert_s(cl->execute(
-                         "INSERT INTO hi VALUES (2, 'alice');"), "failed");
+                         "INSERT INTO hi VALUES (2, 'Green');"), "failed");
             assert_s(cl->execute(
                          "INSERT INTO hi VALUES (1, 'dan');"), "failed");
             assert_s(cl->execute(
@@ -678,7 +679,6 @@ interactiveTest()
                          "INSERT INTO hi VALUES (1, 'naaa');"), "failed");
             assert_s(cl->execute(
                          "INSERT INTO hi VALUES (1, 'hello');"), "failed");
-            assert_s(cl->execute("SELECT * FROM hi;"), "failed");
             assert_s(cl->execute(
                          "SELECT id, name FROM hi ORDER BY name;"), "failed");
 
@@ -1539,8 +1539,8 @@ suffix(int no)
                         try {
                                 ress =
                                    tcl->rewriteEncryptQuery(getCStr(query));
-                        } catch (SyntaxError se) {
-                                cerr << "syntax error " << se.msg << "\n";
+                        } catch (CryptDBError se) {
+                                cerr << "CryptDB error " << se.msg << "\n";
                                 exit(1);
                         }
                         outFile << ress.front() << "\n";
@@ -2321,7 +2321,7 @@ suffix(int no)
 
                         //cerr << query << "\n";
                         //cerr << resQuery.front() << "\n";
-                }  catch (SyntaxError se) {
+                }  catch (CryptDBError se) {
                         cerr << se.msg << "\n aborting \n";
                         return;
                 }
@@ -3859,7 +3859,7 @@ testTrace(int argc, char ** argv)
 }
 
 void
-testPKCS()
+test_PKCS()
 {
 
     PKCS * pk,* sk;
@@ -3901,6 +3901,10 @@ main(int argc, char ** argv)
 
     if (strcmp(argv[1], "single") == 0) {
         TestSinglePrinc::run(argc, argv);
+    }
+
+    if (strcmp(argv[1], "crypto") == 0) {
+        TestCrypto::run(argc, argv);
     }
 
     if (strcmp(argv[1], "autoinc") == 0) {
@@ -3959,7 +3963,7 @@ main(int argc, char ** argv)
     }
 
     if (strcmp(argv[1], "pkcs") == 0) {
-        testPKCS();
+        test_PKCS();
         return 0;
     }
 

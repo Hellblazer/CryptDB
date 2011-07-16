@@ -1,5 +1,5 @@
 HEADERS	  := $(wildcard ../*.h)
-TEST_OBJS := test.o TestSinglePrinc.o
+TEST_OBJS := test.o TestSinglePrinc.o TestCrypto.o
 CXXFLAGS  += -I../
 LDFLAGS	  += -L../
 
