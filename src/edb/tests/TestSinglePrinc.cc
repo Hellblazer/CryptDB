@@ -582,66 +582,73 @@ testJoin(EDBClient * cl) {
 
     assert_s(cl->execute("CREATE TABLE t2 (id integer, books enc integer, name enc text)"),
              "testJoin couldn't create second table");
-    assert_s(cl->execute("INSERT INTO t2 VALUES (11, 6, 'Peter Pan')"),
+    assert_s(cl->execute("INSERT INTO t2 VALUES (1, 6, 'Peter Pan')"),
              "testJoin couldn't insert (1)");
-    assert_s(cl->execute("INSERT INTO t2 VALUES (12, 8, 'Anne Shirley')"),
+    assert_s(cl->execute("INSERT INTO t2 VALUES (2, 8, 'Anne Shirley')"),
              "testJoin couldn't insert (2)");
-    assert_s(cl->execute("INSERT INTO t2 VALUES (13, 7, 'Lucy')"),
+    assert_s(cl->execute("INSERT INTO t2 VALUES (3, 7, 'Lucy')"),
              "testJoin couldn't insert (3)");
-    assert_s(cl->execute("INSERT INTO t2 VALUES (14, 7, 'Edmund')"),
+    assert_s(cl->execute("INSERT INTO t2 VALUES (4, 7, 'Edmund')"),
              "testJoin couldn't insert (4)");
+    assert_s(cl->execute("INSERT INTO t2 VALUES (10, 4, '221B Baker Street')"),
+	     "testJoin couldn't insert (5)");
 
     vector<string> query;
     vector<ResType> reply;
 
-    query.push_back("SELECT address FROM t1 JOIN t2 ON t1.id=t2.id");
+    //int comparison
+    query.push_back("SELECT address FROM t1, t2 WHERE t1.id=t2.id");
     string rows1[5][1] = { {"address"}, 
 			   {"first star to the right and straight on till morning"},
 			   {"Green Gables"},
 			   {"London"},
 			   {"London"} };
     reply.push_back(convert1(rows1,5));
-    query.push_back("SELECT t1.id, t2.id, age, books, t2.name FROM t1 JOIN t2 ON t1.id=t2.id");
+    query.push_back("SELECT t1.id, t2.id, age, books, t2.name FROM t1, t2 WHERE t1.id=t2.id");
     string rows2[5][5] = { {"t1.id", "t2.id", "age", "books", "t2.name"},
 			   {"1", "1", "10", "6", "Peter Pan"},
 			   {"2", "2", "16", "8", "Anne Shirley"},
 			   {"3", "3", "8", "7", "Lucy"},
 			   {"4", "4", "10", "7", "Edmund"} };
     reply.push_back(convert5(rows2,5));
-    query.push_back("SELECT t1.id, t2.id, age, books, t2.name FROM t1 INNER JOIN t2 ON t1.id=t2.id");
-    string rows3[5][5] = { {"t1.id", "t2.id", "age", "books", "t2.name"},
+    query.push_back("SELECT t1.name, age, salary, t2.name, books FROM t1, t2 WHERE t1.age=t2.books"); 
+    string rows3[2][5] = { {"t1.name", "age", "salary", "t2.name", "books"},
+			   {"Lucy", "8", "0", "Anne Shirley", "8"} };
+    reply.push_back(convert5(rows3,2));
+    
+    //string comparison
+    query.push_back("SELECT t1.id, t2.id, age, books, t2.name FROM t1, t2 WHERE t1.name=t2.name");
+    string rows4[5][5] = { {"t1.id", "t2.id", "age", "books", "t2.name"},
 			   {"1", "1", "10", "6", "Peter Pan"},
 			   {"2", "2", "16", "8", "Anne Shirley"},
 			   {"3", "3", "8", "7", "Lucy"},
 			   {"4", "4", "10", "7", "Edmund"} };
-    reply.push_back(convert5(rows3,5));
+    reply.push_back(convert5(rows4,5));
+    query.push_back("SELECT t1.id, age, address, t2.id, books FROM t1, t2 WHERE t1.address=t2.name");
+    string rows5[2][5] = { {"t1.id", "age", "address", "t2.id", "books"},
+			   {"5", "30", "221B Baker Street", "10", "4"} };
+    reply.push_back(convert5(rows5,2));
 
-    query.push_back("SELECT t2.name FROM t1 LEFT JOIN t2 ON t1.id=t2.id");
-    string rows4[6][1] = { {"t2.name"},
-			   {"Peter Pan"},
-			   {"Anne Shirley"},
-			   {"Lucy"},
-			   {"Edmund"},
-			   {"NULL"} };
-    reply.push_back(convert1(rows4,6));
-    query.push_back("SELECT t1.id, age, salary, books, t2.name FROM t1 RIGHT JOIN t2 ON t1.id=t2.id");
-    string rows5[6][5] = { {"t1.id", "age", "salary", "books", "t2.names"},
-			   {"1", "10", "0", "6", "Peter Pan"},
-			   {"2", "16", "1000", "8", "Anne Shirley"},
-			   {"3", "8", "0", "7", "Lucy"},
-			   {"4", "10", "0", "7", "Edmund"},
-			   {"NULL", "NULL", "NULL", "7", "Harry Potter"} };
-    reply.push_back(convert5(rows5,6));
-    query.push_back("SELECT t1.id, age, salary, books, t2.name FROM t1 FULL JOIN t2 ON t1.id=t2.id");    
-    string rows6[7][5] = { {"t1.id", "age", "salary", "books", "t2.names"},
-			   {"1", "10", "0", "6", "Peter Pan"},
-			   {"2", "16", "1000", "8", "Anne Shirley"},
-			   {"3", "8", "0", "7", "Lucy"},
-			   {"4", "10", "0", "7", "Edmund"},
-			   {"NULL", "NULL", "NULL", "7", "Harry Potter"} };
-    reply.push_back(convert5(rows6,7));			   
+    //with aliases
+    query.push_back("SELECT address FROM t1 AS a, t2 WHERE a.id=t2.id");
+    string rows11[5][1] = { {"address"}, 
+			    {"first star to the right and straight on till morning"},
+			    {"Green Gables"},
+			    {"London"},
+			    {"London"} };
+    reply.push_back(convert1(rows11,5));
+    query.push_back("SELECT a.id, b.id, age, books, b.name FROM t1 a, t2 AS b WHERE t1.id=t2.id");
+    string rows12[5][5] = { {"t1.id", "t2.id", "age", "books", "t2.name"},
+			    {"1", "1", "10", "6", "Peter Pan"},
+			    {"2", "2", "16", "8", "Anne Shirley"},
+			    {"3", "3", "8", "7", "Lucy"},
+			    {"4", "4", "10", "7", "Edmund"} };
+    reply.push_back(convert5(rows12,5));
+    query.push_back("SELECT t1.name, age, salary, b.name, books FROM t1, t2 b WHERE t1.age=b.books"); 
+    string rows13[2][5] = { {"t1.name", "age", "salary", "t2.name", "books"},
+			    {"Lucy", "8", "0", "Anne Shirley", "8"} };
+    reply.push_back(convert5(rows13,2));
     
-
     CheckSelectResults(cl, query, reply);
 
 }
