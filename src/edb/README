@@ -65,4 +65,42 @@ DROP TABLE IF EXISTS eclipsephpbb_acl_groups,phpbb_acl_options,phpbb_acl_roles,p
 
 ---
 
-Equation.cpp was taken from http://www.daniweb.com/software-development/cpp/code/216831
+Most of Equation.cpp was taken from http://www.daniweb.com/software-development/cpp/code/216831
+
+Annotations
+-----------
+
+We describe here all the schema annotations.
+
+
+Schema annotation for single and multi principal:
+
+* enc : if a field is followed by enc, CryptDB will encrypt it
+    --- e.g., ".., a enc integer, b enc text, c text", will make only a and b to be encrypted and c will be in plain
+    --- using the flag ALWAYS_ENCRYPT will automatically make all fields encrypted
+    
+    
+* search: will make this text searchable with ILIKE; 
+    -- e.g.: " ..., name search text, ... "
+    -- the programmer can optionally specify the tokenizer function in util.cc which will decide how to split the text in words, 
+       else a default tokenizer will be used
+    
+    
+* join: this will know what type of join to use
+   -- if the programmer knows that colums a, b, c will be join, he should specify: "a join (b, c) ..." where b, c are full names (field and table)
+   -- if the programmer prefers the join to adjust, he should use "a adjustjoin ... "
+   -- if the programmer does not specify anything, the default is "a join (all fields)"
+   -- the join annotation will not peel the onion to the join layer; it will only decide what join algorithm and keys to use
+    
+Schema annotations for multi-principal only:
+
+-- while we have changed the names of the attestations many times in the paper, we did not do so in the implementation because
+they are equivalent
+-- for now, the current annotation is (shown with examples)
+
+   CREATE TABLE priv_msgs_to (id integer, 
+
+
+
+
+

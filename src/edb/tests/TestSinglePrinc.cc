@@ -298,8 +298,8 @@ testSelect(EDBClient * cl)
                            {"4"} };
     reply.push_back(convert1(rows5,2));
 
-    query.push_back("SELECT COUNT(DISTINCT (address)) FROM t1");
-    string rows100[2][1] = { {"COUNT(DISTINCT (address))"},
+    query.push_back("SELECT COUNT(DISTINCT(address)) FROM t1");
+    string rows100[2][1] = { {"COUNT(DISTINCT(address))"},
                            {"4"} };
     reply.push_back(convert1(rows100,2));
 

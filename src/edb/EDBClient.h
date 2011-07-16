@@ -10,6 +10,8 @@
 
 using namespace std;
 
+
+
 class EDBClient {
  public:
     bool VERBOSE;
@@ -27,13 +29,8 @@ class EDBClient {
     EDBClient();
     EDBClient(string server, string user, string psswd, string dbname,
               const string &masterKey,
-              uint port = 0);                                                                                      //constructor
-                                                                                                                   // for
-                                                                                                                   // security
-    EDBClient(string server, string user, string psswd, string dbname);     //constructor
-                                                                            // for
-                                                                            // no
-                                                                            // security
+              uint port = 0);
+    EDBClient(string server, string user, string psswd, string dbname);
 
     // ========= QUERIES ===== //
 
