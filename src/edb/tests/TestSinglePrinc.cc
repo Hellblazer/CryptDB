@@ -275,9 +275,11 @@ testSelect(EDBClient * cl)
 {
     cl->plain_execute(
         "DROP TABLE IF EXISTS table0, table1, table2, table3, table4, table5");
-    assert_s(cl->execute(
+    if (!PLAIN) {
+      assert_s(cl->execute(
                  "CREATE TABLE t1 (id integer, age enc integer, salary enc integer, address enc text, name text)"),
 		 "testSelect couldn't create table");
+    }
     assert_s(myExecute(cl,
                  "INSERT INTO t1 VALUES (1, 10, 0, 'first star to the right and straight on till morning', 'Peter Pan')"),
              "testSelect couldn't insert (1)");
@@ -593,9 +595,11 @@ void
 testJoin(EDBClient * cl) {
     cl->plain_execute(
         "DROP TABLE IF EXISTS table0, table1, table2, table3, table4, table5, table6, table7");
+    if (!PLAIN) {
     assert_s(cl->execute(
                  "CREATE TABLE t1 (id integer, age enc integer, salary enc integer, address enc text, name enc text)"),
 		 "testJoin couldn't create table");
+    }
     assert_s(myExecute(cl,
                  "INSERT INTO t1 VALUES (1, 10, 0, 'first star to the right and straight on till morning', 'Peter Pan')"),
              "testJoin couldn't insert (1)");
@@ -612,9 +616,10 @@ testJoin(EDBClient * cl) {
                  "INSERT INTO t1 VALUES (5, 30, 100000, '221B Baker Street', 'Sherlock Holmes')"),
              "testJoin couldn't insert (5)");
 
-
+    if (!PLAIN) {
     assert_s(cl->execute("CREATE TABLE t2 (id integer, books enc integer, name enc text)"),
              "testJoin couldn't create second table");
+    }
     assert_s(myExecute(cl, "INSERT INTO t2 VALUES (1, 6, 'Peter Pan')"),
              "testJoin couldn't insert (1)");
     assert_s(myExecute(cl, "INSERT INTO t2 VALUES (2, 8, 'Anne Shirley')"),
@@ -700,9 +705,11 @@ testUpdate(EDBClient * cl)
 {
     cl->plain_execute(
         "DROP TABLE IF EXISTS table0, table1, table2, table3, table4, table5, table6, table7, table8, table9");
+    if (!PLAIN) {
     assert_s(cl->execute(
                  "CREATE TABLE t1 (id integer, age enc integer, salary enc integer, address enc text, name text)"),
 		 "testSelect couldn't create table");
+    }
     assert_s(myExecute(cl,
                  "INSERT INTO t1 VALUES (1, 10, 0, 'first star to the right and straight on till morning', 'Peter Pan')"),
              "testUpdate couldn't insert (1)");
@@ -819,9 +826,11 @@ testDelete(EDBClient * cl)
 {
     cl->plain_execute(
         "DROP TABLE IF EXISTS table0, table1, table2, table3, table4, table5, table6, table7, table8, table9, table10");
+    if (!PLAIN) {
     assert_s(cl->execute(
                  "CREATE TABLE t1 (id integer, age enc integer, salary enc integer, address enc text, name text)"),
 		 "testSelect couldn't create table");
+    }
     assert_s(myExecute(cl,
                  "INSERT INTO t1 VALUES (1, 10, 0, 'first star to the right and straight on till morning', 'Peter Pan')"),
              "testUpdate couldn't insert (1)");
@@ -927,34 +936,60 @@ testDelete(EDBClient * cl)
     }
 }
 
-void TestSearch(EDBClient * cl) {
+void testSearch(EDBClient * cl) {
     cl->plain_execute(
         "DROP TABLE IF EXISTS table0, table1, table2, table3, table4, table5, table6, table7, table8, table9, table10, table11");
-    assert_s(myExecute(cl,"CREATE TABLE t3 (id integer, searchable text)"),
-             "testSearch couldn't create table");
+    if (!PLAIN) {
+      assert_s(cl->execute("CREATE TABLE t3 (id integer, searchable text)"),
+	       "testSearch couldn't create table");
+    }
     assert_s(myExecute(cl, "INSERT INTO t3 VALUES (1, 'short text')"),
 	     "testSearch couldn't insert (1)");
     assert_s(myExecute(cl, "INSERT INTO t3 VALUES (2, 'Text with CAPITALIZATION')"),
 	     "testSearch couldn't insert (2)");
     assert_s(myExecute(cl, "INSERT INTO t3 VALUES (3, '')"),
 	     "testSearch couldn't insert (3)");
-    assert_s(myExecute(cl,"INSERT INTO t3 VALUES (4, 'When I have fears that I may cease to be, before my pen has gleaned my teaming brain; before high-piled books in charactery hold like rich garners the full-ripened grain.  When I behold upon the night\'s starred face Huge cloudy symbols of high romance And think that I may never live to trace Their shadows with the magic hand of chance.  And when I feel, fair creature of the hour That I shall never look upon thee more, Never have relish of the faerie power Of unreflecting love, I stand alone of the edge of the wide world and think, to love and fame to nothingness do sink')"), 
+    assert_s(myExecute(cl,"INSERT INTO t3 VALUES (4, 'When I have fears that I may cease to be, before my pen has gleaned my teaming brain; before high-piled books in charactery hold like rich garners the full-ripened grain.  When I behold upon the nights starred face Huge cloudy symbols of high romance And think that I may never live to trace Their shadows with the magic hand of chance.  And when I feel, fair creature of the hour That I shall never look upon thee more, Never have relish of the faerie power Of unreflecting love, I stand alone of the edge of the wide world and think, to love and fame to nothingness do sink')"), 
 	     "testSearch couldn't insert (4)");
 
     vector<string> query;
     vector<ResType> reply;
 
-    query.push_back("SELECT * FROM t3 WHERE searchable LIKE 'text'");
+    query.push_back("SELECT * FROM t3 WHERE searchable LIKE '%text%'");
+    string rows1[3][2] = { {"id", "searchable"},
+			   {"1", "short text"},
+			   {"2", "Text with CAPITALIZATION"} };
+    reply.push_back(convert2(rows1,3));
 
     query.push_back("SELECT * FROM t3 WHERE searchable LIKE 'short text'");
+    string rows2[2][2] = { {"id", "searchable"},
+			   {"1", "short text"} };
+    reply.push_back(convert2(rows2,2));
 
     query.push_back("SELECT * FROM t3 WHERE searchable LIKE ''");
+    string rows3[2][2] = { {"id", "searchable"},
+			   {"3", ""} };
+    reply.push_back(convert2(rows3,2));
 
-    query.push_back("SELECT * FROM t3 WHERE searchable LIKE 'Text'");
+    query.push_back("SELECT * FROM t3 WHERE searchable LIKE 'Text%'");
+    string rows4[2][2] = { {"id", "searchable"},
+			   {"2", "Text with CAPITALIZATION"} };
+    reply.push_back(convert2(rows4,2));
 
-    query.push_back("SELECT * FROM t3 WHERE searchable LIKE 'shadows'");
+    query.push_back("SELECT * FROM t3 WHERE searchable LIKE '%shadows'");
+    ResType empty;
+    empty.clear();
+    reply.push_back(empty);
 
-    query.push_back("SELECT * FROM t3 WHERE searchable LIKE 'magic hand of chance')");
+    query.push_back("SELECT * FROM t3 WHERE searchable LIKE 'when%'");
+    string rows5[2][2] = { {"id", "searchable"},
+			   {"4", "When I have fears that I may cease to be, before my pen has gleaned my teaming brain; before high-piled books in charactery hold like rich garners the full-ripened grain.  When I behold upon the nights starred face Huge cloudy symbols of high romance And think that I may never live to trace Their shadows with the magic hand of chance.  And when I feel, fair creature of the hour That I shall never look upon thee more, Never have relish of the faerie power Of unreflecting love, I stand alone of the edge of the wide world and think, to love and fame to nothingness do sink"} };
+    reply.push_back(convert2(rows5,2));
+
+    query.push_back("SELECT * FROM t3 WHERE searchable LIKE '%magic hand of chance%'");
+    reply.push_back(convert2(rows5,2));
+
+    CheckSelectResults(cl, query, reply);
 
     if (!PLAIN) {
       assert_s(cl->execute("DROP TABLE t3"), "testSearch can't drop t3");
@@ -986,6 +1021,8 @@ TestSinglePrinc::run(int argc, char ** argv)
     testUpdate(cl);
     cerr << "Testing delete..." << endl;
     testDelete(cl);
+    cerr << "Testing search..." << endl;
+    testSearch(cl);
     cerr << "Done!  All single-princ tests passed." << endl;
 
     delete cl;
