@@ -460,7 +460,7 @@ list<string> parse(const char * str, const char * delimsStay,
                    const char * delimsGo,
                    const char * keepIntact);
 
-command getCommand(const char * queryI)
+command getCommand(string query)
 throw (CryptDBError);
 
 //returns a string representing a value pointed to by it and advances it

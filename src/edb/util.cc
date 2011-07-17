@@ -1,5 +1,7 @@
-#include "openssl/rand.h"
+#include <algorithm>
+#include <string>
 
+#include "openssl/rand.h"
 #include "util.h"
 
 using namespace std;
@@ -1093,53 +1095,27 @@ getSQLWords(const char * query)
 }
 
 command
-getCommand(const char * queryI)
-throw (CryptDBError)
+getCommand(string query)
+    throw (CryptDBError)
 {
-    char * query = copy(queryI);
+    static struct { const char *s; command c; } s2c[] =
+        { { "create", CREATE },
+          { "update", UPDATE },
+          { "insert", INSERT },
+          { "select", SELECT },
+          { "drop",   DROP   },
+          { "delete", DELETE },
+          { "commit", COMMIT },
+          { "begin",  BEGIN  },
+          { "alter",  ALTER  },
+          { 0,        OTHER  } };
 
-    char * commandString = strtok((char *)query, " ,;()");
-
-    string command = toLowerCase(commandString);
-
-    if (command.compare("create") == 0) {
-        return CREATE;
-    }
-
-    if (command.compare("update") == 0) {
-        return UPDATE;
-    }
-
-    if (command.compare("insert") == 0) {
-        return INSERT;
-    }
-
-    if (command.compare("select") == 0) {
-        return SELECT;
-    }
-
-    if (command.compare("drop") == 0) {
-        return DROP;
-    }
-
-    if (command.compare("delete") == 0) {
-        return DELETE;
-    }
-
-    if (command.compare("commit") == 0) {
-        return COMMIT;
-    }
-
-    if (command.compare("begin") == 0) {
-        return BEGIN;
-    }
-
-    if (command.compare("alter") == 0) {
-        return ALTER;
-    }
-
+    string cmd = query.substr(0, query.find_first_of(" ,;()"));
+    transform(cmd.begin(), cmd.end(), cmd.begin(), ::tolower);
+    for (uint i = 0; s2c[i].s != 0; i++)
+        if (cmd == s2c[i].s)
+            return s2c[i].c;
     return OTHER;
-
 }
 
 string
