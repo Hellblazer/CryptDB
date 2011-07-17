@@ -654,18 +654,28 @@ interactiveTest()
         } else if (commandS.compare("debug;") == 0) {
             //assert_s(cl->execute(), "failed");
 
-            cl->plain_execute("DROP TABLE IF EXISTS table0;");
+            cl->plain_execute("DROP TABLE IF EXISTS table0, table1");
             cerr << "here \n";
             assert_s(cl->execute(
                          "CREATE TABLE hi (id integer, name enc text);"),
                      "failed");
+            assert_s(cl->execute(
+                                     "CREATE TABLE hi2 (id integer, name enc text);"),
+                                 "failed");
             assert_s(cl->execute(
                          "INSERT INTO hi VALUES (3, 'first star');"), "failed");
             assert_s(cl->execute(
                          "INSERT INTO hi VALUES (2, 'Green');"), "failed");
             assert_s(cl->execute(
                          "INSERT INTO hi VALUES (1, 'dan');"), "failed");
+
             assert_s(cl->execute(
+            		"INSERT INTO hi2 VALUES (22, 'Green');"), "failed");
+            assert_s(cl->execute(
+            		"INSERT INTO hi2 VALUES (21, 'dan');"), "failed");
+
+
+            /* assert_s(cl->execute(
                          "INSERT INTO hi VALUES (1, 'lauren');"), "failed");
             assert_s(cl->execute(
                          "INSERT INTO hi VALUES (1, 'aaa');"), "failed");
@@ -678,9 +688,9 @@ interactiveTest()
             assert_s(cl->execute(
                          "INSERT INTO hi VALUES (1, 'naaa');"), "failed");
             assert_s(cl->execute(
-                         "INSERT INTO hi VALUES (1, 'hello');"), "failed");
+                         "INSERT INTO hi VALUES (1, 'hello');"), "failed"); */
             assert_s(cl->execute(
-                         "SELECT id, name FROM hi ORDER BY name;"), "failed");
+                         "SELECT * FROM hi, hi2 WHERE hi.name = hi2.name ;"), "failed");
 
             //debugging of DECRYPTFIRST mode
 
@@ -1369,7 +1379,7 @@ test_train()
     cl->train_finish();
     cl->create_trained_instance();
 
-    cl->exit(true);
+    cl->exit();
 
 }
 

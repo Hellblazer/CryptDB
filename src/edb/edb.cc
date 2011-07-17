@@ -38,6 +38,7 @@ PG_MODULE_MAGIC;
 Datum decrypt_int_sem(PG_FUNCTION_ARGS);
 Datum decrypt_int_det(PG_FUNCTION_ARGS);
 Datum decrypt_text_sem(PG_FUNCTION_ARGS);
+Datum decrypt_text_det(PG_FUNCTION_ARGS);
 Datum search(PG_FUNCTION_ARGS);
 Datum func_add(PG_FUNCTION_ARGS);
 Datum func_add_final(PG_FUNCTION_ARGS);
@@ -46,6 +47,7 @@ Datum func_add_set(PG_FUNCTION_ARGS);
 PG_FUNCTION_INFO_V1(decrypt_int_sem);
 PG_FUNCTION_INFO_V1(decrypt_int_det);
 PG_FUNCTION_INFO_V1(decrypt_text_sem);
+PG_FUNCTION_INFO_V1(decrypt_text_det);
 PG_FUNCTION_INFO_V1(search);
 PG_FUNCTION_INFO_V1(func_add);
 PG_FUNCTION_INFO_V1(func_add_final);
@@ -98,6 +100,14 @@ decrypt_SEM(unsigned char *eValueBytes, unsigned int eValueLen,
     string c((char *) eValueBytes, eValueLen);
     return CryptoManager::decrypt_SEM(c, aesKey, salt);
 }
+
+
+static string
+decrypt_DET(unsigned char *eValueBytes, unsigned int eValueLen, AES_KEY * key) {
+	 string c((char *) eValueBytes, eValueLen);
+	return CryptoManager::decrypt_DET(c, key);
+}
+
 
 #if MYSQL_S
 #define ARGS args
@@ -313,6 +323,82 @@ decrypt_text_sem(PG_FUNCTION_ARGS)
 #endif
 
 }
+
+
+
+#if MYSQL_S
+my_bool
+decrypt_text_det_init(UDF_INIT *initid, UDF_ARGS *args, char *message)
+{
+    return 0;
+}
+
+void
+decrypt_text_det_deinit(UDF_INIT *initid)
+{
+    /*
+     * in mysql-server/sql/item_func.cc, udf_handler::fix_fields
+     * initializes initid.ptr=0 for us.
+     */
+    if (initid->ptr)
+        delete initid->ptr;
+}
+
+char *
+decrypt_text_det(UDF_INIT *initid, UDF_ARGS *args,
+                 char *result, unsigned long *length,
+                 char *is_null, char *error)
+#else /* postgres */
+Datum
+decrypt_text_det(PG_FUNCTION_ARGS)
+#endif
+{
+    unsigned int eValueLen;
+    unsigned char *eValueBytes = getba(args, 0, eValueLen);
+
+    string key;
+    key.resize(AES_KEY_BYTES);
+    int offset = 1;
+
+    for (unsigned int i = 0; i < AES_KEY_BYTES; i++) {
+        key[i] = getb(ARGS,offset+i);
+    }
+
+    AES_KEY *aesKey = get_key_DET(key);
+    string value = decrypt_DET(eValueBytes, eValueLen, aesKey);
+    delete aesKey;
+
+#if MYSQL_S
+    initid->ptr = strdup(value.c_str());
+    *length = value.length();
+    return (char*) initid->ptr;
+#else
+    bytea * res = (bytea *) palloc(eValueLen+VARHDRSZ);
+    SET_VARSIZE(res, eValueLen+VARHDRSZ);
+    memcpy(VARDATA(res), value, eValueLen);
+    PG_RETURN_BYTEA_P(res);
+#endif
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 /*
  * given field of the form:   len1 word1 len2 word2 len3 word3 ...,

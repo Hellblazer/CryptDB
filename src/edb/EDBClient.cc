@@ -10,6 +10,7 @@
 #define DECRYPT_int_det "decrypt_int_det"
 #define ENCRYPT_int_det "encrypt_int_det"
 #define DECRYPT_text_sem "decrypt_text_sem"
+#define DECRYPT_text_det "decrypt_text_det"
 #define SEARCH "search"
 #define FUNC_ADD_FINAL "agg"
 #define SUM_AGG "agg"
@@ -52,6 +53,9 @@ dropAll(Connect * conn)
                  "DROP FUNCTION IF EXISTS " DECRYPT_text_sem "; "),
              "cannot drop " DECRYPT_text_sem);
     myassert(conn->execute(
+                     "DROP FUNCTION IF EXISTS " DECRYPT_text_det "; "),
+                 "cannot drop " DECRYPT_text_det);
+    myassert(conn->execute(
                  "DROP FUNCTION IF EXISTS " SEARCH "; "),
              "cannot drop " SEARCH);
     myassert(conn->execute(
@@ -88,6 +92,9 @@ createAll(Connect * conn, CryptoManager * cm)
     myassert(conn->execute(
                  "CREATE FUNCTION decrypt_text_sem RETURNS STRING SONAME 'edb.so'; "),
              "failed to create udf decrypt_text_sem");
+    myassert(conn->execute(
+                    "CREATE FUNCTION decrypt_text_det RETURNS STRING SONAME 'edb.so'; "),
+                "failed to create udf decrypt_text_det");
     myassert(conn->execute(
                  "CREATE FUNCTION search RETURNS INTEGER SONAME 'edb.so'; "),
              "failed to create udf search");
@@ -155,6 +162,8 @@ EDBClient::EDBClient(string server, string user, string psswd, string dbname,
 
     /* Make a connection to the database */
     conn = new Connect(server, user, psswd, dbname, port);
+
+    createAll(conn, cm);
 
     tableNameMap = map<string, string>();
     tableMetaMap = map<string, TableMetadata *>();
@@ -1317,26 +1326,28 @@ throw (CryptDBError)
 
         string decryptS;
         //first prepare the decryption call string
+
         switch (ft) {
         case TYPE_INTEGER: {
 
-            //cout << "KEY USED TO DECRYPT field from DET " << anonfieldName
-            // << " " << cm->marshallKey(cm->getKey(anonTableName
-            // +"."+anonfieldName, DET)) << "\n"; fflush(stdout);
-            decryptS = "decrypt_int_det(" + anonfieldName + "," +
-                       cm->marshallKey(cm->getKey(fullName(anonfieldName,
-                                                           anonTableName),
-                                                  DET)) + ");"+'\0';
+            decryptS = "decrypt_int_det";
+
             break;
         }
         case TYPE_TEXT: {
-            assert_s(false, "joins not supported for text");
-            break;
+            decryptS = "decrypt_text_det";
+
+        	break;
         }
 
         default: {assert_s(false, "invalid type"); }
 
         }
+
+        decryptS = decryptS + "(" + anonfieldName + "," +
+        		cm->marshallKey(cm->getKey(fullName(anonfieldName, anonTableName),
+        				DET)) + ");"+'\0';
+
 
         string resultQ = string("UPDATE ") +
                          tableMetaMap[table]->anonTableName +
@@ -3438,18 +3449,21 @@ EDBClient::execute(const char * query)
 }
 
 void
-EDBClient::exit(bool dropOnExit)
+EDBClient::exit()
 {
     if (VERBOSE) {cerr << "Exiting..\n "; }
     if (isSecure) {
 
+        dropAll(conn);
+
         if (dropOnExit) {
-            dropAll(conn);
             dropTables();
+
         }
 
         if (VERBOSE) {cout << "DROP FUNCTIONS;\n"; }
     }
+
 }
 
 void
@@ -3460,14 +3474,10 @@ cleanup(map<string, TableMetadata *> & tableMetaMap)
 EDBClient::~EDBClient()
 {
 
-    dropAll(conn);
-    cout << "DROP FUNCTIONS;";
-
-    //cleanup data structures
+	//cleanup data structures
     tableNameMap.clear();
     cleanup(tableMetaMap);
     cm->~CryptoManager();
-
 }
 
 string

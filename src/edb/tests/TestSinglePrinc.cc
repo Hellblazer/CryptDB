@@ -594,7 +594,7 @@ testJoin(EDBClient * cl) {
     cl->plain_execute(
         "DROP TABLE IF EXISTS table0, table1, table2, table3, table4, table5, table6, table7");
     assert_s(cl->execute(
-                 "CREATE TABLE t1 (id integer, age enc integer, salary enc integer, address enc text, name text)"),
+                 "CREATE TABLE t1 (id integer, age enc integer, salary enc integer, address enc text, name enc text)"),
 		 "testJoin couldn't create table");
     assert_s(myExecute(cl,
                  "INSERT INTO t1 VALUES (1, 10, 0, 'first star to the right and straight on till morning', 'Peter Pan')"),

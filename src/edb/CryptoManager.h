@@ -135,8 +135,22 @@ class CryptoManager {
     static AES_KEY * get_key_DET(const string &key);
     static uint64_t encrypt_DET(uint32_t plaintext, AES_KEY * key);
     static uint64_t encrypt_DET(uint64_t plaintext, AES_KEY * key);
-    static uint64_t encrypt_DET(const string &plaintext, AES_KEY *key);
+    //static uint64_t encrypt_DET(const string &plaintext, AES_KEY *key);
     static uint64_t decrypt_DET(uint64_t ciphertext, AES_KEY * key);
+
+    static string encrypt_DET(const string & plaintext, AES_KEY * key);
+    static string decrypt_DET(const string & ciphertext, AES_KEY * key);
+
+    /****************
+     *  SEARCH
+     *
+     *  Two methods:
+     *  1. faster and less secure: encrypt each word with DET separately
+     *  2. slower and more secure: use SWP method
+     ****************/
+
+    /* Method 1 */
+    // was integrated in older versions, not in current version
 
     //encrypts a string such that it can support search, ciph need not be
     // initialized
@@ -148,6 +162,10 @@ class CryptoManager {
 
     static string encrypt_DET_wrapper(const string &ptext, AES_KEY * key);
     static string decrypt_DET_wrapper(const string &ctext, AES_KEY * key);
+
+    /* Method 2 */
+
+
 
     //aggregates
     static const unsigned int Paillier_len_bytes = PAILLIER_LEN_BYTES;

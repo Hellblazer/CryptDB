@@ -131,11 +131,7 @@ decreaseLevel(SECLEVEL l, fieldType ft,  onion o)
         switch (l) {
         case SEMANTIC_DET: {return DET; }
         case DET: {
-            if (ft == TYPE_TEXT) {
-                return PLAIN_DET;
-            } else {
                 return DETJOIN;
-            }
         }
         case DETJOIN: {return PLAIN_DET; }
         default: {
@@ -186,11 +182,7 @@ increaseLevel(SECLEVEL l, fieldType ft, onion o)
         case DET: {return SEMANTIC_DET; }
         case DETJOIN: {return DET; }
         case PLAIN_DET: {
-            if (ft == TYPE_TEXT) {
-                return DET;
-            } else {
                 return DETJOIN;
-            }
         }
         default: {
             assert_s(false, "cannot increase level");
@@ -364,8 +356,12 @@ CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft,
 
             switch (o) {
             case oDET: {
+
+
+
                 string val = unmarshallBinary(data);
                 if (fromlevel == SEMANTIC_DET) {
+                  	cerr << "at sem det " << data <<"\n";
                     AES_KEY * key =
                         get_key_SEM(getKey(mkey, fullfieldname, fromlevel));
                     val = decrypt_SEM(val, key, salt);
@@ -375,20 +371,37 @@ CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft,
                     }
                 }
 
+
                 if (fromlevel == DET) {
-                    AES_KEY * key =
+
+                	cerr << "at det " << marshallBinary(val) <<"\n";
+
+                	AES_KEY * key =
                         get_key_DET(getKey(mkey, fullfieldname, fromlevel));
-                    string res = decrypt_DET_wrapper(val, key);
+                    val = decrypt_DET(val, key);
                     fromlevel = decreaseLevel(fromlevel, ft, oDET);
                     if (fromlevel == tolevel) {
-                        return res;
+                        return marshallBinary(val);
                     }
                 }
 
+
+
+
                 if (fromlevel == DETJOIN) {
-                    assert_s(false, "no join for text \n");
-                    return "";
+                 	cerr << "at det join" << marshallBinary(val) <<"\n";
+
+                	AES_KEY * key =
+                			get_key_DET(getKey(mkey, "join", fromlevel));
+                	val = decrypt_DET(val, key);
+                	fromlevel = decreaseLevel(fromlevel, ft, oDET);
+                	if (fromlevel == tolevel) {
+                		cerr << "at plain " << val << "\n";
+                		return val;
+                	}
                 }
+
+
 
                 assert_s(false, "nothing lower than plain");
                 return "";
@@ -437,6 +450,7 @@ CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft,
 
         switch (o) {
         case oDET: {
+
             uint64_t val = unmarshallVal(data);
 
             if (fromlevel == PLAIN_DET) {
@@ -532,8 +546,12 @@ CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft,
 
         switch (o) {
         case oDET: {
-            if (fromlevel == PLAIN_DET) {
 
+
+
+        	if (fromlevel == PLAIN_DET) {
+
+        		cerr << "at plain det " << data <<"\n";
                 /* XXX
                  * This looks wrong: when do we put the apostrophe back?
                  */
@@ -542,38 +560,51 @@ CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft,
                 fromlevel  = increaseLevel(fromlevel, ft, oDET);
 
                 AES_KEY * key =
-                    get_key_DET(getKey(mkey, fullfieldname, fromlevel));
-                string uval = encrypt_DET_wrapper(data, key);
+                    get_key_DET(getKey(mkey, "join", fromlevel));
+
+                data = encrypt_DET(data, key);
                 //cerr << "crypting " << data << " at DET is " <<
                 // marshallBinary(uval) << "  ";
                 if (fromlevel == tolevel) {
                     //cerr << "result is " << marshallBinary(uval, newlen);
-                    return marshallBinary(uval);
+                    return marshallBinary(data);
                 }
-                fromlevel = increaseLevel(fromlevel, ft, oDET);
-                key = get_key_SEM(getKey(mkey, fullfieldname, fromlevel));
-                uval = encrypt_SEM(uval, key, salt);
-                //cerr << "at sem is " << marshallBinary(uval) << "\n";
-                if (fromlevel == tolevel) {
-                    return marshallBinary(uval);
-                } else {
-                    assert_s(false, "no higher level than SEMANTIC_DET\n");
-                }
-            } else {
-                assert_s(fromlevel == DET, "expected det level \n");
-                string uval = unmarshallBinary(data);
 
+            } else {
+            	data = unmarshallBinary(data);
+            }
+
+
+
+            if (fromlevel == DETJOIN) {
+            	cerr << "at det join " << marshallBinary(data) <<"\n";
+            	fromlevel = increaseLevel(fromlevel, ft, oDET);
+            	AES_KEY * key =
+            			get_key_DET(getKey(mkey, fullfieldname, fromlevel));
+            	data = encrypt_DET(data, key);
+            	if (fromlevel == tolevel) {
+            		return marshallBinary(data);
+            	}
+            }
+
+
+
+
+            if (fromlevel == DET) {
+            	cerr << "at det " << marshallBinary(data) <<"\n";
                 fromlevel = increaseLevel(fromlevel, ft, oDET);
 
                 AES_KEY * key =
                     get_key_SEM(getKey(mkey, fullfieldname, fromlevel));
-                uval = encrypt_SEM(uval, key, salt);
+                data = encrypt_SEM(data, key, salt);
                 if (fromlevel == tolevel) {
-                    return marshallBinary(uval);
-                } else {
-                    assert_s(false, "no higher level than SEMANTIC_DET\n");
+                	cerr << "at sem " << marshallBinary(data) << "\n";
+                    return marshallBinary(data);
                 }
             }
+
+
+
 
             assert_s(false, "nothing higher than SEM_DET for text\n");
 
@@ -703,7 +734,7 @@ CryptoManager::encrypt_DET_onion(string uniqueFieldName, string value,
 {
     string key = getKey(uniqueFieldName, DET);
     AES_KEY * aesKey = get_key_DET(key);
-    uint64_t res =  encrypt_DET(value, aesKey);
+    uint64_t res =  encrypt_DET(unmarshallVal(value), aesKey);
 
     key = getKey(uniqueFieldName, SEMANTIC_DET);
     aesKey = get_key_SEM(key);
@@ -880,8 +911,9 @@ CryptoManager::encrypt_SEM(const string &ptext, AES_KEY * key, uint64_t salt)
 
     stringstream ss;
 
-    for (unsigned int i = 0; i < ptext.length(); i++)
+    for (unsigned int i = 0; i < ptext.length(); i++) {
         ss << (uint8_t) (((uint8_t)ptext[i]) ^ xorVector[i]);
+    }
 
     //cerr << "result of encrypt sem is len " << len << " data is ";
     // myPrint(result, len);
@@ -906,6 +938,18 @@ CryptoManager::decrypt_SEM(const string &ctext, AES_KEY * key, uint64_t salt)
     // myPrint(res, len); cerr << "\n";
     free(xorVector);
     return ss.str();
+}
+
+string
+CryptoManager::encrypt_DET(const string & ptext, AES_KEY * key)
+{
+	return CryptoManager::encrypt_SEM(ptext, key, 1);
+}
+
+string
+CryptoManager::decrypt_DET(const string & ctext, AES_KEY * key)
+{
+   return CryptoManager::decrypt_SEM(ctext, key, 1);
 }
 
 bool
@@ -1115,7 +1159,7 @@ CryptoManager::encrypt_DET(uint32_t plaintext, AES_KEY * key)
        return IntFromBytes(ciphertext, AES_BLOCK_BYTES);*/
 
 }
-
+/*
 //AES_K(hash(test))
 uint64_t
 CryptoManager::encrypt_DET(const string &plaintext, AES_KEY *key)
@@ -1131,7 +1175,7 @@ CryptoManager::encrypt_DET(const string &plaintext, AES_KEY *key)
 
     return IntFromBytes(ciphertext, AES_BLOCK_BYTES);
 }
-
+*/
 static void
 xorWord(string word, AES_KEY * key, int salt, stringstream *ss)
 {

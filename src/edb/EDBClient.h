@@ -56,7 +56,7 @@ class EDBClient {
     //==== EXIT =================//
 
     ~EDBClient();
-    void exit(bool dropOnExit = false);     //exists nicely
+    void exit();     //exists nicely
 
     //============OPTIMIZATION===================//
 
@@ -204,6 +204,7 @@ class EDBClient {
     // OTHER
 
     void dropTables();
+
 
  protected:
     //these are protected mostly for testing purposes
