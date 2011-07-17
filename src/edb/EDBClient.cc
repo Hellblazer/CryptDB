@@ -38,11 +38,9 @@ void
 dropAll(Connect * conn)
 {
 
-    cerr << "trying to drop\n";
     myassert(conn->execute(
                  "DROP FUNCTION IF EXISTS " DECRYPT_int_sem "; "),
              "cannot drop " DECRYPT_int_sem);
-    cerr << "dropped decrypt int sem \n";
     myassert(conn->execute(
                  "DROP FUNCTION IF EXISTS " DECRYPT_int_det "; "),
              "cannot drop " DECRYPT_int_det);
@@ -163,7 +161,9 @@ EDBClient::EDBClient(string server, string user, string psswd, string dbname,
     /* Make a connection to the database */
     conn = new Connect(server, user, psswd, dbname, port);
 
+    dropAll(conn);
     createAll(conn, cm);
+    if (VERBOSE) {cout << "UDF-s loaded successfully. \n\n"; }
 
     tableNameMap = map<string, string>();
     tableMetaMap = map<string, TableMetadata *>();
@@ -171,7 +171,6 @@ EDBClient::EDBClient(string server, string user, string psswd, string dbname,
     totalTables = 0;
     totalIndexes = 0;
 
-    if (VERBOSE) {cout << "UDF-s loaded successfully. \n\n"; }
 
     if (MULTIPRINC) {
         mp = new MultiPrinc(conn);
