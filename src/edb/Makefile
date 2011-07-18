@@ -61,6 +61,6 @@ indent:
 	uncrustify --no-backup -c ../.uncrustify.cfg $(wildcard tests/*.cc)
 	uncrustify --no-backup -c ../.uncrustify.cfg $(wildcard tests/*.h)
 
-.PHONY: install clean indent test
+.PHONY: all install clean indent test
 
 # vim: set noexpandtab:

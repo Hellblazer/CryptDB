@@ -37,4 +37,9 @@ xftest: xftest.o
 clean:
 	rm -f *.o parsetest xftest
 
+indent:
+	uncrustify --no-backup -c ../.uncrustify.cfg $(wildcard *.cc)
+
+.PHONY: all clean indent
+
 # vim: set noexpandtab:
