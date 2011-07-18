@@ -6,7 +6,7 @@ LDFLAGS	  += -L../
 all: test
 
 test: $(TEST_OBJS)
-	$(CXX) $(LDFLAGS) -o $@ $^ -lcryptdb -ldl -lcrypto -lntl
+	$(CXX) $(LDFLAGS) -o $@ $^ -lcryptdb -ldl -lcrypto -lntl -ledbcrypto
 
 %.o: %.cc $(HEADERS)
 	$(CXX) $(CXXFLAGS) $< -c -o $@

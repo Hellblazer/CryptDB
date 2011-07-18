@@ -584,16 +584,16 @@ interactiveTest(int ac, char **av)
     cl->VERBOSE = true;
 
     streamsize len = 100;
-    char * command = new char[len];
+    char *cmd = new char[len];
 
     for (;; ) {
 
         cout << "CryptDB=# ";
-        cin.getline(command, len);
+        cin.getline(cmd, len);
         if (cin.eof())
             break;
 
-        string commandS = string(command);
+        string commandS = string(cmd);
 
         if (commandS.compare("\\q") == 0) {
             break;
@@ -996,7 +996,7 @@ interactiveTest(int ac, char **av)
 
                cl->outputOnionState();*/
         } else {
-            cl->execute(command);
+            cl->execute(cmd);
         }
     }
 
