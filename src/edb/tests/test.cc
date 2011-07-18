@@ -568,7 +568,7 @@ evalImproveSummations()
 }
 
 static void
-interactiveTest()
+interactiveTest(int ac, char **av)
 {
 
     cout << "\n ---------   CryptDB ---------- \n \n";
@@ -1153,30 +1153,7 @@ testEDBClient()
 }
 
 static void
-testCrypto()
-{
-    cout << "TEST Crypto..\n";
-
-    string masterKey = randomBytes(AES_KEY_BYTES);
-    CryptoManager * cm = new CryptoManager(masterKey);
-
-    AES_KEY * aeskey = cm->get_key_DET(masterKey);
-    uint64_t plainVal = 345243;
-    uint64_t ciph = cm->encrypt_DET(plainVal, aeskey);
-
-    uint64_t decVal = cm->decrypt_DET(ciph, aeskey);
-
-    cerr << "val " << plainVal << " enc " << ciph << " dec " << decVal <<
-    "\n";
-
-    myassert(plainVal == decVal,
-             "decryption of encryption does not match value \n");
-
-    cout << "TEST Crypto succeeded \n";
-}
-
-static void
-testPaillier()
+testPaillier(int ac, char **av)
 {
     int noTests = 100;
     int nrTestsEval = 100;
@@ -1231,7 +1208,7 @@ testPaillier()
 }
 
 static void
-testUtils()
+testUtils(int ac, char **av)
 {
     const char * query =
         "SELECT sum(1), name, age, year FROM debug WHERE debug.name = 'raluca ?*; ada' AND a+b=5 ORDER BY name;";
@@ -2365,7 +2342,7 @@ suffix(int no)
  */
 
 static void
-encryptionTablesTest()
+encryptionTablesTest(int ac, char **av)
 {
     EDBClient * cl =
         new EDBClient("localhost", "raluca", "none", "cryptdb", randomBytes(
@@ -2402,7 +2379,7 @@ encryptionTablesTest()
 }
 
 static void
-testParseAccess()
+testParseAccess(int ac, char **av)
 {
 
     EDBClient * cl =
@@ -2450,7 +2427,7 @@ testParseAccess()
 }
 
 static void
-autoIncTest()
+autoIncTest(int ac, char **av)
 {
 
     string masterKey = BytesFromInt(mkey, AES_KEY_BYTES);
@@ -2508,7 +2485,7 @@ autoIncTest()
 }
 
 static void
-accessManagerTest()
+accessManagerTest(int ac, char **av)
 {
 
     cerr <<
@@ -3864,7 +3841,7 @@ testTrace(int argc, char ** argv)
 }
 
 static void
-test_PKCS()
+test_PKCS(int ac, char **av)
 {
 
     PKCS * pk,* sk;
@@ -3895,82 +3872,54 @@ test_PKCS()
     cerr << "msg" << dec << "\n";
 }
 
+static void help(int ac, char **av);
+
+static struct {
+    const char *name;
+    void (*f) (int ac, char **av);
+} tests[] = {
+    { "access",      &accessManagerTest },
+    { "aes",         &evaluate_AES },
+    { "autoinc",     &autoIncTest },
+    { "crypto",      &TestCrypto::run },
+    { "paillier",    &testPaillier },
+    { "parseaccess", &testParseAccess },
+    { "pkcs",        &test_PKCS },
+    { "shell",       &interactiveTest },
+    { "single",      &TestSinglePrinc::run },
+    { "tables",      &encryptionTablesTest },
+    { "trace",       &testTrace },
+    { "utils",       &testUtils },
+
+    { "help",        &help },
+};
+
+static void
+help(int ac, char **av)
+{
+    cerr << "Usage: " << av[0] << " testname" << endl;
+    cerr << "Supported tests:" << endl;
+    for (uint i = 0; i < NELEM(tests); i++)
+        cerr << "    " << tests[i].name << endl;
+}
+
 int
 main(int argc, char ** argv)
 {
-
     if (argc == 1) {
-        interactiveTest();
+        interactiveTest(argc, argv);
         return 0;
     }
 
-    if (strcmp(argv[1], "single") == 0) {
-        TestSinglePrinc::run(argc, argv);
-    }
-
-    if (strcmp(argv[1], "crypto") == 0) {
-        TestCrypto::run(argc, argv);
-    }
-
-    if (strcmp(argv[1], "autoinc") == 0) {
-        autoIncTest();
-        return 0;
-    }
-
-    if (strcmp(argv[1], "trace") == 0) {
-        testTrace(argc, argv);
-        return 0;
-    }
-
-    if (strcmp(argv[1], "parseaccess") == 0) {
-        testParseAccess();
-        return 0;
-    }
-
-    if (strcmp(argv[1], "crypto") == 0) {
-        testCrypto();
-        return 0;
-    }
-
-    if (strcmp(argv[1], "access") == 0) {
-        accessManagerTest();
-        return 0;
-    }
-
-    if (strcmp(argv[1], "Paillier") == 0) {
-        testPaillier();
-        return 0;
-    }
-
-    if (strcmp(argv[1], "Crypto") == 0) {
-        testCrypto();
-        return 0;
-    }
-
-    if (strcmp(argv[1], "Utils") == 0) {
-
-        testUtils();
-        return 0;
-    }
-    if (strcmp(argv[1], "shell") == 0) {
-
-        interactiveTest();
-        return 0;
-    }
-
-    if (strcmp(argv[1], "tables") == 0) {
-        if (argc == 2) {
-            encryptionTablesTest();
+    for (uint i = 0; i < NELEM(tests); i++) {
+        if (!strcasecmp(argv[1], tests[i].name)) {
+            tests[i].f(argc, argv);
             return 0;
-        } else {
-            cerr << "usage ./test tables ";
         }
     }
 
-    if (strcmp(argv[1], "pkcs") == 0) {
-        test_PKCS();
-        return 0;
-    }
+    help(argc, argv);
+}
 
 /*	if (strcmp(argv[1], "train") == 0) {
                 test_train();
@@ -4058,7 +4007,3 @@ main(int argc, char ** argv)
         //test_EDBClient_noSecurity();
         //evaluateMetrics(argc, argv);
  */
-    if (strcmp(argv[1], "aes") == 0) {
-        evaluate_AES(argc, argv);
-    }
-}
