@@ -65,43 +65,18 @@ PrintRes(ResType res)
     }
 }
 
+template <int N>
 static ResType
-convert1(string rows[][1], int num_rows) {
-  ResType res;
-  for (int i = 0; i < num_rows; i++) {
-    vector<string> temp;
-    for (int j = 0; j < 1; j++) {
-      temp.push_back(rows[i][j]);
+convert(string rows[][N], int num_rows)
+{
+    ResType res;
+    for (int i = 0; i < num_rows; i++) {
+        vector<string> temp;
+        for (int j = 0; j < N; j++)
+            temp.push_back(rows[i][j]);
+        res.push_back(temp);
     }
-    res.push_back(temp);
-  }
-  return res;
-}
-
-static ResType
-convert2(string rows[][2], int num_rows) {
-  ResType res;
-  for (int i = 0; i < num_rows; i++) {
-    vector<string> temp;
-    for (int j = 0; j < 2; j++) {
-      temp.push_back(rows[i][j]);
-    }
-    res.push_back(temp);
-  }
-  return res;
-}
-
-static ResType
-convert5(string rows[][5], int num_rows) {
-  ResType res;
-  for (int i = 0; i < num_rows; i++) {
-    vector<string> temp;
-    for (int j = 0; j < 5; j++) {
-      temp.push_back(rows[i][j]);
-    }
-    res.push_back(temp);
-  }
-  return res;
+    return res;
 }
 
 static ResType *
@@ -305,32 +280,32 @@ testSelect(EDBClient * cl)
                            {"4", "10", "0", "London", "Edmund"},
                            {"5", "30", "100000", "221B Baker Street",
                             "Sherlock Holmes"} };
-    reply.push_back(convert5(rows1,6));
+    reply.push_back(convert(rows1,6));
 
     query.push_back("SELECT max(id) FROM t1");
     string rows2[2][1] = { {"max(id)"},
                            {"5"} };
-    reply.push_back(convert1(rows2,2));
+    reply.push_back(convert(rows2,2));
 
     query.push_back("SELECT max(salary) FROM t1");
     string rows3[2][1] = { {"max(salary)"},
                            {"100000"} };
-    reply.push_back(convert1(rows3,2));
+    reply.push_back(convert(rows3,2));
 
     query.push_back("SELECT COUNT(*) FROM t1");
     string rows4[2][1] = { {"COUNT(*)"},
                            {"5"} };
-    reply.push_back(convert1(rows4,2));
+    reply.push_back(convert(rows4,2));
 
     query.push_back("SELECT COUNT(DISTINCT age) FROM t1");
     string rows5[2][1] = { {"COUNT(DISTINCT age)"},
                            {"4"} };
-    reply.push_back(convert1(rows5,2));
+    reply.push_back(convert(rows5,2));
 
     query.push_back("SELECT COUNT(DISTINCT(address)) FROM t1");
     string rows100[2][1] = { {"COUNT(DISTINCT(address))"},
                            {"4"} };
-    reply.push_back(convert1(rows100,2));
+    reply.push_back(convert(rows100,2));
 
     query.push_back("SELECT name FROM t1");
     string rows6[6][1] = { {"name"},
@@ -339,7 +314,7 @@ testSelect(EDBClient * cl)
                            {"Lucy"},
                            {"Edmund"},
                            {"Sherlock Holmes"} };
-    reply.push_back(convert1(rows6,6));
+    reply.push_back(convert(rows6,6));
 
     query.push_back("SELECT address FROM t1");
     string rows7[6][1] = { { "address"},
@@ -349,31 +324,31 @@ testSelect(EDBClient * cl)
                            {"London"},
                            {"London"},
                            {"221B Baker Street"} };
-    reply.push_back(convert1(rows7,6));
+    reply.push_back(convert(rows7,6));
 
     query.push_back("SELECT sum(age), max(salary), min(salary), COUNT(name), address FROM t1");
     string rows8[2][5] = { {"sum(age)", "max(salary)", "min(salary)", "COUNT(name)", "address"},
 			   {"74",        "100000",     "0",           "5",           "first star to the right and straight on till morning"} };
-    reply.push_back(convert5(rows8,2));
+    reply.push_back(convert(rows8,2));
 
     query.push_back("SELECT * FROM t1 WHERE id = 1");
     string rows9[2][5] = { {"id", "age", "salary", "address", "name"},
                            {"1", "10", "0",
                             "first star to the right and straight on till morning",
                             "Peter Pan"} };
-    reply.push_back(convert5(rows9,2));
+    reply.push_back(convert(rows9,2));
 
     query.push_back("SELECT * FROM t1 WHERE id>3");
     string rows10[3][5] = { {"id", "age", "salary", "address", "name"},
                             {"4", "10", "0", "London", "Edmund"},
                             {"5", "30", "100000", "221B Baker Street",
                              "Sherlock Holmes"} };
-    reply.push_back(convert5(rows10,3));
+    reply.push_back(convert(rows10,3));
 
     query.push_back("SELECT * FROM t1 WHERE age = 8");
     string rows11[2][5] = { {"id", "age", "salary", "address", "name"},
                             {"3", "8", "0", "London", "Lucy"} };
-    reply.push_back(convert5(rows11,2));
+    reply.push_back(convert(rows11,2));
 
     query.push_back("SELECT * FROM t1 WHERE salary = 15");
     ResType res;
@@ -386,7 +361,7 @@ testSelect(EDBClient * cl)
                              "Anne Shirley"},
                             {"5", "30", "100000", "221B Baker Street",
                              "Sherlock Holmes"} };
-    reply.push_back(convert5(rows12,3));
+    reply.push_back(convert(rows12,3));
 
     query.push_back("SELECT * FROM t1 WHERE age = 10 AND salary = 0");
     string rows13[3][5] = { {"id", "age", "salary", "address", "name"},
@@ -394,7 +369,7 @@ testSelect(EDBClient * cl)
                              "first star to the right and straight on till morning",
                              "Peter Pan"},
                             {"4", "10", "0", "London", "Edmund"} };
-    reply.push_back(convert5(rows13,3));
+    reply.push_back(convert(rows13,3));
 
     query.push_back("SELECT * FROM t1 WHERE age = 10 OR salary = 0");
     string rows14[4][5] = { {"id", "age", "salary", "address", "name"},
@@ -403,14 +378,14 @@ testSelect(EDBClient * cl)
                              "Peter Pan"},
                             {"3", "8", "0", "London", "Lucy"},
                             {"4", "10", "0", "London", "Edmund"} };
-    reply.push_back(convert5(rows14,4));
+    reply.push_back(convert(rows14,4));
 
     query.push_back("SELECT * FROM t1 WHERE name = 'Peter Pan'");
     string rows15[2][5] = { {"id", "age", "salary", "address", "name"},
                             {"1", "10", "0",
                              "first star to the right and straight on till morning",
                              "Peter Pan"} };
-    reply.push_back(convert5(rows15,2));
+    reply.push_back(convert(rows15,2));
 
     //-------------------------------------------------------------------------------
     //afer the WHERE statement
@@ -419,13 +394,13 @@ testSelect(EDBClient * cl)
     string rows16[2][5] = { {"id", "age", "salary", "address", "name"},
                             {"2", "16", "1000", "Green Gables",
                              "Anne Shirley"} };
-    reply.push_back(convert5(rows16,2));
+    reply.push_back(convert(rows16,2));
 
     query.push_back("SELECT * FROM t1 WHERE address <= '221C'");
     string rows17[2][5] = { {"id", "age", "salary", "address", "name"},
                             {"5", "30", "100000", "221B Baker Street",
                              "Sherlock Holmes"} };
-    reply.push_back(convert5(rows17,2));
+    reply.push_back(convert(rows17,2));
 
     query.push_back(
         "SELECT * FROM t1 WHERE address >= 'Green Gables' AND age > 9");
@@ -433,7 +408,7 @@ testSelect(EDBClient * cl)
                             {"2", "16", "1000", "Green Gables",
                              "Anne Shirley"},
                             {"4", "10", "0", "London", "Edmund"} };
-    reply.push_back(convert5(rows18,3));
+    reply.push_back(convert(rows18,3));
 
     query.push_back(
         "SELECT * FROM t1 WHERE address >= 'Green Gables' OR age > 9");
@@ -447,7 +422,7 @@ testSelect(EDBClient * cl)
                             {"4", "10", "0", "London", "Edmund"},
                             {"5", "30", "100000", "221B Baker Street",
                              "Sherlock Holmes"} };
-    reply.push_back(convert5(rows19,6));
+    reply.push_back(convert(rows19,6));
 
     query.push_back("SELECT * FROM t1 ORDER BY id");
     string rows20[6][5] = { {"id", "age", "salary", "address", "name"},
@@ -460,7 +435,7 @@ testSelect(EDBClient * cl)
                             {"4", "10", "0", "London", "Edmund"},
                             {"5", "30", "100000", "221B Baker Street",
                              "Sherlock Holmes"} };
-    reply.push_back(convert5(rows20,6));
+    reply.push_back(convert(rows20,6));
 
     query.push_back("SELECT * FROM t1 ORDER BY salary");
     string rows21[6][5] = { {"id", "age", "salary", "address", "name"},
@@ -473,7 +448,7 @@ testSelect(EDBClient * cl)
                              "Anne Shirley"},
                             {"5", "30", "100000", "221B Baker Street",
                              "Sherlock Holmes"} };
-    reply.push_back(convert5(rows21,6));
+    reply.push_back(convert(rows21,6));
 
     query.push_back("SELECT * FROM t1 ORDER BY name");
     string rows22[6][5] = { {"id", "age", "salary", "address", "name"},
@@ -486,7 +461,7 @@ testSelect(EDBClient * cl)
                              "Peter Pan"},
                             {"5", "30", "100000", "221B Baker Street",
                              "Sherlock Holmes"} };
-    reply.push_back(convert5(rows22,6));
+    reply.push_back(convert(rows22,6));
 
     query.push_back("SELECT * FROM t1 ORDER BY address");
     string rows23[6][5] = { {"id", "age", "salary", "address", "name"},
@@ -499,7 +474,7 @@ testSelect(EDBClient * cl)
                              "Anne Shirley"},
                             {"3", "8", "0", "London", "Lucy"},
                             {"4", "10", "0", "London", "Edmund"} };
-    reply.push_back(convert5(rows23,6));
+    reply.push_back(convert(rows23,6));
 
     query.push_back("SELECT * FROM t1 GROUP BY address ORDER BY address");
     string rows24[5][5] = { {"id", "age", "salary", "address", "name"},
@@ -511,7 +486,7 @@ testSelect(EDBClient * cl)
                             {"2", "16", "1000", "Green Gables",
                              "Anne Shirley"},
                             {"3", "8", "0", "London", "Lucy"} };
-    reply.push_back(convert5(rows24,5));
+    reply.push_back(convert(rows24,5));
 
     query.push_back("SELECT * FROM t1 GROUP BY age ORDER BY age");
     string rows25[5][5] = { {"id", "age", "salary", "address", "name"},
@@ -523,7 +498,7 @@ testSelect(EDBClient * cl)
                              "Anne Shirley"},
                             {"5", "30", "100000", "221B Baker Street",
                              "Sherlock Holmes"} };
-    reply.push_back(convert5(rows25,5));
+    reply.push_back(convert(rows25,5));
 
     query.push_back("SELECT * FROM t1 ORDER BY age ASC");
     string rows26[6][5] = { {"id", "age", "salary", "address", "name"},
@@ -536,7 +511,7 @@ testSelect(EDBClient * cl)
                              "Anne Shirley"},
                             {"5", "30", "100000", "221B Baker Street",
                              "Sherlock Holmes"} };
-    reply.push_back(convert5(rows26,6));
+    reply.push_back(convert(rows26,6));
 
     query.push_back("SELECT * FROM t1 ORDER BY age DESC");
     string rows27[6][5] = { {"id", "age", "salary", "address", "name"},
@@ -549,7 +524,7 @@ testSelect(EDBClient * cl)
                              "Peter Pan"},
 			    {"4", "10", "0", "London", "Edmund"}, 
                             {"3", "8", "0", "London", "Lucy"} };
-    reply.push_back(convert5(rows27,6));
+    reply.push_back(convert(rows27,6));
 
     //------------------------------------------------------------------------------
     // aliases
@@ -557,17 +532,17 @@ testSelect(EDBClient * cl)
     query.push_back("SELECT sum(age) as z FROM t1");
     string rows28[2][1] = { {"z"},
 			    {"74"} };
-    reply.push_back(convert1(rows28,2));
+    reply.push_back(convert(rows28,2));
 
     query.push_back("SELECT sum(age) z FROM t1");
     string rows29[2][1] = { {"z"},
 			    {"74"} };
-    reply.push_back(convert1(rows29,2));
+    reply.push_back(convert(rows29,2));
 
     query.push_back("SELECT min(t.id) a FROM t1 AS t");
     string rows30[2][1] = { {"a"},
 			    {"1"} };
-    reply.push_back(convert1(rows30,2));
+    reply.push_back(convert(rows30,2));
 
     query.push_back("SELECT t.address AS b FROM t1 t");
     string rows31[6][1] = { {"b"},
@@ -576,7 +551,7 @@ testSelect(EDBClient * cl)
 			    {"London"},
 			    {"London"},
 			    {"221B Baker Street"} };
-    reply.push_back(convert1(rows31,6));
+    reply.push_back(convert(rows31,6));
 
     CheckSelectResults(cl, query, reply);
 
@@ -637,18 +612,18 @@ testJoin(EDBClient * cl) {
 			   {"Green Gables"},
 			   {"London"},
 			   {"London"} };
-    reply.push_back(convert1(rows1,5));
+    reply.push_back(convert(rows1,5));
     query.push_back("SELECT t1.id, t2.id, age, books, t2.name FROM t1, t2 WHERE t1.id=t2.id");
     string rows2[5][5] = { {"id", "id", "age", "books", "name"},
 			   {"1", "1", "10", "6", "Peter Pan"},
 			   {"2", "2", "16", "8", "Anne Shirley"},
 			   {"3", "3", "8", "7", "Lucy"},
 			   {"4", "4", "10", "7", "Edmund"} };
-    reply.push_back(convert5(rows2,5));
+    reply.push_back(convert(rows2,5));
     query.push_back("SELECT t1.name, age, salary, t2.name, books FROM t1, t2 WHERE t1.age=t2.books"); 
     string rows3[2][5] = { {"name", "age", "salary", "name", "books"},
 			   {"Lucy", "8", "0", "Anne Shirley", "8"} };
-    reply.push_back(convert5(rows3,2));
+    reply.push_back(convert(rows3,2));
     
     //string comparison
     query.push_back("SELECT t1.id, t2.id, age, books, t2.name FROM t1, t2 WHERE t1.name=t2.name");
@@ -657,11 +632,11 @@ testJoin(EDBClient * cl) {
 			   {"2", "2", "16", "8", "Anne Shirley"},
 			   {"3", "3", "8", "7", "Lucy"},
 			   {"4", "4", "10", "7", "Edmund"} };
-    reply.push_back(convert5(rows4,5));
+    reply.push_back(convert(rows4,5));
     query.push_back("SELECT t1.id, age, address, t2.id, books FROM t1, t2 WHERE t1.address=t2.name");
     string rows5[2][5] = { {"id", "age", "address", "id", "books"},
 			   {"5", "30", "221B Baker Street", "10", "4"} };
-    reply.push_back(convert5(rows5,2));
+    reply.push_back(convert(rows5,2));
 
     //with aliases
     query.push_back("SELECT address FROM t1 AS a, t2 WHERE a.id=t2.id");
@@ -670,18 +645,18 @@ testJoin(EDBClient * cl) {
 			    {"Green Gables"},
 			    {"London"},
 			    {"London"} };
-    reply.push_back(convert1(rows11,5));
+    reply.push_back(convert(rows11,5));
     query.push_back("SELECT a.id, b.id, age, books, b.name FROM t1 a, t2 AS b WHERE a.id=b.id");
     string rows12[5][5] = { {"id", "id", "age", "books", "name"},
 			    {"1", "1", "10", "6", "Peter Pan"},
 			    {"2", "2", "16", "8", "Anne Shirley"},
 			    {"3", "3", "8", "7", "Lucy"},
 			    {"4", "4", "10", "7", "Edmund"} };
-    reply.push_back(convert5(rows12,5));
+    reply.push_back(convert(rows12,5));
     query.push_back("SELECT t1.name, age, salary, b.name, books FROM t1, t2 b WHERE t1.age=b.books"); 
     string rows13[2][5] = { {"name", "age", "salary", "name", "books"},
 			    {"Lucy", "8", "0", "Anne Shirley", "8"} };
-    reply.push_back(convert5(rows13,2));
+    reply.push_back(convert(rows13,2));
     
     CheckSelectResults(cl, query, reply);
 
@@ -742,7 +717,7 @@ testUpdate(EDBClient * cl)
                            {"5", "30", "0", "221B Baker Street",
                             "Sherlock Holmes"},
                            {"6", "11", "0", "hi", "noone"} };
-    reply.push_back(convert5(rows1,7));
+    reply.push_back(convert(rows1,7));
 
 
 
@@ -758,7 +733,7 @@ testUpdate(EDBClient * cl)
                            {"5", "30", "0", "221B Baker Street",
                             "Sherlock Holmes"},
                            {"6", "21", "0", "hi", "noone"} };
-    reply.push_back(convert5(rows2,7));
+    reply.push_back(convert(rows2,7));
 
 
     query.push_back(
@@ -774,7 +749,7 @@ testUpdate(EDBClient * cl)
                            {"5", "30", "0", "221B Baker Street",
                             "Sherlock Holmes"},
                            {"6", "21", "0", "Pemberly", "Elizabeth Darcy"} };
-    reply.push_back(convert5(rows3,7));
+    reply.push_back(convert(rows3,7));
 
     cerr << "c\n";
 
@@ -791,7 +766,7 @@ testUpdate(EDBClient * cl)
                            {"5", "30", "55000", "221B Baker Street",
                             "Sherlock Holmes"},
                            {"6", "21", "0", "Pemberly", "Elizabeth Darcy"} };
-    reply.push_back(convert5(rows4,7));
+    reply.push_back(convert(rows4,7));
     
     query.push_back("UPDATE t1 SET salary=20000 WHERE address='Pemberly'");
     query.push_back("SELECT * FROM t1");
@@ -805,7 +780,7 @@ testUpdate(EDBClient * cl)
                            {"5", "30", "55000", "221B Baker Street",
                             "Sherlock Holmes"},
                            {"6", "21", "20000", "Pemberly", "Elizabeth Darcy"} };
-    reply.push_back(convert5(rows5,7));
+    reply.push_back(convert(rows5,7));
 
 
     CheckUpdateResults(cl, query, reply);
@@ -868,7 +843,7 @@ testDelete(EDBClient * cl)
                            {"6", "21", "20000", "Pemberly", "Elizabeth Darcy"},
                            {"7", "10000", "1", "Mordor", "Sauron"},
                            {"8", "25", "100", "The Heath", "Eustacia Vye"} };
-    reply.push_back(convert5(rows1,8));
+    reply.push_back(convert(rows1,8));
 
     query.push_back("DELETE FROM t1 WHERE age=30");
     query.push_back("SELECT * FROM t1");
@@ -879,7 +854,7 @@ testDelete(EDBClient * cl)
                            {"6", "21", "20000", "Pemberly", "Elizabeth Darcy"},
                            {"7", "10000", "1", "Mordor", "Sauron"},
                            {"8", "25", "100", "The Heath", "Eustacia Vye"} };
-    reply.push_back(convert5(rows2,7));
+    reply.push_back(convert(rows2,7));
 
     query.push_back("DELETE FROM t1 WHERE name='Eustacia Vye'");
     query.push_back("SELECT * FROM t1");
@@ -889,7 +864,7 @@ testDelete(EDBClient * cl)
                            {"4", "10", "0", "London", "Edmund"},
                            {"6", "21", "20000", "Pemberly", "Elizabeth Darcy"},
                            {"7", "10000", "1", "Mordor", "Sauron"} };
-    reply.push_back(convert5(rows3,6));
+    reply.push_back(convert(rows3,6));
 
     query.push_back("DELETE FROM t1 WHERE address='London'");
     query.push_back("SELECT * FROM t1");
@@ -897,14 +872,14 @@ testDelete(EDBClient * cl)
                            {"2", "16", "1000", "Green Gables", "Anne Shirley"},
                            {"6", "21", "20000", "Pemberly", "Elizabeth Darcy"},
                            {"7", "10000", "1", "Mordor", "Sauron"} };
-    reply.push_back(convert5(rows4,4));
+    reply.push_back(convert(rows4,4));
 
     query.push_back("DELETE FROM t1 WHERE salary=1");
     query.push_back("SELECT * FROM t1");
     string rows5[3][5] = { {"id", "age", "salary", "address", "name"},
                            {"2", "16", "1000", "Green Gables", "Anne Shirley"},
                            {"6", "21", "20000", "Pemberly", "Elizabeth Darcy"} };
-    reply.push_back(convert5(rows5,3));
+    reply.push_back(convert(rows5,3));
 
     query.push_back("DELETE FROM t1");
     query.push_back("SELECT * FROM t1");
@@ -917,7 +892,7 @@ testDelete(EDBClient * cl)
                            {"1", "10", "0",
                             "first star to the right and straight on till morning",
                             "Peter Pan"} };
-    reply.push_back(convert5(rows6,2));
+    reply.push_back(convert(rows6,2));
 
     query.push_back("DELETE  FROM t1");
     query.push_back("SELECT * FROM t1");
@@ -957,22 +932,22 @@ testSearch(EDBClient * cl)
     string rows1[3][2] = { {"id", "searchable"},
 			   {"1", "short text"},
 			   {"2", "Text with CAPITALIZATION"} };
-    reply.push_back(convert2(rows1,3));
+    reply.push_back(convert(rows1,3));
 
     query.push_back("SELECT * FROM t3 WHERE searchable LIKE 'short text'");
     string rows2[2][2] = { {"id", "searchable"},
 			   {"1", "short text"} };
-    reply.push_back(convert2(rows2,2));
+    reply.push_back(convert(rows2,2));
 
     query.push_back("SELECT * FROM t3 WHERE searchable LIKE ''");
     string rows3[2][2] = { {"id", "searchable"},
 			   {"3", ""} };
-    reply.push_back(convert2(rows3,2));
+    reply.push_back(convert(rows3,2));
 
     query.push_back("SELECT * FROM t3 WHERE searchable LIKE 'Text%'");
     string rows4[2][2] = { {"id", "searchable"},
 			   {"2", "Text with CAPITALIZATION"} };
-    reply.push_back(convert2(rows4,2));
+    reply.push_back(convert(rows4,2));
 
     query.push_back("SELECT * FROM t3 WHERE searchable LIKE '%shadows'");
     ResType empty;
@@ -982,10 +957,10 @@ testSearch(EDBClient * cl)
     query.push_back("SELECT * FROM t3 WHERE searchable LIKE 'when%'");
     string rows5[2][2] = { {"id", "searchable"},
 			   {"4", "When I have fears that I may cease to be, before my pen has gleaned my teaming brain; before high-piled books in charactery hold like rich garners the full-ripened grain.  When I behold upon the nights starred face Huge cloudy symbols of high romance And think that I may never live to trace Their shadows with the magic hand of chance.  And when I feel, fair creature of the hour That I shall never look upon thee more, Never have relish of the faerie power Of unreflecting love, I stand alone of the edge of the wide world and think, to love and fame to nothingness do sink"} };
-    reply.push_back(convert2(rows5,2));
+    reply.push_back(convert(rows5,2));
 
     query.push_back("SELECT * FROM t3 WHERE searchable LIKE '%magic hand of chance%'");
-    reply.push_back(convert2(rows5,2));
+    reply.push_back(convert(rows5,2));
 
     CheckSelectResults(cl, query, reply);
 
