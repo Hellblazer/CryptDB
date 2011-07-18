@@ -535,12 +535,13 @@ toThreeDigits(unsigned int c)
     return string(s);
 }
 
-char *
+static string
 toHex(unsigned char abyte)
 {
-    char * res = new char[3];
-    sprintf(res, "%02x", abyte);
-    return res;
+    string r;
+    r.resize(2);
+    sprintf(&r[0], "%02x", abyte);
+    return r;
 }
 
 string
@@ -592,15 +593,16 @@ secondMarshallBinary(unsigned char * v, unsigned int len)
 string
 marshallBinary(const string &s)
 {
-    string result = "X\'";
+    stringstream ss;
+    ss << "X\'";
 
     for (unsigned int i = 0; i < s.length(); i++)
-        result = result + toHex((unsigned char)s[i]);
+        ss << toHex(s[i]);
 
-    result = result + "\'";
+    ss << "\'";
 
     //cerr << "output from marshall  " << result.c_str() << "\n";
-    return result;
+    return ss.str();
 }
 
 #else
