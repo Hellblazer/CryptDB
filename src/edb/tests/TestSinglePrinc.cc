@@ -13,6 +13,9 @@
 
 #define PLAIN 0
 
+static int ntest = 0;
+static int npass = 0;
+
 TestSinglePrinc::TestSinglePrinc()
 {
 
@@ -71,12 +74,15 @@ CheckSelectResults(EDBClient * cl, vector<string> in, vector<ResType> out)
     vector<ResType>::iterator res_it = out.begin();
 
     while(query_it != in.end()) {
+        ntest++;
         ResType * test_res = myExecute(cl, *query_it);
         if(!test_res) {
             cerr << "Query: " << endl;
             cerr << "\t" << *query_it << endl;
-            assert_s(false, "Select or Join query won't execute");
+            cerr << "Select or Join query won't execute";
+            return;
         }
+
         if(*test_res != *res_it) {
             cerr << "From query: " << endl;
             cerr << *query_it << endl;
@@ -84,8 +90,11 @@ CheckSelectResults(EDBClient * cl, vector<string> in, vector<ResType> out)
             PrintRes(*res_it);
             cerr << "Got result:" << endl;
             PrintRes(*test_res);
-            assert_s(false, "Select or Join test failed");
+            cerr << "Select or Join test failed";
+            return;
         }
+
+        npass++;
         query_it++;
         res_it++;
     }
@@ -99,18 +108,22 @@ qUpdateSelect(EDBClient *cl, const string &update, const string &select,
                        update),
              "Query failed, Update or Delete test failed\n");
 
+    ntest++;
     ResType * test_res = myExecute(cl, select);
-    if (!test_res)
-        assert_s(false, string(
-                     "Update or Delete query ") + select + " won't execute");
+    if (!test_res) {
+        cerr << "Update or Delete query " << select << " won't execute";
+        return;
+    }
 
     if (*test_res != expect) {
         cerr << "Expected result:" << endl;
         PrintRes(expect);
         cerr << "Got result:" << endl;
         PrintRes(*test_res);
-        assert_s(false, "Update or Delete test failed");
+        return;
     }
+
+    npass++;
 }
 
 static void
@@ -955,7 +968,7 @@ TestSinglePrinc::run(int argc, char ** argv)
     testDelete(cl);
     cerr << "Testing search..." << endl;
     testSearch(cl);
-    cerr << "Done!  All single-princ tests passed." << endl;
+    cerr << "RESULT: " << npass << "/" << ntest << " passed" << endl;
 
     delete cl;
 }
