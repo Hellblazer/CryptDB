@@ -121,38 +121,22 @@ CheckSelectResults(EDBClient * cl, vector<string> in, vector<ResType> out)
     }
 }
 
-//assumes querys alternate UPDATE, SELECT; only gets results for SELECT
-// queries
 static void
-CheckUpdateResults(EDBClient * cl, vector<string> in, vector<ResType> out)
+qUpdateSelect(EDBClient *cl, const string &update, const string &select,
+              const ResType &expect)
 {
-    assert_s(
-        in.size() == 2*out.size(),
-        "different numbers of test queries and expected results");
+    assert_s(myExecute(cl, update), "Query failed, Update or Delete test failed\n");
 
-    vector<string>::iterator query_it = in.begin();
-    vector<ResType>::iterator res_it = out.begin();
+    ResType * test_res = myExecute(cl, select);
+    if (!test_res)
+        assert_s(false, string("Update or Delete query ") + select + " won't execute");
 
-    while(query_it != in.end()) {
-        assert_s(myExecute(cl, *query_it), "Query failed, Update or Delete test failed \n");
-        query_it++;
-        ResType * test_res = myExecute(cl, *query_it);
-        if(!test_res) {
-	    cerr << "From query: " << endl;
-	    cerr << *query_it << endl;
-	    cerr << "Query: " << endl;
-	    cerr << "\t" << *query_it << endl;
-	    assert_s(false, "Update or Delete query won't execute");
-	}
-        if(!equals(*test_res, *res_it)) {
-            cerr << "Expected result:" << endl;
-            PrintRes(*res_it);
-            cerr << "Got result:" << endl;
-            PrintRes(*test_res);
-            assert_s(false, "Update or Delete test failed");
-        }
-        query_it++;
-        res_it++;
+    if (!equals(*test_res, expect)) {
+        cerr << "Expected result:" << endl;
+        PrintRes(expect);
+        cerr << "Got result:" << endl;
+        PrintRes(*test_res);
+        assert_s(false, "Update or Delete test failed");
     }
 }
 
@@ -700,14 +684,9 @@ testUpdate(EDBClient * cl)
                  "INSERT INTO t1 VALUES (6, 11, 0, 'hi', 'noone')"),
              "testUpdate couldn't insert (6)");
 
-    vector<string> query;
-    vector<ResType> reply;
-
-    ResType res;
-
-    query.push_back("UPDATE t1 SET salary=0");
-    query.push_back("SELECT * FROM t1");
-    string rows1[7][5] = { {"id", "age", "salary", "address", "name"},
+    qUpdateSelect(cl, "UPDATE t1 SET salary=0",
+                  "SELECT * FROM t1",
+                  { {"id", "age", "salary", "address", "name"},
                            {"1", "10", "0",
                             "first star to the right and straight on till morning",
                             "Peter Pan"},
@@ -716,14 +695,11 @@ testUpdate(EDBClient * cl)
                            {"4", "10", "0", "London", "Edmund"},
                            {"5", "30", "0", "221B Baker Street",
                             "Sherlock Holmes"},
-                           {"6", "11", "0", "hi", "noone"} };
-    reply.push_back(convert(rows1,7));
+                           {"6", "11", "0", "hi", "noone"} });
 
-
-
-    query.push_back("UPDATE t1 SET age=21 WHERE id = 6");
-    query.push_back("SELECT * FROM t1");
-    string rows2[7][5] = { {"id", "age", "salary", "address", "name"},
+    qUpdateSelect(cl, "UPDATE t1 SET age=21 WHERE id = 6",
+                  "SELECT * FROM t1",
+                  { {"id", "age", "salary", "address", "name"},
                            {"1", "10", "0",
                             "first star to the right and straight on till morning",
                             "Peter Pan"},
@@ -732,14 +708,11 @@ testUpdate(EDBClient * cl)
                            {"4", "10", "0", "London", "Edmund"},
                            {"5", "30", "0", "221B Baker Street",
                             "Sherlock Holmes"},
-                           {"6", "21", "0", "hi", "noone"} };
-    reply.push_back(convert(rows2,7));
+                           {"6", "21", "0", "hi", "noone"} });
 
-
-    query.push_back(
-        "UPDATE t1 SET address='Pemberly', name='Elizabeth Darcy' WHERE id=6");
-    query.push_back("SELECT * FROM t1");
-    string rows3[7][5] = { {"id", "age", "salary", "address", "name"},
+    qUpdateSelect(cl, "UPDATE t1 SET address='Pemberly', name='Elizabeth Darcy' WHERE id=6",
+                  "SELECT * FROM t1",
+                  { {"id", "age", "salary", "address", "name"},
                            {"1", "10", "0",
                             "first star to the right and straight on till morning",
                             "Peter Pan"},
@@ -748,15 +721,11 @@ testUpdate(EDBClient * cl)
                            {"4", "10", "0", "London", "Edmund"},
                            {"5", "30", "0", "221B Baker Street",
                             "Sherlock Holmes"},
-                           {"6", "21", "0", "Pemberly", "Elizabeth Darcy"} };
-    reply.push_back(convert(rows3,7));
+                           {"6", "21", "0", "Pemberly", "Elizabeth Darcy"} });
 
-    cerr << "c\n";
-
-
-    query.push_back("UPDATE t1 SET salary=55000 WHERE age=30");
-    query.push_back("SELECT * FROM t1");
-    string rows4[7][5] = { {"id", "age", "salary", "address", "name"},
+    qUpdateSelect(cl, "UPDATE t1 SET salary=55000 WHERE age=30",
+                  "SELECT * FROM t1",
+                  { {"id", "age", "salary", "address", "name"},
                            {"1", "10", "0",
                             "first star to the right and straight on till morning",
                             "Peter Pan"},
@@ -765,25 +734,19 @@ testUpdate(EDBClient * cl)
                            {"4", "10", "0", "London", "Edmund"},
                            {"5", "30", "55000", "221B Baker Street",
                             "Sherlock Holmes"},
-                           {"6", "21", "0", "Pemberly", "Elizabeth Darcy"} };
-    reply.push_back(convert(rows4,7));
-    
-    query.push_back("UPDATE t1 SET salary=20000 WHERE address='Pemberly'");
-    query.push_back("SELECT * FROM t1");
-    string rows5[7][5] = { {"id", "age", "salary", "address", "name"},
-                           {"1", "10", "0",
-                            "first star to the right and straight on till morning",
-                            "Peter Pan"},
-                           {"2", "16", "0", "Green Gables", "Anne Shirley"},
-                           {"3", "8", "0", "London", "Lucy"},
-                           {"4", "10", "0", "London", "Edmund"},
-                           {"5", "30", "55000", "221B Baker Street",
-                            "Sherlock Holmes"},
-                           {"6", "21", "20000", "Pemberly", "Elizabeth Darcy"} };
-    reply.push_back(convert(rows5,7));
+                           {"6", "21", "0", "Pemberly", "Elizabeth Darcy"} });
 
-
-    CheckUpdateResults(cl, query, reply);
+    qUpdateSelect(cl, "UPDATE t1 SET salary=20000 WHERE address='Pemberly'",
+                  "SELECT * FROM t1",
+                  { { "id", "age", "salary", "address", "name" },
+                    { "1", "10", "0",
+                      "first star to the right and straight on till morning",
+                      "Peter Pan"},
+                    { "2", "16", "0", "Green Gables", "Anne Shirley" },
+                    { "3", "8", "0", "London", "Lucy" },
+                    { "4", "10", "0", "London", "Edmund" },
+                    { "5", "30", "55000", "221B Baker Street", "Sherlock Holmes" },
+                    { "6", "21", "20000", "Pemberly", "Elizabeth Darcy" } });
 
     if (!PLAIN) {
       assert_s(cl->execute("DROP TABLE t1"), "testUpdate can't drop t1");
@@ -827,14 +790,8 @@ testDelete(EDBClient * cl)
                  "INSERT INTO t1 VALUES (8, 25, 100, 'The Heath', 'Eustacia Vye')"),
              "testUpdate couldn't insert (8)");
 
-    vector<string> query;
-    vector<ResType> reply;
-
-    ResType res;
-
-    query.push_back("DELETE FROM t1 WHERE id=1");
-    query.push_back("SELECT * FROM t1");
-    string rows1[8][5] = { {"id", "age", "salary", "address", "name"},
+    qUpdateSelect(cl, "DELETE FROM t1 WHERE id=1", "SELECT * FROM t1",
+                  { {"id", "age", "salary", "address", "name"},
                            {"2", "16", "1000", "Green Gables", "Anne Shirley"},
                            {"3", "8", "0", "London", "Lucy"},
                            {"4", "10", "0", "London", "Edmund"},
@@ -842,63 +799,47 @@ testDelete(EDBClient * cl)
                             "Sherlock Holmes"},
                            {"6", "21", "20000", "Pemberly", "Elizabeth Darcy"},
                            {"7", "10000", "1", "Mordor", "Sauron"},
-                           {"8", "25", "100", "The Heath", "Eustacia Vye"} };
-    reply.push_back(convert(rows1,8));
+                           {"8", "25", "100", "The Heath", "Eustacia Vye"} });
 
-    query.push_back("DELETE FROM t1 WHERE age=30");
-    query.push_back("SELECT * FROM t1");
-    string rows2[7][5] = { {"id", "age", "salary", "address", "name"},
+    qUpdateSelect(cl, "DELETE FROM t1 WHERE age=30", "SELECT * FROM t1",
+                  { {"id", "age", "salary", "address", "name"},
                            {"2", "16", "1000", "Green Gables", "Anne Shirley"},
                            {"3", "8", "0", "London", "Lucy"},
                            {"4", "10", "0", "London", "Edmund"},
                            {"6", "21", "20000", "Pemberly", "Elizabeth Darcy"},
                            {"7", "10000", "1", "Mordor", "Sauron"},
-                           {"8", "25", "100", "The Heath", "Eustacia Vye"} };
-    reply.push_back(convert(rows2,7));
+                           {"8", "25", "100", "The Heath", "Eustacia Vye"} });
 
-    query.push_back("DELETE FROM t1 WHERE name='Eustacia Vye'");
-    query.push_back("SELECT * FROM t1");
-    string rows3[6][5] = { {"id", "age", "salary", "address", "name"},
+    qUpdateSelect(cl, "DELETE FROM t1 WHERE name='Eustacia Vye'", "SELECT * FROM t1",
+                  { {"id", "age", "salary", "address", "name"},
                            {"2", "16", "1000", "Green Gables", "Anne Shirley"},
                            {"3", "8", "0", "London", "Lucy"},
                            {"4", "10", "0", "London", "Edmund"},
                            {"6", "21", "20000", "Pemberly", "Elizabeth Darcy"},
-                           {"7", "10000", "1", "Mordor", "Sauron"} };
-    reply.push_back(convert(rows3,6));
+                           {"7", "10000", "1", "Mordor", "Sauron"} });
 
-    query.push_back("DELETE FROM t1 WHERE address='London'");
-    query.push_back("SELECT * FROM t1");
-    string rows4[4][5] = { {"id", "age", "salary", "address", "name"},
+    qUpdateSelect(cl, "DELETE FROM t1 WHERE address='London'", "SELECT * FROM t1",
+                  { {"id", "age", "salary", "address", "name"},
                            {"2", "16", "1000", "Green Gables", "Anne Shirley"},
                            {"6", "21", "20000", "Pemberly", "Elizabeth Darcy"},
-                           {"7", "10000", "1", "Mordor", "Sauron"} };
-    reply.push_back(convert(rows4,4));
+                           {"7", "10000", "1", "Mordor", "Sauron"} });
 
-    query.push_back("DELETE FROM t1 WHERE salary=1");
-    query.push_back("SELECT * FROM t1");
-    string rows5[3][5] = { {"id", "age", "salary", "address", "name"},
+    qUpdateSelect(cl, "DELETE FROM t1 WHERE salary=1", "SELECT * FROM t1",
+                  { {"id", "age", "salary", "address", "name"},
                            {"2", "16", "1000", "Green Gables", "Anne Shirley"},
-                           {"6", "21", "20000", "Pemberly", "Elizabeth Darcy"} };
-    reply.push_back(convert(rows5,3));
+                           {"6", "21", "20000", "Pemberly", "Elizabeth Darcy"} });
 
-    query.push_back("DELETE FROM t1");
-    query.push_back("SELECT * FROM t1");
-    reply.push_back(res);
+    qUpdateSelect(cl, "DELETE FROM t1", "SELECT * FROM t1", {});
 
-    query.push_back(
-        "INSERT INTO t1 VALUES (1, 10, 0, 'first star to the right and straight on till morning', 'Peter Pan')");
-    query.push_back("SELECT * FROM t1");
-    string rows6[2][5] = { {"id", "age", "salary", "address", "name"},
+    qUpdateSelect(cl,
+                  "INSERT INTO t1 VALUES (1, 10, 0, 'first star to the right and straight on till morning', 'Peter Pan')",
+                  "SELECT * FROM t1",
+                  { {"id", "age", "salary", "address", "name"},
                            {"1", "10", "0",
                             "first star to the right and straight on till morning",
-                            "Peter Pan"} };
-    reply.push_back(convert(rows6,2));
+                            "Peter Pan"} });
 
-    query.push_back("DELETE  FROM t1");
-    query.push_back("SELECT * FROM t1");
-    reply.push_back(res);
-
-    CheckUpdateResults(cl, query, reply);
+    qUpdateSelect(cl, "DELETE  FROM t1", "SELECT * FROM t1", {});
 
     if (!PLAIN) {
       assert_s(cl->execute("DROP TABLE t1"), "testDelete can't drop t1");
