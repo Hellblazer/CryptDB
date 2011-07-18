@@ -32,7 +32,7 @@ init(lua_State *L)
     return 0;
 }
 
-list<const char*>
+list<string>
 rewrite(string query)
 {
     cerr << "rewriting..." << endl;
@@ -45,9 +45,9 @@ rewrite(string query)
         query.replace(equals,11,"");
     }
 
-    list<const char*> res;
+    list<string> res;
     res.push_back("INSERT INTO t1 VALUES (1,'one');");
-    res.push_back(getCStr(query));
+    res.push_back(query);
     return res;
 }
 
@@ -60,8 +60,8 @@ pass_queries(lua_State *L)
     AutoInc ai;
     ai.incvalue = insert_id;
     cerr << insert_id << endl;
-    list<const char*> new_queries;
-    new_queries = cl->rewriteEncryptQuery(getCStr(query), &ai);
+    list<string> new_queries;
+    new_queries = cl->rewriteEncryptQuery(query, &ai);
     //cerr << "got queries" << endl;
     //todo: fix rewriteEncryptQuery so that this is unnecessary
     if(new_queries.size() > 0) {
@@ -74,7 +74,7 @@ pass_queries(lua_State *L)
     int index = 1;
     auto it = new_queries.begin();
     while(it != new_queries.end()) {
-        lua_pushstring(L, (*it));
+        lua_pushstring(L, it->c_str());
         lua_rawseti(L,top,index);
         it++;
         index++;
@@ -123,7 +123,7 @@ get_map_tables(lua_State *L)
         assert_s(false, "lua cannot grow stack");
     }
     for (auto outer = sensitive.begin(); outer != sensitive.end(); outer++) {
-        lua_pushstring(L, getCStr(outer->first));
+        lua_pushstring(L, outer->first.c_str());
     }
     return sensitive.size();
 }
@@ -141,7 +141,7 @@ get_auto_names(lua_State *L)
         assert_s(false, "lua cannot grow stack");
     }
     for (auto it = auto_inc.begin(); it != auto_inc.end(); it++) {
-        lua_pushstring(L, getCStr(it->first));
+        lua_pushstring(L, it->first.c_str());
     }
     return auto_inc.size();
 }
@@ -183,7 +183,7 @@ get_map_fields(lua_State *L)
         index = 1;
         auto inner = outer->second.begin();
         while(inner != outer->second.end()) {
-            lua_pushstring(L, getCStr(*inner));
+            lua_pushstring(L, inner->c_str());
             lua_rawseti(L,top,index);
             ++inner;
             ++index;
@@ -231,7 +231,7 @@ ResultSet::decrypt()
     //todo: is returning an empty vector
     cerr << "------>to decryptResults" << endl;
     cerr << query << endl;
-    cresultset = cl->decryptResults(getCStr(query), cresultset);
+    cresultset = cl->decryptResults(query, cresultset);
     if (cresultset->size() != 0) {
         field_names = *(cresultset->begin());
         cresultset->erase(cresultset->begin());

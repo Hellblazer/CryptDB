@@ -36,10 +36,10 @@ Connect::Connect(string server, string user, string passwd,
 }
 
 bool
-Connect::execute(const char * query, DBResult * & res)
+Connect::execute(const string &query, DBResult * & res)
 {
 #if MYSQL_S
-    if (mysql_query(conn, query)) {
+    if (mysql_query(conn, query.c_str())) {
         fprintf(stderr, "mysql error: %s\n", mysql_error(conn));
         res = 0;
         return false;
@@ -48,7 +48,7 @@ Connect::execute(const char * query, DBResult * & res)
         return true;
     }
 #else /* postgres */
-    *res = PQexec(conn, query);
+    *res = PQexec(conn, query.c_str());
 
     ExecStatusType status = PQresultStatus(res->n);
     if ((status == PGRES_COMMAND_OK) || (status == PGRES_TUPLES_OK)) {
@@ -65,7 +65,7 @@ Connect::execute(const char * query, DBResult * & res)
 }
 
 bool
-Connect::execute(const char * query)
+Connect::execute(const string &query)
 {
     DBResult *aux;
     bool r = execute(query, aux);
@@ -74,7 +74,7 @@ Connect::execute(const char * query)
     return r;
 }
 
-const char *
+string
 Connect::getError()
 {
 #if MYSQL_S

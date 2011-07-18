@@ -108,9 +108,9 @@ ResType *
 myExecute(EDBClient * cl, string query) {
     ResType * res;
     if (PLAIN) {
-      res = cl->plain_execute(getCStr(query));
+      res = cl->plain_execute(query);
     } else {
-      res = cl->execute(getCStr(query));
+      res = cl->execute(query);
     }
     return res;
 }
@@ -189,8 +189,7 @@ testCreateDrop(EDBClient * cl)
     cl->plain_execute("DROP TABLE IF EXISTS table0, table1, table2, table3");
     cerr << "plain okay" << endl;
     string sql = "CREATE TABLE t1 (id integer, words text)";
-    assert_s(cl->execute(getCStr(
-                             sql)), "Problem creating table t1 (first time)");
+    assert_s(cl->execute(sql), "Problem creating table t1 (first time)");
     assert_s(cl->plain_execute(
                  "SELECT * FROM table0"),
              "t1 (first time) was not created properly");
@@ -198,30 +197,27 @@ testCreateDrop(EDBClient * cl)
     cerr << sql << endl;
     sql =
         "CREATE TABLE t2 (id enc integer, other_id integer, words enc text, other_words text)";
-    assert_s(cl->execute(getCStr(
-                             sql)), "Problem creating table t2 (first time)");
+    assert_s(cl->execute(sql), "Problem creating table t2 (first time)");
     assert_s(cl->plain_execute(
                  "SELECT * FROM table1"),
              "t2 (first time) was not created properly");
 
     sql = "DROP TABLE t1";
-    assert_s(cl->execute(getCStr(sql)), "Problem dropping t1");
+    assert_s(cl->execute(sql), "Problem dropping t1");
     assert_s(!cl->plain_execute("SELECT * FROM table0"), "t1 not dropped");
     sql = "DROP TABLE t2";
-    assert_s(cl->execute(getCStr(sql)), "Problem dropping t2");
+    assert_s(cl->execute(sql), "Problem dropping t2");
     assert_s(!cl->plain_execute("SELECT * FROM table1"), "t2 not dropped");
 
     sql = "CREATE TABLE t1 (id integer, words text)";
-    assert_s(cl->execute(getCStr(
-                             sql)), "Problem creating table t1 (second time)");
+    assert_s(cl->execute(sql), "Problem creating table t1 (second time)");
     assert_s(cl->plain_execute(
                  "SELECT * FROM table2"),
              "t1 (second time) was not created properly");
 
     sql =
         "CREATE TABLE t2 (id enc integer, other_id integer, words enc text, other_words text)";
-    assert_s(cl->execute(getCStr(
-                             sql)), "Problem creating table t2 (second time)");
+    assert_s(cl->execute(sql), "Problem creating table t2 (second time)");
     assert_s(cl->plain_execute(
                  "SELECT * FROM table3"),
              "t2 (second time) was not created properly");
@@ -1005,7 +1001,7 @@ TestSinglePrinc::run(int argc, char ** argv)
     EDBClient * cl;
     uint64_t mkey = 113341234;
     string masterKey = BytesFromInt(mkey, AES_KEY_BYTES);
-    cl = new EDBClient("localhost", "root", "letmein", "mysql", masterKey);
+    cl = new EDBClient("localhost", "root", "letmein", "cryptdbtest", masterKey);
     assert_s(MULTIPRINC == 0,
              "MULTIPRINC is on.  Please set it to 0 (in params.h)");
 

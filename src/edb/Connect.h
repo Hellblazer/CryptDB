@@ -35,11 +35,11 @@ class Connect {
             string dbname, uint port = 0);
 
     // returns true if execution was ok; caller must delete DBResult
-    bool execute(const char * query, DBResult *&);
-    bool execute(const char * query);
+    bool execute(const string &query, DBResult *&);
+    bool execute(const string &query);
 
     // returns error message if a query caused error
-    const char * getError();
+    string getError();
 
     uint64_t last_insert_id();
 

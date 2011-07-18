@@ -125,7 +125,7 @@ createAll(Connect * conn, CryptoManager * cm)
           sfunc = func_add, finalfunc = func_add_final,  stype = bytea,
           initcond = " + initcond(cm) + ");";
 
-       if (!conn->execute(getCStr(createSumAgg))) {
+       if (!conn->execute(createSumAgg)) {
             cerr << "cannot create aggregation function \n";
             exit(1);
        }
@@ -233,7 +233,7 @@ EDBClient::EDBClient()
 }
 
 ResType *
-EDBClient::plain_execute(const char * query)
+EDBClient::plain_execute(const string &query)
 {
     cerr << "in plain execute \n";
     DBResult * reply;
@@ -329,7 +329,7 @@ getType(list<string>::iterator & it, list<string> & words)
 
 }
 
-list<const char *>
+list<string>
 EDBClient::processIndex(list<string> & words,
                         list<string>::iterator & wordsIt)
 throw (CryptDBError)
@@ -395,11 +395,10 @@ throw (CryptDBError)
 
     assert_s(wordsIt == words.end(), "expected end of query, it continues");
 
-    list<const char *> result = list<const char*>();
-    result.push_back(getCStr(resultQuery));
+    list<string> result = list<string>();
+    result.push_back(resultQuery);
 
     return result;
-
 }
 
 bool
@@ -517,8 +516,8 @@ processAnnotation(MultiPrinc * mp, list<string>::iterator & wordsIt,
     cerr << "done with multi princ \n";
 }
 
-list<const char*>
-EDBClient::rewriteEncryptCreate(const char* query)
+list<string>
+EDBClient::rewriteEncryptCreate(const string &query)
 throw (CryptDBError)
 {
 
@@ -539,11 +538,8 @@ throw (CryptDBError)
                                                                "unique"),
                  "expected index/unique ");
 
-        if (DECRYPTFIRST) {
-            list<const char *> res = list<const char*>();
-            res.push_back(query);
-            return res;
-        }
+        if (DECRYPTFIRST)
+            return list<string>(1, query);
 
         return processIndex(words, wordsIt);
     }
@@ -655,33 +651,14 @@ throw (CryptDBError)
 
     //mirror query until the end, it may have formatting commands
     resultQuery = resultQuery + mirrorUntilTerm(wordsIt, words, terms, 0);
-
     resultQuery = resultQuery + ";" + '\0';
 
-    list<const char *> result = list<const char *>();
-    result.push_back(getCStr(resultQuery));
-
-    return result;
-
-}
-
-ResType *
-EDBClient::rewriteDecryptCreate(const char * query, ResType * dbAnswer)
-{
-    if (VERBOSE) {cout << "Raw server response: \nCREATE TABLE; \n\n\n"; }
-    return new ResType();     //no decryption performed, no need to waste time
-}
-
-ResType *
-EDBClient::rewriteDecryptDelete(const char * query,  ResType * dbAnswer)
-{
-    if (VERBOSE) {cout << "DELETED\n"; }
-    return new ResType();
+    return list<string>(1, resultQuery);
 }
 
 //TODO: MULTIPRINC does not have update fully implemented
-list<const char*>
-EDBClient::rewriteEncryptUpdate(const char * query)
+list<string>
+EDBClient::rewriteEncryptUpdate(const string &query)
 throw (CryptDBError)
 {
 
@@ -945,19 +922,14 @@ throw (CryptDBError)
         resultQuery += checkStr(wordsIt, words, ",", "");
     }
 
-    list<const char *>  res =
+    list<string>  res =
         processFilters(wordsIt, words, qm,  resultQuery, fieldsDec,
                        tmkm);
 
-    tmkm.cleanup(); qm.cleanup();
+    tmkm.cleanup();
+    qm.cleanup();
 
     return res;
-}
-
-ResType *
-EDBClient::rewriteDecryptUpdate(const char * query, ResType * dbAnswer)
-{
-    return new ResType;     //no decryption performed, no need to waste time
 }
 
 //if token equals one of the characters in operators, it returns true and sets
@@ -969,17 +941,14 @@ isOp(string token, string operators)
     return (operators.find(" " + token + " ") != string::npos);
 }
 
-list<const char*>
+list<string>
 EDBClient::processFilters(list<string>::iterator &  wordsIt,
                           list<string> & words, QueryMeta & qm,
                           string resultQuery,
                           FieldsToDecrypt fieldsDec, TMKM & tmkm,
-                          list<const char *> subqueries)
+                          list<string> subqueries)
 throw (CryptDBError)
 {
-
-    list<const char* > result;
-
     string keys[] = {"AND", "OR", "NOT", "(", ")"};
     unsigned int noKeys = 5;
 
@@ -1171,20 +1140,19 @@ ascdesc:
 decryptions:
 
     //prepares any decryption queries
-    list<const char*> decs = processDecryptions(fieldsDec, tmkm);
+    list<string> decs = processDecryptions(fieldsDec, tmkm);
 
-    decs.push_back(getCStr(resultQuery));
+    decs.push_back(resultQuery);
 
     return decs;
 
 }
 
-list<const char*>
+list<string>
 EDBClient::processDecryptions(FieldsToDecrypt fieldsDec, TMKM & tmkm)
 throw (CryptDBError)
 {
-
-    list<const char *> result = list<const char *>();
+    list<string> result = list<string>();
 
     QueryMeta qm;
 
@@ -1251,7 +1219,7 @@ throw (CryptDBError)
                          tableMetaMap[table]->anonTableName +
                          " SET " + anonfieldName + "= " + decryptS;
 
-        result.push_back(getCStr(resultQ));
+        result.push_back(resultQ);
 
         tableMetaMap[table]->fieldMetaMap[field]->secLevelDET = DET;
     }
@@ -1294,7 +1262,7 @@ throw (CryptDBError)
 
         string resultQ = string("UPDATE ") + tm->anonTableName +
                          " SET " + anonfieldName + "= " + decryptS;
-        result.push_back(getCStr(resultQ));
+        result.push_back(resultQ);
 
         tm->fieldMetaMap[field]->secLevelOPE = OPESELF;
 
@@ -1353,7 +1321,7 @@ throw (CryptDBError)
                          " SET " + anonfieldName + "= " + decryptS;
 
         //cout << "adding JOIN DEC " << resultQ << "\n"; fflush(stdout);
-        result.push_back(getCStr(resultQ));
+        result.push_back(resultQ);
 
         tableMetaMap[table]->fieldMetaMap[field]->secLevelDET = DETJOIN;
     }
@@ -1383,7 +1351,7 @@ throw (CryptDBError)
 //returns a list of simple queries from nested queries,
 
 list<list<string> >
-getSimpleQ(const char * query)
+getSimpleQ(const string &query)
 {
 
     list<string> words = getSQLWords(query);
@@ -1457,8 +1425,8 @@ getAnonNames(FieldMetadata * fm)
     return res;
 
 }
-list<const char*>
-EDBClient::rewriteEncryptSelect(const char * query)
+list<string>
+EDBClient::rewriteEncryptSelect(const string &query)
 throw (CryptDBError)
 {
 
@@ -1477,14 +1445,14 @@ throw (CryptDBError)
 
     //2. COLLECT ALL DECRYPTION QUERIES NEEDED
 
-    list<const char *> decqueries = list<const char *>();
+    list<string> decqueries = list<string>();
 
     //assemble decryption queries
     for (list<list<string> >::iterator qit = simpleQ.begin();
          qit != simpleQ.end(); qit++) {
         //cerr << "rewrite encrypt select Helper "; myPrint(*qit); cerr <<
         // "\n";
-        list<const char*> auxqueries;
+        list<string> auxqueries;
         if (isLastIterator<list<string> >(qit, simpleQ.end())) {
             auxqueries = rewriteSelectHelper(*qit, false);
         } else {
@@ -1495,7 +1463,7 @@ throw (CryptDBError)
         decqueries.merge(auxqueries);
     }
 
-    list<const char *> encqueries = list<const char *>();
+    list<string> encqueries;
 
     //3. NOW THAT ENC LEVELS CONVERGED, REENCRYPT ALL QUERIES
 
@@ -1506,12 +1474,20 @@ throw (CryptDBError)
         }
         //cerr << "rewrite encrypt select Helper "; myPrint(*qit); cerr <<
         // "\n";
-        list<const char*> auxqueries = rewriteSelectHelper(*qit, true);
+        list<string> auxqueries = rewriteSelectHelper(*qit, true);
         //cerr << "helper result "; myPrint(auxqueries); cerr << "\n";
         assert_s(
             auxqueries.size() == 1,
             " aux queries should be one in size after first pass ");
-        encqueries.push_back(removeString(auxqueries.back(), ";"));
+
+        string q = auxqueries.back();
+        for (;;) {
+            size_t pos = q.find(';');
+            if (pos == string::npos)
+                break;
+            q.erase(pos);
+        }
+        encqueries.push_back(q);
     }
 
     //4. RECREATE THE NEWLY NESTED QUERY
@@ -1519,7 +1495,7 @@ throw (CryptDBError)
     //cerr << "rewrite encrypt select Helper "; myPrint(simpleQ.back()); cerr
     // << "\n";
 
-    list<const char *> results = rewriteSelectHelper(
+    list<string> results = rewriteSelectHelper(
         simpleQ.back(), false, encqueries);
     //cerr << "helper result "; myPrint(results); cerr << "\n";
     assert_s(
@@ -1649,9 +1625,9 @@ expandWildCard(list<string> & words, QueryMeta & qm, map<string,
 
 }
 
-list<const char*>
+list<string>
 EDBClient::rewriteSelectHelper(list<string> words, bool isSubquery,
-                               list<const char *> subqueries)
+                               list<string> subqueries)
 throw (CryptDBError)
 {
 
@@ -2027,11 +2003,12 @@ throw (CryptDBError)
         resultQuery = resultQuery + processAlias(wordsIt, words);
     }
 
-    list<const char*> res =
+    list<string> res =
         processFilters(wordsIt, words, qm, resultQuery, fieldsDec, tmkm,
                        subqueries);
 
-    tmkm.cleanup(); qm.cleanup();
+    tmkm.cleanup();
+    qm.cleanup();
 
     return res;
 }
@@ -2182,7 +2159,7 @@ printRes(vector<vector<string> > & vals)
 }
 
 ResType *
-EDBClient::rewriteDecryptSelect(const char * query, ResType * dbAnswer)
+EDBClient::rewriteDecryptSelect(const string &query, ResType * dbAnswer)
 {
 
     //cerr << "in decrypt \n";
@@ -2455,19 +2432,19 @@ throw (CryptDBError)
     return res;
 }
 
-list<const char*>
-EDBClient::rewriteEncryptDrop(const char * queryI)
+list<string>
+EDBClient::rewriteEncryptDrop(const string &queryI)
 throw (CryptDBError)
 {
     //handles queries of the form DROP TABLE tablename;
-
-    char * query = copy(queryI);
+    char *query = strdup(queryI.c_str());
 
     const char delimiters[7]={' ', ')', '(', ';', ',','\n',  '\0'};
 
     string tableName = strtok(query, delimiters);
     tableName = strtok(NULL, delimiters);
     tableName = strtok(NULL, delimiters);
+    free(query);
 
     //prepare anonymized query for the server
     string result = "DROP TABLE ";
@@ -2485,21 +2462,13 @@ throw (CryptDBError)
     tableMetaMap.erase(tableName);
     tableNameMap.erase(anonTableName);
 
-    list<const char*> resultList = list<const char*>();
+    list<string> resultList;
     resultList.push_back(result.c_str());
     return resultList;
 }
 
-ResType *
-EDBClient::rewriteDecryptDrop(const char * query, ResType * dbAnswer)
-{
-    if (VERBOSE) {cout << "Raw server response: \nDROP TABLE; \n\n\n"; }
-    return new ResType();      //no decryption performed, no need to waste
-                               // time
-}
-
-list<const char*>
-EDBClient::rewriteEncryptDelete(const char * query)
+list<string>
+EDBClient::rewriteEncryptDelete(const string &query)
 throw (CryptDBError)
 {
 
@@ -2515,7 +2484,7 @@ throw (CryptDBError)
 
     if (MULTIPRINC) {
         if (mp->checkPsswd(DELETE, words)) {
-            return list<const char *>();
+            return list<string>();
         }
     }
 
@@ -2556,7 +2525,7 @@ throw (CryptDBError)
     }
 
     FieldsToDecrypt ftd;
-    list<const char *>  res =
+    list<string> res =
         processFilters(wordsIt, words, qm, resultQuery, ftd,
                        tmkm);
 
@@ -2686,8 +2655,8 @@ EDBClient::getInitValue(string field, string table, AutoInc * ai)
 
 }
 
-list<const char*>
-EDBClient::rewriteEncryptInsert(const char * query, AutoInc * ai)
+list<string>
+EDBClient::rewriteEncryptInsert(const string &query, AutoInc * ai)
 throw (CryptDBError)
 {
 
@@ -2704,7 +2673,7 @@ throw (CryptDBError)
             //gettimeofday(&endtime, NULL);
             //cerr << "insert passwd took " << timeInMSec(starttime, endtime)
             // << "\n";
-            return list<const char *>();
+            return list<string>();
         }
     }
 
@@ -2947,20 +2916,11 @@ throw (CryptDBError)
 
     tmkm.cleanup();
 
-    list<const char *> result = list<const char *>();
-    result.push_back(getCStr(resultQuery));
-
-    return result;
+    return list<string>(1, resultQuery);
 }
 
-ResType *
-EDBClient::rewriteDecryptInsert(const char * query, ResType * dbAnswer)
-{
-    return new ResType();     //no decryption performed, no need to waste time
-}
-
-list<const char*>
-EDBClient::rewriteEncryptCommit(const char * query)
+list<string>
+EDBClient::rewriteEncryptCommit(const string &query)
 throw (CryptDBError)
 {
 
@@ -2977,41 +2937,22 @@ throw (CryptDBError)
                 wordsIt == words.end(),
                 "nothing should come after <commit annotations>");
             mp->commitAnnotations();
-            return list<const char*>();
+            return list<string>();
         }
     }
 
-    list<const char *> res = list<const char*>();
-    res.push_back("commit;");
-
-    return res;
+    return list<string>(1, "commit;");
 }
 
-ResType *
-EDBClient::rewriteDecryptCommit(const char * query, ResType * dbAnswer)
-{
-    return new ResType();
-}
-
-list<const char*>
-EDBClient::rewriteEncryptBegin(const char * query)
+list<string>
+EDBClient::rewriteEncryptBegin(const string &query)
 throw (CryptDBError)
 {
-
-    list<const char *> res = list<const char*>();
-    res.push_back("begin;");
-
-    return res;
+    return list<string>(1, "begin;");
 }
 
-ResType *
-EDBClient::rewriteDecryptBegin(const char * query, ResType * dbAnswer)
-{
-    return new ResType();
-}
-
-list<const char*>
-EDBClient::rewriteEncryptAlter(const char * query)
+list<string>
+EDBClient::rewriteEncryptAlter(const string &query)
 throw (CryptDBError)
 {
 
@@ -3089,23 +3030,14 @@ throw (CryptDBError)
     assert_s(
         wordsIt == words.end(), "expected end of query, but it continues " );
 
-    list<const char *> result  = list<const char *>();
-    result.push_back(getCStr(resultQuery));
-
-    return result;
-
+    return list<string>(1, resultQuery);
 }
 
-ResType *
-EDBClient::rewriteDecryptAlter(const char * query, ResType * dbAnswer)
-{
-    return new ResType();
-}
 
 //returns true if this query has to do with cryptdb
 // e.g. SET NAMES 'utf8' is a negative example
 bool
-considerQuery(command com, const char * query)
+considerQuery(command com, const string &query)
 {
 
     switch (com) {
@@ -3179,16 +3111,12 @@ considerQuery(command com, const char * query)
     return true;
 }
 
-list<const char *>
-EDBClient::rewriteEncryptQuery(const char * query, AutoInc * ai)
+list<string>
+EDBClient::rewriteEncryptQuery(const string &query, AutoInc * ai)
 throw (CryptDBError)
 {
-
-    if (!isSecure) {
-        list<const char *> lst = list<const char*>();
-        lst.push_back(query);
-        return lst;
-    }
+    if (!isSecure)
+        return list<string>(1, query);
 
     //It is secure
 
@@ -3197,7 +3125,7 @@ throw (CryptDBError)
     //some queries do not need to be encrypted
     if (!considerQuery(com, query)) {
         if (VERBOSE) { cerr << "query not considered \n"; }
-        list<const char *> res = list<const char*>();
+        list<string> res;
         res.push_back(query);
         if (VERBOSE) { cerr << "returning query " << query << "\n"; }
         return res;
@@ -3212,78 +3140,57 @@ throw (CryptDBError)
     case DROP: {return rewriteEncryptDrop(query); }
     case DELETE: {return rewriteEncryptDelete(query); }
     case BEGIN: {
-        if (DECRYPTFIRST) {
-            list<const char *> res = list<const char*>();
-            res.push_back(query);
-            return res;
-        }
+        if (DECRYPTFIRST)
+            return list<string>(1, query);
+
         return rewriteEncryptBegin(query);
     }
     case COMMIT: {
-        if (DECRYPTFIRST) {
-            list<const char *> res = list<const char*>();
-            res.push_back(query);
-            return res;
-        }
+        if (DECRYPTFIRST)
+            return list<string>(1, query);
+
         return rewriteEncryptCommit(query);
     }
     case ALTER: {
-        if (DECRYPTFIRST) {
-            list<const char *> res = list<const char*>();
-            res.push_back(query);
-            return res;
-        }
+        if (DECRYPTFIRST)
+            return list<string>(1, query);
+
         return rewriteEncryptAlter(query);
     }
     case OTHER: {
         cerr << "other query\n";
-        if (DECRYPTFIRST) {
-            list<const char *> res = list<const char*>();
-            res.push_back(query);
-            return res;
-        }
+        if (DECRYPTFIRST)
+            return list<string>(1, query);
     }
     }
     cerr << "e" << endl;
     assert_s(false, "invalid control path");
-    return list<const char *>();
+    return list<string>();
 }
 
-vector<vector<string> >  *
-EDBClient::decryptResults(const char * query, ResType * dbAnswer)
+ResType *
+EDBClient::decryptResults(const string &query, ResType * dbAnswer)
 {
+    if (DECRYPTFIRST)
+        return dbAnswer;
 
-    if (DECRYPTFIRST) {
+    if (dbAnswer->size() == 0)
         return dbAnswer;
-    }
-    //check if result is empty
-    if (dbAnswer->size() == 0) {
-        return dbAnswer;
-    }
+
+    // some queries do not need to be encrypted
     command com = getCommand(query);
-
-    //some queries do not need to be encrypted
     if (!considerQuery(com, query)) {
         if (VERBOSE) { cerr << "do not consider \n"; }
         return dbAnswer;
     }
 
-    //dispatch query to the appropriate rewriterEncryptor
     switch (com) {
-    case CREATE: {return rewriteDecryptCreate(query, dbAnswer); }
-    case UPDATE: {return rewriteDecryptUpdate(query, dbAnswer); }
-    case INSERT: {return rewriteDecryptInsert(query, dbAnswer); }
-    case SELECT: {return rewriteDecryptSelect(query, dbAnswer); }
-    case DROP:   {return rewriteDecryptDrop(query, dbAnswer); }
-    case DELETE: {return rewriteDecryptDelete(query, dbAnswer); }
-    case COMMIT: {return rewriteDecryptCommit(query, dbAnswer); }
-    case BEGIN: {return rewriteDecryptBegin(query, dbAnswer); }
-    case ALTER: {return rewriteDecryptAlter(query, dbAnswer); }
-    case OTHER: {return new ResType; }
-    }
+    case SELECT:
+        return rewriteDecryptSelect(query, dbAnswer);
 
-    fprintf(stderr, "invalid control path \n");
-    throw (void *) "invalid control path\n";
+    default:
+        return dbAnswer;
+    }
 }
 
 void
@@ -3296,14 +3203,13 @@ EDBClient::dropTables()
         for (; it != tableMetaMap.end(); it++) {
 
             if (VERBOSE) {cerr<< "drop table " << it->first << "\n"; }
-            conn->execute(getCStr("DROP TABLE " + it->second->anonTableName +
-                                  " ;"));
+            conn->execute("DROP TABLE " + it->second->anonTableName + " ;");
         }
     }
 }
 
 ResType *
-EDBClient::decryptResultsWrapper(const char * query, DBResult * dbres)
+EDBClient::decryptResultsWrapper(const string &query, DBResult * dbres)
 {
     command comm = getCommand(query);
 
@@ -3317,7 +3223,7 @@ EDBClient::decryptResultsWrapper(const char * query, DBResult * dbres)
             for (unsigned int i = 0; i < rets->size(); i++) {
                 cerr << "\n";
                 for (unsigned int j = 0; j < rets->at(i).size(); j++) {
-                    fprintf(stderr, "%-30s", getCStr(rets->at(i).at(j)));
+                    fprintf(stderr, "%-30s", rets->at(i).at(j).c_str());
                 }
             }
             cerr << "\n-------------------\n";
@@ -3333,7 +3239,7 @@ EDBClient::decryptResultsWrapper(const char * query, DBResult * dbres)
 }
 
 ResType *
-EDBClient::execute(const char * query)
+EDBClient::execute(const string &query)
 {
     DBResult * res = 0;
 
@@ -3344,7 +3250,7 @@ EDBClient::execute(const char * query)
     if (!isSecure) {
 
         if (!conn->execute(query, res)) {
-            fprintf(stderr, "%s failed: %s \n", query, conn->getError());
+            fprintf(stderr, "%s failed: %s \n", query.c_str(), conn->getError().c_str());
             return NULL;
         }
 
@@ -3360,14 +3266,13 @@ EDBClient::execute(const char * query)
 
     //secure
 
-    list<const char *> queries;
+    list<string> queries;
     AutoInc * ai = new AutoInc();
 
     try {
-        queries =  rewriteEncryptQuery(query, ai);
+        queries = rewriteEncryptQuery(query, ai);
     } catch (CryptDBError se) {
         cerr << "problem with query " << query << " " << se.msg;
-
         return NULL;
     }
 
@@ -3375,7 +3280,7 @@ EDBClient::execute(const char * query)
         return new ResType();
     }
 
-    list<const char *>::iterator queryIt = queries.begin();
+    auto queryIt = queries.begin();
 
     int noQueries = queries.size();
 
@@ -3506,7 +3411,7 @@ throw (CryptDBError)
     isTraining = true;
 
     string query;
-    list<const char *> queries;
+    list<string> queries;
     while (!infile.eof()) {
         query = getQuery(infile);
 
@@ -3515,12 +3420,8 @@ throw (CryptDBError)
         }
 
         if (query.length() > 0) {
-            queries = rewriteEncryptQuery(getCStr(string(query+";")));
-
-        } else {
-
+            queries = rewriteEncryptQuery(string(query+";"));
         }
-
     }
 
     isTraining = false;
@@ -3627,9 +3528,8 @@ throw (CryptDBError)
         query = query + ");";
 
         cerr << query << "\n";
-        //execute query
-        if (submit) {conn->execute(getCStr(query)); }
-
+        if (submit)
+            conn->execute(query);
     }
 
     //============CREATE INDEXES AND KEYS ================//
@@ -3672,7 +3572,8 @@ throw (CryptDBError)
                               " primary key ( " +
                               detlist + ");";
             cerr << pk_query << "\n";
-            if (submit) {conn->execute(getCStr(pk_query)); }
+            if (submit)
+                conn->execute(pk_query);
 
             if (opelist.length() > 0) {
                 opelist[opelist.length() - 1] = ' ';
@@ -3680,7 +3581,8 @@ throw (CryptDBError)
                                       tm->anonTableName +  " on " +
                                       tm->anonTableName + " (" +
                                       opelist + ");";
-                if (submit) {conn->execute(getCStr(pk_ope_query)); }
+                if (submit)
+                    conn->execute(pk_ope_query);
 
                 cerr << pk_ope_query << "\n";
             }
@@ -3713,7 +3615,8 @@ throw (CryptDBError)
                 index_query[index_query.length()-1] = ' ';
                 index_query = index_query + ");";
                 cerr << index_query << "\n";
-                if (submit) {conn->execute(getCStr(index_query)); }
+                if (submit)
+                    conn->execute(index_query);
             }
         }
 
@@ -3734,11 +3637,10 @@ EDBClient::outputOnionState()
                  fm != tm->second->fieldMetaMap.end(); fm++) {
                 FieldMetadata * f = fm->second;
                 if (f->isEncrypted) {
-                    printf("%-36s", getCStr(fullName(f->fieldName, tm->first)));
-                    printf(" %-14s", getCStr(levelnames[f->secLevelDET]));
-                    if (FieldMetadata::exists(f->anonFieldNameOPE)) {
-                        printf(" %-14s", getCStr(levelnames[f->secLevelOPE]));
-                    }
+                    printf("%-36s", fullName(f->fieldName, tm->first).c_str());
+                    printf(" %-14s", levelnames[f->secLevelDET].c_str());
+                    if (FieldMetadata::exists(f->anonFieldNameOPE))
+                        printf(" %-14s", levelnames[f->secLevelOPE].c_str());
                     cout << "\n";
                 }
             }

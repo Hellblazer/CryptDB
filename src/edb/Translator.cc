@@ -419,7 +419,7 @@ isFieldSalt(string id)
 }
 
 bool
-isNested(const char * query)
+isNested(const string &query)
 {
     list<string> queryS = getSQLWords(query);
 

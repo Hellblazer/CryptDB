@@ -505,7 +505,7 @@ MetaAccess::CreateTables()
     std::set<string>::iterator it_s;
     //Public Keys table
     sql = "DROP TABLE IF EXISTS " + public_table;
-    if(!conn->execute(getCStr(sql))) {
+    if(!conn->execute(sql)) {
         cerr << "error with sql query " << sql << endl;
         return -1;
     }
@@ -513,7 +513,7 @@ MetaAccess::CreateTables()
           ", Value " PRINCVALUE ", Asym_Public_Key "TN_PK_KEY
           ", Asym_Secret_Key "TN_PK_KEY
           ", Salt bigint, PRIMARY KEY (Type,Value))";
-    if(!conn->execute(getCStr(sql))) {
+    if(!conn->execute(sql)) {
         cerr << "error with sql query " << sql << endl;
         return -1;
     }
@@ -524,7 +524,7 @@ MetaAccess::CreateTables()
             num = marshallVal(table_num);
             table_num++;
             sql = "DROP TABLE IF EXISTS " + table_name + num;
-            if(!conn->execute(getCStr(sql))) {
+            if(!conn->execute(sql)) {
                 cerr << "error with sql query " << sql << endl;
                 return -1;
             }
@@ -532,7 +532,7 @@ MetaAccess::CreateTables()
                   " " +  PRINCVALUE + ", " + *it_s + " " + PRINCVALUE +
                   ", Sym_Key "TN_SYM_KEY ", Salt bigint, Asym_Key "TN_PK_KEY
                   ", PRIMARY KEY (" + it->first + "," + *it_s + "))";
-            if(!conn->execute(getCStr(sql))) {
+            if(!conn->execute(sql)) {
                 cerr << "error with sql query " << sql << endl;
                 return -1;
             }
@@ -551,7 +551,7 @@ MetaAccess::DeleteTables()
     //Public Keys table
     //TODO: fix PRINCVALUE to be application specific
     sql = "DROP TABLE " + public_table + ";";
-    if(!conn->execute(getCStr(sql))) {
+    if(!conn->execute(sql)) {
         cerr << "error with sql query " << sql << endl;
         return -1;
     }
@@ -560,7 +560,7 @@ MetaAccess::DeleteTables()
         unsigned int n = i;
         num = marshallVal(n);
         sql = "DROP TABLE " + table_name + num + ";";
-        if(!conn->execute(getCStr(sql))) {
+        if(!conn->execute(sql)) {
             cerr << "error with sql query " << sql << endl;
             return -1;
         }
@@ -859,7 +859,7 @@ KeyAccess::insert(Prin hasAccess, Prin accessTo)
     }
 
     //update table with encrypted key
-    if(!conn->execute(getCStr(sql))) {
+    if(!conn->execute(sql)) {
         cerr << "Problem with sql statement: " << sql << endl;
         return -1;
     }
@@ -877,7 +877,7 @@ KeyAccess::insert(Prin hasAccess, Prin accessTo)
         sql = "SELECT * FROM " + meta->publicTableName() + " WHERE Type='" +
               accessTo.gen + "' AND Value='" + accessTo.value + "';";
         DBResult * dbres;
-        if (!conn->execute(getCStr(sql), dbres)) {
+        if (!conn->execute(sql, dbres)) {
             cerr << "Problem with sql statement: " << sql << endl;
         } else {
             ResType *res = dbres->unpack();
@@ -907,7 +907,7 @@ KeyAccess::insert(Prin hasAccess, Prin accessTo)
         sql = "SELECT * FROM " + meta->publicTableName() + " WHERE Type='" +
               hasAccess.gen + "' AND Value='" + hasAccess.value + "';";
         DBResult * dbres;
-        if (!conn->execute(getCStr(sql), dbres)) {
+        if (!conn->execute(sql, dbres)) {
             cerr << "Problem with sql statement: " << sql << endl;
             assert_s(0, "x");
         }
@@ -1143,7 +1143,7 @@ KeyAccess::getPublicKey(Prin prin)
                  " WHERE Type='" + prin.gen + "' AND Value='" + prin.value +
                  "'";
     DBResult * dbres;
-    if (!conn->execute(getCStr(sql), dbres)) {
+    if (!conn->execute(sql, dbres)) {
         cerr << "SQL error from query: " << sql << endl;
         return NULL;
     }
@@ -1624,7 +1624,7 @@ KeyAccess::SelectCount(std::set<Prin> & prin_set, string table_name)
     }
     sql += ";";
     DBResult * dbres;
-    if(!conn->execute(getCStr(sql), dbres)) {
+    if(!conn->execute(sql, dbres)) {
         cerr << "SQL error with query: " << sql << endl;
         return -1;
     }
@@ -1646,7 +1646,7 @@ KeyAccess::RemoveRow(Prin hasAccess, Prin accessTo)
     string sql = "DELETE FROM " + table + " WHERE " + hasAccess.gen + "='" +
                  hasAccess.value + "' AND " + accessTo.gen + "='" +
                  accessTo.value + "';";
-    if(!conn->execute(getCStr(sql))) {
+    if(!conn->execute(sql)) {
         cerr << "SQL error with query: " << sql << endl;
         return -1;
     }
@@ -1677,7 +1677,7 @@ KeyAccess::GenerateAsymKeys(Prin prin, PrinKey prin_key)
                  prin.gen + "', '" + prin.value + "', " + pub_key_string +
                  ", " +
                  encrypted_sec_key_string + ", " + salt_string + ");";
-    if (!conn->execute(getCStr(sql))) {
+    if (!conn->execute(sql)) {
         cerr << "SQL error on query " << sql << endl;
         return -1;
     }

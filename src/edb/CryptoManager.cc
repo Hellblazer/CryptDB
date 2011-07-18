@@ -1264,14 +1264,12 @@ getWords(string text)
 
     unsigned int len = text.length();
 
-    char * textVec = getCStr(text);
-
     for (unsigned int pos = 0; pos < len; )
     {
         string word = "";
-        while (pos < len && wordSeparators.find(textVec[pos]) ==
+        while (pos < len && wordSeparators.find(text[pos]) ==
                string::npos) {
-            word = word + textVec[pos];
+            word = word + text[pos];
             pos++;
         }
         if (word.length() > 0) {
@@ -1279,9 +1277,9 @@ getWords(string text)
         }
 
         string sep = "";
-        while (pos < len && wordSeparators.find(textVec[pos]) !=
+        while (pos < len && wordSeparators.find(text[pos]) !=
                string::npos) {
-            sep = sep + textVec[pos];
+            sep = sep + text[pos];
             pos++;
         }
         myassert(pos == len || sep.length() > 0, "error");

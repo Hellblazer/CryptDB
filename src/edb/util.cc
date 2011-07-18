@@ -235,7 +235,7 @@ myPrint(const vector<vector<string> > & d)
     unsigned int cols = d[0].size();
     for (unsigned int i = 0; i < rows; i++) {
         for (unsigned int j = 0; j < cols; j++) {
-            fprintf(stderr, " %s15", getCStr(d[i][j]));
+            fprintf(stderr, " %s15", d[i][j].c_str());
         }
         cerr << "\n";
     }
@@ -252,7 +252,7 @@ toString(const ResType & rt)
     for (unsigned int i = 0; i < n; i++) {
         unsigned int m = rt[i].size();
         for (unsigned int j = 0; j < m; j++) {
-            res = res + " " + getCStr(rt[i][j]);
+            res = res + " " + rt[i][j].c_str();
         }
         res += "\n";
     }
@@ -272,17 +272,6 @@ myPrint(const vector<string> & lst)
 {
     for (auto it = lst.begin(); it!=lst.end(); it++)
         fprintf(stderr, " %s \n", it->c_str());
-}
-
-char *
-getCStr(const string &value)
-{
-    unsigned int len = value.length();
-    char * result = new char[len+1];
-    strncpy(result, value.c_str(), len);
-    result[len] = '\0';
-
-    return result;
 }
 
 bool
@@ -388,19 +377,6 @@ UInt64_tToZZ (uint64_t value)
     return res;
 
 };
-
-unsigned char
-ByteFromCharA(const char * a)
-{
-    unsigned int len = strlen(a);
-    int value = 0;
-    for (unsigned int i = 0; i < len; i++) {
-        myassert( (a[i]>='0') && (a[i] <='9'), "bad input");
-        value =  value * 10 + (int)(a[i]-'0');
-    }
-
-    return (unsigned char) value;
-}
 
 //copies into res at position pos and len bytes data from data
 unsigned char *
@@ -637,10 +613,10 @@ marshallBinary(unsigned char * binValue, unsigned int len)
 #endif
 
 static unsigned char
-getFromHex(const char * hexValues)
+getFromHex(const string &hexValues)
 {
     unsigned int v;
-    sscanf(hexValues, "%2x", &v);
+    sscanf(hexValues.c_str(), "%2x", &v);
     return (unsigned char) v;
 }
 
@@ -675,30 +651,10 @@ unmarshallBinary(const string &s)
     return ss.str();
 }
 
-char *
-copy(const char * v)
-{
-    char * result = new char[strlen(v)+1];
-
-    strcpy(result, v);
-    result[strlen(v)] = '\0';
-
-    return result;
-}
-
-unsigned char *
-copy(unsigned char * v, unsigned int len)
-{
-    unsigned char * res = new unsigned char[len];
-    memcpy(res, v, len);
-    return res;
-}
-
-bool
+static bool
 matches(const char * query, const char * delims, bool ignoreOnEscape = false,
         int index = 0)
 {
-
     bool res = (strchr(delims, query[0]) != NULL);
 
     if (res && (index > 0)) {
@@ -712,22 +668,22 @@ matches(const char * query, const char * delims, bool ignoreOnEscape = false,
 }
 
 list<string>
-parse(const char * query, const char * delimsStay, const char * delimsGo,
-      const char * keepIntact)
+parse(const string &query, const string &delimsStay, const string &delimsGo,
+      const string &keepIntact)
 {
     list<string> res = list<string>();
-    unsigned int len = strlen(query);
+    unsigned int len = query.length();
 
     unsigned int index = 0;
 
     string word = "";
 
     while (index < len) {
-        while ((index < len) && matches(query + index, delimsGo)) {
+        while ((index < len) && matches(&query[index], delimsGo.c_str())) {
             index = index + 1;
         }
 
-        while ((index < len) && matches(query+index, delimsStay)) {
+        while ((index < len) && matches(&query[index], delimsStay.c_str())) {
             string sep = "";
             sep = sep + query[index];
             res.push_back(sep);
@@ -736,7 +692,7 @@ parse(const char * query, const char * delimsStay, const char * delimsGo,
 
         if (index >= len) {break; }
 
-        if (matches(query+index, keepIntact, true, index)) {
+        if (matches(&query[index], keepIntact.c_str(), true, index)) {
 
             word = query[index];
 
@@ -744,7 +700,7 @@ parse(const char * query, const char * delimsStay, const char * delimsGo,
 
             while (index < len)  {
 
-                if (matches(query+index, keepIntact, true, index)) {
+                if (matches(&query[index], keepIntact.c_str(), true, index)) {
                     break;
                 }
 
@@ -755,7 +711,7 @@ parse(const char * query, const char * delimsStay, const char * delimsGo,
             string msg = "keepIntact was not closed in <";
             msg = msg + query + "> at index " + marshallVal(index);
             assert_s((index < len)  &&
-                     matches(query+index, keepIntact, index), msg);
+                     matches(&query[index], keepIntact.c_str(), index), msg);
             word = word + query[index];
             res.push_back(word);
 
@@ -767,10 +723,9 @@ parse(const char * query, const char * delimsStay, const char * delimsGo,
 
         word = "";
         while ((index < len) &&
-               (!matches(query+index,
-                         delimsStay)) &&
-               (!matches(query+index,
-                         delimsGo)) && (!matches(query+index, keepIntact))) {
+               (!matches(&query[index], delimsStay.c_str())) &&
+               (!matches(&query[index], delimsGo.c_str())) &&
+               (!matches(&query[index], keepIntact.c_str()))) {
             word = word + query[index];
             index++;
         }
@@ -865,7 +820,7 @@ consolidateComparisons(list<string> & words)
 void
 consolidateMath(list<string> & words)
 {
-    command com = getCommand(getCStr(*words.begin()));
+    command com = getCommand(*words.begin());
     switch (com) {
     case CREATE:
         cerr << "consolidateMath doesn't deal with CREATE" << endl;
@@ -1011,36 +966,13 @@ consolidate(list<string> & words)
 // refers
 // if tables have aliases, each alias is replaced with the real name
 list<string>
-getSQLWords(const char * query)
+getSQLWords(const string &query)
 {
-    //struct timeval starttime, endtime;
-
-    //	gettimeofday(&starttime, NULL);
-
     list<string> words = parse(query, delimsStay,delimsGo, keepIntact);
-
-    //	gettimeofday(&endtime, NULL);
-
-//		cerr << "  parse " << timeInMSec(starttime, endtime) << "\n";
-
-    //	gettimeofday(&starttime, NULL);
-//
-    //keywordsToLowerCase(words);
-
-//	gettimeofday(&endtime, NULL);
-
-//	cerr << "  lower case " << timeInMSec(starttime, endtime) << "\n";
-//
-//	gettimeofday(&starttime, NULL);
 
     consolidate(words);
 
-//	gettimeofday(&endtime, NULL);
-
-    //cerr << "  consolidate " << timeInMSec(starttime, endtime) << "\n";
-
     return words;
-
 }
 
 command
@@ -1319,18 +1251,17 @@ contains(const string &token, list<string> & values)
 bool
 isOnly(const string &token, const string * values, unsigned int noValues)
 {
-    const char * str = getCStr(token);
     for (unsigned int j = 0; j < token.size(); j++) {
         bool is_value = false;
         for (unsigned int i = 0; i < noValues; i++) {
             string test = "";
-            test += str[j];
+            test += token[j];
             if (equalsIgnoreCase(test, values[i])) {
                 is_value = true;
             }
         }
         if (!is_value) {
-            cerr << str[j] << endl;
+            cerr << token[j] << endl;
             return false;
         }
     }
@@ -1342,25 +1273,6 @@ isKeyword(const string &token)
 {
     return (parserMeta.clauseKeywords_p.find(toLowerCase(token)) !=
             parserMeta.clauseKeywords_p.end());
-}
-
-const char *
-removeString(const char * input, const string &toremove)
-{
-    string data(input);
-    string newdata = "";
-    unsigned int pos;
-    while ((pos = data.find(toremove)) != string::npos) {
-        newdata = data.substr(0, pos);
-        if (pos == data.length() - 1) {
-            data = "";
-            break;
-        }
-        data = data.substr(pos+toremove.length(),
-                           data.length() - pos - toremove.length());
-    }
-    newdata = newdata +  data;
-    return getCStr(newdata);
 }
 
 bool
@@ -1381,6 +1293,7 @@ addIfNotContained(const string &token, list<string> & lst)
         lst.push_back(token);
     }
 }
+
 void
 addIfNotContained(const string &token1, const string &token2, list<pair<string,
                                                           string> > & lst)
@@ -1421,23 +1334,15 @@ homomorphicAdd(const string &val1, const string &val2, const string &valn2)
 string
 toLowerCase(const string &token)
 {
-    string res = "";
-    for (unsigned int i = 0; i < token.length(); i++) {
-        char c;
-        if (isalpha(token[i])) {
-            c = tolower(token[i]);
-        } else {
-            c = token[i];
-        }
-        res = res + c;
-    }
-    return res;
+    string s = token;
+    transform(s.begin(), s.end(), s.begin(), ::tolower);
+    return s;
 }
 
 bool
 equalsIgnoreCase(const string &s1, const string &s2)
 {
-    return (toLowerCase(s1).compare(toLowerCase(s2)) == 0);
+    return toLowerCase(s1) == toLowerCase(s2);
 }
 
 void

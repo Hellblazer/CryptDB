@@ -321,12 +321,6 @@ const ParserMeta parserMeta = ParserMeta();
 
 void myassert(bool value);
 
-//transforms a string in a char *, where char * is a properly-allocated
-// pointer
-char * getCStr(const string &value);
-
-const char * removeString(const char * input, const string &toremove);
-
 //returns a list that consists of lst1 and lst2 concatenated in this order
 list<string> concatenate(const list<string> & lst1,
                          const list<string>  & lst2);
@@ -361,9 +355,6 @@ string StringFromVal(unsigned int value, unsigned int desiredLen);
 string StringFromVal(unsigned long value);
 
 ZZ UInt64_tToZZ (uint64_t value);
-
-// a const char looking like "123" becomes an unsigned char with value 123
-unsigned char ByteFromCharA(const char * a);
 
 unsigned char * copyInto(unsigned char * res, unsigned char * data,
                          unsigned int pos,
@@ -436,16 +427,13 @@ void consolidate(list<string> & words);
 
 string marshallBinaryOnce(unsigned char * binValue, unsigned int len);
 
-char * copy(const char * v);
-unsigned char * copy(unsigned char * v, unsigned int len);
-
 /********* SQL QUERY PARSING ******/
 
 // splits query in a list of string tokens; the tokens are obtained by
 // splitting query at every character contained in delimsStay or delimsGo; the
 // tokens will include the characters
 // from delimsStay encountered
-list<string> getSQLWords(const char * query);
+list<string> getSQLWords(const string &query);
 
 //parses a given string str, by splitting it according to the delimiters in
 // delimsStay, delimsGo ; if a piece of string
@@ -453,9 +441,8 @@ list<string> getSQLWords(const char * query);
 // if this string
 //contains delimiters; delimsStay are kept in the result, delimsGo are
 // discarded
-list<string> parse(const char * str, const char * delimsStay,
-                   const char * delimsGo,
-                   const char * keepIntact);
+list<string> parse(const string &str, const string &delimsStay,
+                   const string &delimsGo, const string &keepIntact);
 
 command getCommand(const string &query)
 throw (CryptDBError);

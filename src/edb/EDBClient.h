@@ -41,17 +41,17 @@ class EDBClient {
 
     //Mode 1: Translation of query, execution of query, and translation of
     // results
-    ResType * execute(const char * query);
+    ResType * execute(const string &query);
     //no security:
-    ResType * plain_execute(const char * query);
+    ResType * plain_execute(const string &query);
 
     //Mode 2: Only translations
     //query must be \0 terminated
-    list<const char*> rewriteEncryptQuery(const char * query,
-                                          AutoInc * ai = NULL)
+    list<string> rewriteEncryptQuery(const string &query,
+                                     AutoInc * ai = NULL)
     throw (CryptDBError);
     //query should be the original, untranslated query
-    ResType  * decryptResults(const char * query, ResType * dbAnswer);
+    ResType  * decryptResults(const string &query, ResType * dbAnswer);
 
     //==== EXIT =================//
 
@@ -113,14 +113,12 @@ class EDBClient {
     //the Encrypt functions rewrite a query by anonymizing, encrypting, and
     // translating it; they also generate decryption queries
     //the Decrypt functions decrypt the result from the server
-    list<const char*> rewriteEncryptCreate(const char * query)
+    list<string> rewriteEncryptCreate(const string &query)
     throw (CryptDBError);
-    ResType * rewriteDecryptCreate(const char * query, ResType * dbAnswer);
 
     //INSERT
-    list<const char*> rewriteEncryptInsert(const char * query, AutoInc * ai)
+    list<string> rewriteEncryptInsert(const string &query, AutoInc * ai)
     throw (CryptDBError);
-    ResType * rewriteDecryptInsert(const char * query, ResType * dbAnswer);
     //returns the value to be included in an insert a given value of a
     // field/table
     string processValsToInsert(string field, string table, uint64_t salt,
@@ -132,11 +130,11 @@ class EDBClient {
 
     //FILTERS ("WHERE")
     //process where clause
-    list<const char *>
+    list<string>
     processFilters(list<string>::iterator & wordsIt, list<string> & words,
                    QueryMeta & qm, string resultQuery,
                    FieldsToDecrypt fieldsDec, TMKM & tmkm,
-                   list<const char *> subqueries = list<const char*>())
+                   list<string> subqueries = list<string>())
     throw (CryptDBError);
     string processOperation(string operation, string op1, string op2,
                             QueryMeta & qm, string encryptedsubquery,
@@ -144,51 +142,45 @@ class EDBClient {
     throw (CryptDBError);
 
     //UPDATE
-    list<const char*> rewriteEncryptUpdate(const char * query)
+    list<string> rewriteEncryptUpdate(const string &query)
     throw (CryptDBError);
-    ResType * rewriteDecryptUpdate(const char * query, ResType * dbAnswer);
 
     //SELECT
-    list<const char*> rewriteEncryptSelect(const char * query)
+    list<string> rewriteEncryptSelect(const string &query)
     throw (CryptDBError);
-    ResType * rewriteDecryptSelect(const char * query, ResType * dbAnswer);
-    ResType * decryptResultsWrapper(const char * query, DBResult * dbres);
+    ResType * rewriteDecryptSelect(const string &query, ResType * dbAnswer);
+    ResType * decryptResultsWrapper(const string &query, DBResult * dbres);
     //prepared decryptions
-    list<const char*>  processDecryptions(FieldsToDecrypt fieldsDec,
+    list<string>  processDecryptions(FieldsToDecrypt fieldsDec,
                                           TMKM & tmkm)
     throw (CryptDBError);
     //isSubquery indicates that the current query is a subquery of a large
     // nested query
-    list<const char*> rewriteSelectHelper(
+    list<string> rewriteSelectHelper(
         list<string> words, bool isSubquery = false,
-        list<const char*> subqueries = list<const char*>())
+        list<string> subqueries = list<string>())
     throw (CryptDBError);
 
     //DROP
-    list<const char*> rewriteEncryptDrop(const char * query)
+    list<string> rewriteEncryptDrop(const string &query)
     throw (CryptDBError);
-    ResType * rewriteDecryptDrop(const char * query, ResType * dbAnswer);
 
     //DELETE
-    list<const char*> rewriteEncryptDelete(const char * query)
+    list<string> rewriteEncryptDelete(const string &query)
     throw (CryptDBError);
-    ResType * rewriteDecryptDelete(const char * query, ResType * dbAnswer);
 
     //BEGIN
-    list<const char*> rewriteEncryptBegin(const char * query)
+    list<string> rewriteEncryptBegin(const string &query)
     throw (CryptDBError);
-    ResType * rewriteDecryptBegin(const char * query, ResType * dbAnswer);
 
     //COMMIT
-    list<const char*> rewriteEncryptCommit(const char * query)
+    list<string> rewriteEncryptCommit(const string &query)
     throw (CryptDBError);
-    ResType * rewriteDecryptCommit(const char * query, ResType * dbAnswer);
 
     //ALTER
-    list<const char*> rewriteEncryptAlter(const char * query)
+    list<string> rewriteEncryptAlter(const string &query)
     throw (CryptDBError);
-    ResType * rewriteDecryptAlter(const char * query, ResType * dbAnswer);
-    list<const char *> processIndex(list<string> & words,
+    list<string> processIndex(list<string> & words,
                                     list<string>::iterator & wordsIt)
     throw (CryptDBError);
 

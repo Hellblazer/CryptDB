@@ -55,7 +55,7 @@ throw (CryptDBError);
 // exist
 string getFieldsItSelect(list<string> & words, list<string>::iterator & it);
 
-bool isNested(const char * query);
+bool isNested(const string &query);
 
 //returns the name of a field if field is not encrypted, else it returns the
 // DET name

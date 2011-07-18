@@ -466,7 +466,7 @@ tester::testClientParser()
     for (; it != queries.end(); it++) {   //TODO: check against expected...at
                                           // this point is more of a manual
                                           // check
-        list<const char*> response = rewriteEncryptQuery(it->c_str());
+        list<string> response = rewriteEncryptQuery(it->c_str());
         fprintf(stderr, "query issued/response: \n%s \n", it->c_str());
         myPrint(response);
         fprintf(stderr, "\n");
@@ -552,8 +552,8 @@ evalImproveSummations()
     unsigned int no_sums = 20;
 
     for (unsigned int i = 0; i < no_inserts; i++) {
-        cl->execute(getCStr(string("INSERT INTO test_table VALUES (") +
-                            StringFromVal(i) + " , 'ana');"));
+        cl->execute(string("INSERT INTO test_table VALUES (") +
+                    StringFromVal(i) + " , 'ana');");
     }
 
     startTimer();
@@ -625,7 +625,7 @@ interactiveTest()
                 string qq = "INSERT INTO people VALUES ( " +
                             marshallVal(val1) + ", " + marshallVal(val2) +
                             ");";
-                cl->execute(getCStr(qq));
+                cl->execute(qq);
             }
         } else if (commandS.compare("load all emp;") == 0) {
             cl->execute("CREATE TABLE emp (id integer, jobid integer);");
@@ -636,11 +636,10 @@ interactiveTest()
                 unsigned int val2 = rand() % 10;
                 string qq = "INSERT INTO emp VALUES ( " + marshallVal(val1) +
                             ", " + marshallVal(val2) + ");";
-                cl->execute(getCStr(qq));
+                cl->execute(qq);
             }
         } else if (commandS.find("login") == 0) {
-            list<string> words = parse(getCStr(
-                                           commandS), delimsStay, delimsGo,
+            list<string> words = parse(commandS, delimsStay, delimsGo,
                                        keepIntact);
             list<string>::iterator wordsIt = words.begin();
             wordsIt++;
@@ -648,17 +647,16 @@ interactiveTest()
             string p = getVal(wordsIt);
             string query = "INSERT INTO activeusers VALUES ('" + uname +
                            "' , '" + p + "' );" + '\0';
-            cl->execute(getCStr(query));
+            cl->execute(query);
         } else if (commandS.find("logout") == 0) {
-            list<string> words = parse(getCStr(
-                                           commandS), delimsStay, delimsGo,
+            list<string> words = parse(commandS, delimsStay, delimsGo,
                                        keepIntact);
             list<string>::iterator wordsIt = words.begin();
             wordsIt++;
             string uname = getVal(wordsIt);
             string query = "DELETE FROM activeusers WHERE uname = '" +
                            uname + "';" + '\0';
-            cl->execute(getCStr(query));
+            cl->execute(query);
         } else if (commandS.compare("debug;") == 0) {
             //assert_s(cl->execute(), "failed");
 
@@ -1038,7 +1036,7 @@ microEvaluate(int argc, char ** argv)
         unsigned int val2 = rand() % 10;
         string qq = "INSERT INTO tableeval VALUES ( " + marshallVal(val1) +
                     ", " + marshallVal(val2) + ");";
-        clsecure->execute(getCStr(qq));
+        clsecure->execute(qq);
     }
     double endTimer = (readTimer()/(1.0 * nrInsertsSecure));
     printf("secure insertion: no network %6.6f ms with network %6.6f ms \n",
@@ -1051,7 +1049,7 @@ microEvaluate(int argc, char ** argv)
         unsigned int val2 = rand() % 10;
         string qq = "INSERT INTO tableeval VALUES ( " + marshallVal(val1) +
                     ", " + marshallVal(val2) + ");";
-        clplain->execute(getCStr(qq));
+        clplain->execute(qq);
     }
     endTimer = (readTimer()/(1.0 * nrInsertsPlain));
     printf("plain insertion no network %6.6f ms with network %6.6f ms \n",
@@ -1064,11 +1062,11 @@ microEvaluate(int argc, char ** argv)
         string qq =
             "SELECT tableeval.id FROM tableeval WHERE tableeval.id = " +
             marshallVal(val1) + ";";
-        clsecure->execute(getCStr(qq));
+        clsecure->execute(qq);
         //unsigned int val2 = rand() % 50;
         //qq = "SELECT tableeval.age FROM tableeval WHERE tableeval.age > " +
         // marshallVal(val2) + ";";
-        clsecure->execute(getCStr(qq));
+        clsecure->execute(qq);
     }
     endTimer = (readTimer()/(1.0 * nrSelectsSecure));
     printf("secure selection no network %6.6f ms with network %6.6f ms \n",
@@ -1081,11 +1079,11 @@ microEvaluate(int argc, char ** argv)
         string qq =
             "SELECT tableeval.id FROM tableeval WHERE tableeval.id = " +
             marshallVal(val1) + ";";
-        clplain->execute(getCStr(qq));
+        clplain->execute(qq);
         //unsigned int val2 = rand() % 50;
         //qq = "SELECT tableeval.age FROM tableeval WHERE tableeval.age > " +
         // marshallVal(val2) + ";";
-        clplain->execute(getCStr(qq));
+        clplain->execute(qq);
     }
     endTimer = (readTimer()/(1.0 * nrSelectsPlain));
     printf("plain selection no network %6.6f ms with network %6.6f ms \n",
@@ -1116,7 +1114,7 @@ microEvaluate(int argc, char ** argv)
        "\n";
     string query = "INSERT INTO peoples VALUES ( " + marshallBinary(rBytes,
        len) + " );";
-    execute(getCStr(query));
+    execute(query);
     PGresult * res = execute("SELECT id, octet_length(id) FROM
        peoples;")->result;
     cout << "repr " << PQgetvalue(res, 0, 0) << "\n";
@@ -1243,7 +1241,7 @@ testUtils()
 void
 createTables(string file, EDBClient * cl)
 {
-    ifstream createsFile(getCStr(file));
+    ifstream createsFile(file);
 
     if (createsFile.is_open()) {
         while (!createsFile.eof()) {
@@ -1257,7 +1255,7 @@ createTables(string file, EDBClient * cl)
             }
             if (line.length() > 0) {
                 cerr << query << "\n";
-                if (cl->execute(getCStr(query)) == NULL) {
+                if (cl->execute(query) == NULL) {
                     cerr << "FAILED on query " << query << "\n";
                     createsFile.close();
                     cl->exit();
@@ -1393,7 +1391,7 @@ test_train()
 
 /*
    void createIndexes(string indexF, EDBClient * cl) {
-        ifstream tracefile(getCStr(indexF));
+        ifstream tracefile(indexF);
 
         string query;
 
@@ -1404,7 +1402,7 @@ test_train()
                         getline(tracefile, query);
                         if (query.length() > 1) {
                                 edb_result * res =
-                                   cl->execute(getCStr(query));
+                                   cl->execute(query);
                                 if (res == NULL) {
                                         cerr << "FAILED on query " << query <<
                                            "\n";
@@ -1515,8 +1513,8 @@ suffix(int no)
 /*
    void tester::loadData(EDBClient * cl, string workload, int logFreq) {
 
-        ifstream dataFile(getCStr(workload));
-        ofstream outFile(getCStr(workload+"answer"));
+        ifstream dataFile(workload);
+        ofstream outFile(workload+"answer");
 
         if ((!dataFile.is_open()) || (!outFile.is_open())) {
                 cerr << "could not open file " << workload << "or the answer
@@ -1538,7 +1536,7 @@ suffix(int no)
                                    "\n";
                         }
  */
-/*edb_result * res = cl->execute(getCStr(query));
+/*edb_result * res = cl->execute(query);
                         if (index % logFreq== 0) {//cout << "executed\n";
                         }
                         if (res == NULL) {
@@ -1547,16 +1545,16 @@ suffix(int no)
                                 while (res == NULL) {
                                         cerr << "retrying \n";
                                         sleep(10);
-                                        res = cl->execute(getCStr(query));
+                                        res = cl->execute(query);
                                 //cl->exit();
                                 //dataFile.close();
                                 //exit(1);
                                 }
                         }*//*
-                        list<const char *> ress;
+                        list<string> ress;
                         try {
                                 ress =
-                                   tcl->rewriteEncryptQuery(getCStr(query));
+                                   tcl->rewriteEncryptQuery(query);
                         } catch (CryptDBError se) {
                                 cerr << "CryptDB error " << se.msg << "\n";
                                 exit(1);
@@ -1600,7 +1598,7 @@ suffix(int no)
                 int & okinstrCount, int & oktranCount, int & totalInstr, int &
                    totalTran) {
 
-        ifstream tracefile(getCStr(workload));
+        ifstream tracefile(workload);
 
         string query;
 
@@ -1636,13 +1634,13 @@ suffix(int no)
                 if (!hasTransac) {
                         if (isSecure) {
                                 edb_result * res =
-                                   cl->execute(getCStr(query));
+                                   cl->execute(query);
                                 if (res == NULL) {
                                         count++;
                                 }
                         } else {
                                 PGresult * res =
-                                   cl->plain_execute(getCStr(query));
+                                   cl->plain_execute(query);
                                 if (!((PQresultStatus(res) == PGRES_TUPLES_OK)
                                    || (PQresultStatus(res) ==
                                    PGRES_COMMAND_OK))) {
@@ -1662,13 +1660,13 @@ suffix(int no)
                                 bool instrOK = true;
                                 if (isSecure) {
                                         edb_result * res =
-                                           cl->execute(getCStr(query));
+                                           cl->execute(query);
                                         if (res == NULL) {
                                                 instrOK = false;
                                         }
                                 } else {
                                         PGresult * res =
-                                           cl->plain_execute(getCStr(query));
+                                           cl->plain_execute(query);
                                         if (!((PQresultStatus(res) ==
                                            PGRES_TUPLES_OK) ||
                                            (PQresultStatus(res) ==
@@ -1728,7 +1726,7 @@ suffix(int no)
  */
 //	int res = system("rm eval/pieces/*");
 /*
-        ifstream infile(getCStr(dfile));
+        ifstream infile(dfile);
 
         int linesPerWorker = totalLines / noWorkers;
 
@@ -1742,7 +1740,7 @@ suffix(int no)
         //prepare files
         for (int i = 0; i < noWorkers; i++) {
                 string workload = string("eval/pieces/piece") + suffix(i);
-                ofstream outfile(getCStr(workload));
+                ofstream outfile(workload);
 
                 if (!outfile.is_open()) {
                         cerr << "cannot open file " << workload << "\n";
@@ -1771,11 +1769,11 @@ suffix(int no)
                    times
                 res = system("touch temp;");
                 for (int j = 0; j < noRepeats; j++) {
-                        res = system(getCStr(string("cat temp ") + workload +
-                           string(" > temp2;")));
+                        res = system(string("cat temp ") + workload +
+                           string(" > temp2;"));
                         res = system("mv temp2 temp");
                 }
-                res = system(getCStr(string("mv temp " + workload)));
+                res = system("mv temp " + workload);
 
         }
 
@@ -2003,7 +2001,7 @@ suffix(int no)
            marshallVal((uint32_t)(totalLines/noWorkers)) + " -a 2 " + dfile +
            " eval/pieces/piece";
         cerr << "split comm " << splitComm << "\n";
-        res  = system(getCStr(splitComm));
+        res  = system(splitComm);
         myassert(res == 0, "split failed");
 
         EDBClient * cl = new EDBClient("cryptdb", masterKey);
@@ -2042,7 +2040,7 @@ suffix(int no)
 
    void executeQueries(EDBClient * cl, string workload, string resultFile, int
       timeInSecs, int logFreq) {
-        ifstream tracefile(getCStr(workload));
+        ifstream tracefile(workload);
         string query;
         struct timeval tvstart, tvend;
 
@@ -2059,7 +2057,7 @@ suffix(int no)
         while (timeInSec(tvstart, tvend) < timeInSecs) {
                 while (!tracefile.eof()) {
                         getline(tracefile, query);
-                        edb_result * res = cl->execute(getCStr(query));
+                        edb_result * res = cl->execute(query);
                         index++;
                         if (index % logFreq == 0) {cerr << index << "\n";}
                         if (res == NULL) {
@@ -2244,7 +2242,7 @@ suffix(int no)
                 }
 
 
-                cl->execute(getCStr(q));
+                cl->execute(q);
         }
 
         cerr << "done \n";
@@ -2326,7 +2324,7 @@ suffix(int no)
                 }
  */	/*	try {
                         PGresult * res =
-                         *cl->plain_execute(getCStr(query));//DO
+                         *cl->plain_execute(query);//DO
                         ExecStatusType est = PQresultStatus(res);
                         if ((est == PGRES_COMMAND_OK) || (est ==
                          *PGRES_TUPLES_OK)) {
@@ -2335,7 +2333,7 @@ suffix(int no)
                                 cl->plain_execute("abort;");
                         }
  */
-/*			cl->rewriteEncryptQuery(getCStr(query));
+/*			cl->rewriteEncryptQuery(query);
 
                         //cerr << query << "\n";
                         //cerr << resQuery.front() << "\n";
@@ -2417,7 +2415,7 @@ testParseAccess()
 
     string q = "INSERT INTO test VALUES (3, 'ra', 5, 4);";
     cerr << q;
-    list<string> query = parse(getCStr(q), delimsStay, delimsGo, keepIntact);
+    list<string> query = parse(q, delimsStay, delimsGo, keepIntact);
 
     TMKM tmkm;
     QueryMeta qm;
@@ -2435,7 +2433,7 @@ testParseAccess()
 
     q = "SELECT * FROM test WHERE gid = 3 AND mid > 4 AND t = 'ra';";
     cerr << q;
-    query = parse(getCStr(q), delimsStay, delimsGo, keepIntact);
+    query = parse(q, delimsStay, delimsGo, keepIntact);
 
     //cl->getEncForFromFilter(SELECT, query, tmkm, qm); <-- no longer valid
     // due to interface change
@@ -3807,10 +3805,10 @@ testTrace(int argc, char ** argv)
         getline(createsfile, query);
         cerr << "line is < " << query << ">\n";
         if (query.length() < 3) { continue; }
-        //list<const char *> q = cl->rewriteEncryptQuery(getCStr(query), rb);
+        //list<string> q = cl->rewriteEncryptQuery(query, rb);
         //assert_s(q.size() == 1, "query translated has more than one query or
         // no queries;");
-        list<const char *> res = cl->rewriteEncryptQuery(getCStr(query));
+        list<string> res = cl->rewriteEncryptQuery(query);
         //cerr << "problem with query!\n";
         assert_s(res.size() == 1, "query did not return one");
         //cout << q.front() << "\n";
@@ -3835,11 +3833,11 @@ testTrace(int argc, char ** argv)
             //cerr << "line is < " << query << ">\n";
             if (i % 100 == 0) {cerr << i << "\n"; }
             if (query.length() < 3) { continue; }
-            //list<const char *> q = cl->rewriteEncryptQuery(getCStr(query),
+            //list<string> q = cl->rewriteEncryptQuery(query,
             // rb);
             //assert_s(q.size() == 1, "query translated has more than one
             // query or no queries;");
-            if (!cl->execute(getCStr(query))) {
+            if (!cl->execute(query)) {
                 cerr << "problem with query!\n";
             }
             //cout << q.front() << "\n";
