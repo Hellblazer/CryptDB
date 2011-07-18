@@ -1,3 +1,4 @@
+#include <string>
 #include <stdio.h>
 #include <bsd/string.h>
 
@@ -13,12 +14,15 @@
 #include "derror.h"
 #include "item.h"
 
+/*
+ * Traverse the Item tree.  Return values are meaningless.
+ */
 static int
 recurse(THD *t, Item *i)
 {
     String s;
     i->print(&s, QT_ORDINARY);
-    printf("recursing into %p: %s\n", i, s.c_ptr());
+    printf("recursing into %s\n", s.c_ptr());
 
     switch (i->type()) {
     // see types in mysql-server/sql/item.h: enum Type
@@ -68,10 +72,45 @@ recurse(THD *t, Item *i)
             return xr;
         }
 
+        case Item_func::Functype::UNKNOWN_FUNC:
+        {
+            std::string name = ifn->func_name();
+            Item **args = ifn->arguments();
+
+            if (name == "+" || name == "-") {
+                int xr = 0;
+                xr += recurse(t, args[0]);
+                xr += recurse(t, args[1]);
+                return xr;
+            }
+
+            printf("unknown named function: %s\n", name.c_str());
+            return 3;
+        }
+
         default:
             printf("-- unknown functype %d --\n", ifn->functype());
             return 2;
         }
+    }
+
+    case Item::Type::STRING_ITEM: {
+        Item_string *is = (Item_string *) i;
+        printf("recurse: string item %s\n", is->str_value.c_ptr());
+        return 0;
+    }
+
+    case Item::Type::INT_ITEM: {
+        Item_num *in = (Item_num *) i;
+        printf("recurse: int item %lld\n", in->val_int());
+        return in->val_int();
+    }
+
+    case Item::Type::FIELD_ITEM: {
+        Item_field *ifl = (Item_field *) i;
+        printf("recurse: field item %s.%s.%s\n",
+               ifl->db_name, ifl->table_name, ifl->field_name);
+        return 0;
     }
 
     default:
@@ -92,7 +131,7 @@ xftest(void)
         printf("init_errmessage error\n");
 
     const char *q =
-        "SELECT x.a, y.b + 2, y.c FROM x, y WHERE x.bb = y.b AND (y.d > 7 OR y.e = (3+4))";
+        "SELECT x.a, y.b + 2, y.c FROM x, y WHERE x.bb = y.b AND (y.d > 7 OR y.e = (3+4)) AND (y.f='hello')";
     char buf[1024];
     strlcpy(buf, q, sizeof(buf));
     size_t len = strlen(buf);
