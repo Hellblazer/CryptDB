@@ -7,7 +7,8 @@ CXXFLAGS := -I. \
 	    -I$(MYSRC)/regex \
 	    -I$(MYBUILD)/sql \
 	    -Wall -Wno-unused-parameter -fno-exceptions -fno-rtti -g -O2 \
-	    -DHAVE_CONFIG_H -DMYSQL_SERVER -DHAVE_EVENT_SCHEDULER -DDBUG_OFF
+	    -DHAVE_CONFIG_H -DMYSQL_SERVER -DHAVE_EVENT_SCHEDULER -DDBUG_OFF \
+	    -std=c++0x
 
 LDFLAGS  := -L$(MYBUILD)/sql -lsql -lbinlog -lslave -lmaster -lrpl -lpartition \
 	    -L$(MYBUILD)/storage/perfschema -lperfschema \
@@ -22,15 +23,18 @@ LDFLAGS  := -L$(MYBUILD)/sql -lsql -lbinlog -lslave -lmaster -lrpl -lpartition \
 	    -L$(MYBUILD)/strings -lstrings \
 	    -lpthread -lrt -ldl -lz -lcrypt -lbsd
 
-all:	parsetest
+all:	parsetest xftest
 
 parsetest: parsetest.o
+	$(CXX) $^ -o $@ $(LDFLAGS)
+
+xftest: xftest.o
 	$(CXX) $^ -o $@ $(LDFLAGS)
 
 %.o: %.cc
 	$(CXX) $(CXXFLAGS) $< -c -o $@
 
 clean:
-	rm -f *.o parsetest
+	rm -f *.o parsetest xftest
 
 # vim: set noexpandtab:
