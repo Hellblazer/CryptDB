@@ -47,11 +47,11 @@ testHDG() {
 
   ZZ sample = HGD(K, N1, N2, SEED, len*bitsPerByte, bitsPrecision);
 
-  cerr << "N1 is "; myPrint(BytesFromZZ(N1,len), len); cerr << "\n";
-  cerr << "N2 is "; myPrint(BytesFromZZ(N2,len), len); cerr << "\n";
-  cerr << "K is "; myPrint(BytesFromZZ(K, len), len); cerr << "\n";
+  cerr << "N1 is "; myPrint(StringFromZZ(N1)); cerr << "\n";
+  cerr << "N2 is "; myPrint(StringFromZZ(N2)); cerr << "\n";
+  cerr << "K is "; myPrint(StringFromZZ(K)); cerr << "\n";
   cerr << "HGD sample is ";
-  myPrint(BytesFromZZ(sample, len), len); cerr << "\n";
+  myPrint(StringFromZZ(sample)); cerr << "\n";
 }
 
 void

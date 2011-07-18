@@ -89,10 +89,10 @@ const string PWD_TABLE_PREFIX = "pwdcryptdb__";
 typedef vector<vector<string> > ResType;
 
 #if MYSQL_S
-        #include "mysql.h"
+#include "mysql.h"
 typedef MYSQL_RES DBResult_native;
 #else
-        #include "libpq-fe.h"
+#include "libpq-fe.h"
 typedef PGresult DBResult_native;
 #endif
 
@@ -276,7 +276,6 @@ typedef struct TempMKM {
     map<unsigned int, bool> returnBitMap;
 
     void cleanup();
-
 } TMKM;
 
 //=============  Useful functions =========================//
@@ -287,11 +286,10 @@ string BytesFromInt(uint64_t value, unsigned int noBytes);
 uint64_t IntFromBytes(const unsigned char * bytes, unsigned int noBytes);
 
 void assert_s (bool value, const string &msg)
-throw (CryptDBError);
-void myassert(bool value, const string &mess);
+    throw (CryptDBError);
+void myassert(bool value, const string &mess = "assertion failed");
 
 double timeInSec(struct timeval tvstart, struct timeval tvend);
-double timeInMSec(struct timeval tvstart, struct timeval tvend);
 
 //parsing
 const char delimsStay[5] = {'(', ')', '=', ',', '\0'};
@@ -300,33 +298,26 @@ const char keepIntact[2] ={'\'', '\0'};
 
 bool isKeyword(const string &token);
 
-const unsigned int noCommands = 9;
+#define NELEM(array) (sizeof((array)) / sizeof((array)[0]))
 const string commands[] =
 {"select", "create", "insert", "update", "delete", "drop", "alter"};
+const unsigned int noCommands = NELEM(commands);
 
-const unsigned int noAggregates = 4;
 const string aggregates[] = {"max", "min", "sum", "count"};
+const unsigned int noAggregates = NELEM(aggregates);
 bool isAgg(const string &token);
 
-const unsigned int noCreateMeta = 3;
 const string createMetaKeywords[] = {"primary", "key", "unique"};
+const unsigned int noCreateMeta = NELEM(createMetaKeywords);
 
-const unsigned int noComps = 3;
 const string comparisons[] ={">", "<", "="};
-const unsigned int noMath = 17;
+const unsigned int noComps = NELEM(comparisons);
+
 const string math[]=
 {"+","-","(",")","*","/",".","0","1","2","3","4","5","6","7","8","9"};
+const unsigned int noMath = NELEM(math);
 
 const ParserMeta parserMeta = ParserMeta();
-
-void myassert(bool value);
-
-//returns a list that consists of lst1 and lst2 concatenated in this order
-list<string> concatenate(const list<string> & lst1,
-                         const list<string>  & lst2);
-
-//appends the contents of lst2 to lst1
-void append(list<string> & lst1, const list<string> & lst2);
 
 string randomBytes(unsigned int len);
 uint64_t randomValue();
@@ -347,8 +338,6 @@ string toString(const std::set<string> & lst);
 string toString(const ResType & rt);
 string toString(unsigned char * key, unsigned int len);
 
-bool isEqual(unsigned char * first, unsigned char * second, unsigned int len);
-
 // tries to represent value in minimum no of bytes, avoiding the \0 character
 string StringFromVal(unsigned int value, unsigned int desiredLen);
 //returns a string that is value
@@ -356,22 +345,8 @@ string StringFromVal(unsigned long value);
 
 ZZ UInt64_tToZZ (uint64_t value);
 
-unsigned char * copyInto(unsigned char * res, unsigned char * data,
-                         unsigned int pos,
-                         unsigned int len);
-
-unsigned char* BytesFromZZ(const ZZ & x, unsigned int noBytes);
 string StringFromZZ(const ZZ &x);
 ZZ ZZFromString(const string &s);
-
-/***** ITERATORS *******************/
-//too bad templates need headers and def to be in same place..
-//rolls an interator forward
-//template<typename T>
-//void roll(typename list<T>::iterator & it,  int count);
-//template<typename T>
-//bool isLastIterator(typename list<T>::iterator it, typename
-// list<T>::iterator endit);
 
 //rolls an interator forward
 template<typename T> void
@@ -395,11 +370,7 @@ isLastIterator(typename list<T>::iterator it,
                typename list<T>::iterator endit)
 {
     roll<T>(it, 1);
-    if (it == endit) {
-        return true;
-    } else {
-        return false;
-    }
+    return it == endit;
 }
 
 list<string> makeList(const string &val1, const string &val2);
@@ -416,7 +387,7 @@ uint64_t unmarshallVal(const string &str);
 
 //marshalls a binary value into characters readable by Postgres
 string marshallBinary(const string &s);
-string secondMarshallBinary(unsigned char * binValue, unsigned int len);
+
 // unmarshalls a char * received from Postgres into a binary and
 // sets newlen to the length of the result..
 // marshall and unmarshallBinary are not inverses of each other.
@@ -424,8 +395,6 @@ string secondMarshallBinary(unsigned char * binValue, unsigned int len);
 string unmarshallBinary(const string &s);
 
 void consolidate(list<string> & words);
-
-string marshallBinaryOnce(unsigned char * binValue, unsigned int len);
 
 /********* SQL QUERY PARSING ******/
 
@@ -486,7 +455,8 @@ string mirrorUntilTerm(list<string>::iterator & it, list<string> &words,
                        bool stopAfterTerm = 1,
                        bool skipParenBlock = 0);
 string mirrorUntilTerm(list<string>::iterator & it, list<string> & words,
-                       const std::set<string> & terms, bool stopAfterTerm = 1,
+                       const std::set<string> & terms,
+                       bool stopAfterTerm = 1,
                        bool skipParenBlock = 0);
 
 //returns the iterator that points at the first keyword in lst, or the end of

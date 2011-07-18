@@ -18,18 +18,8 @@ myassert(bool value, const string &mess)
 }
 
 void
-myassert(bool value)
-{
-    if (ASSERTS_ON) {
-        if (!value) {
-            throw "Assertion failed!";
-        }
-    }
-}
-
-void
 assert_s (bool value, const string &msg)
-throw (CryptDBError)
+    throw (CryptDBError)
 {
     if (ASSERTS_ON) {
         if (!value) {
@@ -75,16 +65,9 @@ ParserMeta::ParserMeta()
 double
 timeInSec(struct timeval tvstart, struct timeval tvend)
 {
-    double interval =
-        ((tvend.tv_sec -
-          tvstart.tv_sec)*1.0 + (tvend.tv_usec - tvstart.tv_usec)/1000000.0);
-    return interval;
-}
-
-double
-timeInMSec(struct timeval tvstart, struct timeval tvend)
-{
-    return timeInSec(tvstart, tvend) * 1000.0;
+    return
+        ((double) (tvend.tv_sec - tvstart.tv_sec) +
+         ((double) (tvend.tv_usec - tvstart.tv_usec)) / 1000000.0);
 }
 
 string
@@ -274,12 +257,6 @@ myPrint(const vector<string> & lst)
         fprintf(stderr, " %s \n", it->c_str());
 }
 
-bool
-isEqual(unsigned char * first, unsigned char * second, unsigned int len)
-{
-    return memcmp(first, second, len) == 0;
-}
-
 string
 BytesFromInt(uint64_t value, unsigned int noBytes)
 {
@@ -377,17 +354,6 @@ UInt64_tToZZ (uint64_t value)
     return res;
 
 };
-
-//copies into res at position pos and len bytes data from data
-unsigned char *
-copyInto(unsigned char * res, unsigned char * data, unsigned int pos,
-         unsigned int len)
-{
-    for (unsigned int i = 0; i< len; i++) {
-        res[pos+i] = data[i];
-    }
-    return res;
-}
 
 //returns a string representing a value pointed to by it and advances it
 //skips apostrophes if there are nay
@@ -558,8 +524,28 @@ octalRepr(int c)
     res = aux + res;
     return res;
 }
+
+#if MYSQL_S
+
 string
-secondMarshallBinary(unsigned char * v, unsigned int len)
+marshallBinary(const string &s)
+{
+    stringstream ss;
+    ss << "X\'";
+
+    for (unsigned int i = 0; i < s.length(); i++)
+        ss << toHex(s[i]);
+
+    ss << "\'";
+
+    //cerr << "output from marshall  " << result.c_str() << "\n";
+    return ss.str();
+}
+
+#else
+
+string
+marshallBinary(unsigned char * v, unsigned int len)
 {
 
     cerr << "\n \n WRONG BINARY \n \n";
@@ -588,30 +574,6 @@ secondMarshallBinary(unsigned char * v, unsigned int len)
     return res;
 }
 
-#if MYSQL_S
-
-string
-marshallBinary(const string &s)
-{
-    stringstream ss;
-    ss << "X\'";
-
-    for (unsigned int i = 0; i < s.length(); i++)
-        ss << toHex(s[i]);
-
-    ss << "\'";
-
-    //cerr << "output from marshall  " << result.c_str() << "\n";
-    return ss.str();
-}
-
-#else
-string
-marshallBinary(unsigned char * binValue, unsigned int len)
-{
-    return secondMarshallBinary(binValue, len);
-
-}
 #endif
 
 static unsigned char
@@ -1019,27 +981,6 @@ getAlias(list<string>::iterator & it, list<string> & words)
     }
 
     return *it;
-}
-
-void
-append(list<string> & lst1, const list<string> & lst2)
-{
-    for (list<string>::const_iterator it = lst2.begin(); it != lst2.end();
-         it++) {
-        lst1.push_back(*it);
-    }
-}
-
-list<string>
-concatenate(const list<string> & lst1, const list<string>  & lst2)
-{
-    list<string> res;
-
-    append(res, lst1);
-    append(res, lst2);
-
-    return res;
-
 }
 
 string
