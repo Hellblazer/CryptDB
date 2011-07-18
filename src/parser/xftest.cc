@@ -1,3 +1,5 @@
+#include "fatal.h"
+
 #include <string>
 #include <stdio.h>
 #include <bsd/string.h>
@@ -48,8 +50,7 @@ recurse(THD *t, Item *i)
         }
 
         default:
-            printf("-- unknown cond functype %d --\n", ic->functype());
-            return 2;
+            fatal() << "unknown cond functype " << ic->functype();
         }
     }
 
@@ -84,13 +85,11 @@ recurse(THD *t, Item *i)
                 return xr;
             }
 
-            printf("unknown named function: %s\n", name.c_str());
-            return 3;
+            fatal() << "unknown named function " << name.c_str();
         }
 
         default:
-            printf("-- unknown functype %d --\n", ifn->functype());
-            return 2;
+            fatal() << "unknown functype " << ifn->functype();
         }
     }
 
@@ -114,8 +113,7 @@ recurse(THD *t, Item *i)
     }
 
     default:
-        printf("-- unknown item type %d --\n", i->type());
-        return 3;
+        fatal() << "unknown item type " << i->type();
     }
 }
 
