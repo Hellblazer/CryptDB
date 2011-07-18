@@ -23,35 +23,6 @@ TestSinglePrinc::~TestSinglePrinc()
 
 }
 
-static bool
-equals(ResType a, ResType b)
-{
-    vector<vector<string> >::iterator ita = a.begin();
-    vector<vector<string> >::iterator itb = b.begin();
-
-    vector<string>::iterator itaa;
-    vector<string>::iterator itbb;
-
-    if (a.size() != b.size()) {
-        return false;
-    }
-
-    for(; ita != a.end(); ita++, itb++) {
-        itaa = ita->begin();
-        itbb = itb->begin();
-        if (itaa->size() != itbb->size()) {
-            return false;
-        }
-        for(; itaa != ita->end(); itaa++, itbb++) {
-            if (itaa->compare(*itbb) != 0) {
-                return false;
-            }
-        }
-    }
-
-    return true;
-}
-
 static void
 PrintRes(ResType res)
 {
@@ -106,7 +77,7 @@ CheckSelectResults(EDBClient * cl, vector<string> in, vector<ResType> out)
             cerr << "\t" << *query_it << endl;
             assert_s(false, "Select or Join query won't execute");
         }
-        if(!equals(*test_res, *res_it)) {
+        if(*test_res != *res_it) {
             cerr << "From query: " << endl;
             cerr << *query_it << endl;
             cerr << "-----------------------\nExpected result:" << endl;
@@ -133,7 +104,7 @@ qUpdateSelect(EDBClient *cl, const string &update, const string &select,
         assert_s(false, string(
                      "Update or Delete query ") + select + " won't execute");
 
-    if (!equals(*test_res, expect)) {
+    if (*test_res != expect) {
         cerr << "Expected result:" << endl;
         PrintRes(expect);
         cerr << "Got result:" << endl;
