@@ -1445,7 +1445,8 @@ hasWildcard(string expr)
         return false;
     }
 
-    if ((expr[len-2] == '.') && (expr[len-1]=='*')) {
+    unsigned int len2 = (unsigned int)len;
+    if ((expr[len2-2] == '.') && (expr[len2-1]=='*')) {
         return true;
     }
     return false;

@@ -314,7 +314,7 @@ UInt64_tToZZ (uint64_t value)
     res = 0;
 
     while (value > 0) {
-        res = res + (value % unit) * power;
+        res = res + ((long int)value % unit) * power;
         power = power * unit;
         value = value / unit;
     }
