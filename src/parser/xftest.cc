@@ -161,13 +161,13 @@ xftest(void)
 
             // iterate over the items that select will actually return
             auto item_it = List_iterator<Item>(lex.select_lex.item_list);
-            for (;; ) {
+            for (;;) {
                 Item *item = item_it++;
                 if (!item)
                     break;
 
                 int x = recurse(t, item);
-                printf("x=%d\n", x);
+                printf("x=%d (alias %s)\n", x, item->name);
             }
 
             int x = recurse(t, lex.select_lex.where);
