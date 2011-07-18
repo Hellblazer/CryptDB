@@ -129,7 +129,7 @@ xftest(void)
         printf("init_errmessage error\n");
 
     const char *q =
-        "SELECT x.a, y.b + 2, y.c FROM x, y WHERE x.bb = y.b AND (y.d > 7 OR y.e = (3+4)) AND (y.f='hello')";
+        "SELECT x.a, y.b + 2, y.c, y.cc AS ycc FROM x, y WHERE x.bb = y.b AND (y.d > 7 OR y.e = (3+4)) AND (y.f='hello') AND ycc = 9";
     char buf[1024];
     strlcpy(buf, q, sizeof(buf));
     size_t len = strlen(buf);
