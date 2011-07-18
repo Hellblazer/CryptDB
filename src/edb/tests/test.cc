@@ -40,7 +40,7 @@ readTimer()
     clock_t currentTime = time(NULL);
     //cout << "curr time " << currentTime << "timeStart " <<timeStart << "\n";
     //cout << "clocks per sec " << CLOCKS_PER_SEC << "\n";
-    double res = (currentTime - timeStart) * 1000.0;
+    double res = (double) (currentTime - timeStart) * 1000.0;
     return res;
 }
 
@@ -107,11 +107,11 @@ test_OPE()
     }
     time_t endTime = time(NULL);
     cout << "(time): encrypt/decrypt take  " <<
-    (1.0 * (endTime-startTime))/(2.0*tests) << "s \n";
+            (1.0 * (double) (endTime-startTime))/(2.0*tests) << "s \n";
     cout << "encrypt takes on average " <<
-    (encTime*1000.0)/(1.0*CLOCKS_PER_SEC*tests) << "ms \n";
+            ((double) encTime*1000.0)/(1.0*CLOCKS_PER_SEC*tests) << "ms \n";
     cout << "decrypt takes on average " <<
-    (decTime*1000.0)/(1.0*CLOCKS_PER_SEC*tests) << "ms \n";
+            ((double) decTime*1000.0)/(1.0*CLOCKS_PER_SEC*tests) << "ms \n";
 
 }
 
@@ -151,7 +151,7 @@ evaluate_AES(int argc, char ** argv)
                                                               endTime) <<
         " \n";                                                                                      //MB
                                                                                                     // sec
-        tests = tests * 1.2;
+        tests = (uint) ((double) tests * 1.2);
     }
     cout << "result " << ptext  << "\n";
 
@@ -197,7 +197,7 @@ test_HGD()
     }
 
     cerr << "average milliseconds per test is " <<
-    (totalTime * 1000.0) / (tests * CLOCKS_PER_SEC) << "\n";
+            ((double) totalTime * 1000.0) / ((double) tests * CLOCKS_PER_SEC) << "\n";
 }
 /*
    void test_EDBClient_noSecurity() {
@@ -258,7 +258,7 @@ evaluateMetrics(int argc, char ** argv)
     }
     timerEnd = time(NULL);
     printf("insert plain average time %f ms \n",
-           (1000.0 * (timerEnd-timerStart))/(noRecords*1.0));
+           (1000.0 * (double) (timerEnd-timerStart))/(noRecords*1.0));
 
     timerStart = time(NULL);
     for (unsigned int i = 0; i < noRecords; i++) {
@@ -274,7 +274,7 @@ evaluateMetrics(int argc, char ** argv)
     }
     timerEnd = time(NULL);
     printf("insert cipher average time %f ms \n",
-           (1000.0 * (timerEnd-timerStart))/(noRecords*1.0));
+           (1000.0 * (double) (timerEnd-timerStart))/(noRecords*1.0));
 
     if (atoi(argv[3]) == 1) {
         cout << "create index";
@@ -296,7 +296,7 @@ evaluateMetrics(int argc, char ** argv)
     timerEnd = time(NULL);
 
     printf("select plain time %f ms \n",
-           (1000.0 * (timerEnd-timerStart))/(tests*1.0));
+           (1000.0 * (double) (timerEnd-timerStart))/(tests*1.0));
 
     timerStart = time(NULL);
     //equality selection
@@ -314,7 +314,7 @@ evaluateMetrics(int argc, char ** argv)
     timerEnd = time(NULL);
 
     printf("cipher average time %f ms \n",
-           (1000.0*(timerEnd-timerStart))/(tests*1.0));
+           (1000.0* (double) (timerEnd-timerStart))/(tests*1.0));
 
     /*
        timerStart = time(NULL);
@@ -1320,9 +1320,9 @@ convertQueries()
             transac = no;
         }
 
-        int index = 0;
+        size_t index = 0;
         while (line.find(".", index) != string::npos) {
-            int pos = line.find(".", index);
+            size_t pos = line.find(".", index);
             index = pos+1;
             if (line[pos+1] >= '0' && line[pos+1] <= '9') {
                 while ((line[pos]!=' ') && (line[pos] != ',') &&
@@ -1334,12 +1334,12 @@ convertQueries()
         }
 
         while (line.find(">=") != string::npos) {
-            int pos = line.find(">=");
+            size_t pos = line.find(">=");
             line[pos+1] = ' ';
             //TRACE SPECIFIC
             pos = pos + 3;
             int nr2 = 0;
-            int oldpos = pos;
+            size_t oldpos = pos;
             while (line[pos] != ' ') {
                 nr2 = nr2 * 10 + (line[pos]-'0');
                 pos++;
@@ -1350,11 +1350,11 @@ convertQueries()
 
         }
         while (line.find("<=") != string::npos) {
-            int pos = line.find("<");
+            size_t pos = line.find("<");
             line[pos+1] = ' ';
         }
         while (line.find(" -") != string::npos) {
-            int pos = line.find(" -");
+            size_t pos = line.find(" -");
             line[pos+1] = ' ';
         }
         secondfile << line  << "\n";

@@ -5,6 +5,8 @@
  *      Authors: cat_red
  */
 
+#include <iomanip>
+
 #include "AccessManager.h"
 
 #define PRINCTYPE "varchar(255)"
@@ -59,18 +61,18 @@ MetaAccess::sanitize(string unsanitized)
     assert_s(unsanitized.find(
                  ".") != string::npos,
              "input sanitize does not have '.' separator");
-    int nodigits = unsanitized.find(".");
+    size_t nodigits = unsanitized.find(".");
 
-    string repr = marshallVal(nodigits, NODIGITS);
-    assert_s(
-        repr.length() <= NODIGITS,
-        "given fieldname is longer than max allowed by pruning ");
+    stringstream ss;
+    ss << setfill('0') << setw(NODIGITS) << nodigits;
+    string repr = ss.str();
 
-    string result = repr +
-                    unsanitized.substr(0, nodigits) + unsanitized.substr(
-        nodigits+1,
-        unsanitized
-        .length()-1-nodigits);
+    assert_s(repr.length() <= NODIGITS,
+             "given fieldname is longer than max allowed by pruning");
+
+    string result = repr + unsanitized.substr(0, nodigits) +
+                    unsanitized.substr(nodigits+1,
+                                       unsanitized.length()-1-nodigits);
 
     return result;
 };
@@ -90,7 +92,7 @@ MetaAccess::unsanitize(string sanitized)
         digits = digits*10 + (int)(sanitized[i]-'0');
     }
 
-    unsigned int fieldlen = sanitized.length() - NODIGITS -digits;
+    uint64_t fieldlen = sanitized.length() - NODIGITS -digits;
 
     string res = sanitized.substr(NODIGITS, digits) + "." + sanitized.substr(
         NODIGITS+digits, fieldlen);
@@ -1632,7 +1634,7 @@ KeyAccess::SelectCount(std::set<Prin> & prin_set, string table_name)
     auto res = dbres->unpack();
     delete dbres;
 
-    int size = unmarshallVal(res->at(1).at(0));
+    int size = (int) unmarshallVal(res->at(1).at(0));
     delete res;
     return size;
 }

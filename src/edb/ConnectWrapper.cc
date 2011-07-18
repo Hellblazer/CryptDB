@@ -4,9 +4,9 @@
 EDBClient * cl;
 bool initialized = false;
 map<string, vector<string> > sensitive;
-int sensitive_size = 0;
+size_t sensitive_size = 0;
 map<string, int> auto_inc;
-int auto_inc_size = 0;
+size_t auto_inc_size = 0;
 
 static int
 init(lua_State *L)
@@ -36,7 +36,7 @@ static int
 pass_queries(lua_State *L)
 {
     string query = luaL_checkstring(L,1);
-    int insert_id = luaL_checknumber(L,2);
+    int insert_id = (int) luaL_checknumber(L,2);
     //rb may contain a new autoinc id
     AutoInc ai;
     ai.incvalue = insert_id;
@@ -50,7 +50,7 @@ pass_queries(lua_State *L)
     } else {
         cerr << "in wrapper: no queries back" << endl;
     }
-    lua_createtable(L, new_queries.size(), 0);
+    lua_createtable(L, (int) new_queries.size(), 0);
     int top = lua_gettop(L);
     int index = 1;
     auto it = new_queries.begin();
@@ -67,7 +67,7 @@ static int
 edit_auto(lua_State* L)
 {
     string table_name = luaL_checkstring(L,1);
-    int new_value = luaL_checknumber(L,2);
+    int new_value = (int) luaL_checknumber(L,2);
     auto_inc[table_name] = new_value;
     auto_inc_size = 2*auto_inc.size();
     return 0;
@@ -100,13 +100,13 @@ get_map_tables(lua_State *L)
         }
         return 0;
     }
-    if (!lua_checkstack(L, sensitive_size)) {
+    if (!lua_checkstack(L, (int) sensitive_size)) {
         assert_s(false, "lua cannot grow stack");
     }
     for (auto outer = sensitive.begin(); outer != sensitive.end(); outer++) {
         lua_pushstring(L, outer->first.c_str());
     }
-    return sensitive.size();
+    return (int) sensitive.size();
 }
 
 static int
@@ -118,13 +118,13 @@ get_auto_names(lua_State *L)
         }
         return 0;
     }
-    if (!lua_checkstack(L, auto_inc_size)) {
+    if (!lua_checkstack(L, (int) auto_inc_size)) {
         assert_s(false, "lua cannot grow stack");
     }
     for (auto it = auto_inc.begin(); it != auto_inc.end(); it++) {
         lua_pushstring(L, it->first.c_str());
     }
-    return auto_inc.size();
+    return (int) auto_inc.size();
 }
 
 static int
@@ -136,13 +136,13 @@ get_auto_numbers(lua_State *L)
         }
         return 0;
     }
-    if (!lua_checkstack(L, auto_inc_size)) {
+    if (!lua_checkstack(L, (int) auto_inc_size)) {
         assert_s(false, "lua cannot grow stack");
     }
     for (auto it = auto_inc.begin(); it != auto_inc.end(); it++) {
         lua_pushnumber(L, it->second);
     }
-    return auto_inc.size();
+    return (int) auto_inc.size();
 }
 
 static int
@@ -155,11 +155,11 @@ get_map_fields(lua_State *L)
         }
         return 0;
     }
-    if (!lua_checkstack(L, sensitive_size)) {
+    if (!lua_checkstack(L, (int) sensitive_size)) {
         assert_s(false, "lua cannot grow stack");
     }
     for (auto outer = sensitive.begin(); outer != sensitive.end(); outer++) {
-        lua_createtable(L, outer->second.size(), 0);
+        lua_createtable(L, (int) outer->second.size(), 0);
         top = lua_gettop(L);
         index = 1;
         auto inner = outer->second.begin();
@@ -170,7 +170,7 @@ get_map_fields(lua_State *L)
             ++index;
         }
     }
-    return sensitive.size();
+    return (int) sensitive.size();
 }
 
 class ResultSet {
@@ -315,7 +315,7 @@ print_res(lua_State *L)
 static int
 get_fields(lua_State *L)
 {
-    lua_createtable(L, R->field_names.size(), 0);
+    lua_createtable(L, (int) R->field_names.size(), 0);
     int top = lua_gettop(L);
     int index = 1;
     auto it = R->field_names.begin();
@@ -332,7 +332,7 @@ get_rows(lua_State *L)
 {
     int top, index;
     for(auto outer = R->set.begin(); outer != R->set.end(); outer++) {
-        lua_createtable(L, (*outer).size(), 0);
+        lua_createtable(L, (int) (*outer).size(), 0);
         top = lua_gettop(L);
         index = 1;
         auto inner = (*outer).begin();
@@ -346,7 +346,7 @@ get_rows(lua_State *L)
     //R->decrypted = false;
     //cerr << R->set.size() << endl;
     //R->PrettyPrint();
-    return R->set.size();
+    return (int) R->set.size();
 }
 
 static const struct luaL_reg resultsetlib[] =

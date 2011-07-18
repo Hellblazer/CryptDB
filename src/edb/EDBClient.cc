@@ -1440,7 +1440,7 @@ hasWildcard(string expr)
     if (expr.compare("*")==0) {
         return true;
     }
-    unsigned int len = expr.length();
+    uint64_t len = expr.length();
     if (len <= 1) {
         return false;
     }
@@ -1483,8 +1483,8 @@ expandWildCard(list<string> & words, QueryMeta & qm, map<string,
                 }
                 TableMetadata * tm = tableMetaMap[*tit];
                 list<string> fnames = tm->fieldNames;
-                int count = fnames.size();
-                int index = 0;
+                size_t count = fnames.size();
+                size_t index = 0;
                 for (list<string>::iterator fieldsIt = fnames.begin();
                      fieldsIt != fnames.end(); fieldsIt++ ) {
                     FieldMetadata * fm = tm->fieldMetaMap[*fieldsIt];
@@ -1522,8 +1522,8 @@ expandWildCard(list<string> & words, QueryMeta & qm, map<string,
             }
             TableMetadata * tm = tableMetaMap[table];
             list<string> fnames = tm->fieldNames;
-            int count = fnames.size();
-            int index = 0;
+            size_t count = fnames.size();
+            size_t index = 0;
             for (list<string>::iterator fieldsIt = fnames.begin();
                  fieldsIt != fnames.end(); fieldsIt++ ) {
 
@@ -1953,7 +1953,7 @@ getResMeta(list<string> words, vector<vector<string> > & vals, QueryMeta & qm,
     }
     ResMeta rm = ResMeta();
 
-    unsigned int nFields = vals[0].size();
+    size_t nFields = vals[0].size();
     rm.nFields = nFields;
     rm.nTuples = vals.size() - 1;
 
@@ -2120,9 +2120,8 @@ EDBClient::rewriteDecryptSelect(const string &query, ResType * dbAnswer)
     ResType * rets = new ResType;
     rets = new vector<vector<string> >(rm.nTuples+1);
 
-    unsigned int nFields = rm.nFields;
-
-    unsigned int nTrueFields = rm.nTrueFields;
+    size_t nFields = rm.nFields;
+    size_t nTrueFields = rm.nTrueFields;
 
     //fill in field names
     rets->at(0) = vector<string>(nTrueFields);
@@ -2619,7 +2618,7 @@ throw (CryptDBError)
     list<string>::iterator addit;
     list<string> overallFieldNames;
 
-    unsigned int noFieldsGiven = 0;
+    size_t noFieldsGiven = 0;
 
     if (wordsIt->compare("(") == 0) {
         //new order for the fields
@@ -3197,9 +3196,8 @@ EDBClient::execute(const string &query)
 
     auto queryIt = queries.begin();
 
-    int noQueries = queries.size();
-
-    int counter = 0;
+    size_t noQueries = queries.size();
+    size_t counter = 0;
 
     if (VERBOSE) {
         cerr << "Translated queries: \n";

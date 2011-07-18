@@ -819,7 +819,7 @@ string
 getField(string tablefield)
 {
     if (isTableField(tablefield)) {
-        unsigned int pos = tablefield.find(".");
+        size_t pos = tablefield.find(".");
         return tablefield.substr(pos+1, tablefield.length() - pos - 1);
     } else {
         return tablefield;
@@ -830,7 +830,7 @@ string
 getTable(string tablefield)
 {
     if (isTableField(tablefield)) {
-        unsigned int pos = tablefield.find(".");
+        size_t pos = tablefield.find(".");
         return tablefield.substr(0, pos);
     } else {
         return "";

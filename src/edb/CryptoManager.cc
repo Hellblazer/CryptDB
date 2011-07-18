@@ -52,7 +52,6 @@ CryptoManager::getmkey()
 
 CryptoManager::CryptoManager(const string &masterKeyArg)
 {
-
     VERBOSE = VERBOSE_G;
     masterKey = new AES_KEY();
 
@@ -871,91 +870,72 @@ CryptoManager::decrypt_SEM(uint64_t ctext, AES_KEY * key, uint64_t salt)
 uint32_t
 CryptoManager::encrypt_SEM(uint32_t ptext, AES_KEY * key, uint64_t salt)
 {
-    return ptext ^ (getXORValue(salt, key) % MAX_UINT32_T);
+    return ptext ^ (uint32_t) getXORValue(salt, key);
 }
 
 uint32_t
 CryptoManager::decrypt_SEM(uint32_t ctext, AES_KEY * key, uint64_t salt)
 {
-    return ctext ^ (getXORValue(salt, key) % MAX_UINT32_T);
+    return ctext ^ (uint32_t) getXORValue(salt, key);
 }
 
-static unsigned char *
-getXorVector(unsigned int len, AES_KEY * key, uint64_t salt)
+static vector<unsigned char>
+getXorVector(size_t len, AES_KEY * key, uint64_t salt)
 {
-    unsigned int AESBlocks = len / AES_BLOCK_BYTES;
-    if (AESBlocks * AES_BLOCK_BYTES < len) {
+    size_t AESBlocks = len / AES_BLOCK_BYTES;
+    if (AESBlocks * AES_BLOCK_BYTES < len)
         AESBlocks++;
-    }
 
     //construct vector with which we will XOR
-    unsigned char * xorVector =
-        new unsigned char[AESBlocks * AES_BLOCK_BYTES];
+    vector<unsigned char> v(AESBlocks * AES_BLOCK_BYTES);
 
-    for (unsigned int i = 0; i < AESBlocks; i++) {
+    for (unsigned int i = 0; i < AESBlocks; i++)
         AES_encrypt((const uint8_t*) BytesFromInt(salt+i,
                                                   AES_BLOCK_BYTES).c_str(),
-                    xorVector + i*AES_BLOCK_BYTES, key);
-    }
+                    &v[i*AES_BLOCK_BYTES], key);
 
-    return xorVector;
+    return v;
 }
 
 string
 CryptoManager::encrypt_SEM(const string &ptext, AES_KEY * key, uint64_t salt)
 {
-    //cerr << "to encrypt SEM: len is  " << len << " data is "; myPrint(ptext,
-    // len); cerr << "\n";
-
-    unsigned char * xorVector = getXorVector(ptext.length(), key, salt);
+    vector<unsigned char> xorVector = getXorVector(ptext.length(), key, salt);
 
     stringstream ss;
-
-    for (unsigned int i = 0; i < ptext.length(); i++) {
+    for (unsigned int i = 0; i < ptext.length(); i++)
         ss << (uint8_t) (((uint8_t)ptext[i]) ^ xorVector[i]);
-    }
 
-    //cerr << "result of encrypt sem is len " << len << " data is ";
-    // myPrint(result, len);
-    free(xorVector);
     return ss.str();
 }
 
 string
 CryptoManager::decrypt_SEM(const string &ctext, AES_KEY * key, uint64_t salt)
 {
-    //cerr << "to decrypt SEM of len " << len << " data is "; myPrint(ctext,
-    // len); cerr << "\n";
-
-    unsigned char * xorVector = getXorVector(ctext.length(), key, salt);
+    vector<unsigned char> xorVector = getXorVector(ctext.length(), key, salt);
 
     stringstream ss;
-
     for (unsigned int i = 0; i < ctext.length(); i++)
         ss << (uint8_t) (((uint8_t)ctext[i]) ^ xorVector[i]);
 
-    //cerr << "Result of decrypt sem has len " << len << " and data is ";
-    // myPrint(res, len); cerr << "\n";
-    free(xorVector);
     return ss.str();
 }
 
 string
 CryptoManager::encrypt_DET(const string & ptext, AES_KEY * key)
 {
-	return CryptoManager::encrypt_SEM(ptext, key, 1);
+    return CryptoManager::encrypt_SEM(ptext, key, 1);
 }
 
 string
 CryptoManager::decrypt_DET(const string & ctext, AES_KEY * key)
 {
-   return CryptoManager::decrypt_SEM(ctext, key, 1);
+    return CryptoManager::decrypt_SEM(ctext, key, 1);
 }
 
 void
 CryptoManager::setMasterKey(const string &masterKeyArg)
 {
-
     masterKey = new AES_KEY();
 
     AES_set_encrypt_key(
@@ -1003,19 +983,15 @@ CryptoManager::encrypt_OPE(const string &plaintext, OPE * ope)
 uint64_t
 CryptoManager::encrypt_OPE_text_wrapper(const string & plaintext, OPE * ope)
 {
-
-    unsigned int len = plaintext.length();
-
-    unsigned int prefix = OPE_PLAINTEXT_SIZE/bitsPerByte;
-
-    uint32_t val = 0;
-
-    unsigned int mins = min(prefix, len);
+    size_t len = plaintext.length();
+    size_t prefix = OPE_PLAINTEXT_SIZE/bitsPerByte;
+    size_t mins = min(prefix, len);
 
     cerr << "mins is " << mins << "\n";
 
     string p2 = toLowerCase(plaintext.substr(0, mins));
 
+    uint32_t val = 0;
     for (unsigned i = 0; i < mins; i++) {
         val = val*256 + (unsigned int)p2[i];
     }
@@ -1027,7 +1003,6 @@ CryptoManager::encrypt_OPE_text_wrapper(const string & plaintext, OPE * ope)
     cerr << "for string " << plaintext << " encrypted val is " << val << "\n";
 
     return ope->encrypt(val);
-
 }
 
 string
@@ -1164,27 +1139,27 @@ CryptoManager::encrypt_DET(const string &plaintext, AES_KEY *key)
     return IntFromBytes(ciphertext, AES_BLOCK_BYTES);
 }
 */
+
 static void
 xorWord(string word, AES_KEY * key, int salt, stringstream *ss)
 {
-    unsigned int plen = word.length();
-    unsigned char * xorVector = getXorVector(plen, key, salt);
-    unsigned char * pvec = (unsigned char*) word.c_str();
+    size_t plen = word.length();
+    vector<unsigned char> xorVector = getXorVector(plen, key, salt);
 
     for (unsigned int i = 0; i < plen; i++)
-        (*ss) << (unsigned char) (pvec[i] ^ xorVector[i]);
+        (*ss) << (unsigned char) (((unsigned char)word[i]) ^ xorVector[i]);
 }
 
 static string
 unxorWord(AES_KEY * key, int salt, const string &s)
 {
-    string res = "";
-    unsigned char * xorVector = getXorVector(s.length(), key, salt);
+    vector<unsigned char> xorVector = getXorVector(s.length(), key, salt);
 
+    stringstream ss;
     for (unsigned int i = 0; i < s.length(); i++)
-        res = res + (char) (((uint8_t)s[i]) ^ xorVector[i]);
+        ss << (char) (((uint8_t)s[i]) ^ xorVector[i]);
 
-    return res;
+    return ss.str();
 }
 
 string
@@ -1247,10 +1222,9 @@ assembleWords(list<string> * words)
 list<string> *
 getWords(string text)
 {
-
     list<string> * words =  new list<string>;
 
-    unsigned int len = text.length();
+    size_t len = text.length();
 
     for (unsigned int pos = 0; pos < len; )
     {
@@ -1294,7 +1268,7 @@ CryptoManager::decrypt_DET_wrapper(const string &ctext, AES_KEY * key)
 }
 
 string
-CryptoManager::encrypt_Paillier(int val)
+CryptoManager::encrypt_Paillier(uint64_t val)
 {
     //cerr << "paillier!\n";
     if (useEncTables) {
@@ -1360,8 +1334,8 @@ CryptoManager::createEncryptionTables(int noOPEarg, int noHOMarg,
     noOPE = noOPEarg;
     noHOM = noHOMarg;
 
-    OPEEncTable = map<string, map<int, uint64_t> >();
-    HOMEncTable = map<int, list<string> >();
+    OPEEncTable.clear();
+    HOMEncTable.clear();
 
     struct timeval starttime, endtime;
     //OPE
@@ -1519,7 +1493,7 @@ CryptoManager::encrypt(PKCS * key, const string &s)
     string tocipher;
     tocipher.resize(RSA_size(key));
 
-    RSA_public_encrypt(s.length(),
+    RSA_public_encrypt((int) s.length(),
                        (const uint8_t*) s.c_str(), (uint8_t*) &tocipher[0],
                        key,
                        RSA_PKCS1_OAEP_PADDING);
@@ -1535,7 +1509,7 @@ CryptoManager::decrypt(PKCS * key, const string &s)
     toplain.resize(RSA_size(key));
 
     uint len =
-        RSA_private_decrypt(s.length(),
+        RSA_private_decrypt((int) s.length(),
                             (const uint8_t*) s.c_str(),
                             (uint8_t*) &toplain[0], key,
                             RSA_PKCS1_OAEP_PADDING);

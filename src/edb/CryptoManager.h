@@ -18,6 +18,10 @@ SECLEVEL highestEq(SECLEVEL sl);
 typedef RSA PKCS;
 
 class CryptoManager {
+ private:
+    CryptoManager(const CryptoManager &);
+    void operator=(const CryptoManager &);
+
  public:
     CryptoManager(const string &masterKey);
     ~CryptoManager();
@@ -170,7 +174,7 @@ class CryptoManager {
     //aggregates
     static const unsigned int Paillier_len_bytes = PAILLIER_LEN_BYTES;
     static const unsigned int Paillier_len_bits = Paillier_len_bytes * 8;
-    string encrypt_Paillier(int val);
+    string encrypt_Paillier(uint64_t val);
     int decrypt_Paillier(const string &ciphertext);
 
     string getPKInfo();
@@ -199,7 +203,7 @@ class CryptoManager {
     bool useEncTables;
     int noOPE, noHOM;
     map<string, map<int, uint64_t> > OPEEncTable;
-    map<int, list<string> > HOMEncTable;
+    map<uint64_t, list<string> > HOMEncTable;
 
     bool VERBOSE;
 

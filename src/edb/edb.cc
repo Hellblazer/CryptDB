@@ -127,7 +127,7 @@ encrypt_DET(uint64_t plaintext, AES_KEY * aesKey)
 }
 
 static string
-decrypt_SEM(unsigned char *eValueBytes, unsigned int eValueLen,
+decrypt_SEM(unsigned char *eValueBytes, uint64_t eValueLen,
             AES_KEY * aesKey, uint64_t salt)
 {
     string c((char *) eValueBytes, eValueLen);
@@ -136,9 +136,10 @@ decrypt_SEM(unsigned char *eValueBytes, unsigned int eValueLen,
 
 
 static string
-decrypt_DET(unsigned char *eValueBytes, unsigned int eValueLen, AES_KEY * key) {
-	 string c((char *) eValueBytes, eValueLen);
-	return CryptoManager::decrypt_DET(c, key);
+decrypt_DET(unsigned char *eValueBytes, uint64_t eValueLen, AES_KEY * key)
+{
+    string c((char *) eValueBytes, eValueLen);
+    return CryptoManager::decrypt_DET(c, key);
 }
 
 
@@ -158,7 +159,7 @@ getb(UDF_ARGS * args, int i)
 }
 
 static unsigned char *
-getba(UDF_ARGS * args, int i, unsigned int & len)
+getba(UDF_ARGS * args, int i, uint64_t &len)
 {
     len = args->lengths[i];
     return (unsigned char*) (args->args[i]);
@@ -328,7 +329,7 @@ Datum
 decrypt_text_sem(PG_FUNCTION_ARGS)
 #endif
 {
-    unsigned int eValueLen;
+    uint64_t eValueLen;
     unsigned char *eValueBytes = getba(args, 0, eValueLen);
 
     string key;
@@ -386,7 +387,7 @@ Datum
 decrypt_text_det(PG_FUNCTION_ARGS)
 #endif
 {
-    unsigned int eValueLen;
+    uint64_t eValueLen;
     unsigned char *eValueBytes = getba(args, 0, eValueLen);
 
     string key;
@@ -453,15 +454,16 @@ Datum
 search(PG_FUNCTION_ARGS)
 #endif
 {
-    unsigned int wordLen;
+    uint64_t wordLen;
     char * word = (char *)getba(ARGS, 0, wordLen);
     if (wordLen != (unsigned int)word[0]) {
         cerr << "ERR: wordLen is not equal to fist byte of word!!! ";
     }
     word = word + 1;     // +1 skips over the length field
     //cerr << "given expr to search for has " << wordLen << " length \n";
-    unsigned int fieldLen;
-    char* field = (char *) getba(ARGS, 1, fieldLen);
+
+    uint64_t fieldLen;
+    char *field = (char *) getba(ARGS, 1, fieldLen);
 
     //cerr << "searching for "; myPrint((unsigned char *)word, wordLen); cerr
     // << " in field "; myPrint((unsigned char *)field, fieldLen); cerr <<
@@ -630,7 +632,7 @@ func_add_set(UDF_INIT *initid, UDF_ARGS *args,
     if (initid->ptr)
         free(initid->ptr);
 
-    uint32_t n2len = args->lengths[2];
+    uint64_t n2len = args->lengths[2];
     ZZ field, val, n2;
     ZZFromBytes(field, (const uint8_t *) args->args[0], args->lengths[0]);
     ZZFromBytes(val, (const uint8_t *) args->args[1], args->lengths[1]);

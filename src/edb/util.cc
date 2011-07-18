@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <string>
+#include <iomanip>
 
 #include "openssl/rand.h"
 #include "util.h"
@@ -23,15 +24,14 @@ assert_s (bool value, const string &msg)
 {
     if (ASSERTS_ON) {
         if (!value) {
-            CryptDBError se;
-            se.msg = "ERROR: " + msg + "\n";
+            CryptDBError se(msg);
             cerr << se.msg << "\n";
             throw se;
         }
     }
 }
 
-ParserMeta::ParserMeta()
+ParserMeta::ParserMeta() : clauseKeywords_p(), querySeparators_p()
 {
 
     const unsigned int noKeywords = 32;
@@ -51,15 +51,10 @@ ParserMeta::ParserMeta()
                                       "order", "limit","values", ";", "set",
                                       "group",  "asc", "desc"};
 
-    clauseKeywords_p = std::set<string>();
-    for (unsigned int i = 0; i < noKeywords; i++) {
+    for (unsigned int i = 0; i < noKeywords; i++)
         clauseKeywords_p.insert(clauseKeywords[i]);
-    }
-    querySeparators_p = std::set<string>();
-    for (unsigned int i = 0; i < noSeparators; i++) {
+    for (unsigned int i = 0; i < noSeparators; i++)
         querySeparators_p.insert(querySeparators[i]);
-    }
-
 }
 
 double
@@ -96,7 +91,7 @@ myPrint(const unsigned char * a, unsigned int aLen)
 void
 myPrint(const string &s)
 {
-    myPrint((const uint8_t *) s.c_str(), s.length());
+    myPrint((const uint8_t *) s.c_str(), (uint) s.length());
 }
 
 void
@@ -213,11 +208,13 @@ toString(unsigned char * key, unsigned int len)
 void
 myPrint(const vector<vector<string> > & d)
 {
-    unsigned int rows = d.size();
-    if (d.size() == 0) {return; }
-    unsigned int cols = d[0].size();
-    for (unsigned int i = 0; i < rows; i++) {
-        for (unsigned int j = 0; j < cols; j++) {
+    size_t rows = d.size();
+    if (d.size() == 0)
+        return;
+
+    size_t cols = d[0].size();
+    for (size_t i = 0; i < rows; i++) {
+        for (size_t j = 0; j < cols; j++) {
             fprintf(stderr, " %s15", d[i][j].c_str());
         }
         cerr << "\n";
@@ -228,13 +225,13 @@ myPrint(const vector<vector<string> > & d)
 string
 toString(const ResType & rt)
 {
-    unsigned int n = rt.size();
+    size_t n = rt.size();
 
     string res = "";
 
-    for (unsigned int i = 0; i < n; i++) {
-        unsigned int m = rt[i].size();
-        for (unsigned int j = 0; j < m; j++) {
+    for (size_t i = 0; i < n; i++) {
+        size_t m = rt[i].size();
+        for (size_t j = 0; j < m; j++) {
             res = res + " " + rt[i][j].c_str();
         }
         res += "\n";
@@ -264,7 +261,7 @@ BytesFromInt(uint64_t value, unsigned int noBytes)
     result.resize(noBytes);
 
     for (uint i = 0; i < noBytes; i++) {
-        result[noBytes-i-1] = value % 256;
+        result[noBytes-i-1] = ((unsigned char) value) % 256;
         value = value / 256;
     }
 
@@ -300,33 +297,11 @@ ZZFromString(const string &s)
 }
 
 string
-StringFromVal(unsigned int value, unsigned int desiredLen)
+StringFromVal(uint64_t value, uint padLen)
 {
-    string result = "";
-
-    for (unsigned int i = 0; i < desiredLen; i++) {
-        char c = '0' + (value % 10);
-        result = c + result;
-        value = value/10;
-    }
-
-    return result;
-};
-
-string
-StringFromVal(unsigned long value)
-{
-    string res = "";
-
-    if (value == 0) {return "0"; }
-
-    while (value > 0) {
-        char c = '0' + (value % 10);
-        res = c + res;
-        value = value / 10;
-    }
-
-    return res;
+    stringstream ss;
+    ss << setfill('0') << setw(padLen) << value;
+    return ss.str();
 }
 
 ZZ
@@ -385,112 +360,26 @@ makeList(int val1, int val2)
 string
 marshallVal(uint64_t x)
 {
-
-    int64_t xx = (int64_t) x;
-    string res = "";
-    bool sign = false;
-
-    if (xx == 0) {return "0"; }
-    if (xx < 0) {
-        sign = true;
-        xx = xx * (-1);
-    }
-
-    while (xx > 0) {
-        res =  (char)((unsigned char)'0'+(unsigned char)(xx % 10)) + res;
-        xx = xx / 10;
-    }
-    if (sign) {
-        res = "-" + res;
-    }
-
-    return res;
-
-}
-
-string
-marshallVal(unsigned int x, unsigned int digits)
-{
-    string res = marshallVal(x);
-    int delta = digits - res.length();
-
-    for (int i = 0; i < delta; i++) {
-        res = "0" + res;
-    }
-    return res;
+    stringstream ss;
+    ss << (int64_t) x;
+    return ss.str();
 }
 
 string
 marshallVal(uint32_t x)
 {
-
-    int32_t xx = (int32_t) x;
-    string res = "";
-    bool sign = false;
-
-    if (xx == 0) {return "0"; }
-    if (xx < 0) {
-        sign = true;
-        xx = xx * (-1);
-    }
-
-    while (xx > 0) {
-        res =  (char)((unsigned char)'0'+(unsigned char)(xx % 10)) + res;
-        xx = xx / 10;
-    }
-    if (sign) {
-        res = "-" + res;
-    }
-
-    return res;
-
+    stringstream ss;
+    ss << (int32_t) x;
+    return ss.str();
 }
 
 uint64_t
 unmarshallVal(const string &str)
 {
-    bool sign = false;
-    if (str[0] == '-') {
-        sign = true;
-    }
-
-    int64_t val = 0;
-
-    unsigned int len = str.length();
-
-    const char * cstr = str.c_str();
-
-    unsigned int i;
-    if (sign) {
-        i = 1;
-    } else {
-        i = 0;
-    }
-
-    for (; i < len; i++) {
-        myassert((cstr[i] <= '9') && (cstr[i] >= '0'),
-                 "invalid string " + str + " to be transformed in value ");
-
-        val = val * 10 + ((unsigned char)cstr[i]-(unsigned char)'0');
-
-    }
-
-    if (sign) {
-        val = val * (-1);
-    }
-
-    uint64_t vall = (uint64_t) val;
-
-    return vall;
-}
-
-static string
-toHex(unsigned char abyte)
-{
-    string r;
-    r.resize(2);
-    sprintf(&r[0], "%02x", abyte);
-    return r;
+    stringstream ss(str);
+    int64_t val;
+    ss >> val;
+    return (uint64_t) val;
 }
 
 #if MYSQL_S
@@ -502,7 +391,7 @@ marshallBinary(const string &s)
     ss << "X\'";
 
     for (unsigned int i = 0; i < s.length(); i++)
-        ss << toHex(s[i]);
+        ss << hex << setfill('0') << setw(2) << (unsigned char) s[i];
 
     ss << "\'";
 
@@ -556,8 +445,7 @@ string
 unmarshallBinary(const string &s)
 {
     uint offset;
-    uint len = s.length();
-    // cerr << "input to unmarshall " << value << "\n";
+    size_t len = s.length();
 
 #if MYSQL_S
     offset = 2;
@@ -604,7 +492,7 @@ parse(const string &query, const string &delimsStayArg, const string &delimsGoAr
       const string &keepIntactArg)
 {
     list<string> res;
-    unsigned int len = query.length();
+    size_t len = query.length();
 
     unsigned int index = 0;
 
@@ -782,6 +670,7 @@ consolidateMath(list<string> & words)
         cerr << "consolidateMath doesn't deal with ALTER" << endl;
         return;
     default:
+    case OTHER:
         cerr << "consolidateMath doesn't deal with OTHER (what is this?)" << endl;
         return;
     }

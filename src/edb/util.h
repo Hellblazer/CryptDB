@@ -97,6 +97,8 @@ typedef PGresult DBResult_native;
 #endif
 
 typedef struct CryptDBError {
+ public:
+    CryptDBError(const string &m) : msg(m) {}
     string msg;
 } CryptDBError;
 
@@ -204,7 +206,7 @@ typedef struct QueryMeta {
 
 typedef struct ResMeta {
 
-    unsigned int nFields, nTuples, nTrueFields;
+    size_t nFields, nTuples, nTrueFields;
 
     /* Indexes in the following vectors correspond to entries in the raw
       response from the DBMS */
@@ -339,9 +341,7 @@ string toString(const ResType & rt);
 string toString(unsigned char * key, unsigned int len);
 
 // tries to represent value in minimum no of bytes, avoiding the \0 character
-string StringFromVal(unsigned int value, unsigned int desiredLen);
-//returns a string that is value
-string StringFromVal(unsigned long value);
+string StringFromVal(uint64_t value, unsigned int padLen = 0);
 
 ZZ UInt64_tToZZ (uint64_t value);
 
@@ -379,9 +379,6 @@ list<int> makeList(int val1, int val2);
 //returns a Postgres bigint representation in string form for x
 string marshallVal(uint64_t x);
 string marshallVal(uint32_t x);
-//returns x written on digits, with most significant first
-//if x needs more space than digits, the exact value of x will be returned
-string marshallVal(unsigned int x, unsigned int digits);
 
 uint64_t unmarshallVal(const string &str);
 

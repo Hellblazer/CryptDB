@@ -438,7 +438,7 @@ MultiPrinc::processReturnedField(unsigned int index, string fullname, onion o,
 static string
 getPsswdTable(string table)
 {
-    unsigned int prefix_len = PWD_TABLE_PREFIX.length();
+    size_t prefix_len = PWD_TABLE_PREFIX.length();
 
     if (table.substr(0, prefix_len) == PWD_TABLE_PREFIX) {
         return table.substr(prefix_len, table.length()-prefix_len);

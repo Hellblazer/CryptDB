@@ -37,23 +37,23 @@ typedef struct TreeNode {
     // right so y = C01111, lowR is C0000 and highR is C111
 } TreeNode;
 
-struct Distance : public binary_function<TreeNode, TreeNode, int>
-{
-    ZZ
-    operator()(const TreeNode & a, const TreeNode & b) const
-    {
-        return a.x-b.y;
-    }
-};
+// struct Distance : public binary_function<TreeNode, TreeNode, int>
+// {
+//     ZZ
+//     operator()(const TreeNode & a, const TreeNode & b) const
+//     {
+//         return a.x-b.y;
+//     }
+// };
 
-struct Compare : public binary_function<TreeNode, TreeNode, bool>
-{
-    bool
-    operator()(const TreeNode& a, const TreeNode& b) const
-    {
-        return a.x<b.x;
-    }
-};
+// struct Compare : public binary_function<TreeNode, TreeNode, bool>
+// {
+//     bool
+//     operator()(const TreeNode& a, const TreeNode& b) const
+//     {
+//         return a.x<b.x;
+//     }
+// };
 
 static uint64_t
 uint64FromZZ(ZZ val)
@@ -94,7 +94,7 @@ class OPEInternals {
         // << " ballsPicked " << ballsPicked << "\n";
         myassert((whiteBalls > 0) && (blackBalls > 0) && (y >= lowR) &&
                  (y <= highR));
-        unsigned int precision = NumBits(highR-lowR + 1) + 10;
+        uint precision = (uint) NumBits(highR-lowR + 1) + 10;
         return lowD +
                HGD(ballsPicked, whiteBalls, blackBalls, coins, coinsLen,
                    precision);
@@ -233,7 +233,7 @@ class OPEInternals {
 };
 
 OPE::OPE(const string &key, unsigned int OPEPlaintextSize,
-         unsigned int OPECiphertextSize)
+         unsigned int OPECiphertextSize) : iOPE (0)
 {
     iOPE = new OPEInternals;
     iOPE->OPEPlaintextSize = OPEPlaintextSize;
