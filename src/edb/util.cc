@@ -422,25 +422,6 @@ copyInto(unsigned char * res, unsigned char * data, unsigned int pos,
  *
  *******/
 
-unsigned char *
-stringToUChar(string s, unsigned int len)
-{
-    if (s.length() > len) {
-        s = s.substr(0, len);
-    } else {
-        unsigned int str_length = s.length();
-        for(unsigned int i = str_length; i < len; i++) {
-            s = s + '0';
-        }
-    }
-    unsigned char * res = new unsigned char[len];
-
-    for (unsigned int i = 0; i < len; i++) {
-        res[i] = s[i];
-    }
-    return res;
-}
-
 string
 uCharToStringDirect(unsigned char * input, unsigned int len)
 {

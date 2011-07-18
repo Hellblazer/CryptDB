@@ -43,6 +43,14 @@ readTimer()
     return res;
 }
 
+string
+padPasswd(const string &s)
+{
+    string r = s;
+    r.resize(AES_KEY_BYTES, '0');
+    return r;
+}
+
 void
 test_OPE()
 {
@@ -2994,8 +3002,7 @@ accessManagerTest()
     m2_key = am->getKey(m2);
     assert_s(!s6_key, "subject 6 key is available with bob not logged on");
     assert_s(!m2_key, "message 2 key is available with bob not logged on");
-    assert_s(am->insertPsswd(bob, stringToUChar("secretB",
-                                                AES_KEY_BYTES)) == 0,
+    assert_s(am->insertPsswd(bob, padPasswd(secretB)) == 0,
              "insert bob failed (4)");
     s6_key = am->getKey(s6);
     m2_key = am->getKey(m2);
@@ -3041,8 +3048,7 @@ accessManagerTest()
     assert_s(
         !m3_key,
         "message 3 key (orphan) is not available after it has been inserted");
-    assert_s(am->insertPsswd(bob, stringToUChar("secretB",
-                                                AES_KEY_BYTES)) == 0,
+    assert_s(am->insertPsswd(bob, padPasswd(secretB)) == 0,
              "insert bob failed (5)");
     s4_key = am->getKey(s4);
     m3_key = am->getKey(m3);
@@ -3115,8 +3121,7 @@ accessManagerTest()
     assert_s(!m5_key, "message 5 key available with alice not logged on");
     assert_s(!s5_key, "subject 5 key available with alice not logged on");
     assert_s(!s7_key, "subject 7 key available with alice not logged on");
-    assert_s(am->insertPsswd(alice, stringToUChar("secretA",
-                                                  AES_KEY_BYTES)) == 0,
+    assert_s(am->insertPsswd(alice, padPasswd(secretA)) == 0,
              "insert alice failed (6)");
     m5_key = am->getKey(m5);
     s5_key = am->getKey(s5);
@@ -3154,8 +3159,7 @@ accessManagerTest()
     unsigned char * s24_key = am->getKey(s24);
     assert_s(s24_key, "cannot access subject 24 key (orphan)");
     string s24_key1 = marshallBinary(s24_key, AES_KEY_BYTES);
-    assert_s(am->insertPsswd(chris, stringToUChar("secretC",
-                                                  AES_KEY_BYTES)) == 0,
+    assert_s(am->insertPsswd(chris, padPasswd(secretC)) == 0,
              "insert chris failed (1)");
     unsigned char * chris_key = am->getKey(chris);
     assert_s(chris_key, "cannot access chris key with chris logged on");
@@ -3174,8 +3178,7 @@ accessManagerTest()
     assert_s(!am->getKey(m15), "can access message 15 key with chris offline");
     assert_s(!am->getKey(s24), "can access subject 24 key with chris offline");
 
-    assert_s(am->insertPsswd(chris, stringToUChar("secretC",
-                                                  AES_KEY_BYTES)) == 0,
+    assert_s(am->insertPsswd(chris, padPasswd(secretC)) == 0,
              "insert chris failed (2)");
     chris_key = am->getKey(chris);
     assert_s(chris_key,
@@ -3224,8 +3227,7 @@ accessManagerTest()
              "subject 16 has a different key after being orphanized");
     am->removePsswd(chris);
     assert_s(!am->getKey(s16), "can access subject 16 key with chris offline");
-    assert_s(am->insertPsswd(chris, stringToUChar("secretC",
-                                                  AES_KEY_BYTES)) == 0,
+    assert_s(am->insertPsswd(chris, padPasswd(secretC)) == 0,
              "insert chris failed (2)");
     s16_key = am->getKey(s16);
     string s16_key3 = marshallBinary(s16_key, AES_KEY_BYTES);
@@ -3237,8 +3239,7 @@ accessManagerTest()
 
     cerr << "=============================================" << endl;
     cerr << "remove tests" << endl;
-    assert_s(am->insertPsswd(bob, stringToUChar("secretB",
-                                                AES_KEY_BYTES)) == 0,
+    assert_s(am->insertPsswd(bob, padPasswd(secretB)) == 0,
              "insert bob failed (6)");
     s4_key = am->getKey(s4);
     assert_s(s4_key, "cannot access subject 4 key with bob logged on");
@@ -3278,8 +3279,7 @@ accessManagerTest()
     assert_s(a5_key1.compare(a5_key3) == 0, "Account 5 key has changed");
     unsigned char * u1_key = am->getKey(u1);
     assert_s(!u1_key, "user 1 key available when Alice not logged on");
-    assert_s(am->insertPsswd(alice, stringToUChar("secretA",
-                                                  AES_KEY_BYTES)) == 0,
+    assert_s(am->insertPsswd(alice, padPasswd(secretA)) == 0,
              "insert alice failed (6)");
 
     am->remove(u2, g5);
@@ -3326,8 +3326,7 @@ accessManagerTest()
     f3_key = am->getKey(f3);
     assert_s(!f3_key, "forum 3 key available when alice is logged off");
 
-    assert_s(am->insertPsswd(chris, stringToUChar("secretC",
-                                                  AES_KEY_BYTES)) == 0,
+    assert_s(am->insertPsswd(chris, padPasswd(secretC)) == 0,
              "insert chris failed (3)");
     s24_key = am->getKey(s24);
     assert_s(s24_key, "subject 24 key is not accessible with chris logged on");
@@ -3358,8 +3357,7 @@ accessManagerTest()
              "user 3 key is not the same after u3->m15 removal");
 
     am->remove(g5,f3);
-    assert_s(am->insertPsswd(alice, stringToUChar("secretA",
-                                                  AES_KEY_BYTES)) == 0,
+    assert_s(am->insertPsswd(alice, padPasswd(secretA)) == 0,
              "insert alice failed (7)");
     g5_key = am->getKey(g5);
     assert_s(g5_key, "cannot access group 5 key with alice logged on");
@@ -3425,8 +3423,7 @@ accessManagerTest()
     g50.value = "50";
     g50_key = am->getKey(g50);
     assert_s(!g50_key, "g50 key available after chris logs off");
-    assert_s(am->insertPsswd(chris, stringToUChar("secretC",
-                                                  AES_KEY_BYTES)) == 0,
+    assert_s(am->insertPsswd(chris, padPasswd(secretC)) == 0,
              "insert chris failed (4)");
     PrinKey g50_pkey = am->getUncached(g50);
     assert_s(g50_pkey.len != 0,
@@ -3462,8 +3459,8 @@ accessManagerTest()
        am->addAccessTo("u.uid", "u.uname");
 
        //alice, bob join
-       am->insertPsswd("alice", stringToUChar("secretA", AES_KEY_BYTES));
-       am->insertPsswd("bob", stringToUChar("secretB", AES_KEY_BYTES));
+       am->insertPsswd("alice", padPasswd(secretA));
+       am->insertPsswd("bob", padPasswd(secretB));
 
        assert_s(am->getKey("i.uid", "1") == NULL, "the key is not NULL");
 
@@ -3488,11 +3485,11 @@ accessManagerTest()
 
 
        //alice, bob, chris join
-       //unsigned char * palice = stringToUChar("111", AES_KEY_BYTES);
-       am->insertPsswd("alice", stringToUChar("111", AES_KEY_BYTES));
-       am->insertPsswd("alice", stringToUChar("111", AES_KEY_BYTES));
-       am->insertPsswd("bob", stringToUChar("222", AES_KEY_BYTES));
-       am->insertPsswd("chris", stringToUChar("333", AES_KEY_BYTES));
+       //unsigned char * palice = padPasswd(111);
+       am->insertPsswd("alice", padPasswd(111));
+       am->insertPsswd("alice", padPasswd(111));
+       am->insertPsswd("bob", padPasswd(222));
+       am->insertPsswd("chris", padPasswd(333));
 
        am->insert(makeList("u.uid", "u.uname"), makeList("1","alice"));
        am->insert(makeList("u.uid", "u.uname"), makeList("2","bob"));
@@ -3514,7 +3511,7 @@ accessManagerTest()
        cerr << "f\n";
        //alice comes back, chris leaves
 
-       am->insertPsswd("alice", stringToUChar("111", AES_KEY_BYTES));
+       am->insertPsswd("alice", padPasswd(111));
        cerr << "g\n";
        am->deletePsswd("chris");
 
@@ -3558,7 +3555,7 @@ accessManagerTest()
        am->addEquals("t.uid","c.uid");
        am->addEquals("c.uid","u.uid");
        am->addAccessTo("u.uid","u.uname");
-       am->insertPsswd("alice", stringToUChar("111", AES_KEY_BYTES));
+       am->insertPsswd("alice", padPasswd(111));
        am->insert(makeList("u.uid","u.uname"), makeList("1","alice"));
        unsigned char * uukey = am->getKey("u.uid","1");
 
@@ -3584,9 +3581,9 @@ accessManagerTest()
        am->addEquals("t1.id", "users.id");
        am->givesPsswd("users.username");
        am->addAccessTo("users.id", "users.username");
-       am->insertPsswd("alice", stringToUChar("111", AES_KEY_BYTES));
+       am->insertPsswd("alice", padPasswd(111));
        am->deletePsswd("alice");
-       am->insertPsswd("alice", stringToUChar("111", AES_KEY_BYTES));
+       am->insertPsswd("alice", padPasswd(111));
        am->insert(makeList("users.id", "users.username"), makeList("1",
           "alice"));
        assert_s(am->getKey("users.id", "1") != NULL, "access manager should
@@ -3615,10 +3612,10 @@ accessManagerTest()
           failed");
        assert_s(0==am->addEquals("usergroup.uid","users.id"), "operation
           failed");
-       assert_s(0==am->insertPsswd("alice", stringToUChar("111",
-          AES_KEY_BYTES)), "operation failed");
-       assert_s(0==am->insertPsswd("bob", stringToUChar("222",
-          AES_KEY_BYTES)), "operation failed");
+       assert_s(0==am->insertPsswd("alice", padPasswd(111)),
+          "operation failed");
+       assert_s(0==am->insertPsswd("bob", padPasswd(222)),
+          "operation failed");
        assert_s(0==am->insert(makeList("users.id", "users.username"),
           makeList("1", "alice")), "operation failed");
        assert_s(0==am->insert(makeList("users.id", "users.username"),
@@ -3687,8 +3684,7 @@ accessManagerTest()
 
        assert_s(key1 != NULL, "should get an orphan principal's key");
 
-       assert_s(0<=am->insertPsswd("alice", stringToUChar("111",
-          AES_KEY_BYTES)), "insert pss failed");
+       assert_s(0<=am->insertPsswd("alice", padPasswd(111)), "insert pss failed");
 
        assert_s(0<=am->insert(makeList("u.uid", "u.uname"), makeList("1",
           "alice")), "insert faield");
@@ -3724,10 +3720,10 @@ accessManagerTest()
        am->addAccessTo("u.uid", "u.uname");
 
        //alice, bob, chris join
-       //unsigned char * palice = stringToUChar("111", AES_KEY_BYTES);
-       am->insertPsswd("alice", stringToUChar("111", AES_KEY_BYTES));
-       am->insertPsswd("bob", stringToUChar("222", AES_KEY_BYTES));
-       am->insertPsswd("chris", stringToUChar("333", AES_KEY_BYTES));
+       //unsigned char * palice = padPasswd(111);
+       am->insertPsswd("alice", padPasswd(111));
+       am->insertPsswd("bob", padPasswd(222));
+       am->insertPsswd("chris", padPasswd(333));
 
        am->insert(makeList("u.uid", "u.uname"), makeList("1","alice"));
        am->insert(makeList("u.uid", "u.uname"), makeList("2","bob"));
@@ -3738,7 +3734,7 @@ accessManagerTest()
        am->insert(makeList("g.gid", "g.uid"), makeList("22", "2"));
        am->insert(makeList("g.gid", "g.uid"), makeList("11", "3"));
 
-       //am->insertPsswd("alice", stringToUChar("111", AES_KEY_BYTES));
+       //am->insertPsswd("alice", padPasswd(111));
 
        assert_s(am->getKey("g.gid", "11") != NULL, "gid key should be
           available for Alice");
