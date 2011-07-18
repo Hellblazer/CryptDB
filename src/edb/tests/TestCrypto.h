@@ -13,11 +13,11 @@
 
 class TestCrypto {
  public:
-  TestCrypto();
-  virtual
+    TestCrypto();
+    virtual
     ~TestCrypto();
 
-  static void run(int argc, char ** argv);
+    static void run(int argc, char ** argv);
 };
 
 #endif /* TESTCRYPTO_H_ */

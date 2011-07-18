@@ -20,7 +20,7 @@ myassert(bool value, const string &mess)
 
 void
 assert_s (bool value, const string &msg)
-    throw (CryptDBError)
+throw (CryptDBError)
 {
     if (ASSERTS_ON) {
         if (!value) {
@@ -471,7 +471,8 @@ matches(const char * query, const char * delims, bool ignoreOnEscape = false,
 }
 
 list<string>
-parse(const string &query, const string &delimsStayArg, const string &delimsGoArg,
+parse(const string &query, const string &delimsStayArg,
+      const string &delimsGoArg,
       const string &keepIntactArg)
 {
     list<string> res;
@@ -482,11 +483,13 @@ parse(const string &query, const string &delimsStayArg, const string &delimsGoAr
     string word = "";
 
     while (index < len) {
-        while ((index < len) && matches(&query[index], delimsGoArg.c_str())) {
+        while ((index < len) &&
+               matches(&query[index], delimsGoArg.c_str())) {
             index = index + 1;
         }
 
-        while ((index < len) && matches(&query[index], delimsStayArg.c_str())) {
+        while ((index < len) &&
+               matches(&query[index], delimsStayArg.c_str())) {
             string sep = "";
             sep = sep + query[index];
             res.push_back(sep);
@@ -503,7 +506,8 @@ parse(const string &query, const string &delimsStayArg, const string &delimsGoAr
 
             while (index < len)  {
 
-                if (matches(&query[index], keepIntactArg.c_str(), true, index)) {
+                if (matches(&query[index], keepIntactArg.c_str(), true,
+                            index)) {
                     break;
                 }
 
@@ -514,7 +518,8 @@ parse(const string &query, const string &delimsStayArg, const string &delimsGoAr
             string msg = "keepIntact was not closed in <";
             msg = msg + query + "> at index " + marshallVal(index);
             assert_s((index < len)  &&
-                     matches(&query[index], keepIntactArg.c_str(), index), msg);
+                     matches(&query[index],
+                             keepIntactArg.c_str(), index), msg);
             word = word + query[index];
             res.push_back(word);
 
@@ -654,7 +659,8 @@ consolidateMath(list<string> & words)
         return;
     default:
     case OTHER:
-        cerr << "consolidateMath doesn't deal with OTHER (what is this?)" << endl;
+        cerr << "consolidateMath doesn't deal with OTHER (what is this?)" <<
+        endl;
         return;
     }
 }
@@ -783,19 +789,19 @@ getSQLWords(const string &query)
 
 command
 getCommand(const string &query)
-    throw (CryptDBError)
+throw (CryptDBError)
 {
     static struct { const char *s; command c; } s2c[] =
-        { { "create", CREATE },
-          { "update", UPDATE },
-          { "insert", INSERT },
-          { "select", SELECT },
-          { "drop",   DROP   },
-          { "delete", DELETE },
-          { "commit", COMMIT },
-          { "begin",  BEGIN  },
-          { "alter",  ALTER  },
-          { 0,        OTHER  } };
+    { { "create", CREATE },
+      { "update", UPDATE },
+      { "insert", INSERT },
+      { "select", SELECT },
+      { "drop",   DROP   },
+      { "delete", DELETE },
+      { "commit", COMMIT },
+      { "begin",  BEGIN  },
+      { "alter",  ALTER  },
+      { 0,        OTHER  } };
 
     string cmd = query.substr(0, query.find_first_of(" ,;()"));
     transform(cmd.begin(), cmd.end(), cmd.begin(), ::tolower);
@@ -1061,7 +1067,9 @@ isKeyword(const string &token)
 }
 
 static bool
-contains(const string &token1, const string &token2, list<pair<string, string> > & lst)
+contains(const string &token1, const string &token2, list<pair<string,
+                                                               string> > &
+         lst)
 {
     for (auto it = lst.begin(); it != lst.end(); it++)
         if ((it->first.compare(token1) == 0) &&
@@ -1080,8 +1088,10 @@ addIfNotContained(const string &token, list<string> & lst)
 }
 
 void
-addIfNotContained(const string &token1, const string &token2, list<pair<string,
-                                                          string> > & lst)
+addIfNotContained(const string &token1, const string &token2,
+                  list<pair<string,
+                            string> >
+                  & lst)
 {
 
     if (!contains(token1, token2, lst)) {

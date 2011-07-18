@@ -5,7 +5,6 @@
  *
  */
 
-
 /*
  * TODO: add tests for NULL (inserts with some fields null, selects)
  */
@@ -17,7 +16,6 @@
 TestSinglePrinc::TestSinglePrinc()
 {
 
-
 }
 
 TestSinglePrinc::~TestSinglePrinc()
@@ -25,7 +23,7 @@ TestSinglePrinc::~TestSinglePrinc()
 
 }
 
-static bool 
+static bool
 equals(ResType a, ResType b)
 {
     vector<vector<string> >::iterator ita = a.begin();
@@ -80,12 +78,13 @@ convert(string rows[][N], int num_rows)
 }
 
 static ResType *
-myExecute(EDBClient * cl, string query) {
+myExecute(EDBClient * cl, string query)
+{
     ResType * res;
     if (PLAIN) {
-      res = cl->plain_execute(query);
+        res = cl->plain_execute(query);
     } else {
-      res = cl->execute(query);
+        res = cl->execute(query);
     }
     return res;
 }
@@ -103,13 +102,13 @@ CheckSelectResults(EDBClient * cl, vector<string> in, vector<ResType> out)
     while(query_it != in.end()) {
         ResType * test_res = myExecute(cl, *query_it);
         if(!test_res) {
-	    cerr << "Query: " << endl;
-	    cerr << "\t" << *query_it << endl;
-	    assert_s(false, "Select or Join query won't execute");
-	}
+            cerr << "Query: " << endl;
+            cerr << "\t" << *query_it << endl;
+            assert_s(false, "Select or Join query won't execute");
+        }
         if(!equals(*test_res, *res_it)) {
-	    cerr << "From query: " << endl;
-	    cerr << *query_it << endl;
+            cerr << "From query: " << endl;
+            cerr << *query_it << endl;
             cerr << "-----------------------\nExpected result:" << endl;
             PrintRes(*res_it);
             cerr << "Got result:" << endl;
@@ -125,11 +124,14 @@ static void
 qUpdateSelect(EDBClient *cl, const string &update, const string &select,
               const ResType &expect)
 {
-    assert_s(myExecute(cl, update), "Query failed, Update or Delete test failed\n");
+    assert_s(myExecute(cl,
+                       update),
+             "Query failed, Update or Delete test failed\n");
 
     ResType * test_res = myExecute(cl, select);
     if (!test_res)
-        assert_s(false, string("Update or Delete query ") + select + " won't execute");
+        assert_s(false, string(
+                     "Update or Delete query ") + select + " won't execute");
 
     if (!equals(*test_res, expect)) {
         cerr << "Expected result:" << endl;
@@ -214,13 +216,15 @@ testInsert(EDBClient * cl)
 
     vector<string>::iterator it;
     for (it = tests.begin(); it != tests.end(); it++) {
-      assert_s(myExecute(cl, *it), "sql problem with InsertTest");
+        assert_s(myExecute(cl, *it), "sql problem with InsertTest");
     }
 
     if (!PLAIN) {
-      assert_s(cl->execute("DROP TABLE t1"), "testInsert can't drop t1");
+        assert_s(cl->execute("DROP TABLE t1"), "testInsert can't drop t1");
     } else {
-      assert_s(myExecute(cl,"DELETE FROM t1"), "testInsert can't delete from t1");
+        assert_s(myExecute(cl,
+                           "DELETE FROM t1"),
+                 "testInsert can't delete from t1");
     }
 }
 
@@ -231,24 +235,24 @@ testSelect(EDBClient * cl)
     cl->plain_execute(
         "DROP TABLE IF EXISTS table0, table1, table2, table3, table4, table5");
     if (!PLAIN) {
-      assert_s(cl->execute(
-                 "CREATE TABLE t1 (id integer, age enc integer, salary enc integer, address enc text, name text)"),
-		 "testSelect couldn't create table");
+        assert_s(cl->execute(
+                     "CREATE TABLE t1 (id integer, age enc integer, salary enc integer, address enc text, name text)"),
+                 "testSelect couldn't create table");
     }
     assert_s(myExecute(cl,
-                 "INSERT INTO t1 VALUES (1, 10, 0, 'first star to the right and straight on till morning', 'Peter Pan')"),
+                       "INSERT INTO t1 VALUES (1, 10, 0, 'first star to the right and straight on till morning', 'Peter Pan')"),
              "testSelect couldn't insert (1)");
     assert_s(myExecute(cl,
-                 "INSERT INTO t1 VALUES (2, 16, 1000, 'Green Gables', 'Anne Shirley')"),
+                       "INSERT INTO t1 VALUES (2, 16, 1000, 'Green Gables', 'Anne Shirley')"),
              "testSelect couldn't insert (2)");
     assert_s(myExecute(cl,
-                 "INSERT INTO t1 VALUES (3, 8, 0, 'London', 'Lucy')"),
+                       "INSERT INTO t1 VALUES (3, 8, 0, 'London', 'Lucy')"),
              "testSelect couldn't insert (3)");
     assert_s(myExecute(cl,
-                 "INSERT INTO t1 VALUES (4, 10, 0, 'London', 'Edmund')"),
+                       "INSERT INTO t1 VALUES (4, 10, 0, 'London', 'Edmund')"),
              "testSelect couldn't insert (4)");
     assert_s(myExecute(cl,
-                 "INSERT INTO t1 VALUES (5, 30, 100000, '221B Baker Street', 'Sherlock Holmes')"),
+                       "INSERT INTO t1 VALUES (5, 30, 100000, '221B Baker Street', 'Sherlock Holmes')"),
              "testSelect couldn't insert (5)");
 
     vector<string> query;
@@ -288,7 +292,7 @@ testSelect(EDBClient * cl)
 
     query.push_back("SELECT COUNT(DISTINCT(address)) FROM t1");
     string rows100[2][1] = { {"COUNT(DISTINCT(address))"},
-                           {"4"} };
+                             {"4"} };
     reply.push_back(convert(rows100,2));
 
     query.push_back("SELECT name FROM t1");
@@ -303,16 +307,20 @@ testSelect(EDBClient * cl)
     query.push_back("SELECT address FROM t1");
     string rows7[6][1] = { { "address"},
                            {
-                               "first star to the right and straight on till morning"},
+                               "first star to the right and straight on till morning"
+                           },
                            {"Green Gables"},
                            {"London"},
                            {"London"},
                            {"221B Baker Street"} };
     reply.push_back(convert(rows7,6));
 
-    query.push_back("SELECT sum(age), max(salary), min(salary), COUNT(name), address FROM t1");
-    string rows8[2][5] = { {"sum(age)", "max(salary)", "min(salary)", "COUNT(name)", "address"},
-			   {"74",        "100000",     "0",           "5",           "first star to the right and straight on till morning"} };
+    query.push_back(
+        "SELECT sum(age), max(salary), min(salary), COUNT(name), address FROM t1");
+    string rows8[2][5] =
+    { {"sum(age)", "max(salary)", "min(salary)", "COUNT(name)", "address"},
+      {"74",        "100000",     "0",           "5",
+      "first star to the right and straight on till morning"} };
     reply.push_back(convert(rows8,2));
 
     query.push_back("SELECT * FROM t1 WHERE id = 1");
@@ -490,7 +498,7 @@ testSelect(EDBClient * cl)
                             {"1", "10", "0",
                              "first star to the right and straight on till morning",
                              "Peter Pan"},
-			    {"4", "10", "0", "London", "Edmund"}, 
+                            {"4", "10", "0", "London", "Edmund"},
                             {"2", "16", "1000", "Green Gables",
                              "Anne Shirley"},
                             {"5", "30", "100000", "221B Baker Street",
@@ -506,74 +514,79 @@ testSelect(EDBClient * cl)
                             {"1", "10", "0",
                              "first star to the right and straight on till morning",
                              "Peter Pan"},
-			    {"4", "10", "0", "London", "Edmund"}, 
+                            {"4", "10", "0", "London", "Edmund"},
                             {"3", "8", "0", "London", "Lucy"} };
     reply.push_back(convert(rows27,6));
 
     //------------------------------------------------------------------------------
     // aliases
-    
+
     query.push_back("SELECT sum(age) as z FROM t1");
     string rows28[2][1] = { {"z"},
-			    {"74"} };
+                            {"74"} };
     reply.push_back(convert(rows28,2));
 
     query.push_back("SELECT sum(age) z FROM t1");
     string rows29[2][1] = { {"z"},
-			    {"74"} };
+                            {"74"} };
     reply.push_back(convert(rows29,2));
 
     query.push_back("SELECT min(t.id) a FROM t1 AS t");
     string rows30[2][1] = { {"a"},
-			    {"1"} };
+                            {"1"} };
     reply.push_back(convert(rows30,2));
 
     query.push_back("SELECT t.address AS b FROM t1 t");
     string rows31[6][1] = { {"b"},
-			    {"first star to the right and straight on till morning"},
-			    {"Green Gables"},
-			    {"London"},
-			    {"London"},
-			    {"221B Baker Street"} };
+                            {
+                                "first star to the right and straight on till morning"},
+                            {"Green Gables"},
+                            {"London"},
+                            {"London"},
+                            {"221B Baker Street"} };
     reply.push_back(convert(rows31,6));
 
     CheckSelectResults(cl, query, reply);
 
     if (!PLAIN) {
-      assert_s(cl->execute("DROP TABLE t1"), "testInsert can't drop t1");
+        assert_s(cl->execute("DROP TABLE t1"), "testInsert can't drop t1");
     } else {
-      assert_s(myExecute(cl,"DELETE FROM t1"), "testInsert can't delete from t1");
+        assert_s(myExecute(cl,
+                           "DELETE FROM t1"),
+                 "testInsert can't delete from t1");
     }
 }
 
 static void
-testJoin(EDBClient * cl) {
+testJoin(EDBClient * cl)
+{
     cl->plain_execute(
         "DROP TABLE IF EXISTS table0, table1, table2, table3, table4, table5, table6, table7");
     if (!PLAIN) {
-    assert_s(cl->execute(
-                 "CREATE TABLE t1 (id integer, age enc integer, salary enc integer, address enc text, name enc text)"),
-		 "testJoin couldn't create table");
+        assert_s(cl->execute(
+                     "CREATE TABLE t1 (id integer, age enc integer, salary enc integer, address enc text, name enc text)"),
+                 "testJoin couldn't create table");
     }
     assert_s(myExecute(cl,
-                 "INSERT INTO t1 VALUES (1, 10, 0, 'first star to the right and straight on till morning', 'Peter Pan')"),
+                       "INSERT INTO t1 VALUES (1, 10, 0, 'first star to the right and straight on till morning', 'Peter Pan')"),
              "testJoin couldn't insert (1)");
     assert_s(myExecute(cl,
-                 "INSERT INTO t1 VALUES (2, 16, 1000, 'Green Gables', 'Anne Shirley')"),
+                       "INSERT INTO t1 VALUES (2, 16, 1000, 'Green Gables', 'Anne Shirley')"),
              "testJoin couldn't insert (2)");
     assert_s(myExecute(cl,
-                 "INSERT INTO t1 VALUES (3, 8, 0, 'London', 'Lucy')"),
+                       "INSERT INTO t1 VALUES (3, 8, 0, 'London', 'Lucy')"),
              "testJoin couldn't insert (3)");
     assert_s(myExecute(cl,
-                 "INSERT INTO t1 VALUES (4, 10, 0, 'London', 'Edmund')"),
+                       "INSERT INTO t1 VALUES (4, 10, 0, 'London', 'Edmund')"),
              "testJoin couldn't insert (4)");
     assert_s(myExecute(cl,
-                 "INSERT INTO t1 VALUES (5, 30, 100000, '221B Baker Street', 'Sherlock Holmes')"),
+                       "INSERT INTO t1 VALUES (5, 30, 100000, '221B Baker Street', 'Sherlock Holmes')"),
              "testJoin couldn't insert (5)");
 
     if (!PLAIN) {
-    assert_s(cl->execute("CREATE TABLE t2 (id integer, books enc integer, name enc text)"),
-             "testJoin couldn't create second table");
+        assert_s(cl->execute(
+                     "CREATE TABLE t2 (id integer, books enc integer, name enc text)"),
+                 "testJoin couldn't create second table");
     }
     assert_s(myExecute(cl, "INSERT INTO t2 VALUES (1, 6, 'Peter Pan')"),
              "testJoin couldn't insert (1)");
@@ -583,76 +596,88 @@ testJoin(EDBClient * cl) {
              "testJoin couldn't insert (3)");
     assert_s(myExecute(cl, "INSERT INTO t2 VALUES (4, 7, 'Edmund')"),
              "testJoin couldn't insert (4)");
-    assert_s(myExecute(cl, "INSERT INTO t2 VALUES (10, 4, '221B Baker Street')"),
-	     "testJoin couldn't insert (5)");
+    assert_s(myExecute(cl,
+                       "INSERT INTO t2 VALUES (10, 4, '221B Baker Street')"),
+             "testJoin couldn't insert (5)");
 
     vector<string> query;
     vector<ResType> reply;
 
     //int comparison
     query.push_back("SELECT address FROM t1, t2 WHERE t1.id=t2.id");
-    string rows1[5][1] = { {"address"}, 
-			   {"first star to the right and straight on till morning"},
-			   {"Green Gables"},
-			   {"London"},
-			   {"London"} };
+    string rows1[5][1] = { {"address"},
+                           {
+                               "first star to the right and straight on till morning"},
+                           {"Green Gables"},
+                           {"London"},
+                           {"London"} };
     reply.push_back(convert(rows1,5));
-    query.push_back("SELECT t1.id, t2.id, age, books, t2.name FROM t1, t2 WHERE t1.id=t2.id");
+    query.push_back(
+        "SELECT t1.id, t2.id, age, books, t2.name FROM t1, t2 WHERE t1.id=t2.id");
     string rows2[5][5] = { {"id", "id", "age", "books", "name"},
-			   {"1", "1", "10", "6", "Peter Pan"},
-			   {"2", "2", "16", "8", "Anne Shirley"},
-			   {"3", "3", "8", "7", "Lucy"},
-			   {"4", "4", "10", "7", "Edmund"} };
+                           {"1", "1", "10", "6", "Peter Pan"},
+                           {"2", "2", "16", "8", "Anne Shirley"},
+                           {"3", "3", "8", "7", "Lucy"},
+                           {"4", "4", "10", "7", "Edmund"} };
     reply.push_back(convert(rows2,5));
-    query.push_back("SELECT t1.name, age, salary, t2.name, books FROM t1, t2 WHERE t1.age=t2.books"); 
+    query.push_back(
+        "SELECT t1.name, age, salary, t2.name, books FROM t1, t2 WHERE t1.age=t2.books");
     string rows3[2][5] = { {"name", "age", "salary", "name", "books"},
-			   {"Lucy", "8", "0", "Anne Shirley", "8"} };
+                           {"Lucy", "8", "0", "Anne Shirley", "8"} };
     reply.push_back(convert(rows3,2));
-    
+
     //string comparison
-    query.push_back("SELECT t1.id, t2.id, age, books, t2.name FROM t1, t2 WHERE t1.name=t2.name");
+    query.push_back(
+        "SELECT t1.id, t2.id, age, books, t2.name FROM t1, t2 WHERE t1.name=t2.name");
     string rows4[5][5] = { {"id", "id", "age", "books", "name"},
-			   {"1", "1", "10", "6", "Peter Pan"},
-			   {"2", "2", "16", "8", "Anne Shirley"},
-			   {"3", "3", "8", "7", "Lucy"},
-			   {"4", "4", "10", "7", "Edmund"} };
+                           {"1", "1", "10", "6", "Peter Pan"},
+                           {"2", "2", "16", "8", "Anne Shirley"},
+                           {"3", "3", "8", "7", "Lucy"},
+                           {"4", "4", "10", "7", "Edmund"} };
     reply.push_back(convert(rows4,5));
-    query.push_back("SELECT t1.id, age, address, t2.id, books FROM t1, t2 WHERE t1.address=t2.name");
+    query.push_back(
+        "SELECT t1.id, age, address, t2.id, books FROM t1, t2 WHERE t1.address=t2.name");
     string rows5[2][5] = { {"id", "age", "address", "id", "books"},
-			   {"5", "30", "221B Baker Street", "10", "4"} };
+                           {"5", "30", "221B Baker Street", "10", "4"} };
     reply.push_back(convert(rows5,2));
 
     //with aliases
     query.push_back("SELECT address FROM t1 AS a, t2 WHERE a.id=t2.id");
-    string rows11[5][1] = { {"address"}, 
-			    {"first star to the right and straight on till morning"},
-			    {"Green Gables"},
-			    {"London"},
-			    {"London"} };
+    string rows11[5][1] = { {"address"},
+                            {
+                                "first star to the right and straight on till morning"},
+                            {"Green Gables"},
+                            {"London"},
+                            {"London"} };
     reply.push_back(convert(rows11,5));
-    query.push_back("SELECT a.id, b.id, age, books, b.name FROM t1 a, t2 AS b WHERE a.id=b.id");
+    query.push_back(
+        "SELECT a.id, b.id, age, books, b.name FROM t1 a, t2 AS b WHERE a.id=b.id");
     string rows12[5][5] = { {"id", "id", "age", "books", "name"},
-			    {"1", "1", "10", "6", "Peter Pan"},
-			    {"2", "2", "16", "8", "Anne Shirley"},
-			    {"3", "3", "8", "7", "Lucy"},
-			    {"4", "4", "10", "7", "Edmund"} };
+                            {"1", "1", "10", "6", "Peter Pan"},
+                            {"2", "2", "16", "8", "Anne Shirley"},
+                            {"3", "3", "8", "7", "Lucy"},
+                            {"4", "4", "10", "7", "Edmund"} };
     reply.push_back(convert(rows12,5));
-    query.push_back("SELECT t1.name, age, salary, b.name, books FROM t1, t2 b WHERE t1.age=b.books"); 
+    query.push_back(
+        "SELECT t1.name, age, salary, b.name, books FROM t1, t2 b WHERE t1.age=b.books");
     string rows13[2][5] = { {"name", "age", "salary", "name", "books"},
-			    {"Lucy", "8", "0", "Anne Shirley", "8"} };
+                            {"Lucy", "8", "0", "Anne Shirley", "8"} };
     reply.push_back(convert(rows13,2));
-    
+
     CheckSelectResults(cl, query, reply);
 
     if (!PLAIN) {
-      assert_s(cl->execute("DROP TABLE t1, t2"), "testInsert can't drop t1");
+        assert_s(cl->execute("DROP TABLE t1, t2"), "testInsert can't drop t1");
     } else {
-      assert_s(myExecute(cl,"DELETE FROM t1"), "testInsert can't delete from t1");
-      assert_s(myExecute(cl,"DELETE FROM t2"), "testInsert can't delete from t2");
+        assert_s(myExecute(cl,
+                           "DELETE FROM t1"),
+                 "testInsert can't delete from t1");
+        assert_s(myExecute(cl,
+                           "DELETE FROM t2"),
+                 "testInsert can't delete from t2");
     }
 
 }
-
 
 //assumes Select works
 static void
@@ -661,80 +686,82 @@ testUpdate(EDBClient * cl)
     cl->plain_execute(
         "DROP TABLE IF EXISTS table0, table1, table2, table3, table4, table5, table6, table7, table8, table9");
     if (!PLAIN) {
-    assert_s(cl->execute(
-                 "CREATE TABLE t1 (id integer, age enc integer, salary enc integer, address enc text, name text)"),
-		 "testSelect couldn't create table");
+        assert_s(cl->execute(
+                     "CREATE TABLE t1 (id integer, age enc integer, salary enc integer, address enc text, name text)"),
+                 "testSelect couldn't create table");
     }
     assert_s(myExecute(cl,
-                 "INSERT INTO t1 VALUES (1, 10, 0, 'first star to the right and straight on till morning', 'Peter Pan')"),
+                       "INSERT INTO t1 VALUES (1, 10, 0, 'first star to the right and straight on till morning', 'Peter Pan')"),
              "testUpdate couldn't insert (1)");
     assert_s(myExecute(cl,
-                 "INSERT INTO t1 VALUES (2, 16, 1000, 'Green Gables', 'Anne Shirley')"),
+                       "INSERT INTO t1 VALUES (2, 16, 1000, 'Green Gables', 'Anne Shirley')"),
              "testUpdate couldn't insert (2)");
     assert_s(myExecute(cl,
-                 "INSERT INTO t1 VALUES (3, 8, 0, 'London', 'Lucy')"),
+                       "INSERT INTO t1 VALUES (3, 8, 0, 'London', 'Lucy')"),
              "testUpdate couldn't insert (3)");
     assert_s(myExecute(cl,
-                 "INSERT INTO t1 VALUES (4, 10, 0, 'London', 'Edmund')"),
+                       "INSERT INTO t1 VALUES (4, 10, 0, 'London', 'Edmund')"),
              "testUpdate couldn't insert (4)");
     assert_s(myExecute(cl,
-                 "INSERT INTO t1 VALUES (5, 30, 100000, '221B Baker Street', 'Sherlock Holmes')"),
+                       "INSERT INTO t1 VALUES (5, 30, 100000, '221B Baker Street', 'Sherlock Holmes')"),
              "testUpdate couldn't insert (5)");
     assert_s(myExecute(cl,
-                 "INSERT INTO t1 VALUES (6, 11, 0, 'hi', 'noone')"),
+                       "INSERT INTO t1 VALUES (6, 11, 0, 'hi', 'noone')"),
              "testUpdate couldn't insert (6)");
 
     qUpdateSelect(cl, "UPDATE t1 SET salary=0",
                   "SELECT * FROM t1",
                   { {"id", "age", "salary", "address", "name"},
-                           {"1", "10", "0",
-                            "first star to the right and straight on till morning",
-                            "Peter Pan"},
-                           {"2", "16", "0", "Green Gables", "Anne Shirley"},
-                           {"3", "8", "0", "London", "Lucy"},
-                           {"4", "10", "0", "London", "Edmund"},
-                           {"5", "30", "0", "221B Baker Street",
-                            "Sherlock Holmes"},
-                           {"6", "11", "0", "hi", "noone"} });
+                    {"1", "10", "0",
+                     "first star to the right and straight on till morning",
+                     "Peter Pan"},
+                    {"2", "16", "0", "Green Gables", "Anne Shirley"},
+                    {"3", "8", "0", "London", "Lucy"},
+                    {"4", "10", "0", "London", "Edmund"},
+                    {"5", "30", "0", "221B Baker Street",
+                     "Sherlock Holmes"},
+                    {"6", "11", "0", "hi", "noone"} });
 
     qUpdateSelect(cl, "UPDATE t1 SET age=21 WHERE id = 6",
                   "SELECT * FROM t1",
                   { {"id", "age", "salary", "address", "name"},
-                           {"1", "10", "0",
-                            "first star to the right and straight on till morning",
-                            "Peter Pan"},
-                           {"2", "16", "0", "Green Gables", "Anne Shirley"},
-                           {"3", "8", "0", "London", "Lucy"},
-                           {"4", "10", "0", "London", "Edmund"},
-                           {"5", "30", "0", "221B Baker Street",
-                            "Sherlock Holmes"},
-                           {"6", "21", "0", "hi", "noone"} });
+                    {"1", "10", "0",
+                     "first star to the right and straight on till morning",
+                     "Peter Pan"},
+                    {"2", "16", "0", "Green Gables", "Anne Shirley"},
+                    {"3", "8", "0", "London", "Lucy"},
+                    {"4", "10", "0", "London", "Edmund"},
+                    {"5", "30", "0", "221B Baker Street",
+                     "Sherlock Holmes"},
+                    {"6", "21", "0", "hi", "noone"} });
 
-    qUpdateSelect(cl, "UPDATE t1 SET address='Pemberly', name='Elizabeth Darcy' WHERE id=6",
-                  "SELECT * FROM t1",
-                  { {"id", "age", "salary", "address", "name"},
-                           {"1", "10", "0",
-                            "first star to the right and straight on till morning",
-                            "Peter Pan"},
-                           {"2", "16", "0", "Green Gables", "Anne Shirley"},
-                           {"3", "8", "0", "London", "Lucy"},
-                           {"4", "10", "0", "London", "Edmund"},
-                           {"5", "30", "0", "221B Baker Street",
-                            "Sherlock Holmes"},
-                           {"6", "21", "0", "Pemberly", "Elizabeth Darcy"} });
+    qUpdateSelect(
+        cl,
+        "UPDATE t1 SET address='Pemberly', name='Elizabeth Darcy' WHERE id=6",
+        "SELECT * FROM t1",
+        { {"id", "age", "salary", "address", "name"},
+          {"1", "10", "0",
+                     "first star to the right and straight on till morning",
+                     "Peter Pan"},
+          {"2", "16", "0", "Green Gables", "Anne Shirley"},
+          {"3", "8", "0", "London", "Lucy"},
+          {"4", "10", "0", "London", "Edmund"},
+          {"5", "30", "0", "221B Baker Street",
+                     "Sherlock Holmes"},
+          {"6", "21", "0", "Pemberly", "Elizabeth Darcy"} });
 
     qUpdateSelect(cl, "UPDATE t1 SET salary=55000 WHERE age=30",
                   "SELECT * FROM t1",
                   { {"id", "age", "salary", "address", "name"},
-                           {"1", "10", "0",
-                            "first star to the right and straight on till morning",
-                            "Peter Pan"},
-                           {"2", "16", "0", "Green Gables", "Anne Shirley"},
-                           {"3", "8", "0", "London", "Lucy"},
-                           {"4", "10", "0", "London", "Edmund"},
-                           {"5", "30", "55000", "221B Baker Street",
-                            "Sherlock Holmes"},
-                           {"6", "21", "0", "Pemberly", "Elizabeth Darcy"} });
+                    {"1", "10", "0",
+                     "first star to the right and straight on till morning",
+                     "Peter Pan"},
+                    {"2", "16", "0", "Green Gables", "Anne Shirley"},
+                    {"3", "8", "0", "London", "Lucy"},
+                    {"4", "10", "0", "London", "Edmund"},
+                    {"5", "30", "55000", "221B Baker Street",
+                     "Sherlock Holmes"},
+                    {"6", "21", "0", "Pemberly", "Elizabeth Darcy"} });
 
     qUpdateSelect(cl, "UPDATE t1 SET salary=20000 WHERE address='Pemberly'",
                   "SELECT * FROM t1",
@@ -745,13 +772,17 @@ testUpdate(EDBClient * cl)
                     { "2", "16", "0", "Green Gables", "Anne Shirley" },
                     { "3", "8", "0", "London", "Lucy" },
                     { "4", "10", "0", "London", "Edmund" },
-                    { "5", "30", "55000", "221B Baker Street", "Sherlock Holmes" },
-                    { "6", "21", "20000", "Pemberly", "Elizabeth Darcy" } });
+                    { "5", "30", "55000", "221B Baker Street",
+                      "Sherlock Holmes" },
+                    { "6", "21", "20000", "Pemberly",
+                      "Elizabeth Darcy" } });
 
     if (!PLAIN) {
-      assert_s(cl->execute("DROP TABLE t1"), "testUpdate can't drop t1");
+        assert_s(cl->execute("DROP TABLE t1"), "testUpdate can't drop t1");
     } else {
-      assert_s(myExecute(cl,"DELETE FROM t1"), "testUpdate can't delete from t1");
+        assert_s(myExecute(cl,
+                           "DELETE FROM t1"),
+                 "testUpdate can't delete from t1");
     }
 }
 
@@ -761,90 +792,97 @@ testDelete(EDBClient * cl)
     cl->plain_execute(
         "DROP TABLE IF EXISTS table0, table1, table2, table3, table4, table5, table6, table7, table8, table9, table10");
     if (!PLAIN) {
-    assert_s(cl->execute(
-                 "CREATE TABLE t1 (id integer, age enc integer, salary enc integer, address enc text, name text)"),
-		 "testSelect couldn't create table");
+        assert_s(cl->execute(
+                     "CREATE TABLE t1 (id integer, age enc integer, salary enc integer, address enc text, name text)"),
+                 "testSelect couldn't create table");
     }
     assert_s(myExecute(cl,
-                 "INSERT INTO t1 VALUES (1, 10, 0, 'first star to the right and straight on till morning', 'Peter Pan')"),
+                       "INSERT INTO t1 VALUES (1, 10, 0, 'first star to the right and straight on till morning', 'Peter Pan')"),
              "testUpdate couldn't insert (1)");
     assert_s(myExecute(cl,
-                 "INSERT INTO t1 VALUES (2, 16, 1000, 'Green Gables', 'Anne Shirley')"),
+                       "INSERT INTO t1 VALUES (2, 16, 1000, 'Green Gables', 'Anne Shirley')"),
              "testUpdate couldn't insert (2)");
     assert_s(myExecute(cl,
-                 "INSERT INTO t1 VALUES (3, 8, 0, 'London', 'Lucy')"),
+                       "INSERT INTO t1 VALUES (3, 8, 0, 'London', 'Lucy')"),
              "testUpdate couldn't insert (3)");
     assert_s(myExecute(cl,
-                 "INSERT INTO t1 VALUES (4, 10, 0, 'London', 'Edmund')"),
+                       "INSERT INTO t1 VALUES (4, 10, 0, 'London', 'Edmund')"),
              "testUpdate couldn't insert (4)");
     assert_s(myExecute(cl,
-                 "INSERT INTO t1 VALUES (5, 30, 100000, '221B Baker Street', 'Sherlock Holmes')"),
+                       "INSERT INTO t1 VALUES (5, 30, 100000, '221B Baker Street', 'Sherlock Holmes')"),
              "testUpdate couldn't insert (5)");
     assert_s(myExecute(cl,
-                 "INSERT INTO t1 VALUES (6, 21, 20000, 'Pemberly', 'Elizabeth Darcy')"),
+                       "INSERT INTO t1 VALUES (6, 21, 20000, 'Pemberly', 'Elizabeth Darcy')"),
              "testUpdate couldn't insert (6)");
     assert_s(myExecute(cl,
-                 "INSERT INTO t1 VALUES (7, 10000, 1, 'Mordor', 'Sauron')"),
+                       "INSERT INTO t1 VALUES (7, 10000, 1, 'Mordor', 'Sauron')"),
              "testUpdate couldn't insert (7)");
     assert_s(myExecute(cl,
-                 "INSERT INTO t1 VALUES (8, 25, 100, 'The Heath', 'Eustacia Vye')"),
+                       "INSERT INTO t1 VALUES (8, 25, 100, 'The Heath', 'Eustacia Vye')"),
              "testUpdate couldn't insert (8)");
 
     qUpdateSelect(cl, "DELETE FROM t1 WHERE id=1", "SELECT * FROM t1",
                   { {"id", "age", "salary", "address", "name"},
-                           {"2", "16", "1000", "Green Gables", "Anne Shirley"},
-                           {"3", "8", "0", "London", "Lucy"},
-                           {"4", "10", "0", "London", "Edmund"},
-                           {"5", "30", "100000", "221B Baker Street",
-                            "Sherlock Holmes"},
-                           {"6", "21", "20000", "Pemberly", "Elizabeth Darcy"},
-                           {"7", "10000", "1", "Mordor", "Sauron"},
-                           {"8", "25", "100", "The Heath", "Eustacia Vye"} });
+                    {"2", "16", "1000", "Green Gables", "Anne Shirley"},
+                    {"3", "8", "0", "London", "Lucy"},
+                    {"4", "10", "0", "London", "Edmund"},
+                    {"5", "30", "100000", "221B Baker Street",
+                     "Sherlock Holmes"},
+                    {"6", "21", "20000", "Pemberly", "Elizabeth Darcy"},
+                    {"7", "10000", "1", "Mordor", "Sauron"},
+                    {"8", "25", "100", "The Heath", "Eustacia Vye"} });
 
     qUpdateSelect(cl, "DELETE FROM t1 WHERE age=30", "SELECT * FROM t1",
                   { {"id", "age", "salary", "address", "name"},
-                           {"2", "16", "1000", "Green Gables", "Anne Shirley"},
-                           {"3", "8", "0", "London", "Lucy"},
-                           {"4", "10", "0", "London", "Edmund"},
-                           {"6", "21", "20000", "Pemberly", "Elizabeth Darcy"},
-                           {"7", "10000", "1", "Mordor", "Sauron"},
-                           {"8", "25", "100", "The Heath", "Eustacia Vye"} });
+                    {"2", "16", "1000", "Green Gables", "Anne Shirley"},
+                    {"3", "8", "0", "London", "Lucy"},
+                    {"4", "10", "0", "London", "Edmund"},
+                    {"6", "21", "20000", "Pemberly", "Elizabeth Darcy"},
+                    {"7", "10000", "1", "Mordor", "Sauron"},
+                    {"8", "25", "100", "The Heath", "Eustacia Vye"} });
 
-    qUpdateSelect(cl, "DELETE FROM t1 WHERE name='Eustacia Vye'", "SELECT * FROM t1",
+    qUpdateSelect(cl, "DELETE FROM t1 WHERE name='Eustacia Vye'",
+                  "SELECT * FROM t1",
                   { {"id", "age", "salary", "address", "name"},
-                           {"2", "16", "1000", "Green Gables", "Anne Shirley"},
-                           {"3", "8", "0", "London", "Lucy"},
-                           {"4", "10", "0", "London", "Edmund"},
-                           {"6", "21", "20000", "Pemberly", "Elizabeth Darcy"},
-                           {"7", "10000", "1", "Mordor", "Sauron"} });
+                    {"2", "16", "1000", "Green Gables", "Anne Shirley"},
+                    {"3", "8", "0", "London", "Lucy"},
+                    {"4", "10", "0", "London", "Edmund"},
+                    {"6", "21", "20000", "Pemberly", "Elizabeth Darcy"},
+                    {"7", "10000", "1", "Mordor",
+                     "Sauron"} });
 
-    qUpdateSelect(cl, "DELETE FROM t1 WHERE address='London'", "SELECT * FROM t1",
+    qUpdateSelect(cl, "DELETE FROM t1 WHERE address='London'",
+                  "SELECT * FROM t1",
                   { {"id", "age", "salary", "address", "name"},
-                           {"2", "16", "1000", "Green Gables", "Anne Shirley"},
-                           {"6", "21", "20000", "Pemberly", "Elizabeth Darcy"},
-                           {"7", "10000", "1", "Mordor", "Sauron"} });
+                    {"2", "16", "1000", "Green Gables", "Anne Shirley"},
+                    {"6", "21", "20000", "Pemberly", "Elizabeth Darcy"},
+                    {"7", "10000", "1", "Mordor",
+                     "Sauron"} });
 
     qUpdateSelect(cl, "DELETE FROM t1 WHERE salary=1", "SELECT * FROM t1",
                   { {"id", "age", "salary", "address", "name"},
-                           {"2", "16", "1000", "Green Gables", "Anne Shirley"},
-                           {"6", "21", "20000", "Pemberly", "Elizabeth Darcy"} });
+                    {"2", "16", "1000", "Green Gables", "Anne Shirley"},
+                    {"6", "21", "20000", "Pemberly", "Elizabeth Darcy"} });
 
     qUpdateSelect(cl, "DELETE FROM t1", "SELECT * FROM t1", {});
 
-    qUpdateSelect(cl,
-                  "INSERT INTO t1 VALUES (1, 10, 0, 'first star to the right and straight on till morning', 'Peter Pan')",
-                  "SELECT * FROM t1",
-                  { {"id", "age", "salary", "address", "name"},
-                           {"1", "10", "0",
-                            "first star to the right and straight on till morning",
-                            "Peter Pan"} });
+    qUpdateSelect(
+        cl,
+        "INSERT INTO t1 VALUES (1, 10, 0, 'first star to the right and straight on till morning', 'Peter Pan')",
+        "SELECT * FROM t1",
+        { {"id", "age", "salary", "address", "name"},
+          {"1", "10", "0",
+                     "first star to the right and straight on till morning",
+                     "Peter Pan"} });
 
     qUpdateSelect(cl, "DELETE  FROM t1", "SELECT * FROM t1", {});
 
     if (!PLAIN) {
-      assert_s(cl->execute("DROP TABLE t1"), "testDelete can't drop t1");
+        assert_s(cl->execute("DROP TABLE t1"), "testDelete can't drop t1");
     } else {
-      assert_s(myExecute(cl,"DELETE FROM t1"), "testDelete can't delete from t1");
+        assert_s(myExecute(cl,
+                           "DELETE FROM t1"),
+                 "testDelete can't delete from t1");
     }
 }
 
@@ -854,40 +892,42 @@ testSearch(EDBClient * cl)
     cl->plain_execute(
         "DROP TABLE IF EXISTS table0, table1, table2, table3, table4, table5, table6, table7, table8, table9, table10, table11");
     if (!PLAIN) {
-      assert_s(cl->execute("CREATE TABLE t3 (id integer, searchable text)"),
-	       "testSearch couldn't create table");
+        assert_s(cl->execute("CREATE TABLE t3 (id integer, searchable text)"),
+                 "testSearch couldn't create table");
     }
     assert_s(myExecute(cl, "INSERT INTO t3 VALUES (1, 'short text')"),
-	     "testSearch couldn't insert (1)");
-    assert_s(myExecute(cl, "INSERT INTO t3 VALUES (2, 'Text with CAPITALIZATION')"),
-	     "testSearch couldn't insert (2)");
+             "testSearch couldn't insert (1)");
+    assert_s(myExecute(cl,
+                       "INSERT INTO t3 VALUES (2, 'Text with CAPITALIZATION')"),
+             "testSearch couldn't insert (2)");
     assert_s(myExecute(cl, "INSERT INTO t3 VALUES (3, '')"),
-	     "testSearch couldn't insert (3)");
-    assert_s(myExecute(cl,"INSERT INTO t3 VALUES (4, 'When I have fears that I may cease to be, before my pen has gleaned my teaming brain; before high-piled books in charactery hold like rich garners the full-ripened grain.  When I behold upon the nights starred face Huge cloudy symbols of high romance And think that I may never live to trace Their shadows with the magic hand of chance.  And when I feel, fair creature of the hour That I shall never look upon thee more, Never have relish of the faerie power Of unreflecting love, I stand alone of the edge of the wide world and think, to love and fame to nothingness do sink')"), 
-	     "testSearch couldn't insert (4)");
+             "testSearch couldn't insert (3)");
+    assert_s(myExecute(cl,
+                       "INSERT INTO t3 VALUES (4, 'When I have fears that I may cease to be, before my pen has gleaned my teaming brain; before high-piled books in charactery hold like rich garners the full-ripened grain.  When I behold upon the nights starred face Huge cloudy symbols of high romance And think that I may never live to trace Their shadows with the magic hand of chance.  And when I feel, fair creature of the hour That I shall never look upon thee more, Never have relish of the faerie power Of unreflecting love, I stand alone of the edge of the wide world and think, to love and fame to nothingness do sink')"),
+             "testSearch couldn't insert (4)");
 
     vector<string> query;
     vector<ResType> reply;
 
     query.push_back("SELECT * FROM t3 WHERE searchable LIKE '%text%'");
     string rows1[3][2] = { {"id", "searchable"},
-			   {"1", "short text"},
-			   {"2", "Text with CAPITALIZATION"} };
+                           {"1", "short text"},
+                           {"2", "Text with CAPITALIZATION"} };
     reply.push_back(convert(rows1,3));
 
     query.push_back("SELECT * FROM t3 WHERE searchable LIKE 'short text'");
     string rows2[2][2] = { {"id", "searchable"},
-			   {"1", "short text"} };
+                           {"1", "short text"} };
     reply.push_back(convert(rows2,2));
 
     query.push_back("SELECT * FROM t3 WHERE searchable LIKE ''");
     string rows3[2][2] = { {"id", "searchable"},
-			   {"3", ""} };
+                           {"3", ""} };
     reply.push_back(convert(rows3,2));
 
     query.push_back("SELECT * FROM t3 WHERE searchable LIKE 'Text%'");
     string rows4[2][2] = { {"id", "searchable"},
-			   {"2", "Text with CAPITALIZATION"} };
+                           {"2", "Text with CAPITALIZATION"} };
     reply.push_back(convert(rows4,2));
 
     query.push_back("SELECT * FROM t3 WHERE searchable LIKE '%shadows'");
@@ -897,21 +937,24 @@ testSearch(EDBClient * cl)
 
     query.push_back("SELECT * FROM t3 WHERE searchable LIKE 'when%'");
     string rows5[2][2] = { {"id", "searchable"},
-			   {"4", "When I have fears that I may cease to be, before my pen has gleaned my teaming brain; before high-piled books in charactery hold like rich garners the full-ripened grain.  When I behold upon the nights starred face Huge cloudy symbols of high romance And think that I may never live to trace Their shadows with the magic hand of chance.  And when I feel, fair creature of the hour That I shall never look upon thee more, Never have relish of the faerie power Of unreflecting love, I stand alone of the edge of the wide world and think, to love and fame to nothingness do sink"} };
+                           {"4",
+                            "When I have fears that I may cease to be, before my pen has gleaned my teaming brain; before high-piled books in charactery hold like rich garners the full-ripened grain.  When I behold upon the nights starred face Huge cloudy symbols of high romance And think that I may never live to trace Their shadows with the magic hand of chance.  And when I feel, fair creature of the hour That I shall never look upon thee more, Never have relish of the faerie power Of unreflecting love, I stand alone of the edge of the wide world and think, to love and fame to nothingness do sink"} };
     reply.push_back(convert(rows5,2));
 
-    query.push_back("SELECT * FROM t3 WHERE searchable LIKE '%magic hand of chance%'");
+    query.push_back(
+        "SELECT * FROM t3 WHERE searchable LIKE '%magic hand of chance%'");
     reply.push_back(convert(rows5,2));
 
     CheckSelectResults(cl, query, reply);
 
     if (!PLAIN) {
-      assert_s(cl->execute("DROP TABLE t3"), "testSearch can't drop t3");
+        assert_s(cl->execute("DROP TABLE t3"), "testSearch can't drop t3");
     } else {
-      assert_s(myExecute(cl,"DELETE FROM t3"), "testSearch can't delete from t3");
+        assert_s(myExecute(cl,
+                           "DELETE FROM t3"),
+                 "testSearch can't delete from t3");
     }
 }
-
 
 void
 TestSinglePrinc::run(int argc, char ** argv)
@@ -919,7 +962,8 @@ TestSinglePrinc::run(int argc, char ** argv)
     EDBClient * cl;
     uint64_t mkey = 113341234;
     string masterKey = BytesFromInt(mkey, AES_KEY_BYTES);
-    cl = new EDBClient("localhost", "root", "letmein", "cryptdbtest", masterKey);
+    cl = new EDBClient("localhost", "root", "letmein", "cryptdbtest",
+                       masterKey);
     assert_s(MULTIPRINC == 0,
              "MULTIPRINC is on.  Please set it to 0 (in params.h)");
 

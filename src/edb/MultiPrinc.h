@@ -2,8 +2,7 @@
  * MultiPrincipal.h
  *
  * Performs the high level multi-principal work: parsing and interaction with
- *key access.
- *
+ * key access.
  */
 
 #ifndef MULTIPRINC_H_

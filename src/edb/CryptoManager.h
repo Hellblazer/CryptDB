@@ -95,8 +95,8 @@ class CryptoManager {
 
     /**
      * Returns the key corresponding to the security level given for some
-     *master key and
-     * some unique field name. Result will be AES_KEY_SIZE long.
+     * master key and some unique field name. Result will be AES_KEY_SIZE
+     * long.
      */
     string getKey(const string &uniqueFieldName, SECLEVEL sec);
     string getKey(AES_KEY * mkey, const string &uniqueFieldName, SECLEVEL sec);
@@ -145,13 +145,13 @@ class CryptoManager {
     static string encrypt_DET(const string & plaintext, AES_KEY * key);
     static string decrypt_DET(const string & ciphertext, AES_KEY * key);
 
-    /****************
-     *  SEARCH
+    /*
+     * SEARCH
      *
-     *  Two methods:
-     *  1. faster and less secure: encrypt each word with DET separately
-     *  2. slower and more secure: use SWP method
-     ****************/
+     * Two methods:
+     * 1. faster and less secure: encrypt each word with DET separately
+     * 2. slower and more secure: use SWP method
+     */
 
     /* Method 1 */
     // was integrated in older versions, not in current version
@@ -168,8 +168,6 @@ class CryptoManager {
     static string decrypt_DET_wrapper(const string &ctext, AES_KEY * key);
 
     /* Method 2 */
-
-
 
     //aggregates
     static const unsigned int Paillier_len_bytes = PAILLIER_LEN_BYTES;

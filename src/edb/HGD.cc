@@ -6,10 +6,9 @@ using namespace std;
 
 /**
  * THIS IS A .C IMPLEMENTATION OF A FORTRAN IMPLEMENTATION WITH THE
- *SPECIFICATION GIVEN IN THE COMMENT BELOW.
+ * SPECIFICATION GIVEN IN THE COMMENT BELOW.
  * I replaced some helper functions with more appropriate ones and adapted the
- *code to work with very large numbers
- * such as ZZ and RR from NTL.
+ * code to work with very large numbers such as ZZ and RR from NTL.
  */
 /**       ALGORITHM 668, COLLECTED ALGORITHMS FROM ACM.
    C      THIS WORK PUBLISHED IN TRANSACTIONS ON MATHEMATICAL SOFTWARE,
@@ -425,10 +424,11 @@ flagThirtyB:
             RR UB  = Y * GU - M * GL + DELTAU  + XM * R *
                      (1.+R*
                       (-.5+R/
-             3.))  + XN * S2 *
+                       3.))  + XN * S2 *
                      (1.+S2*
                       (-0.5+S2/
-             3))  + XK * T * (1.+T*(-.5+T/3.))   + NM * E * (1.+E*(-.5+E/3.));
+                       3))  + XK * T *
+                     (1.+T*(-.5+T/3.))   + NM * E * (1.+E*(-.5+E/3.));
 /*
    C           ...TEST AGAINST UPPER BOUND...
  */

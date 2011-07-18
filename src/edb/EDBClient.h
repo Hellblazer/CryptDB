@@ -10,8 +10,6 @@
 
 using namespace std;
 
-
-
 class EDBClient {
  public:
     bool VERBOSE;
@@ -22,7 +20,7 @@ class EDBClient {
 
     /*
      * If no "masterKey" is provided, the current client will not run in the
-     *secure mode (queries are plain).
+     * secure mode (queries are plain).
      */
 
     EDBClient(const string &masterKey);
@@ -49,7 +47,7 @@ class EDBClient {
     //query must be \0 terminated
     list<string> rewriteEncryptQuery(const string &query,
                                      AutoInc * ai = NULL)
-    throw (CryptDBError);
+        throw (CryptDBError);
     //query should be the original, untranslated query
     ResType  * decryptResults(const string &query, ResType * dbAnswer);
 
@@ -73,12 +71,12 @@ class EDBClient {
     // trains client on queries from given file and adjusts schema and
     // security level
     int train(string queryFile)
-    throw (CryptDBError);
+        throw (CryptDBError);
     // creates tables and indexes at the server based on queries seen
     int train_finish()
-    throw (CryptDBError);
+        throw (CryptDBError);
     int create_trained_instance(bool submit = true)
-    throw (CryptDBError);
+        throw (CryptDBError);
 
     //=========== DEBUGGING AND INFO ==============================//
 
@@ -114,11 +112,11 @@ class EDBClient {
     // translating it; they also generate decryption queries
     //the Decrypt functions decrypt the result from the server
     list<string> rewriteEncryptCreate(const string &query)
-    throw (CryptDBError);
+        throw (CryptDBError);
 
     //INSERT
     list<string> rewriteEncryptInsert(const string &query, AutoInc * ai)
-    throw (CryptDBError);
+        throw (CryptDBError);
     //returns the value to be included in an insert a given value of a
     // field/table
     string processValsToInsert(string field, string table, uint64_t salt,
@@ -135,54 +133,54 @@ class EDBClient {
                    QueryMeta & qm, string resultQuery,
                    FieldsToDecrypt fieldsDec, TMKM & tmkm,
                    list<string> subqueries = list<string>())
-    throw (CryptDBError);
+        throw (CryptDBError);
     string processOperation(string operation, string op1, string op2,
                             QueryMeta & qm, string encryptedsubquery,
                             TMKM & tmkm)
-    throw (CryptDBError);
+        throw (CryptDBError);
 
     //UPDATE
     list<string> rewriteEncryptUpdate(const string &query)
-    throw (CryptDBError);
+        throw (CryptDBError);
 
     //SELECT
     list<string> rewriteEncryptSelect(const string &query)
-    throw (CryptDBError);
+        throw (CryptDBError);
     ResType * rewriteDecryptSelect(const string &query, ResType * dbAnswer);
     ResType * decryptResultsWrapper(const string &query, DBResult * dbres);
     //prepared decryptions
     list<string>  processDecryptions(FieldsToDecrypt fieldsDec,
-                                          TMKM & tmkm)
-    throw (CryptDBError);
+                                     TMKM & tmkm)
+        throw (CryptDBError);
     //isSubquery indicates that the current query is a subquery of a large
     // nested query
     list<string> rewriteSelectHelper(
         list<string> words, bool isSubquery = false,
         list<string> subqueries = list<string>())
-    throw (CryptDBError);
+        throw (CryptDBError);
 
     //DROP
     list<string> rewriteEncryptDrop(const string &query)
-    throw (CryptDBError);
+        throw (CryptDBError);
 
     //DELETE
     list<string> rewriteEncryptDelete(const string &query)
-    throw (CryptDBError);
+        throw (CryptDBError);
 
     //BEGIN
     list<string> rewriteEncryptBegin(const string &query)
-    throw (CryptDBError);
+        throw (CryptDBError);
 
     //COMMIT
     list<string> rewriteEncryptCommit(const string &query)
-    throw (CryptDBError);
+        throw (CryptDBError);
 
     //ALTER
     list<string> rewriteEncryptAlter(const string &query)
-    throw (CryptDBError);
+        throw (CryptDBError);
     list<string> processIndex(list<string> & words,
-                                    list<string>::iterator & wordsIt)
-    throw (CryptDBError);
+                              list<string>::iterator & wordsIt)
+        throw (CryptDBError);
 
     //wrapper for the crypto class - changes master key encryption for
     // multi-keying
@@ -196,7 +194,6 @@ class EDBClient {
     // OTHER
 
     void dropTables();
-
 
  protected:
     //these are protected mostly for testing purposes

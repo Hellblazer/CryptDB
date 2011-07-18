@@ -51,8 +51,8 @@ dropAll(Connect * conn)
                  "DROP FUNCTION IF EXISTS " DECRYPT_text_sem "; "),
              "cannot drop " DECRYPT_text_sem);
     myassert(conn->execute(
-                     "DROP FUNCTION IF EXISTS " DECRYPT_text_det "; "),
-                 "cannot drop " DECRYPT_text_det);
+                 "DROP FUNCTION IF EXISTS " DECRYPT_text_det "; "),
+             "cannot drop " DECRYPT_text_det);
     myassert(conn->execute(
                  "DROP FUNCTION IF EXISTS " SEARCH "; "),
              "cannot drop " SEARCH);
@@ -67,7 +67,7 @@ dropAll(Connect * conn)
 #else
     myassert(conn->execute(
                  "DROP FUNCTION IF EXISTS " FUNC_ADD "; "),
-             "cannot drop "FUNC_ADD);
+             "cannot drop " FUNC_ADD);
     myassert(conn->execute(
                  "DROP AGGREGATE IF EXISTS agg_sum(bytea) ; "),
              "cannot drop agg_sum");
@@ -91,8 +91,8 @@ createAll(Connect * conn, CryptoManager * cm)
                  "CREATE FUNCTION decrypt_text_sem RETURNS STRING SONAME 'edb.so'; "),
              "failed to create udf decrypt_text_sem");
     myassert(conn->execute(
-                    "CREATE FUNCTION decrypt_text_det RETURNS STRING SONAME 'edb.so'; "),
-                "failed to create udf decrypt_text_det");
+                 "CREATE FUNCTION decrypt_text_det RETURNS STRING SONAME 'edb.so'; "),
+             "failed to create udf decrypt_text_det");
     myassert(conn->execute(
                  "CREATE FUNCTION search RETURNS INTEGER SONAME 'edb.so'; "),
              "failed to create udf search");
@@ -170,7 +170,6 @@ EDBClient::EDBClient(string server, string user, string psswd, string dbname,
 
     totalTables = 0;
     totalIndexes = 0;
-
 
     if (MULTIPRINC) {
         mp = new MultiPrinc(conn);
@@ -599,7 +598,7 @@ throw (CryptDBError)
 
     if (!DECRYPTFIRST) {
         if (tm->hasEncrypted) {
-            resultQuery += " salt "TN_I64 ", ";
+            resultQuery += " salt " TN_I64 ", ";
         }
     }
 
@@ -952,7 +951,7 @@ throw (CryptDBError)
 
         if (!iss) {
             //the current operation does not have sensitive fields
-        	cerr << "no sensitive fields \n";
+            cerr << "no sensitive fields \n";
             resultQuery = resultQuery + " " + res;
             continue;
         }
@@ -974,7 +973,8 @@ throw (CryptDBError)
             subqueries.pop_front();
         }
 
-        cerr << "before processop for " << operand1 << " " << operand2 << "\n";
+        cerr << "before processop for " << operand1 << " " << operand2 <<
+        "\n";
         resultQuery = resultQuery +
                       processOperation(op, operand1, operand2,  qm, subquery,
                                        tmkm);
@@ -1038,7 +1038,7 @@ groupings:
             if (comm.compare("group") == 0) {
                 anonField = getNameForFilter(fm, oDET);
             } else {
-            	//order by
+                //order by
                 anonField = getNameForFilter(fm, oOPE);
 
             }
@@ -1249,7 +1249,7 @@ throw (CryptDBError)
         case TYPE_TEXT: {
             decryptS = "decrypt_text_det";
 
-        	break;
+            break;
         }
 
         default: {assert_s(false, "invalid type"); }
@@ -1257,9 +1257,9 @@ throw (CryptDBError)
         }
 
         decryptS = decryptS + "(" + anonfieldName + "," +
-        		cm->marshallKey(cm->getKey(fullName(anonfieldName, anonTableName),
-        				DET)) + ");"+'\0';
-
+                   cm->marshallKey(cm->getKey(fullName(anonfieldName,
+                                                       anonTableName),
+                                              DET)) + ");"+'\0';
 
         string resultQ = string("UPDATE ") +
                          tableMetaMap[table]->anonTableName +
@@ -1407,7 +1407,7 @@ throw (CryptDBError)
             " aux queries should be one in size after first pass ");
 
         string q = auxqueries.back();
-        for (;;) {
+        for (;; ) {
             size_t pos = q.find(';');
             if (pos == string::npos)
                 break;
@@ -1787,7 +1787,8 @@ throw (CryptDBError)
             TableMetadata * tm = tableMetaMap[table2];
             FieldMetadata * fm = tm->fieldMetaMap[field2];
 
-            assert_s(fm->type != TYPE_TEXT, "min, max not fully implemented for text");
+            assert_s(fm->type != TYPE_TEXT,
+                     "min, max not fully implemented for text");
 
             string anonName =
                 getOnionName(fm,oOPE);
@@ -1807,7 +1808,8 @@ throw (CryptDBError)
                                          fm);
                 }
 
-                if (tableMetaMap[table2]->fieldMetaMap[field2]->secLevelOPE ==
+                if (tableMetaMap[table2]->fieldMetaMap[field2]->secLevelOPE
+                    ==
                     SEMANTIC_OPE) {
                     addIfNotContained(fullName(realname,
                                                table2), fieldsDec.OPEFields);
@@ -2047,7 +2049,8 @@ getResMeta(list<string> words, vector<vector<string> > & vals, QueryMeta & qm,
         if (alias.length() != 0) {
             rm.namesForRes[i] = alias;
         } else {
-            rm.namesForRes[i] =  fieldNameForResponse(table, field, currToken, qm);
+            rm.namesForRes[i] =  fieldNameForResponse(table, field, currToken,
+                                                      qm);
         }
 
         processAlias(wordsIt, words);
@@ -2180,10 +2183,14 @@ EDBClient::rewriteDecryptSelect(const string &query, ResType * dbAnswer)
             string fullAnonName = fullName(getOnionName(fm,
                                                         rm.o[j]),
                                            tableMetaMap[table]->anonTableName);
-            rets->at(i+1).at(index) = crypt(vals[i+1][j], fm->type, fullName(field,
+            rets->at(i+
+                     1).at(index) =
+                crypt(vals[i+1][j], fm->type, fullName(field,
                                                        table),
                       fullAnonName,
-                      getLevelForOnion(fm, rm.o[j]), getLevelPlain(rm.o[j]), salt,
+                      getLevelForOnion(fm,
+                                       rm.o[j]),
+                      getLevelPlain(rm.o[j]), salt,
                       tmkm, vals[i+1]);
 
             index++;
@@ -2242,7 +2249,7 @@ throw (CryptDBError)
 
     cerr << "operands " << op1 << " " << op2 << "\n";
     if (isField(op1) && isField(op2)) {    //join
-    	cerr << "IN JOIN\n";
+        cerr << "IN JOIN\n";
         if (MULTIPRINC) {
             assert_s(false, "join not supported in multi-user mode");
         }
@@ -2278,16 +2285,14 @@ throw (CryptDBError)
             tableMetaMap[table1]->fieldMetaMap[field1]->anonFieldNameDET;
         anonOp1 = fullName(anonField1, anonTable1);
 
-        //TODOthis is inconsistent, I added some OPE fields with det
+        // TODO: this is inconsistent, I added some OPE fields with det
         // encryptions
         // you also may want to fetch ope only if there is an index on it
 
         SECLEVEL sl = tableMetaMap[table1]->fieldMetaMap[field1]->secLevelDET;
         res = res + " " +
               fieldNameForQuery(anonTable1, table1, anonField1, ftype1,
-                                qm) + " " +  operation + " ";                                                            //operation
-                                                                                                                         // remains
-                                                                                                                         // unchanged
+                                qm) + " " +  operation + " ";
 
         if (Operation::isIN(operation)) {
             res = res + encryptedsubquery + " ";
@@ -2308,7 +2313,8 @@ throw (CryptDBError)
         anonOp1 = fullName(anonField1, anonTable1);
 
         anonTable1 = tableMetaMap[table1]->anonTableName;
-        anonField1 = tableMetaMap[table1]->fieldMetaMap[field1]->anonFieldNameDET;
+        anonField1 =
+            tableMetaMap[table1]->fieldMetaMap[field1]->anonFieldNameDET;
         anonOp1 = fullName(anonField1, anonTable1);
 
         fieldType ftype = tableMetaMap[table1]->fieldMetaMap[field1]->type;
@@ -2401,7 +2407,7 @@ throw (CryptDBError)
      *
      * -- resultQuery will hold the translated query
      * -- the result of this function holds all the decryption queries needed
-     *and resultQuery
+     *    and resultQuery
      **********************/
 
     list<string> words = getSQLWords(query);
@@ -2633,7 +2639,7 @@ throw (CryptDBError)
         wordsIt++;
 
         while (wordsIt->compare(")") != 0) {
-			fields.push_back(*wordsIt);
+            fields.push_back(*wordsIt);
             fieldsIncluded.insert(*wordsIt);
             resultQuery = resultQuery + " " + processInsert(*wordsIt, table,
                                                             tm);
@@ -2652,7 +2658,7 @@ throw (CryptDBError)
         for (addit = tm->fieldNames.begin(); addit!=tm->fieldNames.end();
              addit++) {
             if (fieldsIncluded.find(*addit) == fieldsIncluded.end()) {
-            	if (tm->fieldMetaMap[*addit]->isEncrypted)  {
+                if (tm->fieldMetaMap[*addit]->isEncrypted)  {
                     fieldsToAdd.push_back(*addit);
                 }
                 if (MULTIPRINC) {
@@ -2945,7 +2951,6 @@ throw (CryptDBError)
     return list<string>(1, resultQuery);
 }
 
-
 //returns true if this query has to do with cryptdb
 // e.g. SET NAMES 'utf8' is a negative example
 static bool
@@ -3128,7 +3133,7 @@ EDBClient::decryptResultsWrapper(const string &query, DBResult * dbres)
     command comm = getCommand(query);
 
     if (comm == SELECT) {
-    	cerr << "going in select\n";
+        cerr << "going in select\n";
         ResType * rets = decryptResults(query, dbres->unpack());
         if (VERBOSE) {
 
@@ -3164,7 +3169,8 @@ EDBClient::execute(const string &query)
     if (!isSecure) {
 
         if (!conn->execute(query, res)) {
-            fprintf(stderr, "%s failed: %s \n", query.c_str(), conn->getError().c_str());
+            fprintf(stderr, "%s failed: %s \n", query.c_str(), conn->getError(
+                        ).c_str());
             return NULL;
         }
 
@@ -3292,7 +3298,7 @@ cleanup(map<string, TableMetadata *> & tableMetaMap)
 EDBClient::~EDBClient()
 {
 
-	//cleanup data structures
+    //cleanup data structures
     tableNameMap.clear();
     cleanup(tableMetaMap);
     cm->~CryptoManager();
@@ -3571,7 +3577,8 @@ EDBClient::crypt(string data, fieldType ft, string fullname,
                  const vector<string> & res)
 {
 
-    cerr << "crypting data " << data << " type " << ft << " fullname " << fullname <<
+    cerr << "crypting data " << data << " type " << ft << " fullname " <<
+    fullname <<
     " anonfullname " << anonfullname << " fromlevel " << fromlevel <<
     " tolevel " << tolevel << " salt " << salt << "\n";
     if (DECRYPTFIRST) {     //we don't encrypt values, and they come back

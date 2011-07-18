@@ -216,7 +216,7 @@ class AvlTree
     // NOT in a way as to change its position relative to other elements
     //
     T& find(const T& x)
-    throw (NotFound);
+        throw (NotFound);
 
  private:
     // A reference to the root node

@@ -4,9 +4,8 @@
  *  Created on: Aug 13, 2010
  *      Author: raluca
  *
- *  Logic of translation between unencrypted and encrypted fields and
- *manipulations of fields and tables.
- *
+ * Logic of translation between unencrypted and encrypted fields and
+ * manipulations of fields and tables.
  */
 
 #ifndef Translator_H_
@@ -49,7 +48,7 @@ bool isCommand(string str);
 QueryMeta getQueryMeta(command c, list<string> query, map<string,
                                                           TableMetadata *> &
                        tableMetaMap)
-throw (CryptDBError);
+    throw (CryptDBError);
 
 //it is made to point to the first field after select and distinct if they
 // exist
@@ -80,7 +79,7 @@ bool isFieldSalt(string id);
 void getTableField(string token, string & table, string & field,
                    QueryMeta & qm, map<string,
                                        TableMetadata * > & tm)
-throw (CryptDBError);
+    throw (CryptDBError);
 
 //returns how a field should be called in a select anonymized query
 // if table has alias, alias is used instead of anontabless
@@ -112,7 +111,7 @@ string processAgg(list<string>::iterator & wordsIt, list<string> & words,
 string processCreate(fieldType type, string fieldName, unsigned int index,
                      bool encryptField,  TableMetadata * tm,
                      FieldMetadata * fm)
-throw (CryptDBError);
+    throw (CryptDBError);
 
 //returns what should be included in an insert query for a certain field
 string processInsert(string field, string table, TableMetadata *  tm);
@@ -138,7 +137,7 @@ void processDecryptionsForOp(string operation, string op1, string op2,
                              FieldsToDecrypt & fieldsDec, QueryMeta & qm,
                              map<string,
                                  TableMetadata *> & tableMetaMap)
-throw (CryptDBError);
+    throw (CryptDBError);
 
 /*
    // input: a list of words corresponding to the WHERE clause of a query (all
@@ -146,7 +145,7 @@ throw (CryptDBError);
    // effects/outputs: fieldsDec contains fields to be decrypted, whereClause
       contains the encrypted where clause, tm and fm are also updated
    void processWHERE(list<string> words, TableMetadata * tm, FieldMetadata
-      *fm, CryptoManager * cm, FieldsToDecrypt & fieldsDec, string &
+   *fm, CryptoManager * cm, FieldsToDecrypt & fieldsDec, string &
       whereClause);
    //
  */

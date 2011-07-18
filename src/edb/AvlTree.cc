@@ -185,7 +185,7 @@ AvlTree<T,Compare, Distance>::remove( const T & x )
 
 /**
  * Find the smallest item in the tree. Return smallest item or throws NotFound
- *if empty.
+ * if empty.
  *
  * Takes O(log n) time.
  */
@@ -199,7 +199,7 @@ throw (NotFound)
 
 /**
  * Find the largest item in the tree. Returns the largest item or throws
- *NotFound if empty.
+ * NotFound if empty.
  *
  * Takes O(log n) time.
  */
@@ -778,10 +778,8 @@ AvlTree<T,Compare, Distance>::insert( const T & x, AvlNode<T,Compare,
  * Merge a different tree with ours in O(n) time.
  *
  * The complexity is linear due to the need to rebalance the tree. We could
- *take
- * another approach and indivdually insert each item in the tree which would
- *take
- * O(n) time also.
+ * take another approach and indivdually insert each item in the tree which
+ * would take O(n) time also.
  */
 template <class T, typename Compare, typename Distance>
 bool
@@ -806,12 +804,11 @@ AvlTree<T,Compare, Distance>::merge( const AvlTree<T,Compare,Distance>& b )
 
 /**
  * Merge a tree with ours, if successful, we take over responsibility for the
- *tree passed to us
+ * tree passed to us
  *
  * This method is internal ONLY because it can leave the tree potentially
- *unbalanced. The only
- * places it is used is in merging another tree with ours (above) and during
- *removal of a node.
+ * unbalanced. The only places it is used is in merging another tree with
+ * ours (above) and during removal of a node.
  *
  * In both cases, a rebalance is performed on the entire tree
  */
@@ -1313,16 +1310,21 @@ const
             //
             bool retVal = (balFactor >= -1 && balFactor <= 1);
             if ( !retVal ) { /* cout << "XXX: balFactor < -1 || balFactor > 1
-                               (" << balFactor << ") of " << node->element; */                                                }
+                                (" << balFactor << ") of " << node->element;
+                                   */
+            }
 
             // Make sure we have no circular references
             //
             retVal &= (node->left != node); if ( !retVal ) { /* cout << "XXX:
-                                                               node->left ==
-                                                               node"; */                              }
+                                                                node->left ==
+                                                                node"; */
+            }
             retVal &= (node->right != node); if ( !retVal ) { /* cout << "XXX:
-                                                                node->right ==
-                                                                node"; */                               }
+                                                                 node->right
+                                                                    ==
+                                                                 node"; */
+            }
 
             // See if there's a left branch
             //
@@ -1330,16 +1332,19 @@ const
             {
                 retVal &= (node->left->parent == node);
                 if ( !retVal ) { /* cout << "XXX: node->left->parent != node";
-                                   */                                             }
+                                  */
+                }
 
                 retVal &= (_compare(node->left->element, node->element));
                 if ( !retVal ) { /* cout << "XXX: !_compare(" <<
-                                   node->left->element << ", " <<
-                                   node->element << ")"; */                                                              }
+                                    node->left->element << ", " <<
+                                    node->element << ")"; */
+                }
 
                 retVal &= sanityCheck(node->left);
                 if ( !retVal ) { /* cout << "XXX: !sanityCheck(node->left)";
-                                   */                                           }
+                                  */
+                }
             }
 
             // See if there's a right branch
@@ -1348,16 +1353,19 @@ const
             {
                 retVal &= (node->right->parent == node);
                 if ( !retVal ) { /* cout << "XXX: node->right->parent !=
-                                   node"; */                                       }
+                                    node"; */
+                }
 
                 retVal &= !(_compare(node->right->element, node->element));
                 if ( !retVal ) { /* cout << "XXX: _compare(" <<
-                                   node->right->element << ", " <<
-                                   node->element << ")"; */                                                              }
+                                    node->right->element << ", " <<
+                                    node->element << ")"; */
+                }
 
                 retVal &= sanityCheck(node->right);
                 if ( !retVal ) { /* cout << "XXX: !sanityCheck(node->right)";
-                                   */                                            }
+                                  */
+                }
             }
 
             if ( !retVal )

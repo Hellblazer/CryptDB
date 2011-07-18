@@ -28,20 +28,25 @@ typedef long long longlong;
 #include <ctype.h>
 
 my_bool  decrypt_int_sem_init(UDF_INIT *initid, UDF_ARGS *args, char *message);
-longlong decrypt_int_sem(UDF_INIT *initid, UDF_ARGS *args, char *is_null, char *error);
+longlong decrypt_int_sem(UDF_INIT *initid, UDF_ARGS *args, char *is_null,
+                         char *error);
 
 my_bool  decrypt_int_det_init(UDF_INIT *initid, UDF_ARGS *args, char *message);
-longlong decrypt_int_det(UDF_INIT *initid, UDF_ARGS *args, char *is_null, char *error);
+longlong decrypt_int_det(UDF_INIT *initid, UDF_ARGS *args, char *is_null,
+                         char *error);
 
-my_bool  decrypt_text_sem_init(UDF_INIT *initid, UDF_ARGS *args, char *message);
+my_bool  decrypt_text_sem_init(UDF_INIT *initid, UDF_ARGS *args,
+                               char *message);
 void     decrypt_text_sem_deinit(UDF_INIT *initid);
 char *   decrypt_text_sem(UDF_INIT *initid, UDF_ARGS *args, char *result,
                           unsigned long *length, char *is_null, char *error);
 
 my_bool  encrypt_int_det_init(UDF_INIT *initid, UDF_ARGS *args, char *message);
-longlong encrypt_int_det(UDF_INIT *initid, UDF_ARGS *args, char *is_null, char *error);
+longlong encrypt_int_det(UDF_INIT *initid, UDF_ARGS *args, char *is_null,
+                         char *error);
 
-my_bool  decrypt_text_det_init(UDF_INIT *initid, UDF_ARGS *args, char *message);
+my_bool  decrypt_text_det_init(UDF_INIT *initid, UDF_ARGS *args,
+                               char *message);
 void     decrypt_text_det_deinit(UDF_INIT *initid);
 char *   decrypt_text_det(UDF_INIT *initid, UDF_ARGS *args, char *result,
                           unsigned long *length, char *is_null, char *error);
@@ -134,14 +139,12 @@ decrypt_SEM(unsigned char *eValueBytes, uint64_t eValueLen,
     return CryptoManager::decrypt_SEM(c, aesKey, salt);
 }
 
-
 static string
 decrypt_DET(unsigned char *eValueBytes, uint64_t eValueLen, AES_KEY * key)
 {
     string c((char *) eValueBytes, eValueLen);
     return CryptoManager::decrypt_DET(c, key);
 }
-
 
 #if MYSQL_S
 #define ARGS args
@@ -297,7 +300,7 @@ decrypt_int_det(PG_FUNCTION_ARGS)
 #if MYSQL_S
     return (longlong) value;
 #else /* postgres */
-    PG_RETURN_INT64(value);
+PG_RETURN_INT64(value);
 #endif
 
 }
@@ -350,15 +353,13 @@ decrypt_text_sem(PG_FUNCTION_ARGS)
     *length = value.length();
     return (char*) initid->ptr;
 #else
-    bytea * res = (bytea *) palloc(eValueLen+VARHDRSZ);
-    SET_VARSIZE(res, eValueLen+VARHDRSZ);
-    memcpy(VARDATA(res), value, eValueLen);
-    PG_RETURN_BYTEA_P(res);
+bytea * res = (bytea *) palloc(eValueLen+VARHDRSZ);
+SET_VARSIZE(res, eValueLen+VARHDRSZ);
+memcpy(VARDATA(res), value, eValueLen);
+PG_RETURN_BYTEA_P(res);
 #endif
 
 }
-
-
 
 #if MYSQL_S
 my_bool
@@ -407,32 +408,13 @@ decrypt_text_det(PG_FUNCTION_ARGS)
     *length = value.length();
     return (char*) initid->ptr;
 #else
-    bytea * res = (bytea *) palloc(eValueLen+VARHDRSZ);
-    SET_VARSIZE(res, eValueLen+VARHDRSZ);
-    memcpy(VARDATA(res), value, eValueLen);
-    PG_RETURN_BYTEA_P(res);
+bytea * res = (bytea *) palloc(eValueLen+VARHDRSZ);
+SET_VARSIZE(res, eValueLen+VARHDRSZ);
+memcpy(VARDATA(res), value, eValueLen);
+PG_RETURN_BYTEA_P(res);
 #endif
 
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 /*
  * given field of the form:   len1 word1 len2 word2 len3 word3 ...,
@@ -488,7 +470,7 @@ search(PG_FUNCTION_ARGS)
 #if MYSQL_S
             return 1;
 #else
-            PG_RETURN_BOOL(true);
+PG_RETURN_BOOL(true);
 #endif
         }
         i = i + currLen + 1;

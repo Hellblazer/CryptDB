@@ -23,10 +23,9 @@ using namespace std;
  *
  * a user refers to a physical user
  * a principle refers to a field in the database that has encrypted entries
- *and/or has other fields encrypted for it
+ *  and/or has other fields encrypted for it
  * a generic principle is a collection of principle that all refer to the same
- *values
- *
+ *  values
  */
 
 //TODO: fix PRINCVALUE to be application dependent

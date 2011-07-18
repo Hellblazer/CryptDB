@@ -23,11 +23,9 @@ using namespace std;
 // TO OPTIMIZE: to avoid conversion to ZZ and back, implement the math on
 // uchar vectors
 
-/***************
- *
+/*
  * The notation and algorithms here are from the paper "Order-preserving
- *symmetric encryption" by Boldyreva et Al., 2009
- *
+ * symmetric encryption" by Boldyreva et Al., 2009
  */
 
 typedef struct TreeNode {

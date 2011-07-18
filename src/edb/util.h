@@ -34,13 +34,13 @@ using namespace std;
 #define TN_I32 "integer"
 #define TN_I64 "bigint"
 #define TN_TEXT "blob"
-#define TN_HOM "varbinary("PAILLIER_LEN_BYTES_C ")"
+#define TN_HOM "varbinary(" PAILLIER_LEN_BYTES_C ")"
 #define TN_PTEXT "text"
 #else
 #define TN_I32 "integer"
 #define TN_I64 "bigint"
 #define TN_TEXT "BYTEA"
-#define TN_HOM "BYTEA("PAILLIER_LEN_BYTES_C ")"
+#define TN_HOM "BYTEA(" PAILLIER_LEN_BYTES_C ")"
 #define TN_PTEXT "text"
 #endif
 
@@ -98,7 +98,9 @@ typedef PGresult DBResult_native;
 
 typedef struct CryptDBError {
  public:
-    CryptDBError(const string &m) : msg(m) {}
+    CryptDBError(const string &m) : msg(m)
+    {
+    }
     string msg;
 } CryptDBError;
 
@@ -209,7 +211,7 @@ typedef struct ResMeta {
     size_t nFields, nTuples, nTrueFields;
 
     /* Indexes in the following vectors correspond to entries in the raw
-      response from the DBMS */
+       response from the DBMS */
 
     bool * isSalt;     //isSalt[i] = true if i-th entry is salt
 
@@ -235,7 +237,7 @@ typedef struct Predicate {
 } Predicate;
 
 /********* Data structures for multi-key CryptDB -- should not be used by
-  single-principal ****/
+   single-principal ****/
 
 //permanent metadata for multi-key CryptDB - stores which field is encrypted
 // for which field
@@ -408,7 +410,7 @@ list<string> parse(const string &str, const string &delimsStay,
                    const string &delimsGo, const string &keepIntact);
 
 command getCommand(const string &query)
-throw (CryptDBError);
+    throw (CryptDBError);
 
 //returns a string representing a value pointed to by it and advances it
 string getVal(list<string>::iterator & it);
@@ -462,7 +464,8 @@ string getBeforeChar(const string &str, char c);
 
 bool contains(const string &token, list<string> & values);
 //performs a case insensitive search
-bool contains(const string &token, const string *  values, unsigned int noValues);
+bool contains(const string &token, const string *  values,
+              unsigned int noValues);
 
 //performs a case insensitive search
 bool isOnly(const string &token, const string * values, unsigned int noValues);

@@ -512,8 +512,8 @@ MetaAccess::CreateTables()
         return -1;
     }
     sql = "CREATE TABLE " + public_table + " (Type " +  PRINCTYPE +
-          ", Value " PRINCVALUE ", Asym_Public_Key "TN_PK_KEY
-          ", Asym_Secret_Key "TN_PK_KEY
+          ", Value " PRINCVALUE ", Asym_Public_Key " TN_PK_KEY
+          ", Asym_Secret_Key " TN_PK_KEY
           ", Salt bigint, PRIMARY KEY (Type,Value))";
     if(!conn->execute(sql)) {
         cerr << "error with sql query " << sql << endl;
@@ -532,7 +532,8 @@ MetaAccess::CreateTables()
             }
             sql = "CREATE TABLE " + table_name + num + " (" + it->first +
                   " " +  PRINCVALUE + ", " + *it_s + " " + PRINCVALUE +
-                  ", Sym_Key "TN_SYM_KEY ", Salt bigint, Asym_Key "TN_PK_KEY
+                  ", Sym_Key " TN_SYM_KEY ", Salt bigint, Asym_Key "
+                  TN_PK_KEY
                   ", PRIMARY KEY (" + it->first + "," + *it_s + "))";
             if(!conn->execute(sql)) {
                 cerr << "error with sql query " << sql << endl;
@@ -1299,9 +1300,7 @@ KeyAccess::insertPsswd(Prin gives, const string &psswd)
                             assert_s(getKey(
                                          hasAccess_prin).length() > 0,
                                      "there is a logical issue with insertPsswd: getKey should have the key for hasAccess");
-                            if (row->at(4) == "X''") {                             //symmetric
-                                                                                   // key
-                                                                                   // okay
+                            if (row->at(4) == "X''") {  // symmetric key okay
                                 new_prin_key =
                                     decryptSym(row->at(2), getKey(
                                                    hasAccess_prin), row->at(3));

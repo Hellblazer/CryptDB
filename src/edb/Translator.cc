@@ -501,10 +501,11 @@ isTable(string token, const map<string, TableMetadata *> & tm)
 // < 0 : insensitive field
 // = 0 : other: constant, operation, etc.
 static int
-isSensitive(string tok, QueryMeta & qm, map<string, TableMetadata *> & tm, string & fieldname)
+isSensitive(string tok, QueryMeta & qm, map<string, TableMetadata *> & tm,
+            string & fieldname)
 {
 
-	fieldname = tok;
+    fieldname = tok;
 
     if (!isField(tok)) {
         return 0;
@@ -519,9 +520,12 @@ isSensitive(string tok, QueryMeta & qm, map<string, TableMetadata *> & tm, strin
         return 1;
     } else {
         if (tm[table]->hasEncrypted) {
-        	fieldname = fieldNameForQuery(tm[table]->anonTableName, table, field, fm->type, qm);
+            fieldname =
+                fieldNameForQuery(tm[table]->anonTableName, table, field,
+                                  fm->type,
+                                  qm);
         }
-    	return -1;
+        return -1;
     }
 
 }
@@ -650,7 +654,8 @@ throw (CryptDBError)
         }
         mirrorUntilTerm(qit, query, delims, noDelims, 0);
         if (VERBOSE_G) {if (qit != query.end()) {cerr <<
-                                                "after mirror, qit is "<< *qit; }}
+                                                 "after mirror, qit is "<<
+                                                 *qit; }}
     }
 
     if (c == SELECT) {
@@ -704,7 +709,7 @@ processAgg(list<string>::iterator & wordsIt, list<string> & words,
             res = res + "(";
             wordsIt++;
         } else {
-        	res = res + " ";
+            res = res + " ";
         }
     }
 
@@ -770,7 +775,7 @@ closingparen:
         res += palias;
         return res;
     } else {
-    	if (alias.length() > 0) {
+        if (alias.length() > 0) {
             return alias;
         } else {
             return res;
@@ -947,7 +952,7 @@ fieldNameForResponse(string table, string field, string origName,
     }
 
     if (!isAgg) {
-    	return field;
+        return field;
     }
     if (!isTableField(origName)) {
         //no table included

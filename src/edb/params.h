@@ -15,7 +15,8 @@
 // Multi-principal vs. single-principal (1 vs. 0)
 #define MULTIPRINC 0
 
-// if true, all fields will be automatically encrypted in single principal mode without specifying enc
+// if true, all fields will be automatically encrypted in single principal
+// mode without specifying enc
 // this flag is ignored in multi-princ mode
 #define ALWAYS_ENCRYPT 0
 
