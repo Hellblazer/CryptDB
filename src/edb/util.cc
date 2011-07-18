@@ -413,27 +413,6 @@ copyInto(unsigned char * res, unsigned char * data, unsigned int pos,
     return res;
 }
 
-/******
- *
- * Postgres accepts char * as queries, whereas encrypted values are unsigned
- *char *.
- * The best way to convert between the two (with minimum storage overhead is
- *below)
- *
- *******/
-
-string
-uCharToStringDirect(unsigned char * input, unsigned int len)
-{
-    string res = "";
-
-    for (unsigned int i = 0; i < len; i++) {
-        res = res + (char)input[i];
-    }
-
-    return res;
-}
-
 //returns a string representing a value pointed to by it and advances it
 //skips apostrophes if there are nay
 string

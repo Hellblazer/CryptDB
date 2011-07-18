@@ -373,8 +373,6 @@ unsigned char* BytesFromZZ(const ZZ & x, unsigned int noBytes);
 string StringFromZZ(const ZZ &x);
 ZZ ZZFromString(const string &s);
 
-string uCharToStringDirect(unsigned char * input, unsigned int len);
-
 /***** ITERATORS *******************/
 //too bad templates need headers and def to be in same place..
 //rolls an interator forward
