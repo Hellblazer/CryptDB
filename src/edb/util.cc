@@ -340,23 +340,6 @@ getVal(list<string>::iterator & it)
 
 }
 
-list<string>
-makeList(const string &val1, const string &val2)
-{
-    list<string> res;
-    res.push_back(val1);
-    res.push_back(val2);
-    return res;
-}
-list<int>
-makeList(int val1, int val2)
-{
-    list<int> res;
-    res.push_back(val1);
-    res.push_back(val2);
-    return res;
-}
-
 string
 marshallVal(uint64_t x)
 {

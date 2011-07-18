@@ -373,9 +373,6 @@ isLastIterator(typename list<T>::iterator it,
     return it == endit;
 }
 
-list<string> makeList(const string &val1, const string &val2);
-list<int> makeList(int val1, int val2);
-
 //returns a Postgres bigint representation in string form for x
 string marshallVal(uint64_t x);
 string marshallVal(uint32_t x);
