@@ -276,7 +276,7 @@ void
 EDBClient::createEncryptionTables(int noOPE, int noHOM)
 {
 
-    list<string> fieldsWithOPE = list<string>();
+    list<string> fieldsWithOPE;
 
     for (map<string, TableMetadata *>::iterator tit = tableMetaMap.begin();
          tit != tableMetaMap.end(); tit++) {
@@ -395,7 +395,7 @@ throw (CryptDBError)
 
     assert_s(wordsIt == words.end(), "expected end of query, it continues");
 
-    list<string> result = list<string>();
+    list<string> result;
     result.push_back(resultQuery);
 
     return result;
@@ -678,7 +678,7 @@ throw (CryptDBError)
 
     list<string>::iterator wordsIt = words.begin();
 
-    list<const char *> result = list<const char *>();
+    list<const char *> result;
 
     //skip over UPDATE
     string resultQuery = "UPDATE ";
@@ -1152,7 +1152,7 @@ list<string>
 EDBClient::processDecryptions(FieldsToDecrypt fieldsDec, TMKM & tmkm)
 throw (CryptDBError)
 {
-    list<string> result = list<string>();
+    list<string> result;
 
     QueryMeta qm;
 
@@ -1360,9 +1360,9 @@ getSimpleQ(const string &query)
 
     int open = 0;
 
-    list<list<string> > results = list<list<string> >();
-    list<string> currquery = list<string>();
-    list<string> newquery = list<string>();
+    list<list<string> > results;
+    list<string> currquery;
+    list<string> newquery;
 
     bool insideIN = false;
 
@@ -1409,7 +1409,7 @@ getSimpleQ(const string &query)
 list<string>
 getAnonNames(FieldMetadata * fm)
 {
-    list<string> res = list<string>();
+    list<string> res;
     if (fm->isEncrypted) {
         res.push_back(fm->anonFieldNameDET);
         if (FieldMetadata::exists(fm->anonFieldNameOPE)) {
@@ -1445,7 +1445,7 @@ throw (CryptDBError)
 
     //2. COLLECT ALL DECRYPTION QUERIES NEEDED
 
-    list<string> decqueries = list<string>();
+    list<string> decqueries;
 
     //assemble decryption queries
     for (list<list<string> >::iterator qit = simpleQ.begin();

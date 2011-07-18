@@ -410,7 +410,7 @@ getVal(list<string>::iterator & it)
 list<string>
 makeList(const string &val1, const string &val2)
 {
-    list<string> res = list<string>();
+    list<string> res;
     res.push_back(val1);
     res.push_back(val2);
     return res;
@@ -418,7 +418,7 @@ makeList(const string &val1, const string &val2)
 list<int>
 makeList(int val1, int val2)
 {
-    list<int> res = list<int>();
+    list<int> res;
     res.push_back(val1);
     res.push_back(val2);
     return res;
@@ -671,7 +671,7 @@ list<string>
 parse(const string &query, const string &delimsStay, const string &delimsGo,
       const string &keepIntact)
 {
-    list<string> res = list<string>();
+    list<string> res;
     unsigned int len = query.length();
 
     unsigned int index = 0;
@@ -1031,7 +1031,7 @@ append(list<string> & lst1, const list<string> & lst2)
 list<string>
 concatenate(const list<string> & lst1, const list<string>  & lst2)
 {
-    list<string> res = list<string>();
+    list<string> res;
 
     append(res, lst1);
     append(res, lst2);
