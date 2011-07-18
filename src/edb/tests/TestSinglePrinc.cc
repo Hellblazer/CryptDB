@@ -320,7 +320,7 @@ testSelect(EDBClient * cl)
     string rows8[2][5] =
     { {"sum(age)", "max(salary)", "min(salary)", "COUNT(name)", "address"},
       {"74",        "100000",     "0",           "5",
-      "first star to the right and straight on till morning"} };
+       "first star to the right and straight on till morning"} };
     reply.push_back(convert(rows8,2));
 
     query.push_back("SELECT * FROM t1 WHERE id = 1");
@@ -539,7 +539,8 @@ testSelect(EDBClient * cl)
     query.push_back("SELECT t.address AS b FROM t1 t");
     string rows31[6][1] = { {"b"},
                             {
-                                "first star to the right and straight on till morning"},
+                                "first star to the right and straight on till morning"
+                            },
                             {"Green Gables"},
                             {"London"},
                             {"London"},
@@ -607,7 +608,8 @@ testJoin(EDBClient * cl)
     query.push_back("SELECT address FROM t1, t2 WHERE t1.id=t2.id");
     string rows1[5][1] = { {"address"},
                            {
-                               "first star to the right and straight on till morning"},
+                               "first star to the right and straight on till morning"
+                           },
                            {"Green Gables"},
                            {"London"},
                            {"London"} };
@@ -645,7 +647,8 @@ testJoin(EDBClient * cl)
     query.push_back("SELECT address FROM t1 AS a, t2 WHERE a.id=t2.id");
     string rows11[5][1] = { {"address"},
                             {
-                                "first star to the right and straight on till morning"},
+                                "first star to the right and straight on till morning"
+                            },
                             {"Green Gables"},
                             {"London"},
                             {"London"} };
@@ -741,13 +744,13 @@ testUpdate(EDBClient * cl)
         "SELECT * FROM t1",
         { {"id", "age", "salary", "address", "name"},
           {"1", "10", "0",
-                     "first star to the right and straight on till morning",
-                     "Peter Pan"},
+           "first star to the right and straight on till morning",
+           "Peter Pan"},
           {"2", "16", "0", "Green Gables", "Anne Shirley"},
           {"3", "8", "0", "London", "Lucy"},
           {"4", "10", "0", "London", "Edmund"},
           {"5", "30", "0", "221B Baker Street",
-                     "Sherlock Holmes"},
+           "Sherlock Holmes"},
           {"6", "21", "0", "Pemberly", "Elizabeth Darcy"} });
 
     qUpdateSelect(cl, "UPDATE t1 SET salary=55000 WHERE age=30",
@@ -872,8 +875,8 @@ testDelete(EDBClient * cl)
         "SELECT * FROM t1",
         { {"id", "age", "salary", "address", "name"},
           {"1", "10", "0",
-                     "first star to the right and straight on till morning",
-                     "Peter Pan"} });
+           "first star to the right and straight on till morning",
+           "Peter Pan"} });
 
     qUpdateSelect(cl, "DELETE  FROM t1", "SELECT * FROM t1", {});
 

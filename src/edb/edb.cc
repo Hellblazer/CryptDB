@@ -300,7 +300,7 @@ decrypt_int_det(PG_FUNCTION_ARGS)
 #if MYSQL_S
     return (longlong) value;
 #else /* postgres */
-PG_RETURN_INT64(value);
+    PG_RETURN_INT64(value);
 #endif
 
 }
@@ -353,10 +353,10 @@ decrypt_text_sem(PG_FUNCTION_ARGS)
     *length = value.length();
     return (char*) initid->ptr;
 #else
-bytea * res = (bytea *) palloc(eValueLen+VARHDRSZ);
-SET_VARSIZE(res, eValueLen+VARHDRSZ);
-memcpy(VARDATA(res), value, eValueLen);
-PG_RETURN_BYTEA_P(res);
+    bytea * res = (bytea *) palloc(eValueLen+VARHDRSZ);
+    SET_VARSIZE(res, eValueLen+VARHDRSZ);
+    memcpy(VARDATA(res), value, eValueLen);
+    PG_RETURN_BYTEA_P(res);
 #endif
 
 }
@@ -408,10 +408,10 @@ decrypt_text_det(PG_FUNCTION_ARGS)
     *length = value.length();
     return (char*) initid->ptr;
 #else
-bytea * res = (bytea *) palloc(eValueLen+VARHDRSZ);
-SET_VARSIZE(res, eValueLen+VARHDRSZ);
-memcpy(VARDATA(res), value, eValueLen);
-PG_RETURN_BYTEA_P(res);
+    bytea * res = (bytea *) palloc(eValueLen+VARHDRSZ);
+    SET_VARSIZE(res, eValueLen+VARHDRSZ);
+    memcpy(VARDATA(res), value, eValueLen);
+    PG_RETURN_BYTEA_P(res);
 #endif
 
 }
@@ -470,7 +470,7 @@ search(PG_FUNCTION_ARGS)
 #if MYSQL_S
             return 1;
 #else
-PG_RETURN_BOOL(true);
+            PG_RETURN_BOOL(true);
 #endif
         }
         i = i + currLen + 1;

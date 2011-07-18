@@ -1311,7 +1311,7 @@ const
             bool retVal = (balFactor >= -1 && balFactor <= 1);
             if ( !retVal ) { /* cout << "XXX: balFactor < -1 || balFactor > 1
                                 (" << balFactor << ") of " << node->element;
-                                   */
+                              */
             }
 
             // Make sure we have no circular references
