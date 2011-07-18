@@ -26,14 +26,15 @@
 using namespace std;
 
 clock_t timeStart;
-void
+
+static void
 startTimer ()
 {
     timeStart = time(NULL);
 }
 
 // in msecs
-double
+static double
 readTimer()
 {
     clock_t currentTime = time(NULL);
@@ -43,7 +44,7 @@ readTimer()
     return res;
 }
 
-string
+static string __attribute__((unused))
 padPasswd(const string &s)
 {
     string r = s;
@@ -51,7 +52,7 @@ padPasswd(const string &s)
     return r;
 }
 
-void
+static void __attribute__((unused))
 test_OPE()
 {
 
@@ -101,7 +102,7 @@ test_OPE()
         string ctext =  ope->encrypt(ptext);
         encTime += clock() - currTime;
         currTime = clock();
-        string decryption = ope->decrypt(ctext);
+        ope->decrypt(ctext);
         decTime += clock() - currTime;
     }
     time_t endTime = time(NULL);
@@ -114,7 +115,7 @@ test_OPE()
 
 }
 
-void
+static void
 evaluate_AES(int argc, char ** argv)
 {
 
@@ -156,7 +157,7 @@ evaluate_AES(int argc, char ** argv)
 
 }
 
-void
+static void __attribute__((unused))
 test_HGD()
 {
     unsigned int len = 16;     //bytes
@@ -223,7 +224,7 @@ test_HGD()
 
    }*/
 
-void
+static void __attribute__((unused))
 evaluateMetrics(int argc, char ** argv)
 {
 
@@ -476,7 +477,7 @@ tester::testClientParser()
     cerr << "TEST TRANSLATOR PASSED \n";
 }
 
-void
+static void __attribute__((unused))
 testCryptoManager()
 {
 
@@ -534,7 +535,7 @@ testCryptoManager()
 
 const uint64_t mkey = 113341234;
 
-void
+static void __attribute__((unused))
 evalImproveSummations()
 {
     string masterKey = BytesFromInt(mkey, AES_KEY_BYTES);
@@ -566,7 +567,7 @@ evalImproveSummations()
 
 }
 
-void
+static void
 interactiveTest()
 {
 
@@ -1005,7 +1006,7 @@ interactiveTest()
 
 }
 
-void
+static void __attribute__((unused))
 microEvaluate(int argc, char ** argv)
 {
     cout << "\n\n Micro Eval \n------------------- \n \n";
@@ -1123,7 +1124,7 @@ microEvaluate(int argc, char ** argv)
  */
 
 //integration test
-void
+static void __attribute__((unused))
 testEDBClient()
 {
     cout << "\n\n Integration Queries \n------------------- \n \n";
@@ -1151,7 +1152,7 @@ testEDBClient()
     cout << "\n------------------- \n Integration test succeeded \n\n";
 }
 
-void
+static void
 testCrypto()
 {
     cout << "TEST Crypto..\n";
@@ -1174,7 +1175,7 @@ testCrypto()
     cout << "TEST Crypto succeeded \n";
 }
 
-void
+static void
 testPaillier()
 {
     int noTests = 100;
@@ -1229,7 +1230,7 @@ testPaillier()
     cerr << "decryption takes " << res/noTests << " ms \n";
 }
 
-void
+static void
 testUtils()
 {
     const char * query =
@@ -1238,7 +1239,7 @@ testUtils()
     myPrint(parse(query, delimsStay, delimsGo, keepIntact));
 }
 
-void
+static void __attribute__((unused))
 createTables(string file, EDBClient * cl)
 {
     ifstream createsFile(file);
@@ -1272,7 +1273,7 @@ createTables(string file, EDBClient * cl)
 
 }
 
-void
+static void __attribute__((unused))
 convertQueries()
 {
 
@@ -1337,14 +1338,14 @@ convertQueries()
             line[pos+1] = ' ';
             //TRACE SPECIFIC
             pos = pos + 3;
-            int nr = 0;
+            int nr2 = 0;
             int oldpos = pos;
             while (line[pos] != ' ') {
-                nr = nr * 10 + (line[pos]-'0');
+                nr2 = nr2 * 10 + (line[pos]-'0');
                 pos++;
             }
-            nr = nr - 20;
-            string replacement =  marshallVal((uint32_t)nr) + "     ";
+            nr2 = nr2 - 20;
+            string replacement =  marshallVal((uint32_t)nr2) + "     ";
             line.replace(oldpos, 9, replacement);
 
         }
@@ -1366,7 +1367,7 @@ convertQueries()
 
 }
 
-void
+static void __attribute__((unused))
 test_train()
 {
 
@@ -1499,7 +1500,7 @@ test_train()
 
  */
 
-string
+static string __attribute__((unused))
 suffix(int no)
 {
     int fi = 97 + (no/26);
@@ -2363,7 +2364,7 @@ suffix(int no)
    }
  */
 
-void
+static void
 encryptionTablesTest()
 {
     EDBClient * cl =
@@ -2400,7 +2401,7 @@ encryptionTablesTest()
     cl->exit();
 }
 
-void
+static void
 testParseAccess()
 {
 
@@ -2448,7 +2449,7 @@ testParseAccess()
 
 }
 
-void
+static void
 autoIncTest()
 {
 
@@ -2506,7 +2507,7 @@ autoIncTest()
     //cl->~EDBClient();
 }
 
-void
+static void
 accessManagerTest()
 {
 
@@ -3763,7 +3764,7 @@ accessManagerTest()
 
 }
 
-void
+static void
 testTrace(int argc, char ** argv)
 {
 
@@ -3862,7 +3863,7 @@ testTrace(int argc, char ** argv)
 
 }
 
-void
+static void
 test_PKCS()
 {
 

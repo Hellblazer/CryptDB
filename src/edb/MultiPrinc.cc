@@ -5,9 +5,9 @@
 
 #include "MultiPrinc.h"
 
-MultiPrinc::MultiPrinc(Connect * conn)
+MultiPrinc::MultiPrinc(Connect * connarg)
 {
-    this->conn = conn;
+    conn = connarg;
     accMan = new KeyAccess(conn);
 }
 
@@ -179,7 +179,7 @@ MultiPrinc::commitAnnotations()
     return accMan->CreateTables();
 }
 
-bool
+static bool
 validate(string a, string op, string b)
 {
     if (op.compare("=")) {
@@ -204,7 +204,7 @@ typedef struct equalOp {
 //  Returns true if there is at least one value at "it"
 // Effects: moves "it" after the  value or at the end if there are no such
 // values
-bool
+static bool
 getItem(list<string>::iterator & it, const list<string>::iterator & itend,
         string & a)
 {
@@ -220,7 +220,7 @@ getItem(list<string>::iterator & it, const list<string>::iterator & itend,
 // Returns true if there are at least three values at "it"
 // Effects: moves it after the three values or at the end if there are no such
 // values
-bool
+static bool
 getTriple(list<string>::iterator & it, const list<string>::iterator & itend,
           string & a, string & b,
           string & c)
@@ -234,7 +234,7 @@ getTriple(list<string>::iterator & it, const list<string>::iterator & itend,
 //           query is flat, does not have nested AND and OR and it is not a
 // nested query
 // returns a list of all equality operations of the form "field = value"
-list<equalOp> *
+static list<equalOp> *
 getEqualityExpr(list<string>::iterator & it, list<string> & query,
                 QueryMeta & qm, map<string, TableMetadata *> & tableMetaMap)
 {
@@ -304,17 +304,16 @@ MultiPrinc::getEncForFromFilter(command comm, list<string> query, TMKM & tmkm,
                  "query does not have filter");
 
         string table = qm.tables.front();
-        list<string>::iterator it = itAtKeyword(query, "where");
-        if (it == query.end()) {
+        list<string>::iterator kwit = itAtKeyword(query, "where");
+        if (kwit == query.end()) {
             return;
         }
-        it++;
+        kwit++;
 
-        list<equalOp> * eos = getEqualityExpr(it, query, qm, tableMetaMap);
+        list<equalOp> * eos = getEqualityExpr(kwit, query, qm, tableMetaMap);
         string a, op, b;
 
-        for (list<equalOp>::iterator it = eos->begin(); it != eos->end();
-             it++) {
+        for (auto it = eos->begin(); it != eos->end(); it++) {
 
             a = it->a;
             op = it->op;
@@ -328,10 +327,9 @@ MultiPrinc::getEncForFromFilter(command comm, list<string> query, TMKM & tmkm,
                 if (VERBOSE) {
                     cerr << "do not record \n";
                     cerr << "here is what that map contains: ";
-                    for (map<string, bool>::iterator it =
-                             mkm.reverseEncFor.begin();
-                         it != mkm.reverseEncFor.end(); it++) {
-                        cerr << it->first << " ";
+                    for (auto xit = mkm.reverseEncFor.begin();
+                         xit != mkm.reverseEncFor.end(); xit++) {
+                        cerr << xit->first << " ";
                     }
                     cerr << "\n";
                 }
@@ -340,7 +338,7 @@ MultiPrinc::getEncForFromFilter(command comm, list<string> query, TMKM & tmkm,
 
         if (VERBOSE) {
             cerr << "here is what that encforval contains: ";
-            for (map<string, string>::iterator it = tmkm.encForVal.begin();
+            for (auto it = tmkm.encForVal.begin();
                  it != tmkm.encForVal.end(); it++) {
                 cerr << it->first << " " << it->second << "\n";
             }
@@ -437,7 +435,7 @@ MultiPrinc::processReturnedField(unsigned int index, string fullname, onion o,
 //returns the name of the table if given an expression of the form
 // $(PSSWD_TABLE_PREFIX)__TABLENAME,
 // else returns ""
-string
+static string
 getPsswdTable(string table)
 {
     unsigned int prefix_len = PWD_TABLE_PREFIX.length();
@@ -448,6 +446,7 @@ getPsswdTable(string table)
 
     return "";
 }
+
 bool
 MultiPrinc::checkPsswd(command comm, list<string> & words)
 {
@@ -622,7 +621,7 @@ MultiPrinc::insertRelations(const list<string> & values, string table,
 }
 
 bool
-MultiPrinc::isActiveUsers(const char * query)
+MultiPrinc::isActiveUsers(const string &query)
 {
     list<string> words = getSQLWords(query);
     list<string>::iterator wordsIt = words.begin();

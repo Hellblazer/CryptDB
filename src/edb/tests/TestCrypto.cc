@@ -11,8 +11,9 @@ TestCrypto::TestCrypto() {}
 
 TestCrypto::~TestCrypto() {}
 
-void
-testOPE() {
+static void
+testOPE()
+{
 
   const unsigned int OPEPlaintextSize = 32;
   const unsigned int OPECiphertextSize = 128;
@@ -36,8 +37,9 @@ testOPE() {
   assert_s(plaintext_s.compare(ciphertext) != 0, "OPE test failed: ciphertext is the same as plaintext");
 }
 
-void
-testHDG() {
+static void
+testHDG()
+{
   unsigned int len = 16;     //bytes
   unsigned int bitsPrecision = len * bitsPerByte + 10;
   ZZ K = ZZFromString(randomBytes(len));
@@ -54,8 +56,9 @@ testHDG() {
   myPrint(StringFromZZ(sample)); cerr << "\n";
 }
 
-void
-testPKCS() {
+static void
+testPKCS()
+{
   
 }
 

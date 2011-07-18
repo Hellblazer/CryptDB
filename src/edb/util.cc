@@ -116,7 +116,7 @@ myPrint(const unsigned int * a, unsigned int aLen)
 }
 
 void
-myPrint(char * a)
+myPrint(const char * a)
 {
     for (unsigned int i = 0; i<strlen(a); i++) {
         fprintf(stderr, "%d ", a[i]);
@@ -283,14 +283,6 @@ IntFromBytes(const unsigned char * bytes, unsigned int noBytes)
 
     return value;
 }
-
-unsigned char*
-BytesFromZZ(const ZZ & x, unsigned int noBytes)
-{
-    unsigned char * result = new unsigned char[noBytes];
-    BytesFromZZ(result, x, noBytes);
-    return result;
-};
 
 string
 StringFromZZ(const ZZ &x)
@@ -492,15 +484,6 @@ unmarshallVal(const string &str)
     return vall;
 }
 
-string
-toThreeDigits(unsigned int c)
-{
-    char s[4];
-    sprintf(s, "%03u", c);
-
-    return string(s);
-}
-
 static string
 toHex(unsigned char abyte)
 {
@@ -508,21 +491,6 @@ toHex(unsigned char abyte)
     r.resize(2);
     sprintf(&r[0], "%02x", abyte);
     return r;
-}
-
-string
-octalRepr(int c)
-{
-    string res = "";
-    char aux = '0' + (c % 8);
-    res = aux + res;
-    c = c/8;
-    aux = '0'+ (c % 8);
-    res = aux + res;
-    c = c/8;
-    aux = '0'+ (c % 8);
-    res = aux + res;
-    return res;
 }
 
 #if MYSQL_S
@@ -632,8 +600,8 @@ matches(const char * query, const char * delims, bool ignoreOnEscape = false,
 }
 
 list<string>
-parse(const string &query, const string &delimsStay, const string &delimsGo,
-      const string &keepIntact)
+parse(const string &query, const string &delimsStayArg, const string &delimsGoArg,
+      const string &keepIntactArg)
 {
     list<string> res;
     unsigned int len = query.length();
@@ -643,11 +611,11 @@ parse(const string &query, const string &delimsStay, const string &delimsGo,
     string word = "";
 
     while (index < len) {
-        while ((index < len) && matches(&query[index], delimsGo.c_str())) {
+        while ((index < len) && matches(&query[index], delimsGoArg.c_str())) {
             index = index + 1;
         }
 
-        while ((index < len) && matches(&query[index], delimsStay.c_str())) {
+        while ((index < len) && matches(&query[index], delimsStayArg.c_str())) {
             string sep = "";
             sep = sep + query[index];
             res.push_back(sep);
@@ -656,7 +624,7 @@ parse(const string &query, const string &delimsStay, const string &delimsGo,
 
         if (index >= len) {break; }
 
-        if (matches(&query[index], keepIntact.c_str(), true, index)) {
+        if (matches(&query[index], keepIntactArg.c_str(), true, index)) {
 
             word = query[index];
 
@@ -664,7 +632,7 @@ parse(const string &query, const string &delimsStay, const string &delimsGo,
 
             while (index < len)  {
 
-                if (matches(&query[index], keepIntact.c_str(), true, index)) {
+                if (matches(&query[index], keepIntactArg.c_str(), true, index)) {
                     break;
                 }
 
@@ -675,7 +643,7 @@ parse(const string &query, const string &delimsStay, const string &delimsGo,
             string msg = "keepIntact was not closed in <";
             msg = msg + query + "> at index " + marshallVal(index);
             assert_s((index < len)  &&
-                     matches(&query[index], keepIntact.c_str(), index), msg);
+                     matches(&query[index], keepIntactArg.c_str(), index), msg);
             word = word + query[index];
             res.push_back(word);
 
@@ -687,9 +655,9 @@ parse(const string &query, const string &delimsStay, const string &delimsGo,
 
         word = "";
         while ((index < len) &&
-               (!matches(&query[index], delimsStay.c_str())) &&
-               (!matches(&query[index], delimsGo.c_str())) &&
-               (!matches(&query[index], keepIntact.c_str()))) {
+               (!matches(&query[index], delimsStayArg.c_str())) &&
+               (!matches(&query[index], delimsGoArg.c_str())) &&
+               (!matches(&query[index], keepIntactArg.c_str()))) {
             word = word + query[index];
             index++;
         }
@@ -701,7 +669,7 @@ parse(const string &query, const string &delimsStay, const string &delimsGo,
 
 }
 
-void
+static void
 consolidateComparisons(list<string> & words)
 {
     list<string>::iterator it = words.begin();
@@ -781,7 +749,7 @@ consolidateComparisons(list<string> & words)
 
    }*/
 
-void
+static void __attribute__((unused))
 consolidateMath(list<string> & words)
 {
     command com = getCommand(*words.begin());
@@ -790,11 +758,14 @@ consolidateMath(list<string> & words)
         cerr << "consolidateMath doesn't deal with CREATE" << endl;
         return;
     case UPDATE:
-    //consolidateMathUpdate(words);
+        //consolidateMathUpdate(words);
+        return;
     case SELECT:
-    //consolidateMathSelect(words);
+        //consolidateMathSelect(words);
+        return;
     case INSERT:
-    //consolidateMathInsert(words);
+        //consolidateMathInsert(words);
+        return;
     case DROP:
         cerr << "consolidateMath doesn't deal with DROP" << endl;
         return;
@@ -810,9 +781,8 @@ consolidateMath(list<string> & words)
     case ALTER:
         cerr << "consolidateMath doesn't deal with ALTER" << endl;
         return;
-    case OTHER:
-        cerr << "consolidateMath doesn't deal with OTHER (what is this?)" <<
-        endl;
+    default:
+        cerr << "consolidateMath doesn't deal with OTHER (what is this?)" << endl;
         return;
     }
 }
@@ -932,7 +902,7 @@ consolidate(list<string> & words)
 list<string>
 getSQLWords(const string &query)
 {
-    list<string> words = parse(query, delimsStay,delimsGo, keepIntact);
+    list<string> words = parse(query, delimsStay, delimsGo, keepIntact);
 
     consolidate(words);
 
@@ -1151,7 +1121,7 @@ itAtKeyword(list<string> & lst, const string &keyword)
 string
 getBeforeChar(const string &str, char c)
 {
-    unsigned int pos = str.find(c);
+    size_t pos = str.find(c);
     if (pos != string::npos) {
         return str.substr(0, pos);
     } else {
@@ -1218,7 +1188,7 @@ isKeyword(const string &token)
             parserMeta.clauseKeywords_p.end());
 }
 
-bool
+static bool
 contains(const string &token1, const string &token2, list<pair<string, string> > & lst)
 {
     for (auto it = lst.begin(); it != lst.end(); it++)
@@ -1286,19 +1256,6 @@ bool
 equalsIgnoreCase(const string &s1, const string &s2)
 {
     return toLowerCase(s1) == toLowerCase(s2);
-}
-
-void
-keywordsToLowerCase(list<string> & lst)
-{
-    list<string>::iterator it = lst.begin();
-
-    while (it != lst.end()) {
-        if ((!hasApostrophe(*it)) && isKeyword(*it)) {
-            *it = toLowerCase(*it);
-        }
-        it++;
-    }
 }
 
 /***************************

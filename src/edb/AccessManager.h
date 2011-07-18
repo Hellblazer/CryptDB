@@ -50,11 +50,11 @@ typedef struct Prin {
     {
     }
 
-    Prin(string type, string value)
+    Prin(string typearg, string valuearg)
     {
-        this->type = type;
-        this->value = value;
-        this->gen = "";
+        type = typearg;
+        value = valuearg;
+        gen = "";
     }
 
     bool

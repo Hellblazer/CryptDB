@@ -27,6 +27,39 @@ typedef long long longlong;
 #include <mysql.h>
 #include <ctype.h>
 
+my_bool  decrypt_int_sem_init(UDF_INIT *initid, UDF_ARGS *args, char *message);
+longlong decrypt_int_sem(UDF_INIT *initid, UDF_ARGS *args, char *is_null, char *error);
+
+my_bool  decrypt_int_det_init(UDF_INIT *initid, UDF_ARGS *args, char *message);
+longlong decrypt_int_det(UDF_INIT *initid, UDF_ARGS *args, char *is_null, char *error);
+
+my_bool  decrypt_text_sem_init(UDF_INIT *initid, UDF_ARGS *args, char *message);
+void     decrypt_text_sem_deinit(UDF_INIT *initid);
+char *   decrypt_text_sem(UDF_INIT *initid, UDF_ARGS *args, char *result,
+                          unsigned long *length, char *is_null, char *error);
+
+my_bool  encrypt_int_det_init(UDF_INIT *initid, UDF_ARGS *args, char *message);
+longlong encrypt_int_det(UDF_INIT *initid, UDF_ARGS *args, char *is_null, char *error);
+
+my_bool  decrypt_text_det_init(UDF_INIT *initid, UDF_ARGS *args, char *message);
+void     decrypt_text_det_deinit(UDF_INIT *initid);
+char *   decrypt_text_det(UDF_INIT *initid, UDF_ARGS *args, char *result,
+                          unsigned long *length, char *is_null, char *error);
+
+my_bool  search_init(UDF_INIT *initid, UDF_ARGS *args, char *message);
+longlong search(UDF_INIT *initid, UDF_ARGS *args, char *is_null, char *error);
+
+my_bool  agg_init(UDF_INIT *initid, UDF_ARGS *args, char *message);
+void     agg_deinit(UDF_INIT *initid);
+void     agg_clear(UDF_INIT *initid, char *is_null, char *error);
+my_bool  agg_add(UDF_INIT *initid, UDF_ARGS *args, char *is_null, char *error);
+char *   agg(UDF_INIT *initid, UDF_ARGS *args, char *result,
+             unsigned long *length, char *is_null, char *error);
+
+void     func_add_set_deinit(UDF_INIT *initid);
+char *   func_add_set(UDF_INIT *initid, UDF_ARGS *args, char *result,
+                      unsigned long *length, char *is_null, char *error);
+
 #else /* Postgres */
 
 #include "postgres.h"                   /* general Postgres declarations */

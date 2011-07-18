@@ -34,7 +34,7 @@
 
 static bool VERBOSE_V = VERBOSE_EDBCLIENT_VERY;
 
-void
+static void
 dropAll(Connect * conn)
 {
 
@@ -75,7 +75,7 @@ dropAll(Connect * conn)
 
 }
 
-void
+static void
 createAll(Connect * conn, CryptoManager * cm)
 {
     myassert(conn->execute(
@@ -302,7 +302,7 @@ EDBClient::replenishEncryptionTables()
     cm->replenishEncryptionTables();
 }
 
-fieldType
+static fieldType
 getType(list<string>::iterator & it, list<string> & words)
 {
 
@@ -401,7 +401,7 @@ throw (CryptDBError)
     return result;
 }
 
-bool
+static bool
 isEncrypted(string token)
 {
     if (MULTIPRINC) {
@@ -411,51 +411,7 @@ isEncrypted(string token)
     }
 }
 
-int
-getExprFromWhere(list<string>::iterator & it, list<string>::iterator end,
-                 QueryMeta & qm, string & a, string & op, string & b,
-                 map<string,
-                     TableMetadata
-                     *> & tableMetaMap)
-{
-
-    if (equalsIgnoreCase(*it,"order")) {
-        return -1;
-    }
-    if (equalsIgnoreCase(*it, "group")) {
-        return -1;
-    }
-
-    string table, field;
-    getTableField(*it, table, field, qm, tableMetaMap);
-    a = fullName(field, table);
-
-    it++;
-
-    op = *it;
-
-    it++;
-
-    if (isField(*it)) {
-        getTableField(*it, table, field, qm, tableMetaMap);
-        b = fullName(field, table);
-
-    } else {
-        b = *it;
-    }
-    it++;
-    if (it == end) {
-        return 0;
-    }
-    if (equalsIgnoreCase(*it, "and") || equalsIgnoreCase(*it,"or")) {
-        it++;
-
-    }
-    return 0;
-
-}
-
-string
+static string
 getNameForFilter(FieldMetadata * fm, onion o)
 {
     if (!fm->isEncrypted) {
@@ -480,7 +436,7 @@ getNameForFilter(FieldMetadata * fm, onion o)
     return "";
 }
 
-void
+static void
 processAnnotation(MultiPrinc * mp, list<string>::iterator & wordsIt,
                   list<string> & words, string tableName, string fieldName,
                   bool & encryptfield,
@@ -677,8 +633,6 @@ throw (CryptDBError)
     }
 
     list<string>::iterator wordsIt = words.begin();
-
-    list<const char *> result;
 
     //skip over UPDATE
     string resultQuery = "UPDATE ";
@@ -930,15 +884,6 @@ throw (CryptDBError)
     qm.cleanup();
 
     return res;
-}
-
-//if token equals one of the characters in operators, it returns true and sets
-// result to the operator in question, else returns false
-bool
-isOp(string token, string operators)
-{
-
-    return (operators.find(" " + token + " ") != string::npos);
 }
 
 list<string>
@@ -1350,7 +1295,7 @@ throw (CryptDBError)
 
 //returns a list of simple queries from nested queries,
 
-list<list<string> >
+static list<list<string> >
 getSimpleQ(const string &query)
 {
 
@@ -1406,25 +1351,6 @@ getSimpleQ(const string &query)
     return results;
 }
 
-list<string>
-getAnonNames(FieldMetadata * fm)
-{
-    list<string> res;
-    if (fm->isEncrypted) {
-        res.push_back(fm->anonFieldNameDET);
-        if (FieldMetadata::exists(fm->anonFieldNameOPE)) {
-            res.push_back(fm->anonFieldNameOPE);
-        }
-        if (FieldMetadata::exists(fm->anonFieldNameAGG)) {
-            res.push_back(fm->anonFieldNameAGG);
-        }
-    } else {
-        res.push_back(fm->fieldName);
-    }
-
-    return res;
-
-}
 list<string>
 EDBClient::rewriteEncryptSelect(const string &query)
 throw (CryptDBError)
@@ -1507,7 +1433,8 @@ throw (CryptDBError)
     return decqueries;
 
 }
-bool
+
+static bool
 hasWildcard(string expr)
 {
     if (expr.compare("*")==0) {
@@ -1523,8 +1450,9 @@ hasWildcard(string expr)
     }
     return false;
 }
+
 //expands any * into all the (unanonymized) names of the fields in that table
-void
+static void
 expandWildCard(list<string> & words, QueryMeta & qm, map<string,
                                                          TableMetadata *> &
                tableMetaMap)
@@ -1848,43 +1776,41 @@ throw (CryptDBError)
 
             resultQuery = resultQuery + " " + *wordsIt +"( ";
             wordsIt++;
-            assert_s(wordsIt->compare(
-                         "(") == 0, "missing ( in max/min expression \n");
+            assert_s(wordsIt->compare("(") == 0,
+                     "missing ( in max/min expression\n");
             wordsIt++;
 
-            string table, field;
+            string table2, field2;
             string realname = *wordsIt;
-            getTableField(realname, table, field, qm, tableMetaMap);
+            getTableField(realname, table2, field2, qm, tableMetaMap);
 
-            TableMetadata * tm = tableMetaMap[table];
-            FieldMetadata * fm = tm->fieldMetaMap[field];
+            TableMetadata * tm = tableMetaMap[table2];
+            FieldMetadata * fm = tm->fieldMetaMap[field2];
 
             assert_s(fm->type != TYPE_TEXT, "min, max not fully implemented for text");
 
             string anonName =
                 getOnionName(fm,oOPE);
 
-
-
             if (fm->isEncrypted) {
                 if (DECRYPTFIRST) {
                     resultQuery = resultQuery + fieldNameForQuery(
-                        tm->anonTableName, table, field, fm->type, qm);
+                        tm->anonTableName, table2, field2, fm->type, qm);
                 } else {
                     resultQuery = resultQuery + fieldNameForQuery(
-                        tm->anonTableName, table, anonName, fm->type, qm);
+                        tm->anonTableName, table2, anonName, fm->type, qm);
                 }
 
                 if (MULTIPRINC) {
                     resultQuery +=
-                        mp->selectEncFor(table, field, qm, tmkm, tm,
+                        mp->selectEncFor(table2, field2, qm, tmkm, tm,
                                          fm);
                 }
 
-                if (tableMetaMap[table]->fieldMetaMap[field]->secLevelOPE ==
+                if (tableMetaMap[table2]->fieldMetaMap[field2]->secLevelOPE ==
                     SEMANTIC_OPE) {
                     addIfNotContained(fullName(realname,
-                                               table), fieldsDec.OPEFields);
+                                               table2), fieldsDec.OPEFields);
                 }
             } else {
                 resultQuery += *wordsIt;
@@ -1953,24 +1879,24 @@ throw (CryptDBError)
                                            table), fieldsDec.DETJoinFields);
             }
         } else {
-            FieldMetadata * fm = tm->fieldMetaMap[field];
-            if (detToAll && (fm->secLevelDET == SEMANTIC_DET)) {
+            FieldMetadata * fm2 = tm->fieldMetaMap[field];
+            if (detToAll && (fm2->secLevelDET == SEMANTIC_DET)) {
                 addIfNotContained(fullName(field, table), fieldsDec.DETFields);
             }
             if (DECRYPTFIRST) {
                 resultQuery = resultQuery + " " +
                               fieldNameForQuery(tm->anonTableName, table,
-                                                field, fm->type,
+                                                field, fm2->type,
                                                 qm);
             } else {
                 resultQuery = resultQuery + " " +
                               fieldNameForQuery(tm->anonTableName, table,
                                                 anonFieldNameForDecrypt(
-                                                    fm), fm->type, qm);
+                                                    fm2), fm2->type, qm);
             }
             if (MULTIPRINC) {
                 resultQuery += mp->selectEncFor(table, field, qm, tmkm, tm,
-                                                fm);
+                                                fm2);
             }
         }
 
@@ -2015,7 +1941,7 @@ throw (CryptDBError)
 
 //words are the keywords of expanded unanonymized queries
 //words is unencrypted and unmodified query
-ResMeta
+static ResMeta
 getResMeta(list<string> words, vector<vector<string> > & vals, QueryMeta & qm,
            map<string, TableMetadata * > & tm, MultiPrinc * mp,
            TMKM & tmkm)
@@ -2134,7 +2060,7 @@ getResMeta(list<string> words, vector<vector<string> > & vals, QueryMeta & qm,
     return rm;
 }
 
-void
+static void
 printRes(vector<vector<string> > & vals)
 {
 
@@ -2201,11 +2127,11 @@ EDBClient::rewriteDecryptSelect(const string &query, ResType * dbAnswer)
     //fill in field names
     rets->at(0) = vector<string>(nTrueFields);
 
-    unsigned int index = 0;
+    unsigned int index0 = 0;
     for (unsigned int i = 0; i < nFields; i++) {
         if ((!rm.isSalt[i]) && (!MULTIPRINC || tmkm.returnBitMap[i])) {
-            rets->at(0).at(index) = rm.namesForRes[i];
-            index++;
+            rets->at(0).at(index0) = rm.namesForRes[i];
+            index0++;
         }
     }
 
@@ -2328,10 +2254,10 @@ throw (CryptDBError)
             tableMetaMap[table1]->fieldMetaMap[field1]->anonFieldNameDET;
         anonOp1 = fullName(anonField1, anonTable1);
 
-        string table2, field2;
-        getTableField(op2, table2, field2, qm, tableMetaMap);
-        TableMetadata * tm2 = tableMetaMap[table2];
-        FieldMetadata * fm2 = tm2->fieldMetaMap[field2];
+        string table3, field3;
+        getTableField(op2, table3, field3, qm, tableMetaMap);
+        TableMetadata * tm2 = tableMetaMap[table3];
+        FieldMetadata * fm2 = tm2->fieldMetaMap[field3];
         string anonTable2 = tm2->anonTableName;
         string anonField2 = fm2->anonFieldNameDET;
         string anonOp2 = fullName(anonField2, anonTable2);
@@ -2340,7 +2266,7 @@ throw (CryptDBError)
         res =
             fieldNameForQuery(anonTable1, table1, anonField1, ftype1,
                               qm) + " " + operation + " " +
-            fieldNameForQuery(anonTable2, table2, anonField2, ftype2,
+            fieldNameForQuery(anonTable2, table3, anonField2, ftype2,
                               qm) + " ";
 
         return res;
@@ -2382,10 +2308,9 @@ throw (CryptDBError)
             tableMetaMap[table1]->fieldMetaMap[field1]->anonFieldNameDET;
         anonOp1 = fullName(anonField1, anonTable1);
 
-        string anonTable1 = tableMetaMap[table1]->anonTableName;
-        string anonField1 =
-            tableMetaMap[table1]->fieldMetaMap[field1]->anonFieldNameDET;
-        string anonOp1 = fullName(anonField1, anonTable1);
+        anonTable1 = tableMetaMap[table1]->anonTableName;
+        anonField1 = tableMetaMap[table1]->fieldMetaMap[field1]->anonFieldNameDET;
+        anonOp1 = fullName(anonField1, anonTable1);
 
         fieldType ftype = tableMetaMap[table1]->fieldMetaMap[field1]->type;
 
@@ -2533,16 +2458,6 @@ throw (CryptDBError)
     qm.cleanup();
 
     return res;
-}
-
-unsigned int
-max (unsigned int a, unsigned int b)
-{
-    if (a>b) {
-        return a;
-    }
-
-    return b;
 }
 
 string
@@ -2734,8 +2649,6 @@ throw (CryptDBError)
         // if some of these are principals, we need to provide the next
         // increment value
         noFieldsGiven = fields.size();
-
-        TableMetadata * tm = tableMetaMap[table];
 
         for (addit = tm->fieldNames.begin(); addit!=tm->fieldNames.end();
              addit++) {
@@ -3036,7 +2949,7 @@ throw (CryptDBError)
 
 //returns true if this query has to do with cryptdb
 // e.g. SET NAMES 'utf8' is a negative example
-bool
+static bool
 considerQuery(command com, const string &query)
 {
 
@@ -3105,6 +3018,7 @@ considerQuery(command com, const string &query)
 
         return false;
     }
+    default:
     case OTHER: {if (VERBOSE_V) {  cerr << "other \n "; } return false; }
     }
 
@@ -3157,7 +3071,8 @@ throw (CryptDBError)
 
         return rewriteEncryptAlter(query);
     }
-    case OTHER: {
+    case OTHER:
+    default: {
         cerr << "other query\n";
         if (DECRYPTFIRST)
             return list<string>(1, query);
@@ -3370,11 +3285,12 @@ EDBClient::exit()
 
 }
 
-void
+static void
 cleanup(map<string, TableMetadata *> & tableMetaMap)
 {
     //todo
 }
+
 EDBClient::~EDBClient()
 {
 
@@ -3384,7 +3300,7 @@ EDBClient::~EDBClient()
     cm->~CryptoManager();
 }
 
-string
+static string
 getQuery(ifstream & createsFile)
 {
     string line = "";

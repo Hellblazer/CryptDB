@@ -6,7 +6,10 @@ MYSQL_PLUGIN_DIR  := /usr/lib/mysql/plugin
 
 CXX	 := g++
 CXXFLAGS := -g -O2 -fno-strict-aliasing -fwrapv -fPIC \
-	    -Wall -Wpointer-arith -Wendif-labels \
+	    -Wall -Werror -Wpointer-arith -Wendif-labels -Wformat=2 \
+	    -Wextra -Wmissing-noreturn -Wwrite-strings -Wno-unused-parameter \
+	    -Wmissing-format-attribute -Wswitch-default \
+	    -Wmissing-declarations -Wshadow \
 	    -D_GNU_SOURCE -std=c++0x \
 	    $(shell $(MYSQL_CONFIG) --cflags)
 LDFLAGS	 := -L. -lmysqlclient -lz -llua5.1 \

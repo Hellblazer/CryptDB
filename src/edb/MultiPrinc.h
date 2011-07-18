@@ -39,7 +39,7 @@ class MultiPrinc {
 
     /*** LOGIN tasks ***/
 
-    bool isActiveUsers(const char * query);
+    bool isActiveUsers(const string &query);
 
     bool checkPsswd(command comm, list<string> & words);
 

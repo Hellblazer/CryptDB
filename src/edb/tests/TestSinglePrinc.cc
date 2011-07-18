@@ -25,7 +25,7 @@ TestSinglePrinc::~TestSinglePrinc()
 
 }
 
-bool 
+static bool 
 equals(ResType a, ResType b)
 {
     vector<vector<string> >::iterator ita = a.begin();
@@ -54,7 +54,7 @@ equals(ResType a, ResType b)
     return true;
 }
 
-void
+static void
 PrintRes(ResType res)
 {
     for(auto outer = res.begin(); outer != res.end(); outer++) {
@@ -65,7 +65,7 @@ PrintRes(ResType res)
     }
 }
 
-ResType
+static ResType
 convert1(string rows[][1], int num_rows) {
   ResType res;
   for (int i = 0; i < num_rows; i++) {
@@ -78,7 +78,7 @@ convert1(string rows[][1], int num_rows) {
   return res;
 }
 
-ResType
+static ResType
 convert2(string rows[][2], int num_rows) {
   ResType res;
   for (int i = 0; i < num_rows; i++) {
@@ -91,7 +91,7 @@ convert2(string rows[][2], int num_rows) {
   return res;
 }
 
-ResType
+static ResType
 convert5(string rows[][5], int num_rows) {
   ResType res;
   for (int i = 0; i < num_rows; i++) {
@@ -104,7 +104,7 @@ convert5(string rows[][5], int num_rows) {
   return res;
 }
 
-ResType *
+static ResType *
 myExecute(EDBClient * cl, string query) {
     ResType * res;
     if (PLAIN) {
@@ -115,7 +115,7 @@ myExecute(EDBClient * cl, string query) {
     return res;
 }
 
-void
+static void
 CheckSelectResults(EDBClient * cl, vector<string> in, vector<ResType> out)
 {
     assert_s(
@@ -148,7 +148,7 @@ CheckSelectResults(EDBClient * cl, vector<string> in, vector<ResType> out)
 
 //assumes querys alternate UPDATE, SELECT; only gets results for SELECT
 // queries
-void
+static void
 CheckUpdateResults(EDBClient * cl, vector<string> in, vector<ResType> out)
 {
     assert_s(
@@ -181,7 +181,7 @@ CheckUpdateResults(EDBClient * cl, vector<string> in, vector<ResType> out)
     }
 }
 
-void
+static void
 testCreateDrop(EDBClient * cl)
 {
     cerr << "createdrop begin" << endl;
@@ -227,7 +227,7 @@ testCreateDrop(EDBClient * cl)
 }
 
 //assumes Select is working
-void
+static void
 testInsert(EDBClient * cl)
 {
     cl->plain_execute(
@@ -266,7 +266,7 @@ testInsert(EDBClient * cl)
 }
 
 //assumes Insert is working
-void
+static void
 testSelect(EDBClient * cl)
 {
     cl->plain_execute(
@@ -587,7 +587,7 @@ testSelect(EDBClient * cl)
     }
 }
 
-void
+static void
 testJoin(EDBClient * cl) {
     cl->plain_execute(
         "DROP TABLE IF EXISTS table0, table1, table2, table3, table4, table5, table6, table7");
@@ -696,7 +696,7 @@ testJoin(EDBClient * cl) {
 
 
 //assumes Select works
-void
+static void
 testUpdate(EDBClient * cl)
 {
     cl->plain_execute(
@@ -817,7 +817,7 @@ testUpdate(EDBClient * cl)
     }
 }
 
-void
+static void
 testDelete(EDBClient * cl)
 {
     cl->plain_execute(
@@ -932,7 +932,9 @@ testDelete(EDBClient * cl)
     }
 }
 
-void testSearch(EDBClient * cl) {
+static void
+testSearch(EDBClient * cl)
+{
     cl->plain_execute(
         "DROP TABLE IF EXISTS table0, table1, table2, table3, table4, table5, table6, table7, table8, table9, table10, table11");
     if (!PLAIN) {

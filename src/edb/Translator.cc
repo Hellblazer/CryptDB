@@ -500,7 +500,7 @@ isTable(string token, const map<string, TableMetadata *> & tm)
 // > 0 : sensitive field
 // < 0 : insensitive field
 // = 0 : other: constant, operation, etc.
-int
+static int
 isSensitive(string tok, QueryMeta & qm, map<string, TableMetadata *> & tm, string & fieldname)
 {
 
@@ -617,40 +617,40 @@ throw (CryptDBError)
     default: {assert_s(false, "given unexpected command in getQueryMeta"); }
     }
 
-    list<string>::iterator it = query.begin();
+    auto qit = query.begin();
 
     QueryMeta qm = QueryMeta();
 
-    mirrorUntilTerm(it, query, delims, noDelims, 0);
+    mirrorUntilTerm(qit, query, delims, noDelims, 0);
 
-    assert_s(it != query.end(), "query does not have delims in getQueryMeta");
+    assert_s(qit != query.end(), "query does not have delims in getQueryMeta");
 
-    while (it!=query.end() && (contains(*it, delims, noDelims))) {
-        if (equalsIgnoreCase(*it, "left")) {
-            roll<string>(it, 2);
+    while (qit!=query.end() && (contains(*qit, delims, noDelims))) {
+        if (equalsIgnoreCase(*qit, "left")) {
+            roll<string>(qit, 2);
         } else {
-            it++;
+            qit++;
         }
-        while ((it != query.end()) && (!isQuerySeparator(*it))) {
-            if (it->compare("(")==0) {
-                it++;
+        while ((qit != query.end()) && (!isQuerySeparator(*qit))) {
+            if (qit->compare("(")==0) {
+                qit++;
             }
-            string tableName = *it;
+            string tableName = *qit;
             //comment for speed
             //assert_s(tm.find(tableName) != tm.end(), string("table ") + *it
             // + " is invalid");
             qm.tables.push_back(tableName);
-            it++;
-            string alias = getAlias(it, query);
+            qit++;
+            string alias = getAlias(qit, query);
             if (alias.length() > 0) {
                 qm.tabToAlias[tableName] = alias;
                 qm.aliasToTab[alias] = tableName;
             }
-            processAlias(it, query);
+            processAlias(qit, query);
         }
-        mirrorUntilTerm(it, query, delims, noDelims, 0);
-        if (VERBOSE_G) {if (it != query.end()) {cerr <<
-                                                "after mirror, it is "<< *it; }}
+        mirrorUntilTerm(qit, query, delims, noDelims, 0);
+        if (VERBOSE_G) {if (qit != query.end()) {cerr <<
+                                                "after mirror, qit is "<< *qit; }}
     }
 
     if (c == SELECT) {
@@ -780,12 +780,6 @@ closingparen:
 }
 
 bool
-isLetter(char c)
-{
-    return ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z'));
-}
-
-bool
 isField(string token)
 {
 
@@ -799,7 +793,7 @@ isField(string token)
         return false;
     }
 
-    if (!isLetter(token[0])) {
+    if (!isalpha(token[0])) {
         return false;
     }
 
@@ -856,7 +850,7 @@ throw (CryptDBError)
 
     // token has form: table.field
     if (isTableField(token)) {
-        unsigned int position = token.find('.');
+        size_t position = token.find('.');
         myassert(position != string::npos,
                  "a field must be of the form table.field");
         table = token.substr(0, position);

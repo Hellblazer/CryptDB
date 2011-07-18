@@ -113,15 +113,15 @@ Equation::TakesPrecedence(char OperatorA, char OperatorB)
 }
 
 void
-Equation::Convert(const string & Infix, string & Postfix)
+Equation::Convert(const string & InfixArg, string & Postfix)
 {
     stack <char> OperatorStack;
     char TopSymbol, Symbol;
     unsigned int k;
 
-    for (k = 0; k < Infix.size(); k++)
+    for (k = 0; k < InfixArg.size(); k++)
     {
-        Symbol = Infix[k];
+        Symbol = InfixArg[k];
         if (IsOperand(Symbol))
             Postfix = Postfix + Symbol;
         else
@@ -284,8 +284,7 @@ Equation::Next(string tmp)
         {
             my_stack.push(s); //push operator onto stack
 
-            for ( int i = 0; i < 3; i++ )
-            {
+            for (int j = 0; j < 3; j++) {
                 temp.push_back(my_stack.top());
                 my_stack.pop(); //erase from the stack
             }

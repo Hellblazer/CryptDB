@@ -32,25 +32,6 @@ init(lua_State *L)
     return 0;
 }
 
-list<string>
-rewrite(string query)
-{
-    cerr << "rewriting..." << endl;
-    size_t hasaccess = query.find("hasaccessto");
-    size_t equals = query.find("equals");
-    if (hasaccess != string::npos) {
-        query.replace(hasaccess,17,"");
-    }
-    if (equals != string::npos) {
-        query.replace(equals,11,"");
-    }
-
-    list<string> res;
-    res.push_back("INSERT INTO t1 VALUES (1,'one');");
-    res.push_back(query);
-    return res;
-}
-
 static int
 pass_queries(lua_State *L)
 {
@@ -388,7 +369,9 @@ static const struct luaL_reg resultsetlib[] =
     {NULL,NULL}
 };
 
-extern "C" int
+extern "C" int luaopen_resultset (lua_State *L);
+
+int
 luaopen_resultset (lua_State *L)
 {
     luaL_openlib(L,"CryptDB",resultsetlib,0);

@@ -32,13 +32,13 @@
 // field, keep the keys in the right format already and just load them rather
 // than recompute
 
-ZZ
+static ZZ
 Paillier_L(const ZZ & u, const ZZ & n)
 {
     return (u - 1) / n;
 }
 
-ZZ
+static ZZ
 LCM(const ZZ & a, const ZZ & b)
 {
     return (a * b) / GCD(a, b);
@@ -50,18 +50,18 @@ CryptoManager::getmkey()
     return masterKey;
 }
 
-CryptoManager::CryptoManager(const string &masterKey)
+CryptoManager::CryptoManager(const string &masterKeyArg)
 {
 
     VERBOSE = VERBOSE_G;
-    this->masterKey = new AES_KEY();
+    masterKey = new AES_KEY();
 
-    AES_set_encrypt_key((const uint8_t*) masterKey.c_str(),
-                        AES_KEY_SIZE, this->masterKey);
+    AES_set_encrypt_key((const uint8_t*) masterKeyArg.c_str(),
+                        AES_KEY_SIZE, masterKey);
 
-    RAND_seed((const uint8_t*) masterKey.c_str(), MASTER_KEY_SIZE);
+    RAND_seed((const uint8_t*) masterKeyArg.c_str(), MASTER_KEY_SIZE);
 
-    SetSeed(ZZFromBytes((const uint8_t *) masterKey.c_str(), MASTER_KEY_SIZE));
+    SetSeed(ZZFromBytes((const uint8_t *) masterKeyArg.c_str(), MASTER_KEY_SIZE));
 
     useEncTables = false;
 
@@ -103,7 +103,7 @@ highestEq(SECLEVEL sl)
     }
 }
 
-onion
+static onion
 getOnion(SECLEVEL l1)
 {
     switch (l1) {
@@ -123,7 +123,7 @@ getOnion(SECLEVEL l1)
     return oINVALID;
 }
 
-SECLEVEL
+static SECLEVEL
 decreaseLevel(SECLEVEL l, fieldType ft,  onion o)
 {
     switch (o) {
@@ -173,7 +173,8 @@ decreaseLevel(SECLEVEL l, fieldType ft,  onion o)
     }
 
 }
-SECLEVEL
+
+static SECLEVEL
 increaseLevel(SECLEVEL l, fieldType ft, onion o)
 {
     switch (o) {
@@ -776,7 +777,7 @@ CryptoManager::getKey(const string &uniqueFieldName, SECLEVEL sec)
 }
 
 string
-CryptoManager::getKey(AES_KEY * masterKey, const string &uniqueFieldName,
+CryptoManager::getKey(AES_KEY * masterKeyArg, const string &uniqueFieldName,
                       SECLEVEL sec)
 {
     string id = uniqueFieldName + marshallVal((unsigned int) sec);
@@ -786,7 +787,7 @@ CryptoManager::getKey(AES_KEY * masterKey, const string &uniqueFieldName,
 
     string result;
     result.resize(AES_BLOCK_BYTES);
-    AES_encrypt(shaDigest, (uint8_t *) &result[0], masterKey);
+    AES_encrypt(shaDigest, (uint8_t *) &result[0], masterKeyArg);
     return result;
 }
 
@@ -822,8 +823,7 @@ CryptoManager::unmarshallKey(const string &key)
 
     while (wordsIt != words.end()) {
         uint64_t val = unmarshallVal(*wordsIt);
-        myassert((val >= 0) && (val < 256),
-                 "invalid key -- some elements are bigger than bytes " + key);
+        myassert(val < 256, "invalid key -- some elements are bigger than bytes " + key);
         reskey[i] = (unsigned char) (val % 256);
         wordsIt++; i++;
     }
@@ -845,7 +845,7 @@ CryptoManager::get_key_SEM(const string &key)
 
 }
 
-uint64_t
+static uint64_t
 getXORValue(uint64_t salt, AES_KEY * aes_key)
 {
     string plaintext = BytesFromInt(salt, AES_BLOCK_BYTES);
@@ -880,7 +880,7 @@ CryptoManager::decrypt_SEM(uint32_t ctext, AES_KEY * key, uint64_t salt)
     return ctext ^ (getXORValue(salt, key) % MAX_UINT32_T);
 }
 
-unsigned char *
+static unsigned char *
 getXorVector(unsigned int len, AES_KEY * key, uint64_t salt)
 {
     unsigned int AESBlocks = len / AES_BLOCK_BYTES;
@@ -952,30 +952,18 @@ CryptoManager::decrypt_DET(const string & ctext, AES_KEY * key)
    return CryptoManager::decrypt_SEM(ctext, key, 1);
 }
 
-bool
-isReadable(unsigned char c)
-{
-
-    if (((c>=0) && (c <= 31)) || ((c>=127) && (c<=255))) {
-        return false;
-    }
-
-    return true;
-
-}
-
 void
-CryptoManager::setMasterKey(const string &masterKey)
+CryptoManager::setMasterKey(const string &masterKeyArg)
 {
 
-    this->masterKey = new AES_KEY();
+    masterKey = new AES_KEY();
 
     AES_set_encrypt_key(
-        (const uint8_t *) masterKey.c_str(), AES_KEY_SIZE, this->masterKey);
+        (const uint8_t *) masterKeyArg.c_str(), AES_KEY_SIZE, masterKey);
 
-    RAND_seed((const uint8_t *) masterKey.c_str(), MASTER_KEY_SIZE);
+    RAND_seed((const uint8_t *) masterKeyArg.c_str(), MASTER_KEY_SIZE);
 
-    SetSeed(ZZFromBytes((const uint8_t *) masterKey.c_str(), MASTER_KEY_SIZE));
+    SetSeed(ZZFromBytes((const uint8_t *) masterKeyArg.c_str(), MASTER_KEY_SIZE));
 }
 
 /*
@@ -988,7 +976,7 @@ CryptoManager::setMasterKey(const string &masterKey)
     string result = "";
     for (unsigned int i = 0; i < elen; i++) {
         c = etext[i] ^ xorVector[i];
-        myassert(isReadable(c), "decrypt SEM failed -- non readable
+        myassert(isprint(c), "decrypt SEM failed -- non readable
            characters");
         result = result + (char)(c);
     }
@@ -1362,15 +1350,15 @@ CryptoManager::getPKInfo()
 }
 
 void
-CryptoManager::createEncryptionTables(int noOPE, int noHOM,
+CryptoManager::createEncryptionTables(int noOPEarg, int noHOMarg,
                                       list<string>  fieldsWithOPE)
 {
 
     int encryptionsOfOne = 100;
     int noEncryptions = 5;
 
-    this->noOPE = noOPE;
-    this->noHOM = noHOM;
+    noOPE = noOPEarg;
+    noHOM = noHOMarg;
 
     OPEEncTable = map<string, map<int, uint64_t> >();
     HOMEncTable = map<int, list<string> >();
@@ -1477,7 +1465,7 @@ DER_decode_RSA_private(const string &s)
     return d2i_RSAPrivateKey(0, &buf, s.length());
 }
 
-void
+static void
 remove_private_key(RSA *r)
 {
     r->d = r->p = r->q = r->dmp1 = r->dmq1 = r->iqmp = 0;

@@ -12,7 +12,7 @@
 
 //------------------------------------------------------------------------------------------
 //returns true if e is in ls
-bool
+static bool
 inList(list<string> &ls, string e)
 {
     list<string>::iterator it;
@@ -24,7 +24,7 @@ inList(list<string> &ls, string e)
     return false;
 }
 
-bool
+static bool
 inList(list<Prin> &ls, Prin e)
 {
     list<Prin>::iterator it;

@@ -55,7 +55,7 @@ struct Compare : public binary_function<TreeNode, TreeNode, bool>
     }
 };
 
-uint64_t
+static uint64_t
 uint64FromZZ(ZZ val)
 {
     uint64_t res = 0;
@@ -67,7 +67,8 @@ uint64FromZZ(ZZ val)
     }
     return res;
 }
-uint32_t
+
+static uint32_t
 uint32FromZZ(ZZ val)
 {
     return (uint32_t) uint64FromZZ(val);

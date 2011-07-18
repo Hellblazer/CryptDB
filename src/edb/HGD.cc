@@ -134,7 +134,7 @@ using namespace std;
    C
  */
 
-RR
+static RR
 AFC(RR I)
 {
 /*      DOUBLE PRECISION FUNCTION AFC(I)
@@ -158,7 +158,7 @@ AFC(RR I)
 
 // returns a random value between 0 and 1
 // the seed keeps changing
-RR
+static RR
 randomValue(ZZ & seed, unsigned int seedLen)
 {
 
@@ -410,7 +410,7 @@ flagThirtyB:
             RR YK  = K - Y + 1;
             NK  = N2 - K + Y1;
             RR R   = -YM / Y1;
-            RR S   = YM / YN;
+            RR S2  = YM / YN;
             RR T   = YM / YK;
             RR E   = -YM / NK;
             RR G   = YN * YK / (Y1*NK) - 1;
@@ -425,9 +425,9 @@ flagThirtyB:
             RR UB  = Y * GU - M * GL + DELTAU  + XM * R *
                      (1.+R*
                       (-.5+R/
-             3.))  + XN * S *
-                     (1.+S*
-                      (-0.5+S/
+             3.))  + XN * S2 *
+                     (1.+S2*
+                      (-0.5+S2/
              3))  + XK * T * (1.+T*(-.5+T/3.))   + NM * E * (1.+E*(-.5+E/3.));
 /*
    C           ...TEST AGAINST UPPER BOUND...
@@ -446,9 +446,9 @@ flagThirtyB:
                 if (R < 0)  {
                     DR = DR / (1.+R);
                 }
-                RR DS = XN * sqr(sqr(S));
-                if (S < 0) {
-                    DS = DS / (1+S);
+                RR DS = XN * sqr(sqr(S2));
+                if (S2 < 0) {
+                    DS = DS / (1+S2);
                 }
                 RR DT = XK * sqr(sqr(T));
                 if (T < 0)  { DT = DT / (1+T); }

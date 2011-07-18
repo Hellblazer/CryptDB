@@ -487,6 +487,4 @@ string toLowerCase(const string &token);
 
 bool equalsIgnoreCase(const string &s1, const string &s2);
 
-void keywordsToLowerCase(list<string> & lst, ParserMeta * pm);
-
 #endif   /* _UTIL_H */
