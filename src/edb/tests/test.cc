@@ -2301,10 +2301,10 @@ suffix(int no)
                 }
  */	/*	try {
                         PGresult * res =
- (*cl)->plain_execute(query);//DO
+   (*cl)->plain_execute(query);//DO
                         ExecStatusType est = PQresultStatus(res);
                         if ((est == PGRES_COMMAND_OK) || (est ==
- (*PGRES_TUPLES_OK))) {
+   (*PGRES_TUPLES_OK))) {
                           outputnew << query << "\n";
                         } else {
                                 cl->plain_execute("abort;");
