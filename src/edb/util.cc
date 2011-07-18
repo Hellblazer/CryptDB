@@ -391,7 +391,7 @@ marshallBinary(const string &s)
     ss << "X\'";
 
     for (unsigned int i = 0; i < s.length(); i++)
-        ss << hex << setfill('0') << setw(2) << (unsigned char) s[i];
+        ss << hex << setfill('0') << setw(2) << (uint) (uint8_t) s[i];
 
     ss << "\'";
 
