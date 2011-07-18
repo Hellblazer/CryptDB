@@ -7,18 +7,7 @@
 using namespace std;
 
 void
-myassert(bool value, const char * mess)
-{
-    if (ASSERTS_ON) {
-        if (!value) {
-            fprintf(stderr, "ERROR: %s\n", mess);
-            throw mess;
-        }
-    }
-}
-
-void
-myassert(bool value, string mess)
+myassert(bool value, const string &mess)
 {
     if (ASSERTS_ON) {
         if (!value) {
@@ -39,7 +28,7 @@ myassert(bool value)
 }
 
 void
-assert_s (bool value, string msg)
+assert_s (bool value, const string &msg)
 throw (CryptDBError)
 {
     if (ASSERTS_ON) {
@@ -153,8 +142,8 @@ myPrint(char * a)
 }
 
 string
-checkStr(list<string>::iterator & it, list<string> & words, string s1,
-         string s2)
+checkStr(list<string>::iterator & it, list<string> & words, const string &s1,
+         const string &s2)
 {
 
     if (it == words.end()) {
@@ -286,7 +275,7 @@ myPrint(const vector<string> & lst)
 }
 
 char *
-getCStr(string value)
+getCStr(const string &value)
 {
     unsigned int len = value.length();
     char * result = new char[len+1];
@@ -483,7 +472,7 @@ getVal(list<string>::iterator & it)
 }
 
 list<string>
-makeList(string val1, string val2)
+makeList(const string &val1, const string &val2)
 {
     list<string> res = list<string>();
     res.push_back(val1);
@@ -564,7 +553,7 @@ marshallVal(uint32_t x)
 }
 
 uint64_t
-unmarshallVal(string str)
+unmarshallVal(const string &str)
 {
     bool sign = false;
     if (str[0] == '-') {
@@ -1095,7 +1084,7 @@ getSQLWords(const char * query)
 }
 
 command
-getCommand(string query)
+getCommand(const string &query)
     throw (CryptDBError)
 {
     static struct { const char *s; command c; } s2c[] =
@@ -1255,7 +1244,7 @@ processParen(list<string>::iterator & it, list<string> & words)
 
 string
 mirrorUntilTerm(list<string>::iterator & it, list<string> & words,
-                string terms[], unsigned int noTerms, bool stopAfterTerm,
+                const string *terms, unsigned int noTerms, bool stopAfterTerm,
                 bool skipParenBlock)
 {
     string res = "";
@@ -1311,7 +1300,7 @@ mirrorUntilTerm(list<string>::iterator & it, list<string> & words,
 }
 
 list<string>::iterator
-itAtKeyword(list<string> & lst, string keyword)
+itAtKeyword(list<string> & lst, const string &keyword)
 {
     list<string>::iterator it = lst.begin();
     while (it != lst.end()) {
@@ -1325,7 +1314,7 @@ itAtKeyword(list<string> & lst, string keyword)
 }
 
 string
-getBeforeChar(string str, char c)
+getBeforeChar(const string &str, char c)
 {
     unsigned int pos = str.find(c);
     if (pos != string::npos) {
@@ -1336,20 +1325,20 @@ getBeforeChar(string str, char c)
 }
 
 bool
-isQuerySeparator(string st)
+isQuerySeparator(const string &st)
 {
     return (parserMeta.querySeparators_p.find(toLowerCase(st)) !=
             parserMeta.querySeparators_p.end());
 }
 
 bool
-isAgg(string value)
+isAgg(const string &value)
 {
     return contains(value, aggregates, noAggregates);
 }
 
 bool
-contains(string token, const string * values, unsigned int noValues)
+contains(const string &token, const string * values, unsigned int noValues)
 {
     for (unsigned int i = 0; i < noValues; i++) {
         if (equalsIgnoreCase(token, values[i])) {
@@ -1359,7 +1348,7 @@ contains(string token, const string * values, unsigned int noValues)
     return false;
 }
 bool
-contains(string token, list<string> & values)
+contains(const string &token, list<string> & values)
 {
     for (auto it = values.begin(); it != values.end(); it++)
         if (equalsIgnoreCase(*it, token))
@@ -1368,7 +1357,7 @@ contains(string token, list<string> & values)
     return false;
 }
 bool
-isOnly(string token, const string * values, unsigned int noValues)
+isOnly(const string &token, const string * values, unsigned int noValues)
 {
     const char * str = getCStr(token);
     for (unsigned int j = 0; j < token.size(); j++) {
@@ -1389,14 +1378,14 @@ isOnly(string token, const string * values, unsigned int noValues)
 }
 
 bool
-isKeyword(string token)
+isKeyword(const string &token)
 {
     return (parserMeta.clauseKeywords_p.find(toLowerCase(token)) !=
             parserMeta.clauseKeywords_p.end());
 }
 
 const char *
-removeString(const char * input, string toremove)
+removeString(const char * input, const string &toremove)
 {
     string data(input);
     string newdata = "";
@@ -1415,7 +1404,7 @@ removeString(const char * input, string toremove)
 }
 
 bool
-contains(string token1, string token2, list<pair<string, string> > & lst)
+contains(const string &token1, const string &token2, list<pair<string, string> > & lst)
 {
     for (auto it = lst.begin(); it != lst.end(); it++)
         if ((it->first.compare(token1) == 0) &&
@@ -1426,14 +1415,14 @@ contains(string token1, string token2, list<pair<string, string> > & lst)
 }
 
 void
-addIfNotContained(string token, list<string> & lst)
+addIfNotContained(const string &token, list<string> & lst)
 {
     if (!contains(token, lst)) {
         lst.push_back(token);
     }
 }
 void
-addIfNotContained(string token1, string token2, list<pair<string,
+addIfNotContained(const string &token1, const string &token2, list<pair<string,
                                                           string> > & lst)
 {
 
@@ -1443,7 +1432,7 @@ addIfNotContained(string token1, string token2, list<pair<string,
 }
 
 string
-removeApostrophe(string data)
+removeApostrophe(const string &data)
 {
     if (data[0] == '\'') {
         assert_s(data[data.length()-1] == '\'', "not matching ' ' \n");
@@ -1454,7 +1443,7 @@ removeApostrophe(string data)
 }
 
 bool
-hasApostrophe(string data)
+hasApostrophe(const string &data)
 {
     return ((data[0] == '\'') && (data[data.length()-1] == '\''));
 }
@@ -1470,7 +1459,7 @@ homomorphicAdd(const string &val1, const string &val2, const string &valn2)
 }
 
 string
-toLowerCase(string token)
+toLowerCase(const string &token)
 {
     string res = "";
     for (unsigned int i = 0; i < token.length(); i++) {
@@ -1486,7 +1475,7 @@ toLowerCase(string token)
 }
 
 bool
-equalsIgnoreCase(string s1, string s2)
+equalsIgnoreCase(const string &s1, const string &s2)
 {
     return (toLowerCase(s1).compare(toLowerCase(s2)) == 0);
 }
@@ -1509,7 +1498,7 @@ keywordsToLowerCase(list<string> & lst)
  ****************************/
 
 bool
-Operation::isDET(string op)
+Operation::isDET(const string &op)
 {
 
     string dets[] = {"=", "<>", "in", "!="};
@@ -1519,7 +1508,7 @@ Operation::isDET(string op)
 }
 
 bool
-Operation::isIN(string op)
+Operation::isIN(const string &op)
 {
 
     if (equalsIgnoreCase(op,"in")) {
@@ -1530,7 +1519,7 @@ Operation::isIN(string op)
 }
 
 bool
-Operation::isOPE(string op)
+Operation::isOPE(const string &op)
 {
 
     string opes[] = {"<", ">", "<=", ">="};
@@ -1540,7 +1529,7 @@ Operation::isOPE(string op)
 }
 
 bool
-Operation::isILIKE(string op)
+Operation::isILIKE(const string &op)
 {
     string ilikes[] = {"ilike", "like"};
 
@@ -1548,7 +1537,7 @@ Operation::isILIKE(string op)
 }
 
 bool
-Operation::isOp(string op)
+Operation::isOp(const string &op)
 {
     return (isDET(op) || isOPE(op) || isILIKE(op));
 }

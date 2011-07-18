@@ -149,7 +149,7 @@ typedef struct FieldMetadata {
     bool agg_used;
 
     //returns true if the given field exists in the database
-    static bool exists(string field);
+    static bool exists(const string &field);
 
 } FieldMetadata;
 
@@ -185,11 +185,11 @@ typedef struct FieldsToDecrypt {
 
 class Operation {
  public:
-    static bool isOp(string op);
-    static bool isDET(string op);
-    static bool isOPE(string op);
-    static bool isILIKE(string op);
-    static bool isIN(string op);
+    static bool isOp(const string &op);
+    static bool isDET(const string &op);
+    static bool isOPE(const string &op);
+    static bool isILIKE(const string &op);
+    static bool isIN(const string &op);
 
  private:
 };
@@ -286,10 +286,9 @@ typedef struct TempMKM {
 string BytesFromInt(uint64_t value, unsigned int noBytes);
 uint64_t IntFromBytes(const unsigned char * bytes, unsigned int noBytes);
 
-void assert_s (bool value, string msg)
+void assert_s (bool value, const string &msg)
 throw (CryptDBError);
-void myassert(bool value, const char * mess);
-void myassert(bool value, string mess);
+void myassert(bool value, const string &mess);
 
 double timeInSec(struct timeval tvstart, struct timeval tvend);
 double timeInMSec(struct timeval tvstart, struct timeval tvend);
@@ -299,7 +298,7 @@ const char delimsStay[5] = {'(', ')', '=', ',', '\0'};
 const char delimsGo[5] = {';', ' ', '\t', '\n', '\0'};
 const char keepIntact[2] ={'\'', '\0'};
 
-bool isKeyword(string token);
+bool isKeyword(const string &token);
 
 const unsigned int noCommands = 9;
 const string commands[] =
@@ -307,7 +306,7 @@ const string commands[] =
 
 const unsigned int noAggregates = 4;
 const string aggregates[] = {"max", "min", "sum", "count"};
-bool isAgg(string token);
+bool isAgg(const string &token);
 
 const unsigned int noCreateMeta = 3;
 const string createMetaKeywords[] = {"primary", "key", "unique"};
@@ -324,9 +323,9 @@ void myassert(bool value);
 
 //transforms a string in a char *, where char * is a properly-allocated
 // pointer
-char * getCStr(string value);
+char * getCStr(const string &value);
 
-const char * removeString(const char * input, string toremove);
+const char * removeString(const char * input, const string &toremove);
 
 //returns a list that consists of lst1 and lst2 concatenated in this order
 list<string> concatenate(const list<string> & lst1,
@@ -414,7 +413,7 @@ isLastIterator(typename list<T>::iterator it,
     }
 }
 
-list<string> makeList(string val1, string val2);
+list<string> makeList(const string &val1, const string &val2);
 list<int> makeList(int val1, int val2);
 
 //returns a Postgres bigint representation in string form for x
@@ -424,7 +423,7 @@ string marshallVal(uint32_t x);
 //if x needs more space than digits, the exact value of x will be returned
 string marshallVal(unsigned int x, unsigned int digits);
 
-uint64_t unmarshallVal(string str);
+uint64_t unmarshallVal(const string &str);
 
 //marshalls a binary value into characters readable by Postgres
 string marshallBinary(const string &s);
@@ -460,7 +459,7 @@ list<string> parse(const char * str, const char * delimsStay,
                    const char * delimsGo,
                    const char * keepIntact);
 
-command getCommand(string query)
+command getCommand(const string &query)
 throw (CryptDBError);
 
 //returns a string representing a value pointed to by it and advances it
@@ -469,14 +468,14 @@ string getVal(list<string>::iterator & it);
 //checks that the value of the current iterator is s1 or s2;  if it is s1,
 // increment iterator and return s1, if it is s2, return ""; else throws
 // exception
-string checkStr(list<string>::iterator & it, list<string> & lst, string s1,
-                string s2);
+string checkStr(list<string>::iterator & it, list<string> & lst,
+                const string &s1, const string &s2);
 
 //acts only if the first field is "(";
 //returns position after matching ")" mirroring all contents
 string processParen(list<string>::iterator & it, list<string> & words);
 
-bool isQuerySeparator(string st);
+bool isQuerySeparator(const string &st);
 
 //returns the alias that should be pointed by it or "" if there is no such
 // alias
@@ -498,7 +497,7 @@ string processAlias(list<string>::iterator & it, list<string> & words);
 //if skipParentBlock, it looks for terminators only outside of any nested
 // parenthesis block
 string mirrorUntilTerm(list<string>::iterator & it, list<string> &words,
-                       string terminator[],  unsigned int noTerms,
+                       const string *terminator,  unsigned int noTerms,
                        bool stopAfterTerm = 1,
                        bool skipParenBlock = 0);
 string mirrorUntilTerm(list<string>::iterator & it, list<string> & words,
@@ -507,32 +506,31 @@ string mirrorUntilTerm(list<string>::iterator & it, list<string> & words,
 
 //returns the iterator that points at the first keyword in lst, or the end of
 // the lst if such keyword was not found
-list<string>::iterator itAtKeyword(list<string> & lst, string keyword);
+list<string>::iterator itAtKeyword(list<string> & lst, const string &keyword);
 
 //returns the contents of str before the first encounter with c
-string getBeforeChar(string str, char c);
+string getBeforeChar(const string &str, char c);
 
-bool contains(string token, list<string> & values);
+bool contains(const string &token, list<string> & values);
 //performs a case insensitive search
-bool contains(string token, const string *  values, unsigned int noValues);
+bool contains(const string &token, const string *  values, unsigned int noValues);
 
 //performs a case insensitive search
-bool isOnly(string token, const string * values, unsigned int noValues);
+bool isOnly(const string &token, const string * values, unsigned int noValues);
 
-void addIfNotContained(string token, list<string> & lst);
-void addIfNotContained(string token1, string token2, list<pair<string,
-                                                               string> > &
-                       lst);
+void addIfNotContained(const string &token, list<string> & lst);
+void addIfNotContained(const string &token1, const string &token2,
+                       list<pair<string, string> > & lst);
 
-string removeApostrophe(string data);
-bool hasApostrophe(string data);
+string removeApostrophe(const string &data);
+bool hasApostrophe(const string &data);
 
 string homomorphicAdd(const string &val1, const string &val2,
                       const string &valN2);
 
-string toLowerCase(string token);
+string toLowerCase(const string &token);
 
-bool equalsIgnoreCase(string s1, string s2);
+bool equalsIgnoreCase(const string &s1, const string &s2);
 
 void keywordsToLowerCase(list<string> & lst, ParserMeta * pm);
 

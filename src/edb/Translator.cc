@@ -51,7 +51,7 @@ anonFieldNameForDecrypt(FieldMetadata * fm)
 }
 
 bool
-FieldMetadata::exists(string val)
+FieldMetadata::exists(const string &val)
 {
     return (val.length() > 0);
 }

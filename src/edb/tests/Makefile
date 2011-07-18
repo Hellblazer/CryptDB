@@ -8,7 +8,7 @@ all: test
 test: $(TEST_OBJS)
 	$(CXX) $(LDFLAGS) -o $@ $^ -lcryptdb -ldl -lcrypto -lntl
 
-%.o: %.cc %.cpp $(HEADERS)
+%.o: %.cc $(HEADERS)
 	$(CXX) $(CXXFLAGS) $< -c -o $@
 
 clean: 
