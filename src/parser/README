@@ -3,5 +3,5 @@
 % mkdir build
 % cd build
 % cmake .. -DWITH_EMBEDDED_SERVER=ON
-
+% make
 
