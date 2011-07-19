@@ -755,6 +755,12 @@ testUpdate(EDBClient * cl)
                     { "6", "21", "20000", "Pemberly",
                       "Elizabeth Darcy" } });
 
+    qUpdateSelect(cl,"SELECT * FROM t1",
+		  "SELECT age FROM t1 WHERE age > 20",
+		  { {"age"},
+		    {"30"},
+		    {"21"} });
+
     qUpdateSelect(cl, "UPDATE t1 SET age = age + 2",
 		  "SELECT * FROM t1",
 		  { {"id","age","salary","address","name"},
@@ -769,6 +775,21 @@ testUpdate(EDBClient * cl)
                     { "6", "23", "20000", "Pemberly",
                       "Elizabeth Darcy" } });
 
+    qUpdateSelect(cl, "UPDATE t1 SET age = 20 WHERE name='Elizabeth Darcy'",
+		  "SELECT age FROM t1 WHERE age > 20",
+		  { {"age"},
+		    {"32"} });
+
+    qUpdateSelect(cl, "UPDATE t1 SET age = age + 3 WHERE id=6",
+		  "SELECT age FROM t1",
+		  { {"age"},
+		    {"12"},
+		    {"18"},
+		    {"10"},
+		    {"12"},
+		    {"32"},
+		    {"23"} });
+
     qUpdateSelect(cl, "UPDATE t1 SET id = id + 10, salary = salary + 19, name = 'xxx', address = 'foo' WHERE age < 11",
 		  "SELECT * FROM t1",
 		  { {"id","age","salary","address","name"},
@@ -782,8 +803,6 @@ testUpdate(EDBClient * cl)
                       "Sherlock Holmes" },
                     { "6", "23", "20000", "Pemberly",
                       "Elizabeth Darcy" } });
-
-    
 
 
     if (!PLAIN) {
