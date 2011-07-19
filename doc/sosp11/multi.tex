@@ -123,34 +123,30 @@ described below and shown in Figure~\ref{fig:privmsg}.
 \footnotesize
 
 \begin{tabbing}
-{\bf PRINC TYPES physical\_user EXTERNAL;} \\
-{\bf PRINC TYPES user, msg;} \\
+{\bf PRINCTYPE physical\_user EXTERNAL;} \\
+{\bf PRINCTYPE user, msg;} \\
 \\
 
 x \= msgtext \= varchar(255) \= \kill
 
 CREATE TABLE privmsgs (\\
 \> msgid \> int, \\
-\> subject \> varchar(255) \> {\bf ENC\_FOR PRINC msgid TYPE msg}, \\
-\> msgtext \> text \> {\bf ENC\_FOR PRINC msgid TYPE msg} ); \\
+\> subject \> varchar(255) \> {\bf ENC\_FOR (msgid msg)}, \\
+\> msgtext \> text \> {\bf ENC\_FOR (msgid msg)} ); \\
 \\
 
 CREATE TABLE privmsgs\_to (\\
 \> msgid int, ~ rcpt\_id int, ~ sender\_id int, \\
 
-\> {\bf PRINC sender\_id TYPE user} \\
-\> {\bf ~ ~ ~ HAS\_ACCESS\_TO PRINC msgid TYPE msg}, \\
-\> {\bf PRINC rcpt\_id TYPE user} \\
-\> {\bf ~ ~ ~ HAS\_ACCESS\_TO PRINC msgid TYPE msg}); \\
+\> {\bf (sender\_id user)} \= {\bf HAS\_ACCESS\_TO (msgid msg)}, \\
+\> {\bf (rcpt\_id user)} \> {\bf HAS\_ACCESS\_TO (msgid msg)}); \\
 \\
 
 x \= sender\_id  int, x \= username varchar(255), x \= sender\_id text \= \kill
 
 CREATE TABLE users (\\
- \> userid int, ~ username varchar(255), \\
-
-\> {\bf PRINC username TYPE physical\_user HAS\_ACCESS\_TO} \\
-\> {\bf ~ ~ ~ PRINC userid TYPE user}); 
+\> userid int, ~ username varchar(255), \\
+\> {\bf (username physical\_user) HAS\_ACCESS\_TO (userid user)});
 
 \end{tabbing}
 
@@ -198,7 +194,7 @@ annotations added for \name.
 \end{figure}
 
 {\em Step 1.} The developer must define the {\em principal types}
-({\small \tt PRINC TYPES}) used in her application, such as users,
+({\small \tt PRINCTYPE}) used in her application, such as users,
 groups, or messages.  A {\em principal} is an instance of a principal
 type, e.g., principal 5 of type user.  Principals are of two types:
 external and internal. External principals correspond to end users who
@@ -226,7 +222,7 @@ phpBB, a user should also have the privileges of the groups he belongs
 to.  Since many applications store such information in tables,
 programmers can tell \name to infer delegations from rows in an
 existing table.  In \name, programmers can annotate a table $T$ with
-{\tt \small PRINC $a$ TYPE $x$ HAS\_ACCESS\_TO PRINC $b$ TYPE $y$}.
+{\tt \small ($a$ $x$) HAS\_ACCESS\_TO ($b$ $y$)}.
 This annotation indicates that each row present in that table grants
 principal $a$ of type $x$ access to everything that principal $b$ of
 type $y$ can access.  Here, $x$ and $y$ must always be fixed principal

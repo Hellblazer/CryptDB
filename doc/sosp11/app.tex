@@ -34,8 +34,8 @@ show them all here for brevity.
 
 \begin{tabbing}
 
-{\bf PRINC TYPES physical\_user EXTERNAL;} \\
-{\bf PRINC TYPES user, group, forum\_post, forum\_name;}\\
+{\bf PRINCTYPE physical\_user EXTERNAL;} \\
+{\bf PRINCTYPE user, group, forum\_post, forum\_name;}\\
 
 \\
 
@@ -43,35 +43,32 @@ x \= \kill
 
 CREATE TABLE users ( userid int, username varchar(255),\\
 
-\> {\bf PRINC username TYPE physical\_user HAS\_ACCESS\_TO } \\
-\> {\bf ~ ~ ~ PRINC userid TYPE user});\\
+\> {\bf (username physical\_user) HAS\_ACCESS\_TO (userid user)});\\
 
 \\
 
 CREATE TABLE usergroup ( userid int, groupid int,\\
 
-\> {\bf PRINC userid TYPE user HAS\_ACCESS\_TO } \\
-\> {~ ~ ~ \bf PRINC groupid TYPE group});\\
+\> {\bf (userid user) HAS\_ACCESS\_TO (groupid group)});\\
 
 \\
 
 CREATE TABLE aclgroups ( groupid int, forumid int, optionid int, \\
 
-\> {\bf PRINC groupid TYPE group HAS\_ACCESS\_TO }\\
-\> {\bf ~ ~ ~ PRINC forumid TYPE forum\_post IF optionid=20}, \\
-\> {\bf PRINC groupid TYPE group HAS\_ACCESS\_TO }\\
-\> {\bf ~ ~ ~ PRINC forumid TYPE forum\_name IF optionid=14}); \\
+\> {\bf (groupid group) HAS\_ACCESS\_TO (forumid forum\_post)} \\
+\> {\bf ~ ~ ~ ~ ~ ~ IF optionid=20}, \\
+\> {\bf (groupid group) HAS\_ACCESS\_TO (forumid forum\_name)} \\
+\> {\bf ~ ~ ~ ~ ~ ~ IF optionid=14}); \\
 
 \\
 x \= \kill
 
 
 CREATE TABLE posts ( postid int, forumid int,\\
-\> post text {\bf ENC\_FOR PRINC forumid TYPE forum\_post});\\
+\> post text {\bf ENC\_FOR (forumid forum\_post)});\\
 \\
 CREATE TABLE forum ( forumid int,\\
-\> name varchar(255) {\bf ENC\_FOR PRINC forumid } \\
-\> {\bf ~ ~ ~ TYPE forum\_name});
+\> name varchar(255) {\bf ENC\_FOR (forumid forum\_name)});
 
 \end{tabbing}
 \vspace{-0.15in}
@@ -110,61 +107,24 @@ malicious, but might be careless, so he won't modify the application
 to log the passwords of PC members to subvert the system.)
 
 
-{\bf grad-apply} is a graduate admissions system used at a major
-university.  We annotated its schema to allow an applicant's folder to be accessed only by the respective applicant and any faculty using: 
- {\tt \small PRINC reviewers.reviewer\_id TYPE reviewer} (meaning all reviewers) {\tt \small HAS\_ACCESS\_TO candidate\_id} in table candidates, and {\tt \small HAS\_ACCESS\_TO letter\_id} in table letters. The applicant can see all his folder except for letters of recommendation.  Overall, grad-apply has simple access control and therefore simple
-annotations. 
+{\bf grad-apply} is a graduate admissions system used by MIT EECS\@.
+We annotated its schema to allow an applicant's folder to be accessed
+only by the respective applicant and any faculty using: {\tt \small
+(reviewers.reviewer\_id reviewer)} (meaning all reviewers) {\tt \small
+HAS\_ACCESS\_TO (candidate\_id candidate)} in table {\tt candidates},
+and {\tt \small HAS\_ACCESS\_TO (letter\_id letter)} in table {\tt
+letters}. The applicant can see all his folder except for letters
+of recommendation.  Overall, grad-apply has simple access control and
+therefore simple annotations.
 
-
-%\begin{figure}
-%\renewcommand{\FrameSep}{0.05in}
-%\begin{framed}
-%\footnotesize
-%
-%{\bf PRINC TYPES physical\_contact EXTERNAL;} \\
-%{\bf PRINC TYPES contact, paper;}
-%
-%\begin{tabbing}
-%
-%x \= \kill
-%
-%CREATE TABLE ContactInfo ( contactId int, email varchar(120), \\
-%
-%\> {\bf PRINC email TYPE physical\_contact HAS\_ACCESS\_TO PRINC contactId TYPE contact});\\
-%
-%\\
-%
-%CREATE TABLE PaperConflict( paperId int, contactId int);\\
-%\\
-%
-%{\bf NoConflict(paperId, contactId):} \\
-%\> {\bf (SELECT count(*) FROM PaperConflict c WHERE c.paperId = paperId AND c.contactId = contactId)=0; } \\
-%
-%\\
-%
-%CREATE TABLE PaperReview ( paperId int, \\
-%\> contactId int {\bf ENC\_FOR PRINC paperId TYPE paper}, \\
-%\> commentsToPC text {\bf ENC\_FOR PRINC paperId TYPE paper},\\
-%\> {\bf PRINC contactId TYPE contact HAS\_ACCESS\_TO PRINC paperId TYPE paper  IF NoConflict(paperId, contactId)} \\
-%
-%\end{tabbing}
-%
-%\end{framed}
-%
-%\caption{
-%      Annotated schema for securing reviews in HotCRP\@. Reviews and the identity of reviewers providing the review will only be available to assigned reviewers who are not conflicted even if these reviewers are PC Chairs.}
-%\label{fig:posts}
-%\end{figure}
-
-%HOTCRP any PC member can see reviews of a paper and who reviewed it other than conflicted PC members or PC Chairs
 
 \begin{figure}
 \renewcommand{\FrameSep}{0.05in}
 \begin{framed}
 \footnotesize
 
-{\bf PRINC TYPES physical\_contact EXTERNAL;} \\
-{\bf PRINC TYPES contact, review;}
+{\bf PRINCTYPE physical\_user EXTERNAL;} \\
+{\bf PRINCTYPE contact, review;}
 
 \begin{tabbing}
 
@@ -172,8 +132,7 @@ x \= \kill
 
 
 CREATE TABLE ContactInfo ( contactId int, email varchar(120), \\
-\> {\bf PRINC email TYPE physical\_contact HAS\_ACCESS\_TO } \\
-\> {\bf ~ ~ ~ PRINC contactId TYPE contact});\\
+\> {\bf (email physical\_user) HAS\_ACCESS\_TO (contactId contact)});\\
 
 \\
 
@@ -186,16 +145,15 @@ CREATE TABLE PaperConflict ( paperId int, contactId int );\\
 \> {\bf (SELECT count(*) FROM PaperConflict c  WHERE }\\
 \> {~ ~ ~ \bf c.paperId = paperId AND c.contactId = contactId) = 0;} \\
 
-x \= commentsToPC \= text \= {\bf ENC\_FOR PRINC paperId TYPE review} \= \kill
+x \= commentsToPC \= text \= {\bf ENC\_FOR (paperId review)} \= \kill
 \\
 CREATE TABLE PaperReview ( paperId int, \\
-\> reviewerId \> int \> {\bf ENC\_FOR PRINC paperId TYPE review}, \\
-\> commentsToPC \>text \> {\bf ENC\_FOR PRINC paperId TYPE review},\\
+\> reviewerId \> int \> {\bf ENC\_FOR (paperId review)}, \\
+\> commentsToPC \>text \> {\bf ENC\_FOR (paperId review)},\\
 
 
-\> {\bf PRINC PCMember.contactId TYPE contact }\\
-\> {\bf ~ ~ ~ HAS\_ACCESS\_TO PRINC paperId TYPE review IF } \\
-\> {\bf ~ ~  ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ NoConflict(paperId, contactId)});
+\> {\bf (PCMember.contactId contact) HAS\_ACCESS\_TO} \\
+\> {\bf ~ ~ ~ ~ ~ ~ (paperId review) IF NoConflict(paperId, contactId)});
 
 \end{tabbing}
 \vspace{-0.15in}
