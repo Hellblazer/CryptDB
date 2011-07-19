@@ -13,7 +13,7 @@
 #define MYSQL_S 1
 
 // Multi-principal vs. single-principal (1 vs. 0)
-#define MULTIPRINC 0
+#define MULTIPRINC 1
 
 // if true, all fields will be automatically encrypted in single principal
 // mode without specifying enc
