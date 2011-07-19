@@ -5,8 +5,9 @@
  *      Author: cat_red
  */
 
-#include "OPE.h"
+#include "CryptoManager.h"
 #include "HGD.h"
+#include "OPE.h"
 
 #ifndef TESTCRYPTO_H_
 #define TESTCRYPTO_H_
