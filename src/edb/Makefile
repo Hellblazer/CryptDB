@@ -18,7 +18,7 @@ LDFLAGS	 := -L. -lmysqlclient -lz -llua5.1 \
 
 HEADERS	 := $(wildcard *.h)
 
-CRYPTO_OBJS  := OPE.o util.o HGD.o CryptoManager.o Equation.o
+CRYPTO_OBJS  := OPE.o util.o HGD.o Binary.o SWPSearch.o CryptoManager.o Equation.o log.o
 CRYPTDB_OBJS := AccessManager.o EDBClient.o Connect.o Translator.o MultiPrinc.o
 PROXY_OBJS   := ConnectWrapper.o
 LIBS	     := libedbcrypto.so edb.so libcryptdb.so libexecute.so

@@ -11,6 +11,7 @@
 #include "OPE.h"
 #include "params.h"
 #include <stdio.h>
+#include "SWPSearch.h"
 
 //returns the highest security level lower than sl that allows equality
 SECLEVEL highestEq(SECLEVEL sl);

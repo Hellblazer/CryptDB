@@ -139,11 +139,9 @@ DBResult::unpack()
 {
 #if MYSQL_S
 
-    cerr << "a\n";
-    if (n == NULL) {
+    if (n == NULL)
         return new ResType();
-    }
-    cerr << "b\n";
+
     size_t rows = (size_t)mysql_num_rows(n);
     int cols  = -1;
     if (rows > 0) {
@@ -151,16 +149,11 @@ DBResult::unpack()
     } else {
         return new ResType();
     }
-    cerr << "c\n";
 
     ResType *res = new vector<vector<string> >();
 
-    cerr << "d\n";
-
     // first row contains names
     res->push_back(vector<string>(cols));
-
-    cerr << "e\n";
 
     bool binFlags[cols];
     for (int j = 0;; j++) {

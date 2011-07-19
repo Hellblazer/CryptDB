@@ -10,6 +10,7 @@
  */
 
 #include "TestSinglePrinc.h"
+#include "log.h"
 
 #define PLAIN 0
 #define STOP_IF_FAIL 0
@@ -78,18 +79,15 @@ CheckSelectResults(EDBClient * cl, vector<string> in, vector<ResType> out)
         ntest++;
         ResType * test_res = myExecute(cl, *query_it);
         if(!test_res) {
-            cerr << "Query: " << endl;
-            cerr << "\t" << *query_it << endl;
-            cerr << "Select or Join query won't execute";
+            LOG(test) << "Query: " << *query_it;
 	    if (STOP_IF_FAIL) {
-	      assert_s(false, "above query could not execute");
+	      assert_s(false, "above query generated the wrong result");
 	    }
             return;
         }
 
         if(*test_res != *res_it) {
-            cerr << "From query: " << endl;
-            cerr << *query_it << endl;
+            LOG(test) << "From query: " << *query_it;
             cerr << "-----------------------\nExpected result:" << endl;
             PrintRes(*res_it);
             cerr << "Got result:" << endl;
@@ -142,10 +140,8 @@ qUpdateSelect(EDBClient *cl, const string &update, const string &select,
 static void
 testCreateDrop(EDBClient * cl)
 {
-    cerr << "createdrop begin" << endl;
-
     cl->plain_execute("DROP TABLE IF EXISTS table0, table1, table2, table3");
-    cerr << "plain okay" << endl;
+
     string sql = "CREATE TABLE t1 (id integer, words text)";
     assert_s(cl->execute(sql), "Problem creating table t1 (first time)");
     assert_s(cl->plain_execute(
