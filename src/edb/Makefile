@@ -21,19 +21,18 @@ HEADERS	 := $(wildcard *.h)
 CRYPTO_OBJS  := OPE.o util.o HGD.o Binary.o SWPSearch.o CryptoManager.o Equation.o log.o
 CRYPTDB_OBJS := AccessManager.o EDBClient.o Connect.o Translator.o MultiPrinc.o
 PROXY_OBJS   := ConnectWrapper.o
+TEST_OBJS    := tests/test.o tests/TestSinglePrinc.o tests/TestCrypto.o
 LIBS	     := libedbcrypto.so edb.so libcryptdb.so libexecute.so
 
-# for recursive Makefiles
-export CXX CXXFLAGS LDFLAGS
-
-all: $(LIBS) test
+all: $(LIBS) tests/test
+test: tests/test
 
 # UDF libraries
 libedbcrypto.so: $(CRYPTO_OBJS)
 	$(CXX) $(LDFLAGS) -shared -o $@ $^ -lntl -lcrypto
 
 edb.so: edb.o libedbcrypto.so
-	$(CXX)   $(LDFLAGS) -shared -o $@ $^  -ldl
+	$(CXX) $(LDFLAGS) -shared -o $@ $< -ledbcrypto -ldl
 
 libcryptdb.so: $(CRYPTDB_OBJS) libedbcrypto.so
 	$(CXX) $(LDFLAGS) -shared -o $@ $(CRYPTDB_OBJS) -lntl -ldl -lcrypto -ledbcrypto
@@ -41,19 +40,21 @@ libcryptdb.so: $(CRYPTDB_OBJS) libedbcrypto.so
 libexecute.so: $(PROXY_OBJS) libcryptdb.so libedbcrypto.so
 	$(CXX) $(LDFLAGS) -shared -o $@ $(PROXY_OBJS) -lntl -ldl -lcrypto -ledbcrypto -lcryptdb
 
-test: libcryptdb.so
-	cd tests && $(MAKE)
+tests/test: libcryptdb.so $(TEST_OBJS)
+	$(CXX) $(LDFLAGS) -o $@ $(TEST_OBJS) -lcryptdb -ldl -lcrypto -lntl -ledbcrypto
 
 %.o: %.cc $(HEADERS)
 	$(CXX) $(CXXFLAGS) $< -c -o $@
+
+$(TEST_OBJS): %.o: %.cc $(HEADERS) $(wildcard tests/*.h)
+	$(CXX) $(CXXFLAGS) $< -c -o $@ -I.
 
 install: libedbcrypto.so edb.so
 	install -m 644 libedbcrypto.so /usr/lib
 	install -m 644 edb.so $(MYSQL_PLUGIN_DIR)
 
 clean:
-	rm -f *.o $(LIBS)
-	cd tests && $(MAKE) clean
+	rm -f *.o tests/*.o $(LIBS) tests/test
 
 indent:
 	uncrustify --no-backup -c ../.uncrustify.cfg $(wildcard *.cc)
