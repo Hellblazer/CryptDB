@@ -65,6 +65,11 @@ void     func_add_set_deinit(UDF_INIT *initid);
 char *   func_add_set(UDF_INIT *initid, UDF_ARGS *args, char *result,
                       unsigned long *length, char *is_null, char *error);
 
+
+my_bool searchSWP_init(UDF_INIT *initid, UDF_ARGS *args, char *message);
+void searchSWP_deinit(UDF_INIT *initid);
+my_bool searchSWP(UDF_INIT *initid, UDF_ARGS *args, char *is_null, char *error);
+
 #else /* Postgres */
 
 #include "postgres.h"                   /* general Postgres declarations */
@@ -144,6 +149,11 @@ decrypt_DET(unsigned char *eValueBytes, uint64_t eValueLen, AES_KEY * key)
 {
     string c((char *) eValueBytes, (unsigned int) eValueLen);
     return CryptoManager::decrypt_DET(c, key);
+}
+
+static bool
+search(const Token & token, const Binary & overall_ciph) {
+	return SWP::searchExists(token, overall_ciph);
 }
 
 #if MYSQL_S
@@ -482,6 +492,59 @@ search(PG_FUNCTION_ARGS)
     PG_RETURN_BOOL(true);
 #endif
 }
+
+
+
+
+#if MYSQL_S
+
+//TODO: write a version of search for postgres
+
+
+my_bool
+searchSWP_init(UDF_INIT *initid, UDF_ARGS *args, char *message)
+{
+	Token * t = new Token();
+
+    uint64_t ciphLen;
+    char *ciph = (char *) getba(args, 1, ciphLen);
+
+    uint64_t wordKeyLen;
+    char *wordKey = (char *) getba(args, 1, wordKeyLen);
+
+	t->ciph = Binary((unsigned int) ciphLen, (unsigned char *)ciph);
+	t->wordKey = Binary((unsigned int)wordKeyLen, (unsigned char *)wordKey);
+
+	initid->ptr = (char *) t;
+
+    return 0;
+}
+
+void
+searchSWP_deinit(UDF_INIT *initid)
+{
+	 Token *t = (Token *) initid->ptr;
+	 delete t;
+
+}
+
+my_bool
+searchSWP(UDF_INIT *initid, UDF_ARGS *args, char *is_null, char *error)
+
+{
+    uint64_t wordLen;
+    char * word = (char *)getba(ARGS, 0, wordLen);
+    Binary w = Binary((unsigned int)wordLen, (unsigned char *)word);
+
+    return search(*((Token *)(initid->ptr)), w);
+
+ }
+
+
+#endif
+
+
+
 
 #if MYSQL_S
 
