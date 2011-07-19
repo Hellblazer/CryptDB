@@ -21,7 +21,7 @@ HEADERS	 := $(wildcard *.h)
 CRYPTO_OBJS  := OPE.o util.o HGD.o Binary.o SWPSearch.o CryptoManager.o Equation.o log.o
 CRYPTDB_OBJS := AccessManager.o EDBClient.o Connect.o Translator.o MultiPrinc.o
 PROXY_OBJS   := ConnectWrapper.o
-TEST_OBJS    := tests/test.o tests/TestSinglePrinc.o tests/TestCrypto.o #tests/test_utils.o tests/TestMultiPrinc.o
+TEST_OBJS    := tests/test.o tests/TestSinglePrinc.o tests/TestCrypto.o tests/test_utils.o tests/TestMultiPrinc.o
 LIBS	     := libedbcrypto.so edb.so libcryptdb.so libexecute.so
 
 all: $(LIBS) tests/test
