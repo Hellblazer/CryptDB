@@ -337,12 +337,12 @@ should revise the annotations.
 Each principal (i.e., each instance of each principal type) is associated
 with a secret, randomly-chosen key.  If principal B has access to
 principal A, then principal A's key is encrypted using principal B's
-key, and stored in a special \textsf{access\_keys} table in the database.
+key, and stored in a special \texttt{access\_keys} table in the database.
 In this way, principal B has access to principal A's key.  For example,
 in Figure~\ref{fig:privmsg}, to give users 1 and 2 access to message 5,
 the key of {\em msg} 5 is encrypted with the key of {\em user} 1, and
 also separately encrypted with the key of {\em user} 2; both encryptions
-are stored in \textsf{access\_keys}.  Each sensitive
+are stored in \texttt{access\_keys}.  Each sensitive
 field is encrypted with the key of the principal in the {\small \tt
 ENC\_FOR} annotation. \name{} encrypts the sensitive field with
 onions in the same way as for single-principal \name,
@@ -358,7 +358,7 @@ in Figure~\ref{fig:privmsg}, suppose Bob sends message 5 to Alice, but
 Alice (user 1) is not online.  This means that \name does not have access
 to user 1's key, so it will not be able to encrypt message 5's key with
 user 1's symmetric key.  In this case, \name looks up the public key
-of the principal (i.e., user 1) in a second table, \textsf{public\_keys}, and encrypts
+of the principal (i.e., user 1) in a second table, \texttt{public\_keys}, and encrypts
 message 5's key using user 1's public key.  When user 1 logs in, they
 will be able to use the secret key part of their key to decrypt the
 key for message 5.
@@ -366,7 +366,7 @@ key for message 5.
 For external principals (e.g., physical users), \name assigns a
 random key just as for any other principal.  To give an external user
 access to the corresponding key on login, \name stores the key of each
-external principal in a third table, \textsf{external\_keys}, encrypted
+external principal in a third table, \texttt{external\_keys}, encrypted
 with the principal's password.  This allows \name to obtain a user's
 key given the user's password, and also allows a user to change his or
 her password without changing the key of the principal.
@@ -389,7 +389,7 @@ keeping aggregate statistics).
 
 Applications inform \name{} of a user logging in or out by simply
 issuing SQL {\tt INSERT} and {\tt DELETE} queries to a special table
-\textsf{cryptdb\_active}, which the proxy recognizes.
+\texttt{cryptdb\_active}, which the proxy recognizes.
 
 \name{} guards the data of inactive users at the time of an
 attack. However, some special users such as administrators with access
