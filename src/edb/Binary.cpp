@@ -124,7 +124,7 @@ Binary Binary::toBinary(unsigned long val, int no_bytes) {
 	if (no_bytes > 0) {
 		size = no_bytes;
 	} else {
-		size = reslist.size();
+		size = (uint) reslist.size();
 	}
 
 	Binary res(size);
@@ -136,7 +136,7 @@ Binary Binary::toBinary(unsigned long val, int no_bytes) {
 		index++;
 	}
 
-	for (unsigned int i = reslist.size(); i < size; i++) {
+	for (size_t i = reslist.size(); i < size; i++) {
 		res.content[i] = 0;
 	}
 
@@ -144,7 +144,7 @@ Binary Binary::toBinary(unsigned long val, int no_bytes) {
 }
 
 Binary Binary::toBinary(string val) {
-	Binary res(val.length());
+	Binary res((uint) val.length());
 	memcpy(res.content, val.c_str(), res.len);
 	return res;
 }
@@ -158,11 +158,9 @@ unsigned int Binary::toUInt() {
 	return res;
 }
 
-// ?? Why do I have to forward declare the function?
-string valueToString(unsigned int x);
-
-string valueToString(unsigned int x) {
-
+static string
+valueToString(unsigned int x)
+{
 	if (x == 0) {
 		return "0";
 	}
