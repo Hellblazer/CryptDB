@@ -9,7 +9,7 @@ encrypts fields or calls UDFs; and a result decryption module.  To
 allow applications to transparently use \name, we used MySQL Proxy and
 implemented a Lua module that passes queries and results through our
 C++ module.  We implemented our new cryptographic protocols using
-NTL~\cite{shoup:ntl}.  \name{} is $\sim 8500$ non-empty lines of code.
+NTL~\cite{shoup:ntl}.  \name{} is $\sim$8500 non-empty lines of code.
 
 \name is portable and supports both Postgres 9.0 and MySQL 5.1;
 initially implemented in Postgres, porting \name{} to MySQL required

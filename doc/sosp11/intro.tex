@@ -312,7 +312,7 @@ have access to each data item.
 % identical plaintexts have identical ciphertexts.\footnote{\name
 %   never gives the server onion keys to decrypt the data to plaintext.}
 % \name{} then sends the server a deterministic encryption of the
-% constant $5$, allowing it to compute matching rows by only revealing
+% constant 5, allowing it to compute matching rows by only revealing
 % the necessary {\em relations between data items}, and {\em not
 %   revealing the actual data}, or other relations between data items
 % not used in this query.
@@ -336,7 +336,7 @@ have access to each data item.
 % In this model, each query requires the server to perform a certain class of
 % computations on stored data. For example,
 % consider evaluating an equality filter such as \texttt{WHERE id = 5}. Given
-% the encryption of $5$, say \texttt{x1c5a21}, the server needs to be able to
+% the encryption of 5, say \texttt{x1c5a21}, the server needs to be able to
 % figure out what rows in column \texttt{id} have an encryption of
 % \texttt{x1c5a21}.  \name{} allows the server to compute the set of rows whose
 % {\tt id} column matches the given ciphertext, but does not reveal to the
@@ -384,19 +384,20 @@ have access to each data item.
 We have implemented \name{} in a way that should work with most
 standard SQL DBMSes, and ran it on both unmodified Postgres and MySQL
 servers. We ran \name{} on three multi-user web applications: phpBB (a
-popular online bulletin board), HotCRP (a conference review system),
-and grad-apply (our university's graduate admission system) and on the
+popular online bulletin board), HotCRP~\cite{kohler:hotcrp}
+(a conference review system),
+and grad-apply (the graduate admissions system for MIT EECS), and on the
 industry-standard TPC-C benchmark. \name{} secured all sensitive
-fields in the three applications with only $11$--$13$ unique
+fields in the three applications with only 11--13 unique
 annotations, which expressed a variety of policies (including an
 interesting new one in HotCRP for handling papers in conflict with a
 PC chair).  \name{} supported all queries on encrypted data from these
 applications.  Compared to an unencrypted DBMS, \name{} reduced
-throughput by a modest $13\%$ for phpBB and $27\%$ for TPC-C\@.
+throughput by a modest 13\% for phpBB and 27\% for TPC-C\@.
 
 %Porting \name{} to a new DBMS
 %server is straightforward: our port to MySQL required changing just
-%$86$ lines of code dealing with database connectivity and user-defined
+%86 lines of code dealing with database connectivity and user-defined
 %function specification. 
  
 
@@ -441,7 +442,7 @@ throughput by a modest $13\%$ for phpBB and $27\%$ for TPC-C\@.
 %  \item The implementation and evaluation of \name{} on Postgres. \name:
 %  \begin{list}{\labelitemi}{\leftmargin=1em}
 %    \item does not change the DBMS so it can be ported to any standard
-%    DBMS\@. By changing $~85$ lines of code of \name{} (mostly connection code
+%    DBMS\@. By changing 85 lines of code of \name{} (mostly connection code
 %    to the DBMS), we ported \name{} to MySQL (Sec. \ref{s:impl}),
 %    \item has a modest overhead with a throughput loss
 %    of $\approx 28\%$ on TPC-C (Sec. \ref{s:eval}).

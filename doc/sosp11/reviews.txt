@@ -150,7 +150,7 @@ its format (e.g. just booleans or... ?)
 [  ] In addition, the security eval (final para section 7.1) is kinda weak... 
 Is there something more comprehensive you could do here? 
 
-[  ] Nits: 
+[ X ] Nits: 
 
 - the example on p8 (figure 4); text says "Bob ... has access to principal 1"; 
 this should be '2', right? 
@@ -265,13 +265,13 @@ with sensitive fields, and thus stresses on the *_keys tables, say.
 [  ] Fig11's macrobenchmark of phpBB is only partially interesting -- the system
 appears very slow.  Where is the bottleneck in the original MySQL version?
 
-[ ] Do an old girl a favor and use fewer fonts.  I counted Times Roman,
+[ X ] Do an old girl a favor and use fewer fonts.  I counted Times Roman,
 Computer Modern for math (\usepackage{mathptmx}), Computer Modern Sans for
 encryption types (just use capitals or small capitals), Helvetica for
 database tables, Lucida Sans Typewriter for SQL statements, and some
 thing for Figure 3.  Ugh too many.
 
-[  ] Also it would be kind to cite "Hot Crap!" as a HotCRP reference.
+[ X ] Also it would be kind to cite "Hot Crap!" as a HotCRP reference.
 
 ===========================================================================
                            SOSP 2011 Review #53D

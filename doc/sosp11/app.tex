@@ -10,7 +10,7 @@ irrelevant fields and type specifiers.  Overall, we find that once the
 programmer specifies the principals in the application's schema, and
 the delegation rules for them using {\small \tt HAS\_ACCESS\_TO},
 protecting additional sensitive fields just requires additional
-{\small \tt ENCRYPT\_FOR} annotations.
+{\small \tt ENC\_FOR} annotations.
 
 {\bf phpBB} is a widely-used open source forum with a rich set of
 access control settings. Users are organized in groups; both users and
@@ -67,10 +67,10 @@ x \= \kill
 
 
 CREATE TABLE posts ( postid int, forumid int,\\
-\> post text {\bf ENCRYPT\_FOR PRINC forumid TYPE forum\_post});\\
+\> post text {\bf ENC\_FOR PRINC forumid TYPE forum\_post});\\
 \\
 CREATE TABLE forum ( forumid int,\\
-\> name varchar(255) {\bf ENCRYPT\_FOR PRINC forumid } \\
+\> name varchar(255) {\bf ENC\_FOR PRINC forumid } \\
 \> {\bf ~ ~ ~ TYPE forum\_name});
 
 \end{tabbing}
@@ -78,11 +78,10 @@ CREATE TABLE forum ( forumid int,\\
 
 \end{framed}
 
-\vspace{-0.2in}
 \caption{Annotated schema for securing access to posts in phpBB\@. A
   user has access to see the content of posts in a forum if any of the
   groups that the user is part of has such permissions, which is indicated
-  by optionid $20$ in the aclgroups table for the corresponding forumid
+  by optionid 20 in the aclgroups table for the corresponding forumid
   and groupid. Similarly, optionid 14 enables users to see the forum's
   name.}
 
@@ -144,8 +143,8 @@ annotations.
 %\\
 %
 %CREATE TABLE PaperReview ( paperId int, \\
-%\> contactId int {\bf ENCRYPT\_FOR PRINC paperId TYPE paper}, \\
-%\> commentsToPC text {\bf ENCRYPT\_FOR PRINC paperId TYPE paper},\\
+%\> contactId int {\bf ENC\_FOR PRINC paperId TYPE paper}, \\
+%\> commentsToPC text {\bf ENC\_FOR PRINC paperId TYPE paper},\\
 %\> {\bf PRINC contactId TYPE contact HAS\_ACCESS\_TO PRINC paperId TYPE paper  IF NoConflict(paperId, contactId)} \\
 %
 %\end{tabbing}
@@ -183,15 +182,15 @@ CREATE TABLE PCMember ( contactId int ); \\
 CREATE TABLE PaperConflict ( paperId int, contactId int );\\
 \\
 
-{\bf NoConflict (paperId, contactId):} ~ ~ ~ ~ ~ ~ {\tt /*} Define a SQL function {\tt */} \\
+{\bf NoConflict (paperId, contactId):} ~ ~ {\tt /*} Define a SQL function {\tt */} \\
 \> {\bf (SELECT count(*) FROM PaperConflict c  WHERE }\\
 \> {~ ~ ~ \bf c.paperId = paperId AND c.contactId = contactId) = 0;} \\
 
-x \= commentsToPC \= text \= {\bf ENCRYPT\_FOR PRINC paperId TYPE review} \= \kill
+x \= commentsToPC \= text \= {\bf ENC\_FOR PRINC paperId TYPE review} \= \kill
 \\
 CREATE TABLE PaperReview ( paperId int, \\
-\> reviewerId \> int \> {\bf ENCRYPT\_FOR PRINC paperId TYPE review}, \\
-\> commentsToPC \>text \> {\bf ENCRYPT\_FOR PRINC paperId TYPE review},\\
+\> reviewerId \> int \> {\bf ENC\_FOR PRINC paperId TYPE review}, \\
+\> commentsToPC \>text \> {\bf ENC\_FOR PRINC paperId TYPE review},\\
 
 
 \> {\bf PRINC PCMember.contactId TYPE contact }\\
@@ -201,7 +200,6 @@ CREATE TABLE PaperReview ( paperId int, \\
 \end{tabbing}
 \vspace{-0.15in}
 \end{framed}
-\vspace{-0.2in}
 \caption{Annotated schema for securing reviews in HotCRP\@. Reviews and
 the identity of reviewers providing the review will only be available to
 PC members (table PCMember includes PC Chairs) who are not conflicted,
