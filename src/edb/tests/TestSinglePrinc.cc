@@ -103,7 +103,7 @@ qUpdateSelect(EDBClient *cl, const string &update, const string &select,
         cerr << "Got result:" << endl;
         PrintRes(*test_res);
 	if (STOP_IF_FAIL) {
-	  assert_s(false, "above query generated the wrong result");
+	  assert_s(false, update+"; "+select+" generated the wrong result");
 	}
 	return;
     }
@@ -248,7 +248,7 @@ testSelect(EDBClient * cl)
     query.push_back("SELECT max(id) FROM t1");
     string rows2[2][1] = { {"max(id)"},
                            {"5"} };
-    reply.push_back(convert(rows2,2));
+			   reply.push_back(convert(rows2,2));
 
     query.push_back("SELECT max(salary) FROM t1");
     string rows3[2][1] = { {"max(salary)"},
@@ -509,7 +509,7 @@ testSelect(EDBClient * cl)
     query.push_back("SELECT min(t.id) a FROM t1 AS t");
     string rows30[2][1] = { {"a"},
                             {"1"} };
-    reply.push_back(convert(rows30,2));
+			    reply.push_back(convert(rows30,2));
 
     query.push_back("SELECT t.address AS b FROM t1 t");
     string rows31[6][1] = { {"b"},
@@ -754,6 +754,37 @@ testUpdate(EDBClient * cl)
                       "Sherlock Holmes" },
                     { "6", "21", "20000", "Pemberly",
                       "Elizabeth Darcy" } });
+
+    qUpdateSelect(cl, "UPDATE t1 SET age = age + 2",
+		  "SELECT * FROM t1",
+		  { {"id","age","salary","address","name"},
+                    { "1", "12", "0",
+                      "first star to the right and straight on till morning",
+                      "Peter Pan"},
+                    { "2", "18", "0", "Green Gables", "Anne Shirley" },
+                    { "3", "10", "0", "London", "Lucy" },
+                    { "4", "12", "0", "London", "Edmund" },
+                    { "5", "32", "55000", "221B Baker Street",
+                      "Sherlock Holmes" },
+                    { "6", "23", "20000", "Pemberly",
+                      "Elizabeth Darcy" } });
+
+    qUpdateSelect(cl, "UPDATE t1 SET id = id + 10, salary = salary + 19, name = 'xxx', address = 'foo' WHERE age < 11",
+		  "SELECT * FROM t1",
+		  { {"id","age","salary","address","name"},
+                    { "1", "12", "0",
+                      "first star to the right and straight on till morning",
+                      "Peter Pan"},
+                    { "2", "18", "0", "Green Gables", "Anne Shirley" },
+                    { "13", "10", "19", "foo", "xxx" },
+                    { "4", "12", "0", "London", "Edmund" },
+                    { "5", "32", "55000", "221B Baker Street",
+                      "Sherlock Holmes" },
+                    { "6", "23", "20000", "Pemberly",
+                      "Elizabeth Darcy" } });
+
+    
+
 
     if (!PLAIN) {
         assert_s(cl->execute("DROP TABLE t1"), "testUpdate can't drop t1");

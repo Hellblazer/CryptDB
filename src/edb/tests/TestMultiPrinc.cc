@@ -146,11 +146,37 @@ UserGroupForum(EDBClient * cl) {
 		      "CREATE TABLE u (userid integer, username text);"), "failed: u table");
     assert_s(myCreate(cl,"CREATE TABLE usergroup (userid equals u.userid hasaccessto groupid integer, groupid integer)",
 		      "CREATE TABLE usergroup (userid integer, groupid integer)"), "failed: usergroup table");
-    assert_s(myCreate(cl,"CREATE TABLE privmsg (msgid integer, recid equals u.userid hasaccessto msgid integer, senderid hasaccessto msgid integer)",
-		      "CREATE TABLE privmsg (msgid integer, recid integer, senderid integer)"), "failed: privmsges table");
-    assert_s(myCreate(cl,"COMMIT ANNOTATIONS;","CREATE TABLE plain_users (username text, psswd text)"), "problem commiting annotations");  
+    assert_s(myCreate(cl,"CREATE TABLE groupforum (forumid equals forum.forumid integer, groupid equals usergroup.groupid hasaccessto forumid if test(optionid) integer, optionid integer)",
+		      "CREATE TABLE groupforum (forumid integer, groupid integer, optionid integer)"), "failed: groupforum table");
+    assert_s(myCreate(cl,"CREATE TABLE forum (forumid integer, forumtext encfor forumid text)",
+		      "CREATE TABLE forum (forum integer, forumtext text)"), "failed: forum table");
+    cl->plain_execute("DROP FUNCTION IF EXISTS test");
+    cl->plain_execute("CREATE FUNCTION test (optionid integer) RETURNS bool RETURN optioned=20");
 
-    }*/
+    assert_s(myCreate(cl,"COMMIT ANNOTATIONS;","CREATE TABLE plain_users (username text, psswd text)"), "problem commiting annotations");
+
+    myCreate(cl,"INSERT INTO "+ PWD_TABLE_PREFIX + "users (username, psswd) VALUES ('alice','secretalice');","INSERT INTO plain_users (username, psswd) VALUES ('alice','secretalice');");
+    myCreate(cl,"INSERT INTO "+ PWD_TABLE_PREFIX + "users (username, psswd) VALUES ('bob','secretbob');","INSERT INTO plain_users (username, psswd) VALUES ('bob','secretbob');");
+    myCreate(cl,"INSERT INTO "+ PWD_TABLE_PREFIX + "users (username, psswd) VALUES ('chris','secretchris');","INSERT INTO plain_users (username, psswd) VALUES ('chris','secretchris');");
+
+    checkQuery(cl,"INSERT INTO u VALUES (1, 'alice')",empty);
+    checkQuery(cl,"INSERT INTO u VALUES (2, 'bob')",empty);
+    checkQuery(cl,"INSERT INTO u VALUES (1, 'chris')",empty);
+
+    checkQuery(cl,"INSERT INTO usergroup VALUES (1,1)",empty);
+    checkQuery(cl,"INSERT INTO usergroup VALUES (2,2)",empty);
+    checkQuery(cl,"INSERT INTO usergroup VALUES (3,1)",empty);
+    checkQuery(cl,"INSERT INTO usergroup VALUES (3,2)",empty);
+
+    checkQuery(cl,"SELECT * FROM usergroup",
+	       { {"userid", "groupid"},
+		 {"1","1"},
+		 {"2","2"},
+		 {"3","1"},
+		 {"3","2"} });
+
+    
+		 }*/
 
 void
 TestMultiPrinc::run(int argc, char ** argv)
