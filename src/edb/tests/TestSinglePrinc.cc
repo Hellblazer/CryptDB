@@ -12,6 +12,7 @@
 #include "TestSinglePrinc.h"
 
 #define PLAIN 0
+#define STOP_IF_FAIL 0
 
 static int ntest = 0;
 static int npass = 0;
@@ -80,6 +81,9 @@ CheckSelectResults(EDBClient * cl, vector<string> in, vector<ResType> out)
             cerr << "Query: " << endl;
             cerr << "\t" << *query_it << endl;
             cerr << "Select or Join query won't execute";
+	    if (STOP_IF_FAIL) {
+	      assert_s(false, "above query could not execute");
+	    }
             return;
         }
 
@@ -91,6 +95,9 @@ CheckSelectResults(EDBClient * cl, vector<string> in, vector<ResType> out)
             cerr << "Got result:" << endl;
             PrintRes(*test_res);
             cerr << "Select or Join test failed";
+	    if (STOP_IF_FAIL) {
+	      assert_s(false, "above query generated the wrong result");
+	    }
             return;
         }
 
@@ -112,6 +119,9 @@ qUpdateSelect(EDBClient *cl, const string &update, const string &select,
     ResType * test_res = myExecute(cl, select);
     if (!test_res) {
         cerr << "Update or Delete query " << select << " won't execute";
+	if (STOP_IF_FAIL) {
+	  assert_s(false, "above query could not execute");
+	}
         return;
     }
 
@@ -120,7 +130,10 @@ qUpdateSelect(EDBClient *cl, const string &update, const string &select,
         PrintRes(expect);
         cerr << "Got result:" << endl;
         PrintRes(*test_res);
-        return;
+	if (STOP_IF_FAIL) {
+	  assert_s(false, "above query generated the wrong result");
+	}
+	return;
     }
 
     npass++;
@@ -879,7 +892,7 @@ testSearch(EDBClient * cl)
     cl->plain_execute(
         "DROP TABLE IF EXISTS table0, table1, table2, table3, table4, table5, table6, table7, table8, table9, table10, table11");
     if (!PLAIN) {
-        assert_s(cl->execute("CREATE TABLE t3 (id integer, searchable text)"),
+        assert_s(cl->execute("CREATE TABLE t3 (id integer, searchable enc text)"),
                  "testSearch couldn't create table");
     }
     assert_s(myExecute(cl, "INSERT INTO t3 VALUES (1, 'short text')"),
