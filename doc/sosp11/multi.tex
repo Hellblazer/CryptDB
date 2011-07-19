@@ -131,8 +131,8 @@ x \= msgtext \= varchar(255) \= \kill
 
 CREATE TABLE privmsgs (\\
 \> msgid \> int, \\
-\> subject \> varchar(255) \> {\bf ENCRYPT\_FOR PRINC msgid TYPE msg}, \\
-\> msgtext \> text \> {\bf ENCRYPT\_FOR PRINC msgid TYPE msg} ); \\
+\> subject \> varchar(255) \> {\bf ENC\_FOR PRINC msgid TYPE msg}, \\
+\> msgtext \> text \> {\bf ENC\_FOR PRINC msgid TYPE msg} ); \\
 \\
 
 CREATE TABLE privmsgs\_to (\\
@@ -154,39 +154,39 @@ CREATE TABLE users (\\
 
 \end{tabbing}
 
-\vspace{-5mm}
-\line(1,0){230}
-\vspace{-3mm}
+\vspace{-4mm}
+\hrulefill
+\vspace{-2mm}
+
 \begin{center}
-\textbf{\textit{Example table contents, without anonymized column names:}}
+\textit{Example table contents, without anonymized column names:}
 \end{center}
  \hspace{1mm}
  \begin{minipage}[h]{1.7 in}
   \centering
   \begin{tabular}{p{0.8cm}|p{1cm}|p{0.8cm}}
-  msgid & subject & msgtext \\
-  \hline
-  $5$     & xcc82fa & x37a21f \\ 
+  msgid & subject & msgtext \\ \hline
+  5 & xcc82fa & x37a21f \\ 
   \end{tabular}
+
+  \smallskip
+
   \begin{tabular}{p{0.8cm}|p{1cm}|p{0.8cm}}
-  msgid & rcpt\_id  & sender\_id \\
-  \hline
-  $5$     & 1 & 2 \\ 
+  msgid & rcpt\_id  & sender\_id \\ \hline
+  5 & 1 & 2 \\ 
   \end{tabular}
 \end{minipage}
 \hspace{0mm}
 \begin{minipage}[h]{0.9in}
  \centering
   \begin{tabular}{c|c}
-  userid & username \\
-  \hline
-  1     & `Alice'  \\  
+  userid & username \\ \hline
+  1 & `Alice'  \\  
   2 & `Bob' 
   \end{tabular}
  \end{minipage}
 \end{framed}
 
-\vspace{-0.2in}
 \caption{
 Part of phpBB's schema with annotations to secure private messages.
 Only the sender and receiver may see the private message. An attacker
@@ -200,7 +200,7 @@ annotations added for \name.
 {\em Step 1.} The developer must define the {\em principal types}
 ({\small \tt PRINC TYPES}) used in her application, such as users,
 groups, or messages.  A {\em principal} is an instance of a principal
-type, e.g., principal $5$ of type user.  Principals are of two types:
+type, e.g., principal 5 of type user.  Principals are of two types:
 external and internal. External principals correspond to end users who
 explicitly authenticate themselves to the web site using a password.
 When a user logs into the application, the application must provide
@@ -212,7 +212,7 @@ out.
 
 {\em Step 2.} The developer must specify which columns in her SQL
 schema contain sensitive data, along with the principals that should
-have access to that data, using the {\tt \small ENCRYPT\_FOR}
+have access to that data, using the {\tt \small ENC\_FOR}
 annotation.  \name requires that for each private data item in a row,
 the name of the principal that should have access to that data be
 stored in another column in the same row.
@@ -232,10 +232,10 @@ principal $a$ of type $x$ access to everything that principal $b$ of
 type $y$ can access.  Here, $x$ and $y$ must always be fixed principal
 types.  Principal $b$ is always specified by the name of a column in
 table $T$.  On the other hand, $a$ can be either the name of another
-column in the same table, a constant, or $T2.col$, meaning {\em all}
-principals from column $col$ of table $T2$.  For example, in
+column in the same table, a constant, or $T2.\textrm{col}$, meaning {\em all}
+principals from column $\textrm{col}$ of table $T2$.  For example, in
 Figure~\ref{fig:privmsg}, principal ``Bob'' of type {\em
-  physical\_user} has access to principal $2$ of type {\em user}, and
+  physical\_user} has access to principal 2 of type {\em user}, and
 in Figure~\ref{fig:hotcrp}, all principals in the {\em contactId}
 column from table {\em PCMember} (of type {\em contact}) have access
 to the {\em paperId} principal of type {\em review}.  Optionally, the
@@ -348,7 +348,7 @@ the key of {\em msg} 5 is encrypted with the key of {\em user} 1, and
 also separately encrypted with the key of {\em user} 2; both encryptions
 are stored in \textsf{access\_keys}.  Each sensitive
 field is encrypted with the key of the principal in the {\small \tt
-ENCRYPT\_FOR} annotation. \name{} encrypts the sensitive field with
+ENC\_FOR} annotation. \name{} encrypts the sensitive field with
 onions in the same way as for single-principal \name,
 except that onion keys are derived from a principal's key as opposed to
 a global master key.

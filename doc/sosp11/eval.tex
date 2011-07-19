@@ -12,7 +12,6 @@
 \centering grad-apply & 106 (13 unique) &  2 lines & 98: student grades (61), scores (17), recommendations, reviews \\
 TPC-C {\scriptsize (single princ.)} & 0	&		0		&	92: all the fields in all the tables encrypted \\
 \end{tabular}
-\vspace{-0.05in}
 \caption{Effectiveness of annotations and fields secured. This table shows, for 4 different applications, the number of annotations the programmer needs to add to secure sensitive fields, lines of code to be added to provide \name{} with the password of users, and the number of sensitive fields that \name{} secures with these annotations. We count as one annotation any invocation of our three types of annotations and any line of any SQL predicate used in a {\tt \small HAS\_ACCESS\_TO} annotation. Since multiple fields in the same table are usually encrypted for the same principal (e.g., message subject and content), we also report unique annotations. }
 \label{fig:annotations}
 \end{figure*}
@@ -24,7 +23,7 @@ TPC-C {\scriptsize (single princ.)} & 0	&		0		&	92: all the fields in all the ta
 This section evaluates the security \name{} provides to applications,  developer effort to annotate the schema, as well as
 performance overheads. 
 %rest of this section show that \name has low runtime overheads
-%(on the order of $27\%$ throughput cost and $0.64$~ms latency
+%(on the order of 27\% throughput cost and 0.64~ms latency
 %cost for TPC-C queries), is easy to port to new DBMS servers,
 %and requires no application code changes.
 Our multi-user application evaluations are done with phpBB, HotCRP,
@@ -46,7 +45,7 @@ its SQL operators. For TPC-C, we run in single-principal mode, which means that 
 % no annotations. The TPC-C evaluation enables useful microbenchmark
 % evaluation and gives us the worst-case performance of the DBMS: when
 % all fields (even insensitive ones) are encrypted: The throughput loss
-% is only $27\%$ and a latency addition of $0.64$ms.
+% is only 27\% and a latency addition of 0.64ms.
 
 \subsection{Application Security and Annotations}
 
@@ -74,8 +73,8 @@ database was encrypted with the key of one principal single key.
 \begin{tabular}{@{}c|c|c|c||c||c@{}}
 \bf Application & 	\bf $\RND$ & 	\bf $\DET$ & 	\bf $\OPE$ & 	\bf Total & 	$\HOM$ \\
 \hline
-PhpBB &          19   &   		 2    &    		 $3^*$  &   		 $24$ & 		2  \\
-HotCRP &	 	19 & 		1 & 			$2^*$ & 	 		22 &  	2 \\
+PhpBB &          19   &   		 2    &    		 3$^*$  &   		 24 & 		2  \\
+HotCRP &	 	19 & 		1 & 			2$^*$ & 	 		22 &  	2 \\
 grad-apply & 	 89& 		7  & 			2$^*$  & 		98 &  	0 \\
 TPC-C & 		65 & 		19 &  		8$^*$ & 			92 & 		8
 \end{tabular}
@@ -111,8 +110,8 @@ answers were not decryptable.
 \subsection{Performance Results}
 
 To evaluate the performance of \name, we use a server with an Intel
-Xeon 4-core $3.20$~GHz CPU and 3~GB of RAM, and a machine with
-an Intel Xeon 4-core $1.6$~GHz E7310 CPU and $8$~GB RAM to
+Xeon 4-core 3.20~GHz CPU and 3~GB of RAM, and a machine with
+an Intel Xeon 4-core 1.6~GHz E7310 CPU and 8~GB RAM to
 simulate multiple users.
 
 \subsubsection{TPC-C}
@@ -133,7 +132,7 @@ performance when using a \name proxy in front of a Postgres server.
 Figures~\ref{fig:querytputlat} and \ref{fig:trantput} shows the
 query throughput on TPC-C when transactions are disabled and enabled,
 respectively.  \name incurs a 21\% overhead without transactions, and
-the overhead with transactions increases to $27\%$ because of
+the overhead with transactions increases to 27\% because of
 increased lock contention caused by longer processing times and
 expanded queries.
 
@@ -144,14 +143,13 @@ expanded queries.
 %To measure the query processing throughput of \name{}, we first report
 %the throughput for TPC-C queries when transactions are not used, as
 %shown in Figure~\ref{fig:querytputlat}.  We can see that \name incurs
-%a throughput reduction of $21\%$ compared to an unmodified Postgres
+%a throughput reduction of 21\% compared to an unmodified Postgres
 %server (based on the highest throughput for both configurations).
 
 \begin{figure*}[t!]
 \begin{minipage}[t]{4.3in}
 \centering
 \includegraphics[width=4.3in]{fig/queries.pdf}
-\vspace{-0.7cm}
 \caption{Throughput and latency for TPC-C queries without transactions.}
 \label{fig:querytputlat}
 \end{minipage}
@@ -159,7 +157,6 @@ expanded queries.
 \begin{minipage}[t]{2.1in}
 \centering
 \includegraphics[width=2.05in]{fig/trantput.pdf}
-\vspace{-0.3cm}
 \caption{Throughput of TPC-C transactions.}
 \label{fig:trantput}
 \end{minipage}
@@ -168,7 +165,7 @@ expanded queries.
 % In case of unoptimized \name, client-side
 % processing times for each query are increased even further,
 % leading to significantly more transaction conflicts and an
-% overall throughput reduction of $70\%$.
+% overall throughput reduction of 70\%.
 
 To understand the sources of \name's overhead, we examine the
 throughput of individual SQL operators; this analysis is useful
@@ -176,7 +173,7 @@ because the mix of operators changes with application.  For each
 operator, we collect the corresponding queries from TPC-C, and
 measure the latency for those queries running under \name and under
 Postgres.  Table~\ref{t:microlat} shows the results.
-The proxy encryption time adds an average of $0.34$ ms to the query.
+The proxy encryption time adds an average of 0.34~ms to the query.
 The ciphertext caching optimization masks the high latency of queries
 requiring $\OPE$ and $\HOM$, as indicated by bold numbers and their
 corresponding Proxy$^-$ values.
@@ -184,7 +181,7 @@ The DBMS server latencies with and without \name are similar,
 suggesting that the expansion of data at the server caused by encryption has a small
 impact.
 End-to-end, \name with the caching optimization adds
-$0.64$~ms of latency to each query.
+0.64~ms of latency to each query.
 
 Figure~\ref{fig:microtput} shows the throughput for the same mix of
 queries for Postgres, \name, and a strawman design that performs each
@@ -201,7 +198,7 @@ TPC-C, and likely for many other applications.  Homomorphic
 operations, such as Select sum and Update increment, incur a
 significant overhead with \name, due to the server-side cost of
 homomorphically multiplying large cryptographic numbers instead of
-adding $32$-bit integers.
+adding 32-bit integers.
 
 
 
@@ -212,7 +209,7 @@ onion levels.  Fortunately, such decryption is fast, and only needs to be
 performed once per column for the lifetime of the system.\footnote{One
 exception is if the administrator wants to periodically re-encrypt to
 increase the security level.}  Removing a layer of $\RND$ requires AES
-decryption, which a commodity machine can perform at $\sim 500$~MBytes/s.
+decryption, which a commodity machine can perform at $\sim$500~MBytes/s.
 Thus, removing an onion layer is bottlenecked by the speed at which the
 DBMS server can copy a column from disk.
 
@@ -244,10 +241,9 @@ are not a problematic bottleneck.
 \begin{tabular}{@{}c|ccccc@{}}
 \bf DB & 	\bf Login & 	\bf R post & 	\bf W post & 	\bf R msg & 	\bf W msg \\
 \hline
-\bf MySQL &			105~ms  & 	85~ms 	&	238~ms	&	107~ms	&	389~ms \\
-\bf \name &			183~ms	 &	133~ms	& 	319~ms	&	166~ms	&	481~ms \\
+MySQL &			105~ms  & 	85~ms 	&	238~ms	&	107~ms	&	389~ms \\
+\name &			183~ms	 &	133~ms	& 	319~ms	&	166~ms	&	481~ms \\
 \end{tabular}
-\vspace{-0.1in}
 \caption{Latency for HTTP requests that heavily use encrypted
     fields in phpBB for MySQL and \name. R and W stand for read and write.}
 \label{fig:latencyphpbb}
@@ -255,7 +251,7 @@ are not a problematic bottleneck.
 
 %To evaluate the latency impact of \name on a real application,
 Table~\ref{fig:latencyphpbb} shows the end-to-end latency for
-5 types of phpBB requests.  We see that login is slowed down by $78$~ms
+5 types of phpBB requests.  We see that login is slowed down by 78~ms
 because \name{} loads keys from the DBMS on login.  Most of the other
 latency increases are due to \name's proxy.  Fortunately, the total
 increase is small.
@@ -296,7 +292,6 @@ Overall   &   &       1.4~ms         &  \textbf{0.34~ms}  &         7.3~ms      
 \begin{figure}[t!] 
 \centering
 \includegraphics[width=3.1in]{fig/microbars.pdf} 
-\vspace{-0.2in}
 \caption{Throughput of the SQL operators from Table~\ref{t:microlat}
   running under \name and Postgres. The numbers on top of the bars
   show the throughput reduction with \name{} for that operator. ``Up. inc" stands for update with increment and ``up. set'' for update set.}
@@ -310,13 +305,13 @@ The storage overhead of \name can come from two parts: the proxy
 and the DBMS\@.
 %The proxy stores only the original schema.
 The memory footprint of the \name{} proxy process is
-$18.5$~MBytes in our experiments.
-Caching the ciphertext of the $100000$ most common values consumes
-$<1$ MByte for $\OPE$ and $\sim 12$ MBytes for $\HOM$.  On the DBMS
-server, for TPC-C, \name{} increased the database size by $4.5\times$
+18.5~MBytes in our experiments.
+Caching the ciphertext of the 100,000 most common values consumes
+$<$1 MByte for $\OPE$ and $\sim$12 MBytes for $\HOM$.  On the DBMS
+server, for TPC-C, \name{} increased the database size by 4.5$\times$
 due to cryptographic expansion of certain integer fields, all fields being encrypted and most of them being integers. In fact, strings and
 binary data remain roughly the same size. Consequently,
-for phpBB, \name{} increases server storage by $42\%$, caused largely
+for phpBB, \name{} increases server storage by 42\%, caused largely
 by the public keys of principals (users, groups and messages) and the
 $\HOM$ onion for encrypted integer fields.
 As the number of posts in a forum grows, the amortized storage overhead
@@ -324,8 +319,8 @@ decreases because no new principals are added.
 
 % At the DB server, \name increases the size of the database due to
 % onion encryption and tables of principal keys.  For TPC-C, the
-% database size using Postgres was $135$~MB and with \name, it was
-% $619$~MB, amounting to $4.5$ times increase. This is mostly because of
+% database size using Postgres was 135~MB and with \name, it was
+% 619~MB, amounting to 4.5 times increase. This is mostly because of
 % aggregates which are large cryptographic numbers, without which it is
 % a three fold increase.  Since disk space is relatively cheap, we do
 % not consider increased storage cost to be a significant barrier to
@@ -340,7 +335,6 @@ decreases because no new principals are added.
 \begin{figure}[t]
 \centering
 \includegraphics[width=2.3in]{fig/tputbars.pdf} 
-\vspace{-0.05in}
 \caption{Throughput comparison for phpBB\@. ``MySQL'' denotes phpBB
 running directly on MySQL, ``MySQL+Parse'' includes the parsing cost
 of \name{} with cryptography and key management removed, ``\name Half''

@@ -8,6 +8,7 @@
 \usepackage[square,comma,numbers,sort&compress]{natbib}
 \usepackage{float}
 \usepackage{framed}
+\usepackage{mathptmx}
 
 % \clubpenalty=10000
 % \widowpenalty=10000
@@ -21,19 +22,20 @@
 
 \begin{document}
 
-%\title{\bf \name: Securing Applications by Processing Queries on Encrypted Data}
-%\title{\bf \name: A Practical Encrypted Relational DBMS}
-\title{\bf Data Confidentiality with Encrypted Query Processing in CryptDB}
-\author{Raluca Ada Popa, Catherine M. S. Redfield, Nickolai Zeldovich, and Hari Balakrishnan \\ \{ralucap, cat\_red, nickolai, hari\}@mit.edu}
+\title{\bf CryptDB: Protecting Confidentiality with \\
+	   Encrypted Query Processing}
+\author{Raluca Ada Popa, Catherine M. S. Redfield,
+	Nickolai Zeldovich, and Hari Balakrishnan \\
+	MIT CSAIL}
 \date{}
 
-\newcommand{\RND}{\mathsf{RND}}
-\newcommand{\DET}{\mathsf{DET}}
-\newcommand{\OPE}{\mathsf{OPE}}
-\newcommand{\OPEJOIN}{\mathsf{OPE}\mathrm{-}\mathsf{JOIN}}
-\newcommand{\HOM}{\mathsf{HOM}}
-\newcommand{\JOIN}{\mathsf{JOIN}}
-\newcommand{\SEARCH}{\mathsf{SEARCH}}
+\newcommand{\RND}{\textrm{RND}}
+\newcommand{\DET}{\textrm{DET}}
+\newcommand{\OPE}{\textrm{OPE}}
+\newcommand{\OPEJOIN}{\textrm{OPE-JOIN}}
+\newcommand{\HOM}{\textrm{HOM}}
+\newcommand{\JOIN}{\textrm{JOIN}}
+\newcommand{\SEARCH}{\textrm{SEARCH}}
 
 \newcommand{\up}{\texttt{UPDATE}}
 \newcommand{\ins}{\texttt{INSERT}}
@@ -48,20 +50,6 @@
 
 
 \newcommand{\tput}{27\%}
-\newcommand{\MK}{\mathsf{MK}}
-\newcommand{\SK}{\mathsf{SK}}
-\newcommand{\PK}{\mathsf{PK}}
-\newcommand{\fu}{\mathsf{FUNC}}
-
-\newcommand{\pr}{$\mathsf{Principal}$}
-\newcommand{\encfor}{$\mathsf{EncFor}$}
-\newcommand{\access}{$\mathsf{HasAccessTo}$}
-\newcommand{\gives}{$\mathsf{GivesPsswdTo}$}
-\newcommand{\und}{$\_$}
-
-
-
-\newcommand{\frontend}{frontend} % change to proxy later?
 
 \newtheorem{definition}{Definition}
 \newtheorem{theorem}{Theorem}

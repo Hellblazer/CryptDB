@@ -20,7 +20,7 @@ However, the operators comprising the query, such as selections,
 projections, joins, aggregates, and orderings, are performed on
 ciphertexts, and use modified operators in some cases.
 
-The \name{} proxy stores a secret master key, $\MK$, and the database
+The \name{} proxy stores a secret master key, $\mathit{MK}$, and the database
 schema.  The DBMS server sees an anonymized schema, encrypted user
 data, and some auxiliary tables used by \name{}.  \name{} also equips
 the DB server with \name{}-specific UDFs that enable the server to
@@ -30,7 +30,7 @@ Processing a query in \name{} involves four steps:
 \begin{CompactEnumerate}
 \item The application issues a query, which the proxy intercepts and
   rewrites: it anonymizes each table and column name, and, using the
-  master key $\MK$, encrypts each constant in the query with an
+  master key $\mathit{MK}$, encrypts each constant in the query with an
   encryption scheme best suited for the desired operation
   (\S\ref{ss:sqlaware}).
 \item The proxy passes the query to its {\em onion key manager (OKM)}
@@ -60,7 +60,7 @@ The key idea to our design is that different encryption schemes enable
 different SQL operations.  We use existing encryption schemes, optimize
 a recent scheme, and design a new cryptographic primitive for joins.
 
-\name{} uses the same key (derived from $\MK$) to encrypt each  data item in a column so that the same computation can be performed on every
+\name{} uses the same key (derived from $\mathit{MK}$) to encrypt each  data item in a column so that the same computation can be performed on every
 element in that column. (We will
   use finer-grained encryption in \S\ref{s:multi} to reduce the
   potential damage of application compromise.)
@@ -82,11 +82,11 @@ equality checks, which means it can perform selects with equality
 filters, equality joins, {\tt GROUP BY}, {\tt COUNT}, {\tt DISTINCT},
 etc.  There are
 many ways to implement $\DET$, such as $\DET_K(v)=\RND_{K_1}(v) ~ \| ~
-\mathsf{HMAC}\mathrm{-}\mathsf{SHA1}_{K_2}(v)$, where $\|$ is the
+\textrm{HMAC-SHA1}_{K_2}(v)$, where $\|$ is the
 concatenation operator, $K_1$ and $K_2$ are two keys derived from $K$,
 and $K$ itself is derived by encrypting the table and column names
-with $\MK$\@.  For this $\DET$ construction, the server compares two
-encryptions by comparing their $\mathsf{HMAC}\mathrm{-}\mathsf{SHA1}$
+with $\mathit{MK}$\@.  For this $\DET$ construction, the server compares two
+encryptions by comparing their HMAC-SHA1
 values.
 % We implement $\DET$ using AES in counter mode with a
 % separate IV (counter value) for each column, derived by encrypting the table
@@ -95,8 +95,7 @@ values.
 \textbf{Order-preserving encryption} ($\OPE$)\@. $\OPE$ allows order
 relations between data items to be established based on their
 encrypted values, but does not leak any other information about the
-data. If $x <
-y$, then $\OPE_K(x) < \OPE_K(y)$, for any secret key $K$\@.
+data. If $x < y$, then $\OPE_K(x) < \OPE_K(y)$, for any secret key $K$\@.
 Therefore, if a column is encrypted with $\OPE$, the server can
 perform range queries when given encrypted constants $\OPE_K(c_1)$ and
 $\OPE_K(c_2)$ corresponding to the range $[c_1, c_2]$.  The server can
@@ -114,10 +113,10 @@ the sign.
 The scheme we use~\cite{boldyreva-ope} is the first provably secure
 scheme.  Until \name{}, there has not been an implementation or any
 measure of how practical the scheme would be.  The direct
-implementation of the scheme took $\sim 25$ ms per encryption.  We
+implementation of the scheme took $\sim$25~ms per encryption.  We
 improved the algorithm by using AVL binary search trees when batch
 encryption is done (e.g., database loads), reducing the cost of $\OPE$
-encryption to $7$ ms per encryption without affecting its security. We
+encryption to 7~ms per encryption without affecting its security. We
 also implemented a hypergeometric sampler that lies at the core of
 $\OPE$, porting a Fortran implementation from 1988~\cite{HGD88}.
 
@@ -153,10 +152,10 @@ DBMS server return the sum and the count separately, and for
 incrementing values (e.g., {\tt SET id=id+1}), on which we will
 elaborate shortly.
 
-In $\HOM$, the ciphertext is $2048$ bits; however, we can pack
+In $\HOM$, the ciphertext is 2048 bits; however, we can pack
 multiple values into one ciphertext using the scheme
-of~\cite{GeZ07}, with an amortized space overhead of only $2$ times
-(e.g., a $32$-bit value occupies $64$ bits).
+of~\cite{GeZ07}, with an amortized space overhead of only 2 times
+(e.g., a 32-bit value occupies 64 bits).
 
 \textbf{Word search} ($\SEARCH$)\@.  To allow word searches in a given
 column (e.g., using the MySQL ``ILIKE'' operator), we implement a
@@ -174,7 +173,6 @@ between two columns.  $\OPEJOIN$ enables joins by order relations. We provide a 
 \begin{figure}[t!]
 \centering
 \includegraphics[width=3.1in]{fig/storage.pdf}
-\vspace{-0.2in}
 \caption{Onion layers of encryption and the classes of computation they allow.}
 \label{fig:onion}
 \end{figure}
@@ -223,13 +221,13 @@ and no $\HOM$ onion).
 For each level of each onion, the proxy uses the same key for
 encrypting values in the same column, and different keys across
 columns, onion levels, and tables.  All these keys are derived from
-the master key $\MK$\@.  For example, for table $t$, column $c$,
+the master key $\mathit{MK}$\@.  For example, for table $t$, column $c$,
 encryption level $l$, the proxy uses the key
 \begin{equation}\label{eq:columnkey}
-K_{t, c, l} = \mathsf{PRP}_{\MK} (\mathrm{table}\>t, \mathrm{column}\>c,
+K_{t, c, l} = \textrm{PRP}_\mathit{MK} (\mathrm{table}\>t, \mathrm{column}\>c,
     \mathrm{level}\>l),
 \end{equation}
-where $\mathsf{PRP}$ is a pseudorandom permutation (e.g., AES).
+where PRP is a pseudorandom permutation (e.g., AES).
 
 Each onion starts out encrypted with the most secure encryption scheme
 ($\RND$ for onions 1 and 2, and $\HOM$ for onion 3)\@.  As the proxy
@@ -268,7 +266,6 @@ privacy level for the set of queries issued by the application.
 \begin{figure}[t!] 
 \centering
 \includegraphics[width=3.1in]{fig/schema.pdf}
-\vspace{-0.2in}
 \caption{Data layout at the server. When the application creates a
   table with the schema on the left, the table created at the server
   is the one from the right.}
@@ -485,7 +482,7 @@ lies in generating $\OPE$ and $\HOM$ encryptions of constants used in
 queries.  To avoid this cost, the proxy maintains a cache of
 commonly-used constants, along with their encryptions under different
 keys.  Since some constants are repeatedly used in queries (e.g.,
-the constant $1$), this optimization reduces the amount of CPU time
+the constant 1), this optimization reduces the amount of CPU time
 spent by the proxy encrypting data.
 
 \subsection{Discussion}

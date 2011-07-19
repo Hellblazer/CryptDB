@@ -1,0 +1,7 @@
+Plot figures 8, 9, 10, and 11 with gnuplot for consistent typesetting
+(e.g., fonts).
+
+See reviews.txt.
+
+See cmts-craig.txt.
+
