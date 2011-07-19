@@ -1,0 +1,4 @@
+"MySQL"   22.7
+"MySQL+Parse  "  20.3 
+"  CryptDB Half"   19.9
+"CryptDB Full"   19.7
