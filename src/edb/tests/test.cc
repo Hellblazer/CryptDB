@@ -22,7 +22,7 @@
 #include "log.h"
 
 #include "TestSinglePrinc.h"
-#include "TestMultiPrinc.h"
+// #include "TestMultiPrinc.h"
 #include "TestCrypto.h"
 
 using namespace std;
@@ -3906,7 +3906,7 @@ static struct {
     { "pkcs",        &test_PKCS },
     { "shell",       &interactiveTest },
     { "single",      &TestSinglePrinc::run },
-    { "multi",       &TestMultiPrinc::run },
+    // { "multi",       &TestMultiPrinc::run },
     { "tables",      &encryptionTablesTest },
     { "trace",       &testTrace },
     { "utils",       &testUtils },
