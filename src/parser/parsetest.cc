@@ -45,7 +45,7 @@ parse(const char *q)
             printf("parse error: %d %d %d\n", error, t->is_fatal_error,
                    t->is_error());
             printf("parse error: h %p\n", t->get_internal_handler());
-            //printf("parse error: %d %s\n", t->is_error(), t->stmt_da->message());
+            printf("parse error: %d %s\n", t->is_error(), t->get_stmt_da()->message());
         } else {
             printf("command %d\n", lex.sql_command);
 
