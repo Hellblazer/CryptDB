@@ -147,16 +147,15 @@ expanded queries.
 %server (based on the highest throughput for both configurations).
 
 \begin{figure*}[t!]
-\begin{minipage}[t]{4.3in}
+\begin{minipage}[t]{4.4in}
 \centering
-\includegraphics[width=4.3in]{fig/queries.pdf}
+\includegraphics{fig/queries.pdf}
 \caption{Throughput and latency for TPC-C queries without transactions.}
 \label{fig:querytputlat}
 \end{minipage}
-\hspace{0.3cm}
-\begin{minipage}[t]{2.1in}
+\begin{minipage}[t]{2.2in}
 \centering
-\includegraphics[width=2.05in]{fig/trantput.pdf}
+\includegraphics{fig/trantput.pdf}
 \caption{Throughput of TPC-C transactions.}
 \label{fig:trantput}
 \end{minipage}
@@ -291,7 +290,7 @@ Overall   &   &       1.4~ms         &  \textbf{0.34~ms}  &         7.3~ms      
 
 \begin{figure}[t!] 
 \centering
-\includegraphics[width=3.1in]{fig/microbars.pdf} 
+\includegraphics{fig/microbars.pdf} 
 \caption{Throughput of the SQL operators from Table~\ref{t:microlat}
   running under \name and Postgres. The numbers on top of the bars
   show the throughput reduction with \name{} for that operator. ``Up. inc" stands for update with increment and ``up. set'' for update set.}
@@ -334,7 +333,7 @@ decreases because no new principals are added.
 
 \begin{figure}[t]
 \centering
-\includegraphics[width=2.3in]{fig/tputbars.pdf} 
+\includegraphics{fig/tputbars.pdf} 
 \caption{Throughput comparison for phpBB\@. ``MySQL'' denotes phpBB
 running directly on MySQL, ``MySQL+Parse'' includes the parsing cost
 of \name{} with cryptography and key management removed, ``\name Half''

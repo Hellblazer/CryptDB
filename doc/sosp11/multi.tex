@@ -123,34 +123,30 @@ described below and shown in Figure~\ref{fig:privmsg}.
 \footnotesize
 
 \begin{tabbing}
-{\bf PRINC TYPES physical\_user EXTERNAL;} \\
-{\bf PRINC TYPES user, msg;} \\
+{\bf PRINCTYPE physical\_user EXTERNAL;} \\
+{\bf PRINCTYPE user, msg;} \\
 \\
 
 x \= msgtext \= varchar(255) \= \kill
 
 CREATE TABLE privmsgs (\\
 \> msgid \> int, \\
-\> subject \> varchar(255) \> {\bf ENC\_FOR PRINC msgid TYPE msg}, \\
-\> msgtext \> text \> {\bf ENC\_FOR PRINC msgid TYPE msg} ); \\
+\> subject \> varchar(255) \> {\bf ENC\_FOR (msgid msg)}, \\
+\> msgtext \> text \> {\bf ENC\_FOR (msgid msg)} ); \\
 \\
 
 CREATE TABLE privmsgs\_to (\\
 \> msgid int, ~ rcpt\_id int, ~ sender\_id int, \\
 
-\> {\bf PRINC sender\_id TYPE user} \\
-\> {\bf ~ ~ ~ HAS\_ACCESS\_TO PRINC msgid TYPE msg}, \\
-\> {\bf PRINC rcpt\_id TYPE user} \\
-\> {\bf ~ ~ ~ HAS\_ACCESS\_TO PRINC msgid TYPE msg}); \\
+\> {\bf (sender\_id user)} \= {\bf HAS\_ACCESS\_TO (msgid msg)}, \\
+\> {\bf (rcpt\_id user)} \> {\bf HAS\_ACCESS\_TO (msgid msg)}); \\
 \\
 
 x \= sender\_id  int, x \= username varchar(255), x \= sender\_id text \= \kill
 
 CREATE TABLE users (\\
- \> userid int, ~ username varchar(255), \\
-
-\> {\bf PRINC username TYPE physical\_user HAS\_ACCESS\_TO} \\
-\> {\bf ~ ~ ~ PRINC userid TYPE user}); 
+\> userid int, ~ username varchar(255), \\
+\> {\bf (username physical\_user) HAS\_ACCESS\_TO (userid user)});
 
 \end{tabbing}
 
@@ -198,13 +194,13 @@ annotations added for \name.
 \end{figure}
 
 {\em Step 1.} The developer must define the {\em principal types}
-({\small \tt PRINC TYPES}) used in her application, such as users,
+({\small \tt PRINCTYPE}) used in her application, such as users,
 groups, or messages.  A {\em principal} is an instance of a principal
 type, e.g., principal 5 of type user.  Principals are of two types:
 external and internal. External principals correspond to end users who
 explicitly authenticate themselves to the web site using a password.
 When a user logs into the application, the application must provide
-the user password to the \name proxy so that the user can gets the
+the user password to the \name proxy so that the user can get the
 privileges of his external principal.  Privileges of other (internal)
 principals can only be acquired through delegation, as described in
 the Step 3.  The application also informs the proxy when the user logs
@@ -226,7 +222,7 @@ phpBB, a user should also have the privileges of the groups he belongs
 to.  Since many applications store such information in tables,
 programmers can tell \name to infer delegations from rows in an
 existing table.  In \name, programmers can annotate a table $T$ with
-{\tt \small PRINC $a$ TYPE $x$ HAS\_ACCESS\_TO PRINC $b$ TYPE $y$}.
+{\tt \small ($a$ $x$) HAS\_ACCESS\_TO ($b$ $y$)}.
 This annotation indicates that each row present in that table grants
 principal $a$ of type $x$ access to everything that principal $b$ of
 type $y$ can access.  Here, $x$ and $y$ must always be fixed principal
@@ -341,12 +337,12 @@ should revise the annotations.
 Each principal (i.e., each instance of each principal type) is associated
 with a secret, randomly-chosen key.  If principal B has access to
 principal A, then principal A's key is encrypted using principal B's
-key, and stored in a special \textsf{access\_keys} table in the database.
+key, and stored in a special \texttt{access\_keys} table in the database.
 In this way, principal B has access to principal A's key.  For example,
 in Figure~\ref{fig:privmsg}, to give users 1 and 2 access to message 5,
 the key of {\em msg} 5 is encrypted with the key of {\em user} 1, and
 also separately encrypted with the key of {\em user} 2; both encryptions
-are stored in \textsf{access\_keys}.  Each sensitive
+are stored in \texttt{access\_keys}.  Each sensitive
 field is encrypted with the key of the principal in the {\small \tt
 ENC\_FOR} annotation. \name{} encrypts the sensitive field with
 onions in the same way as for single-principal \name,
@@ -362,7 +358,7 @@ in Figure~\ref{fig:privmsg}, suppose Bob sends message 5 to Alice, but
 Alice (user 1) is not online.  This means that \name does not have access
 to user 1's key, so it will not be able to encrypt message 5's key with
 user 1's symmetric key.  In this case, \name looks up the public key
-of the principal (i.e., user 1) in a second table, \textsf{public\_keys}, and encrypts
+of the principal (i.e., user 1) in a second table, \texttt{public\_keys}, and encrypts
 message 5's key using user 1's public key.  When user 1 logs in, they
 will be able to use the secret key part of their key to decrypt the
 key for message 5.
@@ -370,7 +366,7 @@ key for message 5.
 For external principals (e.g., physical users), \name assigns a
 random key just as for any other principal.  To give an external user
 access to the corresponding key on login, \name stores the key of each
-external principal in a third table, \textsf{external\_keys}, encrypted
+external principal in a third table, \texttt{external\_keys}, encrypted
 with the principal's password.  This allows \name to obtain a user's
 key given the user's password, and also allows a user to change his or
 her password without changing the key of the principal.
@@ -393,7 +389,7 @@ keeping aggregate statistics).
 
 Applications inform \name{} of a user logging in or out by simply
 issuing SQL {\tt INSERT} and {\tt DELETE} queries to a special table
-\textsf{cryptdb\_active}, which the proxy recognizes.
+\texttt{cryptdb\_active}, which the proxy recognizes.
 
 \name{} guards the data of inactive users at the time of an
 attack. However, some special users such as administrators with access

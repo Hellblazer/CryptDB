@@ -1,10 +1,11 @@
 TEX	 := $(wildcard *.tex)
 FIGS_ODG := $(wildcard fig/*.odg)
 FIGS_PDF := $(patsubst %.odg,%.pdf,$(FIGS_ODG))
+GRAPHS	 := fig/trantput.pdf fig/queries.pdf fig/microbars.pdf fig/tputbars.pdf
 
 all:	abstract.txt paper.pdf #paper-compat.pdf
 
-paper.pdf: $(TEX) $(wildcard *.bib) fig/overview.pdf
+paper.pdf: $(TEX) $(wildcard *.bib) fig/overview.pdf $(GRAPHS)
 	pdflatex paper
 	bibtex -min-crossrefs=100 paper
 	pdflatex paper
@@ -24,6 +25,9 @@ $(FIGS_PDF): %.pdf: %.odg
 fig/%.pdf: fig/%.svg
 	# inkscape -z --export-pdf=$@.pdf14 --export-area-drawing $< && ps2pdf13 $@.pdf14 $@ && cp $@ .missing/$@ || cp .missing/$@ $@
 	inkscape -z --export-pdf=$@ --export-area-drawing $< && cp $@ .missing/$@ || cp .missing/$@ $@
+
+fig/%.pdf: fig/%.gnuplot fig/%.dat
+	gnuplot $<
 
 spell:
 	for i in $(TEX); do aspell -p ./aspell.words -c $$i; done

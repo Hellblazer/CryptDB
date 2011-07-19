@@ -25,10 +25,8 @@ Binary SWP::PRP(const Binary & key, const Binary & val) {
 
 /*************** Sym key crypto ******************/
 
-Binary pad(const Binary & vec, unsigned int len);
-
 //pads with 10..00 making length of result be a multiple of len (bytes)
-Binary pad(const Binary & vec, unsigned int len) {
+static Binary pad(const Binary & vec, unsigned int len) {
 
 	Binary result;
 	if (vec.len % len == 0) {
@@ -51,9 +49,8 @@ Binary pad(const Binary & vec, unsigned int len) {
 
 }
 
-Binary unpad(const Binary & vec);
 
-Binary unpad(const Binary & vec) {
+static Binary unpad(const Binary & vec) {
 
 	int index = vec.len - 1;
 
@@ -299,4 +296,20 @@ list<unsigned int> * SWP::search(const Token & token, const list<Binary> & ciphs
 
 list<unsigned int> * SWP::searchWrapper(const Token & token, const Binary & overall_ciph) {
 	return search(token, *(overall_ciph.split(SWPCiphSize)));
+}
+
+
+bool SWP::searchExists(const Token & token, const list<Binary> & ciphs) {
+
+	for (list<Binary>::const_iterator cit = ciphs.begin(); cit != ciphs.end(); cit++) {
+		if (SWPsearch(token, *cit)) {
+			return true;
+		}
+	}
+
+	return false;
+}
+
+bool SWP::searchExists(const Token & token, const Binary & overall_ciph) {
+	return searchExists(token, *(overall_ciph.split(SWPCiphSize)));
 }
