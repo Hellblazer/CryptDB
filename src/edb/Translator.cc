@@ -6,6 +6,7 @@
  */
 
 #include "Translator.h"
+#include "log.h"
 
 string
 anonymizeTableName(unsigned int tableNo, string tableName)
@@ -592,7 +593,7 @@ getFieldsItSelect(list<string> & words, list<string>::iterator & it)
     string res = "SELECT ";
 
     if (equalsIgnoreCase(*it, "distinct")) {
-        if (VERBOSE_G) {cerr << "has distinct!\n"; }
+        LOG(edb_v) << "has distinct!";
         it++;
         res += "DISTINCT ";
     }
@@ -604,8 +605,8 @@ QueryMeta
 getQueryMeta(command c, list<string> query, map<string, TableMetadata *> & tm)
 throw (CryptDBError)
 {
+    LOG(edb_v) << "in getquery meta";
 
-    if (VERBOSE_G) {cerr << "in getquery meta\n"; }
     string * delims = NULL;
     unsigned int noDelims = 0;
 
@@ -653,9 +654,8 @@ throw (CryptDBError)
             processAlias(qit, query);
         }
         mirrorUntilTerm(qit, query, delims, noDelims, 0);
-        if (VERBOSE_G) {if (qit != query.end()) {cerr <<
-                                                 "after mirror, qit is "<<
-                                                 *qit; }}
+        if (qit != query.end())
+            LOG(edb_v) << "after mirror, qit is " << *qit;
     }
 
     if (c == SELECT) {
@@ -688,14 +688,14 @@ processAgg(list<string>::iterator & wordsIt, list<string> & words,
            bool forquery)
 {
     if (wordsIt == words.end()) {
-        if (VERBOSE_G) {cerr << "process agg gets empty token list \n"; }
+        LOG(edb_v) << "process agg gets empty token list";
         return "";
     }
     if (!isAgg(*wordsIt)) {
         return "";
     }
 
-    if (VERBOSE_G) {cerr << "is agg\n"; }
+    LOG(edb_v) << "is agg";
     string agg = *wordsIt;
 
     string res = "";
@@ -721,11 +721,10 @@ processAgg(list<string>::iterator & wordsIt, list<string> & words,
         goto closingparen;
     }
 
-    if (VERBOSE_G) {cerr << "in agg, field is " << *wordsIt << "\n"; }
+    LOG(edb_v) << "in agg, field is " << *wordsIt;
     getTableField(*wordsIt, table, field, qm, tm);
 
-    if (VERBOSE_G) {cerr << "before if table: " << table << " field " <<
-                    field << "\n"; }
+    LOG(edb_v) << "before if table: " << table << " field " << field;
 
     if (tm[table]->fieldMetaMap[field]->isEncrypted) {
         if (equalsIgnoreCase(agg, "min")) {o = oOPE; }
@@ -889,7 +888,6 @@ throw (CryptDBError)
          it++) {
         TableMetadata * tm = tableMetaMap[*it];
         if (tm->fieldMetaMap.find(token) != tm->fieldMetaMap.end()) {
-            //cerr << *it << ", ";fflush(stdout);
             table = *it;
             field = token;
             return;

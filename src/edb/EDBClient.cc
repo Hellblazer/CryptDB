@@ -1,4 +1,5 @@
 #include "EDBClient.h"
+#include "log.h"
 
 #include <iostream>
 #include <fstream>
@@ -234,7 +235,7 @@ EDBClient::EDBClient()
 ResType *
 EDBClient::plain_execute(const string &query)
 {
-    cerr << "in plain execute \n";
+    LOG(edb) << "in plain execute";
     DBResult * reply;
     if (!conn->execute(query, reply)) {
         cerr << "failed to execute " << query << "\n";
@@ -475,15 +476,14 @@ list<string>
 EDBClient::rewriteEncryptCreate(const string &query)
 throw (CryptDBError)
 {
-
-    cerr << "in create \n";
+    LOG(edb) << "in create";
 
     list<string> words = getSQLWords(query);
 
     list<string>::iterator wordsIt = words.begin();
     wordsIt++;
 
-    cerr << "done with sql words \n";
+    LOG(edb) << "done with sql words";
 
     if (toLowerCase(*wordsIt).compare("table") != 0) {
 
@@ -564,7 +564,7 @@ throw (CryptDBError)
 
         tm->fieldMetaMap[fieldName] =  fm;
 
-        if (VERBOSE) { cerr << "fieldname " << fieldName <<"\n"; }
+        LOG(edb_v) << "fieldname " << fieldName;
         bool encryptfield = false;
 
         //decides if this field is encrypted or not
@@ -574,12 +574,12 @@ throw (CryptDBError)
 
         fm->isEncrypted = encryptfield;
         if (encryptfield) {
-            if (VERBOSE) { cerr << "encrypted field \n"; }
+            LOG(edb_v) << "encrypted field";
             tm->hasEncrypted = true;
         }
 
         if (!encryptfield) {
-            if (VERBOSE) { cerr << "not enc " << fieldName << "\n"; }
+            LOG(edb_v) << "not enc " << fieldName;
             fieldSeq +=  fieldName + " " +
                         mirrorUntilTerm(wordsIt, words, terms, 1, 1,
                                         1);
@@ -673,7 +673,7 @@ throw (CryptDBError)
             continue;
         }
 
-        if (VERBOSE) { cerr << "ai \n"; }
+        LOG(edb_v) << "ai";
         string anonTableName = tableMetaMap[table]->anonTableName;
         wordsIt++;
         fieldType ft = tableMetaMap[table]->fieldMetaMap[field]->type;
@@ -749,7 +749,7 @@ throw (CryptDBError)
             continue;
         }
 
-        if (VERBOSE) { cerr << "zz\n"; }
+        LOG(edb_v) << "zz";
 
         //encryption fields that are not increments
 
@@ -951,7 +951,7 @@ throw (CryptDBError)
 
         if (!iss) {
             //the current operation does not have sensitive fields
-            cerr << "no sensitive fields \n";
+            LOG(edb) << "no sensitive fields";
             resultQuery = resultQuery + " " + res;
             continue;
         }
@@ -973,18 +973,17 @@ throw (CryptDBError)
             subqueries.pop_front();
         }
 
-        cerr << "before processop for " << operand1 << " " << operand2 <<
-        "\n";
+        LOG(edb) << "before processop for " << operand1 << " " << operand2;
         resultQuery = resultQuery +
                       processOperation(op, operand1, operand2,  qm, subquery,
                                        tmkm);
         wordsIt++;
     }
 
-    if (VERBOSE) {  if (wordsIt != words.end()) {cerr << "next is " <<
-                                                 *wordsIt << " \n"; }}
-groupings:
+    if (wordsIt != words.end())
+        LOG(edb_v) << "next is " << *wordsIt;
 
+groupings:
     /****
      * ORDER BY, GROUP BY, LIMIt
      */
@@ -1360,7 +1359,7 @@ throw (CryptDBError)
 
     if (!isNested(query)) {
         list<string> words = getSQLWords(query);
-        cerr << "after sql words " << toString(words) << "\n";
+        LOG(edb) << "after sql words " << toString(words);
         return rewriteSelectHelper(words);
     }
 
@@ -1575,7 +1574,7 @@ throw (CryptDBError)
     //first figure out what tables are involved to know what fields refer to
     //gettimeofday(&starttime, NULL);
     QueryMeta qm  = getQueryMeta(SELECT, words, tableMetaMap);
-    if (VERBOSE) { cerr << "after get query meta \n"; }
+    LOG(edb_v) << "after get query meta";
 //	gettimeofday(&endtime, NULL);
 //	cout << "get query meta" << timeInMSec(starttime, endtime) << "\n";
     //expand * in SELECT *
@@ -1586,7 +1585,7 @@ throw (CryptDBError)
 //	cout << "expand wild card " << timeInMSec(starttime, endtime) << "\n";
     //=========================================================
 
-    if (VERBOSE) {cerr << "new query is "; myPrint(words); cerr << "\n"; }
+    LOG(edb_v) << "new query is " << toString(words);
 
     list<string>::iterator wordsIt = words.begin();
 
@@ -1622,8 +1621,8 @@ throw (CryptDBError)
     string oldTable = "";
 
     while (!equalsIgnoreCase(*wordsIt, "from")) {
+        LOG(edb_v) << "query so far: " << resultQuery;
 
-        if (VERBOSE_V) {cerr << "query so far " << resultQuery << "\n"; }
         string table, field;
 
         if (toLowerCase(*wordsIt).compare("sum") == 0) {
@@ -1824,9 +1823,9 @@ throw (CryptDBError)
             assert_s(wordsIt->compare(
                          ")") == 0, " missing ) in max expression \n");
             wordsIt++;
-            cerr << "resultQuery before processAlias " << resultQuery << "\n";
+            LOG(edb) << "resultQuery before processAlias: " << resultQuery;
             resultQuery = resultQuery + processAlias(wordsIt, words);
-            cerr << "resultQuery after processAlias " << resultQuery << "\n";
+            LOG(edb) << "resultQuery after processAlias: " << resultQuery;
             continue;
         }
 
@@ -1948,11 +1947,8 @@ getResMeta(list<string> words, vector<vector<string> > & vals, QueryMeta & qm,
            map<string, TableMetadata * > & tm, MultiPrinc * mp,
            TMKM & tmkm)
 {
+    LOG(edb_v) << toString(words);
 
-    if (VERBOSE_V) {
-        cerr << "in get res meta; it's working with " << toString(words) <<
-        " \n";
-    }
     ResMeta rm = ResMeta();
 
     size_t nFields = vals[0].size();
@@ -1969,7 +1965,7 @@ getResMeta(list<string> words, vector<vector<string> > & vals, QueryMeta & qm,
 
     list<string>::iterator wordsIt;
     getFieldsItSelect(words, wordsIt);
-    if (VERBOSE_V) { cerr << "nFields is " << nFields << "\n"; }
+    LOG(edb_v) << "nFields is " << nFields;
 
     bool ignore = false;
 
@@ -1983,7 +1979,6 @@ getResMeta(list<string> words, vector<vector<string> > & vals, QueryMeta & qm,
 
         //case : salt
         if (isFieldSalt(vals[0][i])) {
-            if (VERBOSE_V) { cerr << "salt\n"; }
             rm.isSalt[i] = true;
             rm.o[i] = oNONE;
             continue;
@@ -2018,15 +2013,14 @@ getResMeta(list<string> words, vector<vector<string> > & vals, QueryMeta & qm,
         }
 
         //subcase: field
+        LOG(edb_v) << "current field " << currToken;
+
         string table, field;
-        if (VERBOSE_V) {
-            cerr << "current field " <<currToken << "\n";
-        }
         getTableField(currToken, table, field, qm, tm);
         rm.table[i] = table;
         rm.field[i] = field;
 
-        cerr << table << " " << field << endl;
+        LOG(edb) << table << " " << field;
         if (tm[table]->fieldMetaMap[field]->isEncrypted) {
             if (tm[table]->fieldMetaMap[field]->INCREMENT_HAPPENED) {
                 rm.o[i]= oAGG;
@@ -2057,34 +2051,33 @@ getResMeta(list<string> words, vector<vector<string> > & vals, QueryMeta & qm,
 
     }
 
-    if (VERBOSE_V) {
-        cerr << "leaving get res meta \n";
-    }
+    LOG(edb_v) << "leaving get res meta";
     return rm;
 }
 
 static void
 printRes(vector<vector<string> > & vals)
 {
+    LOG(edb) << "Raw results from the server to decrypt:";
 
-    cout << "Raw results from the server to decrypt: \n\n";
-
+    stringstream ssn;
     for (unsigned int i = 0; i < vals[0].size(); i++) {
-        fprintf(stderr, "%-20s", vals[0][i].c_str());
+        char buf[256];
+        snprintf(buf, sizeof(buf), "%-20s", vals[0][i].c_str());
+        ssn << buf;
     }
-    cerr << "\n-------------------\n";
+    LOG(edb) << ssn.str();
 
     /* next, print out the rows */
-    for (unsigned int i = 0; i < vals.size() - 1; i++)
-    {
+    for (unsigned int i = 0; i < vals.size() - 1; i++) {
+        stringstream ss;
         for (unsigned int j = 0; j < vals[i].size(); j++) {
-            printf("%-20s", vals[i+1][j].c_str());
+            char buf[256];
+            snprintf(buf, sizeof(buf), "%-20s", vals[i+1][j].c_str());
+            ss << buf;
         }
-        printf("\n");
+        LOG(edb) << ss.str();
     }
-
-    fflush(stdout);
-
 }
 
 ResType *
@@ -2117,7 +2110,7 @@ EDBClient::rewriteDecryptSelect(const string &query, ResType * dbAnswer)
 
     //====================================================
 
-    cerr << "done with res meta \n";
+    LOG(edb) << "done with res meta";
 
     //prepare the result
     ResType * rets = new ResType;
@@ -2137,11 +2130,8 @@ EDBClient::rewriteDecryptSelect(const string &query, ResType * dbAnswer)
         }
     }
 
-//cerr << "hi\n";
-
     for (unsigned int i = 0; i < rm.nTuples; i++)
     {
-//cerr << "going in a tuple! \n";
         rets->at(i+1) = vector<string>(nTrueFields);
         unsigned int index = 0;
         uint64_t salt = 0;
@@ -2149,7 +2139,7 @@ EDBClient::rewriteDecryptSelect(const string &query, ResType * dbAnswer)
         for (unsigned int j = 0; j < nFields; j++) {
 
             if (rm.isSalt[j]) {             // this is salt
-                cerr << "-- salt \n";
+                LOG(edb) << "salt";
                 salt = unmarshallVal(vals[i+1][j]);
                 continue;
             }
@@ -2158,7 +2148,7 @@ EDBClient::rewriteDecryptSelect(const string &query, ResType * dbAnswer)
             // princ
             if (MULTIPRINC) {
                 if (!tmkm.returnBitMap[j]) {
-                    cerr << "-- ignore \n";
+                    LOG(edb) << "ignore";
                     continue;
                 }
             }
@@ -2168,10 +2158,10 @@ EDBClient::rewriteDecryptSelect(const string &query, ResType * dbAnswer)
             string table = rm.table[j];
             string field = rm.field[j];
 
-            cerr << "-- " << fullName(field, table) << "\n";
+            LOG(edb) << fullName(field, table);
 
             if (rm.o[j] == oNONE) {             //not encrypted
-                cerr << "its not enc \n";
+                LOG(edb) << "its not enc";
                 rets->at(i+1).at(index) = vals[i+1][j];
                 index++;
                 continue;
@@ -2198,11 +2188,9 @@ EDBClient::rewriteDecryptSelect(const string &query, ResType * dbAnswer)
         }
     }
 
-//cerr << "finished\n";
     tmkm.cleanup();
     qm.cleanup();
     rm.cleanup();
-//cerr << "done\n";
     return rets;
 }
 
@@ -2247,9 +2235,9 @@ throw (CryptDBError)
 
     string res = "";
 
-    cerr << "operands " << op1 << " " << op2 << "\n";
+    LOG(edb) << "operands " << op1 << " " << op2;
     if (isField(op1) && isField(op2)) {    //join
-        cerr << "IN JOIN\n";
+        LOG(edb_v) << "IN JOIN";
         if (MULTIPRINC) {
             assert_s(false, "join not supported in multi-user mode");
         }
@@ -2277,7 +2265,7 @@ throw (CryptDBError)
 
         return res;
     }
-    cerr << "NOT IN JOIN\n";
+    LOG(edb_v) << "NOT IN JOIN";
 
     if (Operation::isDET(operation)) {     //DET
 
@@ -2523,7 +2511,7 @@ EDBClient::processValsToInsert(string field, string table, uint64_t salt,
                               anonTableName), PLAIN_DET, fm->secLevelDET,
                      salt, tmkm);
 
-        if (VERBOSE_V) {cerr << "just added key from crypt \n"; }
+        LOG(edb_v) << "just added key from crypt";
 
         if (fm->exists(fm->anonFieldNameOPE)) {
             res += ", " +
@@ -2664,8 +2652,7 @@ throw (CryptDBError)
                 if (MULTIPRINC) {
 
                     if (mp->isPrincipal(fullName(*addit, table))) {
-                        if (VERBOSE) { cerr << "add to princs " << *addit <<
-                                       "\n"; }
+                        LOG(edb_v) << "add to princs " << *addit;
                         princsToAdd.push_back(*addit);
                     }
                 }
@@ -2734,13 +2721,13 @@ throw (CryptDBError)
             }
 
             //insert any new hasaccessto instances
-            if (VERBOSE) { cerr << "before insert relations \n"; }
+            LOG(edb_v) << "before insert relations";
             mp->insertRelations(vals, table, fields, tmkm);
         }
 
-        if (VERBOSE) { cerr << "noFieldsGiven " << noFieldsGiven << "\n"; }
-        if (VERBOSE) { cerr << "fiels have " << fields.size() << "\n"; }
-        if (VERBOSE) { cerr << "vals have " << vals.size() << "\n"; }
+        LOG(edb_v) << "noFieldsGiven " << noFieldsGiven;
+        LOG(edb_v) << "fiels have " << fields.size();
+        LOG(edb_v) << "vals have " << vals.size();
 
         uint64_t salt = 0;
 
@@ -2765,19 +2752,16 @@ throw (CryptDBError)
                 //FIX AUTOINC
                 /*if (isPrincipal(fullname, accMan, mkm)) {
                         if (autoInc.find(fullname) == autoInc.end()) {
-                                if (VERBOSE) { cerr << "before unmarshallVal
-                                   \n";}
+                                LOG(edb_v) << "before unmarshallVal";
                                 autoInc[fullname] = unmarshallVal(value);
                                 rb.autoinc = marshallVal(autoInc[fullname]);
-                                if (VERBOSE) { cerr << "after unmar val \n";}
+                                LOG(edb_v) << "after unmar val";
                         } else {
-                                if (VERBOSE) { cerr << "before unmar val \n";}
+                                LOG(edb_v) << "before unmar val";
                                 autoInc[fullname] = max(autoInc[fullname],
                                    unmarshallVal(value));
                                 rb.autoinc = marshallVal(autoInc[fullname]);
-                                if (VERBOSE) { cerr << "rb autoinc is now " <<
-                                   rb.autoinc << "\n";}
-
+                                LOG(edb_v) << "rb autoinc is now " << rb.autoinc;
                         }
                    }*/
             }
@@ -2971,7 +2955,7 @@ considerQuery(command com, const string &query)
     case INSERT: {
         list<string> words = getSQLWords(query);
         if (contains("select", words)) {
-            if (VERBOSE_V) { cerr << "given nested query!\n"; }
+            LOG(warn) << "given nested query!";
             return false;
         }
         break;
@@ -2996,7 +2980,7 @@ considerQuery(command com, const string &query)
     }
     case DELETE: {break; }
     case BEGIN: {
-        if (VERBOSE_V) { cerr << "begin \n "; }
+        LOG(edb_v) << "begin";
         if (DECRYPTFIRST) {
             return true;
         }
@@ -3012,10 +2996,11 @@ considerQuery(command com, const string &query)
         if (equalsIgnoreCase(*wordsIt, "annotations")) {
             return true;
         }
-        if (VERBOSE_V) { cerr << "commit \n "; } return false;
+        LOG(edb_v) << "commit";
+        return false;
     }
     case ALTER: {
-        if (VERBOSE_V) { cerr << "alter \n"; }
+        LOG(edb_v) << "alter";
         if (DECRYPTFIRST) {
             return true;
         }
@@ -3023,7 +3008,10 @@ considerQuery(command com, const string &query)
         return false;
     }
     default:
-    case OTHER: {if (VERBOSE_V) {  cerr << "other \n "; } return false; }
+    case OTHER: {
+        LOG(edb_v) << "other";
+        return false;
+    }
     }
 
     return true;
@@ -3133,25 +3121,27 @@ EDBClient::decryptResultsWrapper(const string &query, DBResult * dbres)
     command comm = getCommand(query);
 
     if (comm == SELECT) {
-        cerr << "going in select\n";
+        LOG(edb) << "going in select";
         ResType * rets = decryptResults(query, dbres->unpack());
-        if (VERBOSE) {
 
-            cerr << "\n\n Decrypted results: \n\n";
+        if (VERBOSE) {
+            LOG(edb_v) << "Decrypted results:";
 
             for (unsigned int i = 0; i < rets->size(); i++) {
-                cerr << "\n";
+                stringstream ss;
                 for (unsigned int j = 0; j < rets->at(i).size(); j++) {
-                    fprintf(stderr, "%-30s", rets->at(i).at(j).c_str());
+                    char buf[256];
+                    snprintf(buf, sizeof(buf), "%-30s", rets->at(i).at(j).c_str());
+                    ss << buf;
                 }
+                LOG(edb_v) << ss.str();
             }
-            cerr << "\n-------------------\n";
         }
 
         return rets;
     }
 
-    cerr << "return empty results \n";
+    LOG(edb) << "return empty results";
     //empty result
     return new ResType();
 
@@ -3162,9 +3152,7 @@ EDBClient::execute(const string &query)
 {
     DBResult * res = 0;
 
-    if (VERBOSE) {
-        cout << "Query:\n" << query << "\n";
-    }
+    LOG(edb_v) << "Query: " << query;
 
     if (!isSecure) {
 
@@ -3192,7 +3180,7 @@ EDBClient::execute(const string &query)
     try {
         queries = rewriteEncryptQuery(query, ai);
     } catch (CryptDBError se) {
-        cerr << "problem with query " << query << " " << se.msg;
+        LOG(warn) << "problem with query " << query << " " << se.msg;
         return NULL;
     }
 
@@ -3205,13 +3193,12 @@ EDBClient::execute(const string &query)
     size_t noQueries = queries.size();
     size_t counter = 0;
 
-    if (VERBOSE) {
-        cerr << "Translated queries: \n";
-    }
+    LOG(edb_v) << "Translated queries:";
+
     for (; queryIt != queries.end(); queryIt++) {
         counter++;
 
-        if (VERBOSE) {cerr <<  *queryIt << " \n"; }
+        LOG(edb_v) << *queryIt;
 
         DBResult * reply;
         reply = NULL;
@@ -3221,7 +3208,7 @@ EDBClient::execute(const string &query)
             gettimeofday(&t0, 0);
 
         if (!conn->execute(*queryIt, reply)) {
-            cerr << "query " << *queryIt << "failed \n";
+            LOG(warn) << "query " << *queryIt << "failed";
             return NULL;
         }
 
@@ -3229,7 +3216,7 @@ EDBClient::execute(const string &query)
             gettimeofday(&t1, 0);
             uint64_t us = t1.tv_usec - t0.tv_usec +
                           (t1.tv_sec - t0.tv_sec) * 1000000;
-            cerr << "query latency: " << us << " usec" << endl;
+            LOG(edb_v) << "query latency: " << us << " usec";
         }
 
         if (counter < noQueries) {
@@ -3239,7 +3226,7 @@ EDBClient::execute(const string &query)
         } else {
             assert_s(counter == noQueries, "counter differs from noQueries");
 
-            cerr << "onto decrypt results \n";
+            LOG(edb) << "onto decrypt results";
             ResType * rets;
             try {
 
@@ -3256,10 +3243,9 @@ EDBClient::execute(const string &query)
                 return NULL;
             }
 
-            cerr << "donet with decrypt results\n";
+            LOG(edb) << "done with decrypt results";
             queries.clear();
             delete reply;
-            cerr << "returning \n";
             return rets;
 
         }
@@ -3274,9 +3260,9 @@ EDBClient::execute(const string &query)
 void
 EDBClient::exit()
 {
-    if (VERBOSE) {cerr << "Exiting..\n "; }
-    if (isSecure) {
+    LOG(edb_v) << "Exiting..";
 
+    if (isSecure) {
         dropAll(conn);
 
         if (dropOnExit) {
@@ -3284,9 +3270,8 @@ EDBClient::exit()
 
         }
 
-        if (VERBOSE) {cout << "DROP FUNCTIONS;\n"; }
+        LOG(edb_v) << "DROP FUNCTIONS;";
     }
-
 }
 
 static void
@@ -3577,15 +3562,20 @@ EDBClient::crypt(string data, fieldType ft, string fullname,
                  const vector<string> & res)
 {
 
-    cerr << "crypting data " << data << " type " << ft << " fullname " <<
-    fullname <<
-    " anonfullname " << anonfullname << " fromlevel " << fromlevel <<
-    " tolevel " << tolevel << " salt " << salt << "\n";
-    if (DECRYPTFIRST) {     //we don't encrypt values, and they come back
-                            // decrypted
+    LOG(crypto) << "crypting data " << data
+                << " type " << ft
+                << " fullname " << fullname
+                << " anonfullname " << anonfullname
+                << " fromlevel " << fromlevel
+                << " tolevel " << tolevel
+                << " salt " << salt;
+
+    if (DECRYPTFIRST) {
+        // we don't encrypt values, and they come back decrypted
         return data;
     }
-    //for the parsing-only experiment
+
+    // for the parsing-only experiment
     if (PARSING) {
         //cerr << "crypt given " << data << " len " << data.length() << "\n";
 

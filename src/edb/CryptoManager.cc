@@ -5,6 +5,7 @@
 #include <stdlib.h>
 
 #include "CryptoManager.h"
+#include "log.h"
 
 /*
    //either provide a level key or provide a master key and the name of the
@@ -360,7 +361,8 @@ CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft,
 
                 string val = unmarshallBinary(data);
                 if (fromlevel == SEMANTIC_DET) {
-                    cerr << "at sem det " << data <<"\n";
+                    LOG(crypto) << "at sem det " << data;
+
                     AES_KEY * key =
                         get_key_SEM(getKey(mkey, fullfieldname, fromlevel));
                     val = decrypt_SEM(val, key, salt);
@@ -371,8 +373,7 @@ CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft,
                 }
 
                 if (fromlevel == DET) {
-
-                    cerr << "at det " << marshallBinary(val) <<"\n";
+                    LOG(crypto) << "at det " << marshallBinary(val);
 
                     AES_KEY * key =
                         get_key_DET(getKey(mkey, fullfieldname, fromlevel));
@@ -384,14 +385,14 @@ CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft,
                 }
 
                 if (fromlevel == DETJOIN) {
-                    cerr << "at det join" << marshallBinary(val) <<"\n";
+                    LOG(crypto) << "at det join " << marshallBinary(val);
 
                     AES_KEY * key =
                         get_key_DET(getKey(mkey, "join", fromlevel));
                     val = decrypt_DET(val, key);
                     fromlevel = decreaseLevel(fromlevel, ft, oDET);
                     if (fromlevel == tolevel) {
-                        cerr << "at plain " << val << "\n";
+                        LOG(crypto) << "at plain " << val;
                         return val;
                     }
                 }
@@ -541,8 +542,8 @@ CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft,
         case oDET: {
 
             if (fromlevel == PLAIN_DET) {
+                LOG(crypto) << "at plain det " << data;
 
-                cerr << "at plain det " << data <<"\n";
                 /* XXX
                  * This looks wrong: when do we put the apostrophe back?
                  */
@@ -566,7 +567,8 @@ CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft,
             }
 
             if (fromlevel == DETJOIN) {
-                cerr << "at det join " << marshallBinary(data) <<"\n";
+                LOG(crypto) << "at det join " << marshallBinary(data);
+
                 fromlevel = increaseLevel(fromlevel, ft, oDET);
                 AES_KEY * key =
                     get_key_DET(getKey(mkey, fullfieldname, fromlevel));
@@ -577,14 +579,15 @@ CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft,
             }
 
             if (fromlevel == DET) {
-                cerr << "at det " << marshallBinary(data) <<"\n";
+                LOG(crypto) << "at det " << marshallBinary(data);
+
                 fromlevel = increaseLevel(fromlevel, ft, oDET);
 
                 AES_KEY * key =
                     get_key_SEM(getKey(mkey, fullfieldname, fromlevel));
                 data = encrypt_SEM(data, key, salt);
                 if (fromlevel == tolevel) {
-                    cerr << "at sem " << marshallBinary(data) << "\n";
+                    LOG(crypto) << "at sem " << marshallBinary(data);
                     return marshallBinary(data);
                 }
             }
@@ -594,12 +597,9 @@ CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft,
             return "";
         }
         case oOPE: {
-
             uint64_t val;
 
-            cerr << "A\n";
             if (fromlevel == PLAIN_OPE) {
-                cerr << "B\n";
                 data = removeApostrophe(data);
                 fromlevel = increaseLevel(fromlevel, ft, oOPE);
                 OPE * key = get_key_OPE(getKey(mkey, fullfieldname, fromlevel));
@@ -608,15 +608,11 @@ CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft,
                     return marshallVal(val);
                 }
             } else {
-                cerr << "C\n";
                 val = unmarshallVal(data);
             }
 
-            cerr << "D\n";
-
             if (fromlevel == OPESELF) {
-                cerr << "E\n";
-                fromlevel  = increaseLevel(fromlevel, ft, oOPE);
+                fromlevel = increaseLevel(fromlevel, ft, oOPE);
                 AES_KEY * key =
                     get_key_SEM(getKey(mkey, fullfieldname, fromlevel));
                 val = encrypt_SEM(val, key, salt);
@@ -972,7 +968,7 @@ CryptoManager::encrypt_OPE_text_wrapper(const string & plaintext, OPE * ope)
     size_t prefix = OPE_PLAINTEXT_SIZE/bitsPerByte;
     size_t mins = min(prefix, len);
 
-    cerr << "mins is " << mins << "\n";
+    LOG(crypto) << "mins is " << mins;
 
     string p2 = toLowerCase(plaintext.substr(0, mins));
 
@@ -985,7 +981,7 @@ CryptoManager::encrypt_OPE_text_wrapper(const string & plaintext, OPE * ope)
         val = val * 256;
     }
 
-    cerr << "for string " << plaintext << " encrypted val is " << val << "\n";
+    LOG(crypto) << "for string " << plaintext << " encrypted val is " << val;
 
     return ope->encrypt(val);
 }
@@ -1026,10 +1022,10 @@ CryptoManager::encrypt_OPE(uint32_t plaintext, string uniqueFieldName)
                  uniqueFieldName );
         map<int, uint64_t>::iterator sit = it->second.find(plaintext);
         if (sit != it->second.end()) {
-            if (VERBOSE) {cerr << "OPE hit for " << plaintext << " \n"; }
+            LOG(crypto_v) << "OPE hit for " << plaintext;
             return sit->second;
         }
-        cerr << "OPE miss for " << plaintext << " \n";
+        LOG(crypto_v) << "OPE miss for " << plaintext;
     }
 
     return encrypt_OPE(plaintext, get_key_OPE(getKey(uniqueFieldName, OPESELF)));
@@ -1262,13 +1258,12 @@ CryptoManager::encrypt_Paillier(uint64_t val)
             if (it->second.size() > 0) {
                 string res = it->second.front();
                 it->second.pop_front();
-                if (VERBOSE) {cerr << "HOM hit for " << val << " \n"; }
+                LOG(crypto_v) << "HOM hit for " << val;
                 return res;
             }
         }
 
-        if (VERBOSE) {cerr << "HOM miss for " << val << " \n"; }
-
+        LOG(crypto_v) << "HOM miss for " << val;
     }
 
     ZZ r = RandomLen_ZZ(Paillier_len_bits/2) % Paillier_n;
@@ -1338,8 +1333,8 @@ CryptoManager::createEncryptionTables(int noOPEarg, int noHOMarg,
 
     }
     gettimeofday(&endtime, NULL);
-    cerr << "time per OPE " <<
-    timeInSec(starttime, endtime) * 1000.0 / noOPE << "\n";
+    LOG(crypto) << "time per OPE "
+                << timeInSec(starttime, endtime) * 1000.0 / noOPE;
 
     gettimeofday(&starttime, NULL);
     // HOM
@@ -1358,23 +1353,22 @@ CryptoManager::createEncryptionTables(int noOPEarg, int noHOMarg,
     }
 
     gettimeofday(&endtime, NULL);
-    cerr << "per HOM " <<
-    timeInSec(starttime,
-              endtime)*1000.0 /
-    (encryptionsOfOne + noHOM * noEncryptions) << " \n";
-    cerr << "entries in OPE table are \n";
+    LOG(crypto) << "per HOM "
+                << timeInSec(starttime, endtime)*1000.0 /
+                   (encryptionsOfOne + noHOM * noEncryptions);
+
+    LOG(crypto) << "entries in OPE table are:";
     for (map<string, map<int, uint64_t> >::iterator it = OPEEncTable.begin();
          it != OPEEncTable.end(); it++) {
-        cerr << it->first << " ";
+        LOG(crypto) << it->first;
     }
-    cerr << "\n entries for HOM are \n";
+
+    LOG(crypto) << "entries for HOM are:";
     for (auto it = HOMEncTable.begin(); it != HOMEncTable.end(); it++) {
-        cerr << it->first << " ";
+        LOG(crypto) << it->first;
     }
-    cerr << "\n";
 
     useEncTables = true;
-
 }
 
 void
@@ -1436,7 +1430,7 @@ remove_private_key(RSA *r)
 void
 CryptoManager::generateKeys(PKCS * & pk, PKCS * & sk)
 {
-    cerr << "pkcs generate\n";
+    LOG(crypto) << "pkcs generate";
     PKCS * key =  RSA_generate_key(PKCS_bytes_size*8, 3, NULL, NULL);
 
     sk = RSAPrivateKey_dup(key);
@@ -1449,7 +1443,7 @@ CryptoManager::generateKeys(PKCS * & pk, PKCS * & sk)
 string
 CryptoManager::marshallKey(PKCS * mkey, bool ispk)
 {
-    cerr << "pkcs encrypt\n";
+    LOG(crypto) << "pkcs encrypt";
     string key;
     if (!ispk) {
         key = DER_encode_RSA_private(mkey);
@@ -1463,7 +1457,7 @@ CryptoManager::marshallKey(PKCS * mkey, bool ispk)
 PKCS *
 CryptoManager::unmarshallKey(const string &key, bool ispk)
 {
-    cerr << "pkcs decrypt\n";
+    LOG(crypto) << "pkcs decrypt";
     //cerr << "before \n";
     if (ispk) {
         return DER_decode_RSA_public(key);

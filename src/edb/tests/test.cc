@@ -19,6 +19,7 @@
 #include "AccessManager.h"
 #include "Connect.h"
 #include "Equation.h"
+#include "log.h"
 
 #include "TestSinglePrinc.h"
 #include "TestCrypto.h"
@@ -3923,6 +3924,8 @@ help(int ac, char **av)
 int
 main(int argc, char ** argv)
 {
+    logger::enable(log_all);
+
     if (argc == 1) {
         interactiveTest(argc, argv);
         return 0;
