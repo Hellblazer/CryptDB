@@ -1268,7 +1268,7 @@ CryptoManager::encrypt_Paillier(uint64_t val)
 
     ZZ r = RandomLen_ZZ(Paillier_len_bits/2) % Paillier_n;
     //myassert(Paillier_g < Paillier_n2, "error: g > n2!");
-    ZZ c = PowerMod(Paillier_g, to_ZZ(val) + Paillier_n*r, Paillier_n2);
+    ZZ c = PowerMod(Paillier_g, to_ZZ((unsigned int)val) + Paillier_n*r, Paillier_n2);
 
     //cerr << "Paillier encryption is " << c << "\n";
     return StringFromZZ(c);

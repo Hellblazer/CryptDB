@@ -142,7 +142,7 @@ DBResult::unpack()
     if (n == NULL)
         return new ResType();
 
-    size_t rows = mysql_num_rows(n);
+    size_t rows = (size_t)mysql_num_rows(n);
     int cols  = -1;
     if (rows > 0) {
         cols = mysql_num_fields(n);

@@ -95,7 +95,7 @@ MetaAccess::unsanitize(string sanitized)
     uint64_t fieldlen = sanitized.length() - NODIGITS -digits;
 
     string res = sanitized.substr(NODIGITS, digits) + "." + sanitized.substr(
-        NODIGITS+digits, fieldlen);
+        NODIGITS+digits, (unsigned int)fieldlen);
 
     return res;
 };

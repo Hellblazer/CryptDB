@@ -135,14 +135,14 @@ static string
 decrypt_SEM(unsigned char *eValueBytes, uint64_t eValueLen,
             AES_KEY * aesKey, uint64_t salt)
 {
-    string c((char *) eValueBytes, eValueLen);
+    string c((char *) eValueBytes, (unsigned int) eValueLen);
     return CryptoManager::decrypt_SEM(c, aesKey, salt);
 }
 
 static string
 decrypt_DET(unsigned char *eValueBytes, uint64_t eValueLen, AES_KEY * key)
 {
-    string c((char *) eValueBytes, eValueLen);
+    string c((char *) eValueBytes, (unsigned int) eValueLen);
     return CryptoManager::decrypt_DET(c, key);
 }
 
@@ -623,11 +623,11 @@ func_add_set(UDF_INIT *initid, UDF_ARGS *args,
     ZZ res;
     MulMod(res, field, val, n2);
 
-    void *rbuf = malloc(n2len);
+    void *rbuf = malloc((size_t)n2len);
     initid->ptr = (char *) rbuf;
-    BytesFromZZ((uint8_t *) rbuf, res, n2len);
+    BytesFromZZ((uint8_t *) rbuf, res, (size_t)n2len);
 
-    *length = n2len;
+    *length = (long unsigned int) n2len;
     return initid->ptr;
 }
 
