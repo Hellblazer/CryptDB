@@ -62,9 +62,12 @@ public:
 
 	/*
 	 * Returns a list of indexes of words in the list of ciphertexts ciphs that match the token based on SWP
+	 * or a boolean indicating whether the value exists in the given ciphertexts or not.
 	 */
 	static list<unsigned int> * search(const Token & token, const list<Binary> & ciphs);
 	static list<unsigned int> * searchWrapper(const Token & token, const Binary & overall_ciph);
+	static bool searchExists(const Token & token, const list<Binary> & ciphs);
+	static bool searchExists(const Token & token, const Binary & overall_ciph);
 
 	static const bool canDecrypt = (SWPCiphSize % AES_BLOCK_SIZE == 0);
 

@@ -16,6 +16,7 @@
 #define FUNC_ADD_FINAL "agg"
 #define SUM_AGG "agg"
 #define FUNC_ADD_SET "func_add_set"
+#define SEARCHSWP "searchSWP"
 
 #else
 
@@ -30,6 +31,7 @@
 #define FUNC_ADD_FINAL "func_add_final(bytea)"
 #define FUNC_ADD_SET "func_add_set(bytea, bytea, bytea)"
 #define AGG "agg"
+
 
 #endif
 
@@ -63,6 +65,10 @@ dropAll(Connect * conn)
     myassert(conn->execute(
                  "DROP FUNCTION IF EXISTS " FUNC_ADD_SET "; "),
              "cannot drop " FUNC_ADD_SET);
+
+    myassert(conn->execute(
+                     "DROP FUNCTION IF EXISTS " SEARCHSWP "; "),
+                 "cannot drop " SEARCHSWP);
 
 #if MYSQL_S
 #else
@@ -103,6 +109,9 @@ createAll(Connect * conn, CryptoManager * cm)
     myassert(conn->execute(
                  "CREATE FUNCTION func_add_set RETURNS STRING SONAME 'edb.so'; "),
              "failed to create udf func_add_set");
+    myassert(conn->execute(
+                    "CREATE FUNCTION searchSWP RETURNS STRING SONAME 'edb.so'; "),
+                "failed to create udf searchSWP");
 
     /* old Postgres statements: */
     /*
@@ -3288,6 +3297,7 @@ EDBClient::~EDBClient()
     tableNameMap.clear();
     cleanup(tableMetaMap);
     cm->~CryptoManager();
+    delete mp;
 }
 
 static string
