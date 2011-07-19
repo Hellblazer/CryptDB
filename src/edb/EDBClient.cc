@@ -3288,6 +3288,7 @@ EDBClient::~EDBClient()
     tableNameMap.clear();
     cleanup(tableMetaMap);
     cm->~CryptoManager();
+    mp->~MultiPrinc();
 }
 
 static string

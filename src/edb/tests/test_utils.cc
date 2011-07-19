@@ -7,8 +7,6 @@
 
 #include "test_utils.h"
 
-#define PLAIN 0
-
 void
 PrintRes(ResType res)
 {
@@ -18,20 +16,6 @@ PrintRes(ResType res)
     }
     cerr << endl;
   }
-}
-
-template <int N>
-ResType
-convert(string rows[][N], int num_rows)
-{
-  ResType res;
-  for (int i = 0; i < num_rows; i++) {
-    vector<string> temp;
-    for (int j = 0; j < N; j++)
-      temp.push_back(rows[i][j]);
-    res.push_back(temp);
-  }
-  return res;
 }
 
 ResType *

@@ -12,9 +12,6 @@
 #include "TestSinglePrinc.h"
 #include "log.h"
 
-#define PLAIN 0
-#define STOP_IF_FAIL 0
-
 static int ntest = 0;
 static int npass = 0;
 
@@ -28,17 +25,6 @@ TestSinglePrinc::~TestSinglePrinc()
 
 }
 
-static void
-PrintRes(ResType res)
-{
-    for(auto outer = res.begin(); outer != res.end(); outer++) {
-        for(auto inner = outer->begin(); inner != outer->end(); inner++) {
-            cerr << *inner << " | ";
-        }
-        cerr << endl;
-    }
-}
-
 template <int N>
 static ResType
 convert(string rows[][N], int num_rows)
@@ -49,18 +35,6 @@ convert(string rows[][N], int num_rows)
         for (int j = 0; j < N; j++)
             temp.push_back(rows[i][j]);
         res.push_back(temp);
-    }
-    return res;
-}
-
-static ResType *
-myExecute(EDBClient * cl, string query)
-{
-    ResType * res;
-    if (PLAIN) {
-        res = cl->plain_execute(query);
-    } else {
-        res = cl->execute(query);
     }
     return res;
 }
@@ -140,7 +114,7 @@ qUpdateSelect(EDBClient *cl, const string &update, const string &select,
 static void
 testCreateDrop(EDBClient * cl)
 {
-    cl->plain_execute("DROP TABLE IF EXISTS table0, table1, table2, table3");
+    cl->plain_execute("DROP TABLE IF EXISTS table0, table1, table2, table3, table4");
 
     string sql = "CREATE TABLE t1 (id integer, words text)";
     assert_s(cl->execute(sql), "Problem creating table t1 (first time)");
@@ -178,6 +152,14 @@ testCreateDrop(EDBClient * cl)
 
     assert_s(cl->execute("DROP TABLE t1"), "testCreateDrop won't drop t1");
     assert_s(cl->execute("DROP TABLE t2"), "testCreateDrop won't drop t2");
+
+    if (!PLAIN) {
+      sql = "CREATE TABLE t3 (id bigint, dec enc decimal(4,5), nnull enc integer NOT NULL, words enc varchar(200), line enc blob NOT NULL)";
+      assert_s(cl->execute(sql), "Problem creating table t3");
+      assert_s(cl->plain_execute("SELECT * FROM table4"), "t3 not created properly");
+
+      assert_s(cl->execute("DROP TABLE t3"), "testCreateDrop won't drop t3");
+    }
 }
 
 //assumes Select is working
@@ -185,7 +167,7 @@ static void
 testInsert(EDBClient * cl)
 {
     cl->plain_execute(
-        "DROP TABLE IF EXISTS table0, table1, table2, table3, table4");
+        "DROP TABLE IF EXISTS table0, table1, table2, table3, table4, table5");
     assert_s(cl->execute(
                  "CREATE TABLE t1 (id integer, age enc integer, salary enc integer, address enc text, name text)"),
              "testInsert could not create table");
@@ -226,7 +208,7 @@ static void
 testSelect(EDBClient * cl)
 {
     cl->plain_execute(
-        "DROP TABLE IF EXISTS table0, table1, table2, table3, table4, table5");
+        "DROP TABLE IF EXISTS table0, table1, table2, table3, table4, table5, table6");
     if (!PLAIN) {
         assert_s(cl->execute(
                      "CREATE TABLE t1 (id integer, age enc integer, salary enc integer, address enc text, name text)"),
@@ -555,7 +537,7 @@ static void
 testJoin(EDBClient * cl)
 {
     cl->plain_execute(
-        "DROP TABLE IF EXISTS table0, table1, table2, table3, table4, table5, table6, table7");
+        "DROP TABLE IF EXISTS table0, table1, table2, table3, table4, table5, table6, table7, table8");
     if (!PLAIN) {
         assert_s(cl->execute(
                      "CREATE TABLE t1 (id integer, age enc integer, salary enc integer, address enc text, name enc text)"),
@@ -680,7 +662,7 @@ static void
 testUpdate(EDBClient * cl)
 {
     cl->plain_execute(
-        "DROP TABLE IF EXISTS table0, table1, table2, table3, table4, table5, table6, table7, table8, table9");
+        "DROP TABLE IF EXISTS table0, table1, table2, table3, table4, table5, table6, table7, table8, table9, table10");
     if (!PLAIN) {
         assert_s(cl->execute(
                      "CREATE TABLE t1 (id integer, age enc integer, salary enc integer, address enc text, name text)"),
@@ -786,7 +768,7 @@ static void
 testDelete(EDBClient * cl)
 {
     cl->plain_execute(
-        "DROP TABLE IF EXISTS table0, table1, table2, table3, table4, table5, table6, table7, table8, table9, table10");
+        "DROP TABLE IF EXISTS table0, table1, table2, table3, table4, table5, table6, table7, table8, table9, table10, table11");
     if (!PLAIN) {
         assert_s(cl->execute(
                      "CREATE TABLE t1 (id integer, age enc integer, salary enc integer, address enc text, name text)"),
@@ -886,9 +868,9 @@ static void
 testSearch(EDBClient * cl)
 {
     cl->plain_execute(
-        "DROP TABLE IF EXISTS table0, table1, table2, table3, table4, table5, table6, table7, table8, table9, table10, table11");
+        "DROP TABLE IF EXISTS table0, table1, table2, table3, table4, table5, table6, table7, table8, table9, table10, table11, table12");
     if (!PLAIN) {
-        assert_s(cl->execute("CREATE TABLE t3 (id integer, searchable enc text)"),
+        assert_s(cl->execute("CREATE TABLE t3 (id integer, searchable enc search text)"),
                  "testSearch couldn't create table");
     }
     assert_s(myExecute(cl, "INSERT INTO t3 VALUES (1, 'short text')"),
@@ -979,5 +961,6 @@ TestSinglePrinc::run(int argc, char ** argv)
     testSearch(cl);
     cerr << "RESULT: " << npass << "/" << ntest << " passed" << endl;
 
-    delete cl;
+    //was causing seg fault... TODO figure out why
+    //delete cl;
 }

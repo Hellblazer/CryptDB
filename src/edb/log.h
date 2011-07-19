@@ -13,6 +13,8 @@ enum log_group {
     log_edb,
     log_edb_v,
     log_test,
+    log_am,
+    log_am_v,
 
     // special value
     log_all,
