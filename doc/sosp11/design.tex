@@ -172,7 +172,7 @@ between two columns.  $\OPEJOIN$ enables joins by order relations. We provide a 
 
 \begin{figure}[t!]
 \centering
-\includegraphics[width=3.1in]{fig/storage.pdf}
+\includegraphics{fig/storage2.pdf}
 \caption{Onion layers of encryption and the classes of computation they allow.}
 \label{fig:onion}
 \end{figure}
@@ -263,9 +263,26 @@ overhead of \name{} is modest in the steady state (see \S\ref{s:eval}) because t
 The security level to which the database converges is the maximum
 privacy level for the set of queries issued by the application.
 
+\newcommand\B{\rule[-2.0ex]{0pt}{0pt}}
+
 \begin{figure}[t!] 
-\centering
-\includegraphics[width=3.1in]{fig/schema.pdf}
+\scriptsize
+\begin{minipage}[h]{0.6in}
+\begin{tabular}{@{~~}c@{~~}|@{~~}c@{~~}}
+\multicolumn{2}{@{~}c@{~}}{\bf Employees\B} \\
+ID & Name \\ \hline
+23 & Alice \\
+\end{tabular}
+\end{minipage}
+%
+\begin{minipage}[h]{0in}
+\begin{tabular}{@{~}c@{~}|@{~}c@{~}|@{~}c@{~}||@{~}c@{~}|@{~}c@{~}}
+\multicolumn{5}{@{~}c@{~}}{\bf Table1\B} \\
+C1-Onion1 & C1-Onion2 & C1-Onion3 & C2-Onion1 & C2-Onion2 \\ \hline
+x2b82ae & xcb9e4 & xc234e4 & x8ab113 & xd101e3 \\
+\end{tabular}
+\end{minipage}
+
 \caption{Data layout at the server. When the application creates a
   table with the schema on the left, the table created at the server
   is the one from the right.}
