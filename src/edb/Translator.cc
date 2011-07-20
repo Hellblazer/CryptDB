@@ -31,6 +31,7 @@ anonymizeFieldName(unsigned int index, onion o, string origname)
     }
     case oOPE: {return string("field") + marshallVal(index) + "OPE"; }
     case oAGG: {return string("field") + marshallVal(index) + "AGG"; }
+    case oSWP: {return string("field") + marshallVal(index) + "SWP"; }
     default: {assert_s(false, "invalid onion in anonymizeFieldName"); }
     }
 
@@ -97,6 +98,9 @@ processInsert(string field, string table, TableMetadata * tm)
             if (fm->exists(fm->anonFieldNameOPE)) {
                 res += ",  " + fm->anonFieldNameOPE;
             }
+            if (fm->has_search) {
+            	res += ", " + fm->anonFieldNameSWP;
+            }
         } else {
             assert_s(false, "invalid type");
         }
@@ -132,19 +136,17 @@ getFieldName(FieldMetadata *fm)
 
 string
 processCreate(fieldType type, string fieldName, unsigned int index,
-              bool encryptField, TableMetadata * tm,
-              FieldMetadata * fm)
+              TableMetadata * tm, FieldMetadata * fm)
 throw (CryptDBError)
 {
 
-    fm->isEncrypted = encryptField;
 
     string res = "";
 
     switch (type) {
     case TYPE_INTEGER: {
 
-        if (encryptField) {
+        if (fm->isEncrypted) {
             // create field for DET encryption
             string anonFieldNameDET = anonymizeFieldName(index, oDET,
                                                          fieldName);
@@ -178,6 +180,9 @@ throw (CryptDBError)
                 fm->anonFieldNameAGG = "";
             }
 
+            fm->has_search = false;
+
+
             break;
         }
         else {
@@ -194,7 +199,7 @@ throw (CryptDBError)
     }
     case TYPE_TEXT: {
 
-        if (encryptField) {
+        if (fm->isEncrypted) {
             string anonFieldNameDET = anonymizeFieldName(index, oDET,
                                                          fieldName);
             tm->fieldNameMap[anonFieldNameDET] = fieldName;
@@ -210,11 +215,23 @@ throw (CryptDBError)
                 fm->anonFieldNameOPE = anonFieldNameOPE;
 
                 res = res  + ", " + anonFieldNameOPE + " "+ TN_I64;
+
+
             } else {
                 fm->anonFieldNameOPE = "";
             }
 
             fm->anonFieldNameAGG = "";
+            fm->agg_used = false;
+
+            if (fm->has_search) {
+            	fm->anonFieldNameSWP = anonymizeFieldName(index, oSWP,
+            			fieldName);
+
+            	res = res + ", " + fm->anonFieldNameSWP + "  "+TN_TEXT+" ";
+            } else {
+            	fm->anonFieldNameSWP = "";
+            }
 
             break;
 

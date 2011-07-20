@@ -109,8 +109,7 @@ string processAgg(list<string>::iterator & wordsIt, list<string> & words,
                   bool forquery);
 
 string processCreate(fieldType type, string fieldName, unsigned int index,
-                     bool encryptField,  TableMetadata * tm,
-                     FieldMetadata * fm)
+                     TableMetadata * tm, FieldMetadata * fm)
     throw (CryptDBError);
 
 //returns what should be included in an insert query for a certain field
