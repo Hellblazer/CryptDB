@@ -20,6 +20,7 @@
 #include <set>
 #include "Equation.h"
 
+
 #include "NTL/ZZ.h"
 using namespace NTL;
 
@@ -84,6 +85,9 @@ const string dec_first_key =
     "\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x01\x02\x03\x04\x05\x06";
 const string PWD_TABLE_PREFIX = "pwdcryptdb__";
 
+//maps the name of an annotation we want to process to the number of fields after this annotation relevant to it
+const std::set<string> annotations = {"enc", "search", "encfor", "equals", "givespsswd", "hasaccessto"};
+
 // ============= DATA STRUCTURES ===================================//
 
 typedef vector<vector<string> > ResType;
@@ -107,7 +111,7 @@ typedef struct CryptDBError {
 typedef enum fieldType {TYPE_TEXT, TYPE_INTEGER, TYPE_AGG_RESULT_COUNT,
                         TYPE_AGG_RESULT_SUM, TYPE_AGG_RESULT_SET,
                         TYPE_OPE} fieldType;
-typedef enum onion {oDET, oOPE, oAGG, oNONE, oINVALID} onion;
+typedef enum onion {oDET, oOPE, oAGG, oNONE, oSWP, oINVALID} onion;
 
 typedef struct AutoInc {
     long incvalue;
@@ -122,7 +126,7 @@ typedef struct ParserMeta {
 typedef enum SECLEVEL {INVALID,   PLAIN,  PLAIN_DET,  DETJOIN,  DET,
                        SEMANTIC_DET, PLAIN_OPE, OPEJOIN, OPESELF,
                        SEMANTIC_OPE, PLAIN_AGG,
-                       SEMANTIC_AGG, SEMANTIC_VAL} SECLEVEL;
+                       SEMANTIC_AGG, PLAIN_SWP, SWP, SEMANTIC_VAL} SECLEVEL;
 
 const string levelnames[] =
 {"invalid","plain","plaindet", "detjoin","det","semanticdet", "plainope",
@@ -141,6 +145,7 @@ typedef struct FieldMetadata {
     string anonFieldNameDET;
     string anonFieldNameOPE;
     string anonFieldNameAGG;
+    string anonFieldNameSWP;
 
     FieldMetadata();
 
@@ -148,9 +153,10 @@ typedef struct FieldMetadata {
 
     bool INCREMENT_HAPPENED;
 
-    //for training purposes
+
     bool ope_used;
     bool agg_used;
+    bool has_search;
 
     //returns true if the given field exists in the database
     static bool exists(const string &field);
