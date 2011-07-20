@@ -1,0 +1,11 @@
+The potential licensees include a variety of database vendor companies
+such as Oracle, IBM, Microsoft, HP, most of which have one or more
+relevant products that can use the technology. Other licensees include
+cloud providers such as Amazon or Microsoft (SQL-Azure) or Rackspace,
+or private cloud technology providers such as Eucalyptus and their
+competitors.
+
+Last but not least, there is a strong startup possibility to take
+CryptDB to market.  Given the number of database security, privacy,
+and confidentiality leaks in recent months, and the fact that they
+seem to be growing, the market is likely quite large.
