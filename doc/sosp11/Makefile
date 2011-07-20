@@ -23,8 +23,9 @@ $(FIGS_PDF): %.pdf: %.odg
 	rm -f $@.tmp~
 
 fig/%.pdf: fig/%.svg
-	# inkscape -z --export-pdf=$@.pdf14 --export-area-drawing $< && ps2pdf13 $@.pdf14 $@ && cp $@ .missing/$@ || cp .missing/$@ $@
-	inkscape -z --export-pdf=$@ --export-area-drawing $< && cp $@ .missing/$@ || cp .missing/$@ $@
+	( inkscape -z --export-pdf=$@ --export-area-drawing $< \
+	  && cp $@ .missing/$@ ) \
+	|| cp .missing/$@ $@
 
 fig/%.pdf: fig/%.gnuplot fig/%.dat
 	gnuplot $<
