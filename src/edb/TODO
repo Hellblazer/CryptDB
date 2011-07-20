@@ -7,3 +7,5 @@
   need to store (salt varchar(128), rounds int) for each external principal,
   and fetch it before being able to compute the key.
 
+- RND wrapper around SWP for completeness.
+

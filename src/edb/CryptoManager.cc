@@ -146,6 +146,8 @@ getOnion(SECLEVEL l1)
     case SEMANTIC_OPE: {return oOPE; }
     case PLAIN_AGG: {return oAGG; }
     case SEMANTIC_AGG: {return oAGG; }
+    case PLAIN_SWP: {return oSWP; }
+    case SWP: {return oSWP; }
     case PLAIN: {return oNONE; }
     default: {return oINVALID; }
     }
@@ -267,14 +269,16 @@ CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft,
                      SECLEVEL fromlevel, SECLEVEL tolevel,
                      uint64_t salt)
 {
-
-    //cerr << "+ crypt: salt " << salt << " data " << data << " fullfieldname
-    // " << fullfieldname << " fromlevel " << fromlevel << " to level" <<
-    // tolevel << "\n";
     onion o = getOnion(fromlevel);
+    onion o2 = getOnion(tolevel);
 
-    myassert((o != oINVALID) && (o == getOnion(
-                                     tolevel)),
+    LOG(crypto) << "crypt: salt " << salt << " data " << data
+                << " fullfieldname " << fullfieldname
+                << " fromlevel " << fromlevel
+                << " to level" << tolevel
+                << " onionfrom " << o << " onionto " << o2;
+
+    myassert((o != oINVALID) && (o == o2),
              "levels for crypt are not on the same onion");
 
     int comp = fromlevel - tolevel;
