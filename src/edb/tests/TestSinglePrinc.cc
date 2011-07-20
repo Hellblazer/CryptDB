@@ -984,7 +984,18 @@ testSearch(EDBClient * cl)
         "SELECT * FROM t3 WHERE searchable LIKE '%magic hand of chance%'");
     reply.push_back(convert(rows5,2));
 
+    query.push_back("SELECT * FROM t3 WHERE searchable < 'slow'");
+    string rows6[3][2] = { {"id","searchable"},
+			  {"1", "short text"},
+			  {"3",""} };
+    reply.push_back(convert(rows6,3));
+
     CheckSelectResults(cl, query, reply);
+
+    qUpdateSelect(cl,"UPDATE t3 SET searchable='text that is new' WHERE id=1",
+		  "SELECT * FROM t3 WHERE searchable < 'slow'",
+		  { {"id","searchable"},
+		    {"3",""} } );
 
     if (!PLAIN) {
         assert_s(cl->execute("DROP TABLE t3"), "testSearch can't drop t3");
