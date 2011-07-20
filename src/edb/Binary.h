@@ -25,6 +25,8 @@ public:
 	//allocates len bytes
 	Binary(unsigned int len);
 
+	Binary(const string & s);
+
 	//allocates len bytes and copies
 	Binary(unsigned int len, unsigned char * val);
 

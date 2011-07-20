@@ -2264,7 +2264,9 @@ throw (CryptDBError)
     string anonTable1 = tableMetaMap[table1]->anonTableName;
     string anonField1, anonOp1;
 
-    fieldType ftype1 = tableMetaMap[table1]->fieldMetaMap[field1]->type;
+    FieldMetadata * fm1 = tableMetaMap[table1]->fieldMetaMap[field1];
+
+    fieldType ftype1 = fm1->type;
 
     string res = "";
 
@@ -2277,8 +2279,7 @@ throw (CryptDBError)
         assert_s(Operation::isDET(
                      operation), "operation not supported with join");
 
-        anonField1 =
-            tableMetaMap[table1]->fieldMetaMap[field1]->anonFieldNameDET;
+        anonField1 = fm1->anonFieldNameDET;
         anonOp1 = fullName(anonField1, anonTable1);
 
         string table3, field3;
@@ -2302,15 +2303,14 @@ throw (CryptDBError)
 
     if (Operation::isDET(operation)) {     //DET
 
-        anonField1 =
-            tableMetaMap[table1]->fieldMetaMap[field1]->anonFieldNameDET;
+        anonField1 = fm1->anonFieldNameDET;
         anonOp1 = fullName(anonField1, anonTable1);
 
         // TODO: this is inconsistent, I added some OPE fields with det
         // encryptions
         // you also may want to fetch ope only if there is an index on it
 
-        SECLEVEL sl = tableMetaMap[table1]->fieldMetaMap[field1]->secLevelDET;
+        SECLEVEL sl = fm1->secLevelDET;
         res = res + " " +
               fieldNameForQuery(anonTable1, table1, anonField1, ftype1,
                                 qm) + " " +  operation + " ";
@@ -2329,16 +2329,34 @@ throw (CryptDBError)
     }
 
     if (Operation::isILIKE(operation)) {     //DET
-        anonField1 =
-            tableMetaMap[table1]->fieldMetaMap[field1]->anonFieldNameDET;
+
+    	/* Method 2 search: SWP */
+
+    	anonField1 = fm1->anonFieldNameSWP;
+    	string anonfull = fullName(anonField1, tableMetaMap[table1]->anonTableName);
+
+    	res += "search(" + anonField1 + ", ";
+
+    	Binary key = Binary(cm->getKey(mkey, anonfull, SWP));
+
+    	Token t = CryptoManager::token(key, Binary(removeApostrophe(op2)));
+
+    	res += marshallBinary(string((char *)t.ciph.content, t.ciph.len)) + ", " +
+    			marshallBinary(string((char *)t.wordKey.content, t.ciph.len)) + ") ";
+
+    	return res;
+
+    	/*
+    	 *
+    	 * search method 1 code:
+    	anonField1 = fm1->anonFieldNameDET;
         anonOp1 = fullName(anonField1, anonTable1);
 
         anonTable1 = tableMetaMap[table1]->anonTableName;
-        anonField1 =
-            tableMetaMap[table1]->fieldMetaMap[field1]->anonFieldNameDET;
+        anonField1 = fm1->anonFieldNameDET;
         anonOp1 = fullName(anonField1, anonTable1);
 
-        fieldType ftype = tableMetaMap[table1]->fieldMetaMap[field1]->type;
+        fieldType ftype = fm1->type;
 
         res = res + " search( ";
 
@@ -2353,6 +2371,7 @@ throw (CryptDBError)
         res = res + ", " + anonOp1 + ") ";
 
         return res;
+        */
 
     }
 

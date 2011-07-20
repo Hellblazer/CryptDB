@@ -27,6 +27,13 @@ void Binary::Free() {
 	free(content);
 }
 
+Binary::Binary(const string & s) {
+	len = s.length();
+	content = new unsigned char[len];
+
+	memcpy(content, s.c_str(), len);
+}
+
 Binary::Binary(unsigned int leng) {
 	this->len = leng;
 	content = new unsigned char[leng];
