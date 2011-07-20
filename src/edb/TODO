@@ -3,6 +3,7 @@
 - marshalling/escaping code is too complicated and sometimes wrong; e.g.,
   text seems to encrypt a quoted version of the string.
 
-- implement something like PBKDF2 for password-based key generation, with
-  per-user salts.
+- use PBKDF2 for password-based key generation.
+  need to store (salt varchar(128), rounds int) for each external principal,
+  and fetch it before being able to compute the key.
 
