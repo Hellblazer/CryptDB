@@ -39,6 +39,7 @@ class CryptoManager {
                  string fullfieldname, SECLEVEL fromlevel, SECLEVEL tolevel,
                  uint64_t salt = 0);
 
+
     //SPECIFIC FUNCTIONS
 
     //expects AES_KEY_BYTES long key
@@ -169,6 +170,12 @@ class CryptoManager {
     static string decrypt_DET_wrapper(const string &ctext, AES_KEY * key);
 
     /* Method 2 */
+    static Binary encryptSWP(const Binary & key, const list<Binary> & words);
+	static list<Binary> * decryptSWP(const Binary & key, const Binary & overall_ciph);
+	static Token token(const Binary & key, const Binary & word);
+	static list<unsigned int> * searchSWP(const Token & token, const Binary & overall_ciph);
+	static bool searchExists(const Token & token, const Binary & overall_ciph);
+
 
     //aggregates
     static const unsigned int Paillier_len_bytes = PAILLIER_LEN_BYTES;

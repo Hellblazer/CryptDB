@@ -153,7 +153,7 @@ decrypt_DET(unsigned char *eValueBytes, uint64_t eValueLen, AES_KEY * key)
 
 static bool
 search(const Token & token, const Binary & overall_ciph) {
-	return SWP::searchExists(token, overall_ciph);
+	return CryptoManager::searchExists(token, overall_ciph);
 }
 
 #if MYSQL_S
