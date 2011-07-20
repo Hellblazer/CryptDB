@@ -27,6 +27,12 @@ during a compromise (e.g., user 2 in Figure~\ref{fig:overview}), and
 who do not log in until the compromise is detected and fixed by
 the administrator.
 
+Although CryptDB protects data confidentiality, it does not ensure
+the integrity, freshness, or completeness of results returned to the
+application.  An adversary that compromises the application, proxy,
+or DBMS server, or a malicious DBA, can delete any or all of the data
+stored in the database.
+
 We now describe the two threat models addressed by \name{}, and the
 security guarantees provided under those threat models.
 
@@ -58,19 +64,14 @@ increasingly important. %operation and maintenance of databases is either consol
  
 
 To overcome this threat, \name{} executes SQL queries over encrypted
-data on the DBMS server.  In so doing, the proxy uses some secret keys to encrypts all data inserted in the DB and queries reaching the DBMS\@.
- To compute query results, the proxy needs to reveal
-certain relationships among data to the DBMS\@.
-By using SQL-aware encryption that adjusts dynamically to the queries
-presented, \name{} reveals only relations between tuples that are
-necessary for the server to execute the query. \name{} provides the following properties:
-
-
-%\name{} uses {\em SQL-aware encryption} to do this, by revealing
-%different encryptions of the data to the server depending on the kinds
-%of predicates that it needs to compute.  However, \name{}'s {\em
-%  adjustable query-based encryption} reveals only relations between
-%tuples needed by the server to execute the query; in other words,
+data on the DBMS server.  In so doing, the proxy uses some secret keys
+to encrypts all data inserted in the DB and queries reaching the DBMS\@.
+To compute query results, the proxy needs to reveal certain relationships
+among data to the DBMS\@.  By using SQL-aware encryption that adjusts
+dynamically to the queries presented, \name{} reveals only relations
+between tuples that are necessary for the server to execute the types
+of queries issued by the application.  For example, \name{} provides
+the following properties:
 
 
 \begin{CompactItemize}
@@ -78,7 +79,7 @@ necessary for the server to execute the query. \name{} provides the following pr
 \item Sensitive data is never decrypted at the DBMS server,
     which never gets the decryption key to the plain data.
 
-  \item If the application requests no relational predicate filtering
+\item If the application requests no relational predicate filtering
     on a column, nothing about the column content leaks.  If the
     application requests equality checks on a column, \name{}'s proxy
     reveals which items repeat in that column.  If the application
@@ -86,21 +87,13 @@ necessary for the server to execute the query. \name{} provides the following pr
     the elements in the column.  \name{} never reveals the plaintext
     data to the DBMS server.
 
-\item The DBMS server cannot process queries 
-%(that is, discover new data relations) 
-  different from the ones requested by the application.
-  
-
+\item The DBMS server cannot compute the (encrypted) results for any
+    types of queries that were not requested by the application.
 
 \end{CompactItemize}
 
-We believe that these confidentiality properties are about as good as
-one can provide in practice with current encryption technologies.
-
-% \hb{maximum -- don't like maximum; is it true?}
-%confidentiality given the class of computations needed at the server
-%to process SQL queries, with the following properties:
-
+% We believe that these confidentiality properties are about as good as
+% one can provide in practice with current encryption technologies.
 
 In \S\ref{s:eval}, we show that all sensitive fields in the tested
 applications remain encrypted with highly-secure encryption schemes, 

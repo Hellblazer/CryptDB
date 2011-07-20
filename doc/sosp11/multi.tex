@@ -388,8 +388,11 @@ but not for messages the user received---which \name determines by
 keeping aggregate statistics).
 
 Applications inform \name{} of a user logging in or out by simply
-issuing SQL {\tt INSERT} and {\tt DELETE} queries to a special table
-\texttt{cryptdb\_active}, which the proxy recognizes.
+issuing SQL {\tt INSERT} and {\tt DELETE} queries to a special
+table \texttt{cryptdb\_active} that has two columns, {\tt username}
+and {\tt password}.  The proxy intercepts all such queries for
+\texttt{cryptdb\_active}, stores the passwords of logged-in users in
+memory, and never reveals them to the DBMS server.
 
 \name{} guards the data of inactive users at the time of an
 attack. However, some special users such as administrators with access

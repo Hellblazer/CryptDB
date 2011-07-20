@@ -314,7 +314,7 @@ for phpBB, \name{} increases server storage by 42\%, caused largely
 by the public keys of principals (users, groups and messages) and the
 $\HOM$ onion for encrypted integer fields.
 As the number of posts in a forum grows, the amortized storage overhead
-decreases because no new principals are added.
+decreases, because all posts are encrypted for the same forum principal.
 
 % At the DB server, \name increases the size of the database due to
 % onion encryption and tables of principal keys.  For TPC-C, the

@@ -15,16 +15,17 @@ trusted, but the application and the proxy are trusted.
 data almost as if it were executing the same queries on plaintext
 data. Existing applications do not need to be changed because the
 proxy exports the same SQL interface as the DBMS\@. The DBMS's query
-plan for an encrypted query is the same as for the original query.
-However, the operators comprising the query, such as selections,
+plan for an encrypted query is almost the same as for the original query,
+except that the operators comprising the query, such as selections,
 projections, joins, aggregates, and orderings, are performed on
 ciphertexts, and use modified operators in some cases.
 
-The \name{} proxy stores a secret master key, $\mathit{MK}$, and the database
-schema.  The DBMS server sees an anonymized schema, encrypted user
+The \name{} proxy stores a secret master key, $\mathit{MK}$, the database
+schema, and the current encryption levels of all onions.  The DBMS server
+sees an anonymized schema, encrypted user
 data, and some auxiliary tables used by \name{}.  \name{} also equips
-the DB server with \name{}-specific UDFs that enable the server to
-compute on ciphertexts for certain operations.
+the DB server with \name{}-specific user-defined functions (UDFs)
+that enable the server to compute on ciphertexts for certain operations.
 
 Processing a query in \name{} involves four steps:
 \begin{CompactEnumerate}
@@ -85,12 +86,11 @@ many ways to implement $\DET$, such as $\DET_K(v)=\RND_{K_1}(v) ~ \| ~
 \textrm{HMAC-SHA1}_{K_2}(v)$, where $\|$ is the
 concatenation operator, $K_1$ and $K_2$ are two keys derived from $K$,
 and $K$ itself is derived by encrypting the table and column names
-with $\mathit{MK}$\@.  For this $\DET$ construction, the server compares two
-encryptions by comparing their HMAC-SHA1
-values.
-% We implement $\DET$ using AES in counter mode with a
-% separate IV (counter value) for each column, derived by encrypting the table
-% and column names with $\MK$\@.
+with $\mathit{MK}$\@.  To compare two ciphertexts for equality with
+this $\DET$ construction, the server compares their HMAC-SHA1 values.
+This construction ensures that the server cannot determine whether
+two values have identical prefixes (as would be the case when
+encrypting with AES-CBC and a fixed IV).
 
 \textbf{Order-preserving encryption} ($\OPE$)\@. $\OPE$ allows order
 relations between data items to be established based on their
@@ -113,7 +113,8 @@ the sign.
 The scheme we use~\cite{boldyreva-ope} is the first provably secure
 scheme.  Until \name{}, there has not been an implementation or any
 measure of how practical the scheme would be.  The direct
-implementation of the scheme took $\sim$25~ms per encryption.  We
+implementation of the scheme took $\sim$25~ms per encryption of a
+\nz{XXX}-bit integer.  We
 improved the algorithm by using AVL binary search trees when batch
 encryption is done (e.g., database loads), reducing the cost of $\OPE$
 encryption to 7~ms per encryption without affecting its security. We
@@ -173,7 +174,9 @@ between two columns.  $\OPEJOIN$ enables joins by order relations. We provide a 
 \begin{figure}[t!]
 \centering
 \includegraphics{fig/storage2.pdf}
-\caption{Onion layers of encryption and the classes of computation they allow.}
+\caption{Onion layers of encryption and the classes of computation they allow.
+         The onions are numbered sequentially, and the numbers have no inherent
+         significance.}
 \label{fig:onion}
 \end{figure}
 
@@ -204,9 +207,10 @@ Unfortunately, the query set is not always known in advance.
 Thus, we need an adaptive scheme that dynamically
 adjusts encryption strategies.
 
-Our idea is to encrypt each data item into an \textit{onion}:
-each value in the table is dressed in layers of increasingly stronger
-encryption, as illustrated in Figs.~\ref{fig:onion} and~\ref{fig:schema}. Each layer of
+Our idea is to encrypt each data item into one or more \textit{onions}:
+that is, each value is dressed in layers of increasingly
+stronger encryption, as illustrated in Figs.~\ref{fig:onion}
+and~\ref{fig:schema}. Each layer of
 each onion enables certain kinds of functionality as explained in the
 previous subsection.  For example, the outermost layers, $\RND$ and
 $\HOM$, provide maximum security, whereas $\OPE$ provides more
@@ -240,16 +244,18 @@ the OKM strips off the onion layers to allow $P$ on $c$, by sending
 the corresponding onion key to the server. The lowest encryption level is never stripped.
 
 \name{} implements onion layer decryption using UDFs that run on the
-DBMS server.  For example, in Fig.~\ref{fig:schema}, to decrypt onion 2 of column 2 in table 1 
-to level $\OPE$, the OKM issues the following query to the server
-using the {\tt DECRYPT\_RND} UDF:
+DBMS server.  For example, in Fig.~\ref{fig:schema}, to decrypt onion 2 of
+column 2 in table 1 to level $\OPE$, the OKM issues the following query
+to the server using the {\tt DECRYPT\_RND} UDF:
 
 \begin{verbatim}
  UPDATE Table1 SET C2-Onion2 =
                    DECRYPT_RND(K, C2-Onion2)
 \end{verbatim}
 where $K$ is the appropriate key computed as in Eq.
-(\ref{eq:columnkey}).
+(\ref{eq:columnkey}).  At the same time, the proxy updates its own
+internal state to remember that \texttt{Table1.C2-Onion2} is now at
+level $\OPE$ in the DBMS\@.
 
 Each constant in a query that is part of a predicate on onion $o$ of column $c$ is encrypted using all onion layers up to the current onion layer of onion $o$ of column $c$. 
 
@@ -360,8 +366,9 @@ their values.
 
 There are two solutions to this problem.  If a column is incremented
 and then only projected (no comparisons performed on it), the solution
-is simple: when requesting the value of this field, use the value of
-Onion 3 rather than Onion 1 or 2, because Onion 3 is up-to-date.  This
+is simple: when requesting the value of this field, use the $\HOM$
+ciphertext (from onion 3 in Figure~\ref{fig:onion}) instead of ciphertexts
+from other onions, because the $\HOM$ value is up-to-date.  This
 is the case for increment TPC-C queries.
 If a column is used in comparisons after it is
 incremented, the solution is to split the query into two parts:
@@ -388,11 +395,11 @@ rows or a small number of rows.
 \subsection{Computing Joins}
 \label{ss:join}
 
-There are two kinds of joins: {\em equi-joins} in which
-the join predicate is based on equality, and {\em range joins}, which
-involve order checks.
-Supporting these joins is a challenging problem.  If two columns are
-to be joined, they need to be encrypted with the same key.
+There are two kinds of joins supported by CryptDB: {\em equi-joins} in
+which the join predicate is based on equality, and {\em range joins},
+which involve order checks.  Supporting these joins is a challenging
+problem.  If two columns are to be joined, they need to be encrypted
+with the same key.
 
 % We first describe how \name{} implements
 % equi-joins (the overwhelmingly common case, i.e., level
@@ -409,13 +416,16 @@ be able to join $B$ and $C$\@.  Thus, the question is, which keys
 should each column be encrypted with, given that we do not know in
 advance what columns will be joined?
 
-To address this problem, we introduce a new cryptographic primitive
-that allows the DBMS server to dynamically adjust the $\JOIN$
-encryption keys of each column.  Each column is initially encrypted
-with a different $\JOIN$ key, preventing all joins.  When a query
-requests a join, the proxy will give the DBMS server an onion key to
-re-encrypt the two columns to the same $\JOIN$ key, allowing joins
-between the two columns.
+To address this problem, we introduce a new cryptographic primitive that
+allows the DBMS server to dynamically adjust the $\JOIN$ encryption keys
+of each column.  Each column is initially encrypted with a different
+$\JOIN$ key, preventing any joins.  When a query requests a join, the
+proxy gives the DBMS server an onion key to re-encrypt the two columns
+to the same $\JOIN$ key, allowing joins between the two columns.  If a
+single column is joined with more than one other column, all of the
+columns involved are re-encrypted to the same $\JOIN$ key.  After the
+initial join query, the columns remain encrypted with the same key,
+so that no re-encryptions are needed in the steady state.
 
 Our algorithm is based on elliptic-curve cryptography (ECC).  When a
 row is inserted, the $\JOIN$ encryption of value $v$ is computed as
@@ -431,7 +441,7 @@ $c'$ share the same $\JOIN$ key, and the DBMS server can perform an
 equi-join on $c$ and $c'$ as usual.
 
 We proved the security of this scheme cryptographically (elided here
-for space, but will be in an extended version) using the hardness
+for space) using the hardness
 assumption of computing the discrete logarithm in elliptic curve-based
 groups. The server can only join pairs of columns that were joined by
 a legitimate query and the encryption scheme does not reveal data.
