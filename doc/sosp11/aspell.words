@@ -1,6 +1,8 @@
-personal_ws-1.1 en 168 
+personal_ws-1.1 en 180 
 abbrv
 aclgroups
+ACM
+ae
 AES
 AGG
 Agrawal
@@ -31,6 +33,7 @@ cryptdb
 CryptDB
 cryptosystem
 cryptosystems
+CSAIL
 Curino
 CVE
 Damiani
@@ -76,7 +79,9 @@ homomorphically
 HotCRP
 HotCRP's
 hypergeometric
+IIS
 ILIKE
+IMAP
 inboxes
 incr
 indistinguishability
@@ -100,6 +105,7 @@ msgtext
 multi
 MySQL
 na
+Navajo's
 NoConflict
 NTL
 OKM
@@ -112,6 +118,7 @@ PaperConflict
 paperId
 PaperReview
 PCMember
+Perrig
 PHP
 phpBB
 phpBB's
@@ -127,6 +134,7 @@ pre
 PRED
 princ
 principal's
+PRINCTYPE
 priori
 privmsgs
 PRP
@@ -140,6 +148,7 @@ rewriter
 Rizvi
 RND
 runtime
+SaaS
 schemas
 SHA
 Shi
@@ -163,7 +172,10 @@ userid
 username
 varchar
 xbb
+xc
+xcb
 xcc
+xd
 Xeon
 Zdonik
 Zeldovich
