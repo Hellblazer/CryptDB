@@ -22,7 +22,8 @@ ciphertexts, and use modified operators in some cases.
 
 The \name{} proxy stores a secret master key, $\mathit{MK}$, the database
 schema, and the current encryption levels of all onions.  The DBMS server
-sees an anonymized schema, encrypted user
+sees an anonymized schema (in which table and column names are replaced by
+opaque identifiers), encrypted user
 data, and some auxiliary tables used by \name{}.  \name{} also equips
 the DB server with \name{}-specific user-defined functions (UDFs)
 that enable the server to compute on ciphertexts for certain operations.

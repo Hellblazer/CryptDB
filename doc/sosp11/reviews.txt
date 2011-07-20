@@ -321,7 +321,7 @@ say if that is a significant contribution of this work.
 
 A few specific comments:
 
-[  ] o 3.1: "The direct implementation of the scheme took ~25 ms per
+[X] o 3.1: "The direct implementation of the scheme took ~25 ms per
 encryption."  Presumably this is for some particular size of data?
 
 [  ] o 3.1: "Word Search" This paragraph is woefully short of details.
@@ -406,7 +406,7 @@ queries with joins in them, can I infer things about the data?
 said adversary simply issue whatever queries it wants on
 behalf of any user whose key is current on the proxy?
 
-[   ] What exactly is an anonymized schema?
+[X] What exactly is an anonymized schema?
 
 [  ] It seems that while the security level of the database converges
 to the maximum privacy level for every query that has ever been
@@ -419,7 +419,7 @@ format and transform it only temporarily.
 [  ] Why do you need to implement your own notion of principals
 rather than using a DBMS's built-in notion of users?
 
-[  ] "As a result, many conferences set up a second server to review the
+[X] "As a result, many conferences set up a second server to review the
 chair’s papers or use inconvenient out-of-band emails."  It seems
 much simpler to not have chairs submit ;-)
 
