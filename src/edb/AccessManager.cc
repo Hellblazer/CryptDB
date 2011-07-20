@@ -554,7 +554,7 @@ MetaAccess::DeleteTables()
     std::set<string>::iterator it_s;
     //Public Keys table
     //TODO: fix PRINCVALUE to be application specific
-    sql = "DROP TABLE " + public_table + ";";
+    sql = "DROP TABLE IF EXISTS " + public_table + ";";
     if(!conn->execute(sql)) {
         LOG(am) << "error with sql query " << sql;
         return -1;
@@ -1340,8 +1340,6 @@ int
 KeyAccess::removePsswd(Prin prin)
 {
     if(VERBOSE) {
-        cerr << "-->" << prin.type << " " << prin.value <<
-        " is logging out" << endl;
         LOG(am_v) << "removePsswd(" << prin.type << "=" << prin.value << ")";
     }
 
