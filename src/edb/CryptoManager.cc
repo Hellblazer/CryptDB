@@ -1595,7 +1595,7 @@ CryptoManager::token(const Binary & key, const Binary & word)
 bool
 CryptoManager::searchExists(const Token & token, const Binary & overall_ciph)
 {
-    return searchExists(token, *(overall_ciph.split(SWPCiphSize)));
+    return SWP::searchExists(token, *(overall_ciph.split(SWPCiphSize)));
 }
 
 list<unsigned int> *
