@@ -6,6 +6,7 @@
  */
 
 #include "EDBClient.h"
+#include "test_utils.h"
 
 #ifndef TESTSINGLEPRINC_H_
 #define TESTSINGLEPRINC_H_

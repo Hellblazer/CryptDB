@@ -7,8 +7,6 @@
 
 #include "TestMultiPrinc.h"
 
-#define STOP_IF_FAIL 1
-
 static int ntest = 0;
 static int npass = 0;
 static ResType empty;
@@ -108,28 +106,6 @@ BasicFunctionality(EDBClient * cl) {
 
 }
 
-/*static void
-PrivMessagesNoOrphans(EDBClient * cl) {
-    cl->plain_execute("DROP TABLE IF EXISTS u, msgs, privmsg, plain_users, pwdcryptdb__users, cryptdb_publis, cryptdb_initialized_principles, cryptdb0;");
-    assert_s(myCreate(cl,"CREATE TABLE msgs (msgid equals privmsg.msgid integer, msgtext encfor msgid text)",
-		      "CREATE TABLE msgs (msgid integer, msgtext text)"), "failed: msgs table");
-    assert_s(myCreate(cl,"CREATE TABLE privmsg (msgid integer, recid equals u.userid hasaccessto msgid integer, senderid hasaccessto msgid integer)",
-		      "CREATE TABLE privmsg (msgid integer, recid integer, senderid integer)"), "failed: privmsges table");
-    assert_s(myCreate(cl,"CREATE TABLE u (userid equals privmsg.senderid integer, username givespsswd userid text);",
-		      "CREATE TABLE u (userid integer, username text);"), "failed: u table");
-    assert_s(myCreate(cl,"COMMIT ANNOTATIONS;","CREATE TABLE plain_users (username text, psswd text)"), "problem commiting annotations");  
-
-    myCreate(cl,"INSERT INTO "+ PWD_TABLE_PREFIX + "users (username, psswd) VALUES ('alice','secretalice');","INSERT INTO plain_users (username, psswd) VALUES ('alice','secretalice');");
-    myCreate(cl,"INSERT INTO "+ PWD_TABLE_PREFIX + "users (username, psswd) VALUES ('bob','secretbob');","INSERT INTO plain_users (username, psswd) VALUES ('bob','secretbob');");
-
-    checkQuery(cl,"INSERT INTO u VALUES (1, 'alice')",empty);
-    checkQuery(cl,"INSERT INTO u VALUES (2, 'bob')",empty);
-
-    checkQuery(cl,"INSERT INTO privmsg (msgid, recid, senderid) VALUES (9, 1, 2)",empty);
-    checkQuery(cl,"INSERT INTO msgs VALUES (1, 'hello world')",empty);
-    }*/
-
-
 static void
 PrivMessages(EDBClient * cl) {
     cl->plain_execute("DROP TABLE IF EXISTS u, msgs, privmsg, plain_users, pwdcryptdb__users, cryptdb_publis, cryptdb_initialized_principles, cryptdb0;");
@@ -163,6 +139,45 @@ PrivMessages(EDBClient * cl) {
     //TODO: extend this test
 }
 
+/*static void
+UserGroupForum(EDBClient * cl) {
+    cl->plain_execute("DROP TABLE IF EXISTS u, usergroup, groupforum, forum, plain_users, pwdcryptdb__users, cryptdb_public, cryptdb_initialized_principles, cryptdb0;");
+    assert_s(myCreate(cl,"CREATE TABLE u (userid integer, username givespsswd userid text);",
+		      "CREATE TABLE u (userid integer, username text);"), "failed: u table");
+    assert_s(myCreate(cl,"CREATE TABLE usergroup (userid equals u.userid hasaccessto groupid integer, groupid integer)",
+		      "CREATE TABLE usergroup (userid integer, groupid integer)"), "failed: usergroup table");
+    assert_s(myCreate(cl,"CREATE TABLE groupforum (forumid equals forum.forumid integer, groupid equals usergroup.groupid hasaccessto forumid if test(optionid) integer, optionid integer)",
+		      "CREATE TABLE groupforum (forumid integer, groupid integer, optionid integer)"), "failed: groupforum table");
+    assert_s(myCreate(cl,"CREATE TABLE forum (forumid integer, forumtext encfor forumid text)",
+		      "CREATE TABLE forum (forum integer, forumtext text)"), "failed: forum table");
+    cl->plain_execute("DROP FUNCTION IF EXISTS test");
+    cl->plain_execute("CREATE FUNCTION test (optionid integer) RETURNS bool RETURN optioned=20");
+
+    assert_s(myCreate(cl,"COMMIT ANNOTATIONS;","CREATE TABLE plain_users (username text, psswd text)"), "problem commiting annotations");
+
+    myCreate(cl,"INSERT INTO "+ PWD_TABLE_PREFIX + "users (username, psswd) VALUES ('alice','secretalice');","INSERT INTO plain_users (username, psswd) VALUES ('alice','secretalice');");
+    myCreate(cl,"INSERT INTO "+ PWD_TABLE_PREFIX + "users (username, psswd) VALUES ('bob','secretbob');","INSERT INTO plain_users (username, psswd) VALUES ('bob','secretbob');");
+    myCreate(cl,"INSERT INTO "+ PWD_TABLE_PREFIX + "users (username, psswd) VALUES ('chris','secretchris');","INSERT INTO plain_users (username, psswd) VALUES ('chris','secretchris');");
+
+    checkQuery(cl,"INSERT INTO u VALUES (1, 'alice')",empty);
+    checkQuery(cl,"INSERT INTO u VALUES (2, 'bob')",empty);
+    checkQuery(cl,"INSERT INTO u VALUES (1, 'chris')",empty);
+
+    checkQuery(cl,"INSERT INTO usergroup VALUES (1,1)",empty);
+    checkQuery(cl,"INSERT INTO usergroup VALUES (2,2)",empty);
+    checkQuery(cl,"INSERT INTO usergroup VALUES (3,1)",empty);
+    checkQuery(cl,"INSERT INTO usergroup VALUES (3,2)",empty);
+
+    checkQuery(cl,"SELECT * FROM usergroup",
+	       { {"userid", "groupid"},
+		 {"1","1"},
+		 {"2","2"},
+		 {"3","1"},
+		 {"3","2"} });
+
+    
+		 }*/
+
 void
 TestMultiPrinc::run(int argc, char ** argv)
 {
@@ -175,6 +190,8 @@ TestMultiPrinc::run(int argc, char ** argv)
     
     cerr << "Test basic..." << endl;
     BasicFunctionality(cl);
+    cl->~EDBClient();
+    cl = new EDBClient("localhost", "root", "letmein", "mysql", masterKey);
     cerr << "Test private messages..." << endl;
     PrivMessages(cl);
     cerr << "RESULT: " << npass << "/" << ntest << " passed" << endl;

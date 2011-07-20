@@ -12,9 +12,6 @@
 #include "TestSinglePrinc.h"
 #include "log.h"
 
-#define PLAIN 0
-#define STOP_IF_FAIL 0
-
 static int ntest = 0;
 static int npass = 0;
 
@@ -28,17 +25,6 @@ TestSinglePrinc::~TestSinglePrinc()
 
 }
 
-static void
-PrintRes(ResType res)
-{
-    for(auto outer = res.begin(); outer != res.end(); outer++) {
-        for(auto inner = outer->begin(); inner != outer->end(); inner++) {
-            cerr << *inner << " | ";
-        }
-        cerr << endl;
-    }
-}
-
 template <int N>
 static ResType
 convert(string rows[][N], int num_rows)
@@ -49,18 +35,6 @@ convert(string rows[][N], int num_rows)
         for (int j = 0; j < N; j++)
             temp.push_back(rows[i][j]);
         res.push_back(temp);
-    }
-    return res;
-}
-
-static ResType *
-myExecute(EDBClient * cl, string query)
-{
-    ResType * res;
-    if (PLAIN) {
-        res = cl->plain_execute(query);
-    } else {
-        res = cl->execute(query);
     }
     return res;
 }
@@ -129,7 +103,7 @@ qUpdateSelect(EDBClient *cl, const string &update, const string &select,
         cerr << "Got result:" << endl;
         PrintRes(*test_res);
 	if (STOP_IF_FAIL) {
-	  assert_s(false, "above query generated the wrong result");
+	  assert_s(false, update+"; "+select+" generated the wrong result");
 	}
 	return;
     }
@@ -140,7 +114,7 @@ qUpdateSelect(EDBClient *cl, const string &update, const string &select,
 static void
 testCreateDrop(EDBClient * cl)
 {
-    cl->plain_execute("DROP TABLE IF EXISTS table0, table1, table2, table3");
+    cl->plain_execute("DROP TABLE IF EXISTS table0, table1, table2, table3, table4");
 
     string sql = "CREATE TABLE t1 (id integer, words text)";
     assert_s(cl->execute(sql), "Problem creating table t1 (first time)");
@@ -178,6 +152,14 @@ testCreateDrop(EDBClient * cl)
 
     assert_s(cl->execute("DROP TABLE t1"), "testCreateDrop won't drop t1");
     assert_s(cl->execute("DROP TABLE t2"), "testCreateDrop won't drop t2");
+
+    if (!PLAIN) {
+      sql = "CREATE TABLE t3 (id bigint, dec enc decimal(4,5), nnull enc integer NOT NULL, words enc varchar(200), line enc blob NOT NULL)";
+      assert_s(cl->execute(sql), "Problem creating table t3");
+      assert_s(cl->plain_execute("SELECT * FROM table4"), "t3 not created properly");
+
+      assert_s(cl->execute("DROP TABLE t3"), "testCreateDrop won't drop t3");
+    }
 }
 
 //assumes Select is working
@@ -185,7 +167,7 @@ static void
 testInsert(EDBClient * cl)
 {
     cl->plain_execute(
-        "DROP TABLE IF EXISTS table0, table1, table2, table3, table4");
+        "DROP TABLE IF EXISTS table0, table1, table2, table3, table4, table5");
     assert_s(cl->execute(
                  "CREATE TABLE t1 (id integer, age enc integer, salary enc integer, address enc text, name text)"),
              "testInsert could not create table");
@@ -226,7 +208,7 @@ static void
 testSelect(EDBClient * cl)
 {
     cl->plain_execute(
-        "DROP TABLE IF EXISTS table0, table1, table2, table3, table4, table5");
+        "DROP TABLE IF EXISTS table0, table1, table2, table3, table4, table5, table6");
     if (!PLAIN) {
         assert_s(cl->execute(
                      "CREATE TABLE t1 (id integer, age enc integer, salary enc integer, address enc text, name text)"),
@@ -266,7 +248,7 @@ testSelect(EDBClient * cl)
     query.push_back("SELECT max(id) FROM t1");
     string rows2[2][1] = { {"max(id)"},
                            {"5"} };
-    reply.push_back(convert(rows2,2));
+			   reply.push_back(convert(rows2,2));
 
     query.push_back("SELECT max(salary) FROM t1");
     string rows3[2][1] = { {"max(salary)"},
@@ -527,7 +509,7 @@ testSelect(EDBClient * cl)
     query.push_back("SELECT min(t.id) a FROM t1 AS t");
     string rows30[2][1] = { {"a"},
                             {"1"} };
-    reply.push_back(convert(rows30,2));
+			    reply.push_back(convert(rows30,2));
 
     query.push_back("SELECT t.address AS b FROM t1 t");
     string rows31[6][1] = { {"b"},
@@ -555,7 +537,7 @@ static void
 testJoin(EDBClient * cl)
 {
     cl->plain_execute(
-        "DROP TABLE IF EXISTS table0, table1, table2, table3, table4, table5, table6, table7");
+        "DROP TABLE IF EXISTS table0, table1, table2, table3, table4, table5, table6, table7, table8");
     if (!PLAIN) {
         assert_s(cl->execute(
                      "CREATE TABLE t1 (id integer, age enc integer, salary enc integer, address enc text, name enc text)"),
@@ -680,7 +662,7 @@ static void
 testUpdate(EDBClient * cl)
 {
     cl->plain_execute(
-        "DROP TABLE IF EXISTS table0, table1, table2, table3, table4, table5, table6, table7, table8, table9");
+        "DROP TABLE IF EXISTS table0, table1, table2, table3, table4, table5, table6, table7, table8, table9, table10");
     if (!PLAIN) {
         assert_s(cl->execute(
                      "CREATE TABLE t1 (id integer, age enc integer, salary enc integer, address enc text, name text)"),
@@ -773,6 +755,56 @@ testUpdate(EDBClient * cl)
                     { "6", "21", "20000", "Pemberly",
                       "Elizabeth Darcy" } });
 
+    qUpdateSelect(cl,"SELECT * FROM t1",
+		  "SELECT age FROM t1 WHERE age > 20",
+		  { {"age"},
+		    {"30"},
+		    {"21"} });
+
+    qUpdateSelect(cl, "UPDATE t1 SET age = age + 2",
+		  "SELECT * FROM t1",
+		  { {"id","age","salary","address","name"},
+                    { "1", "12", "0",
+                      "first star to the right and straight on till morning",
+                      "Peter Pan"},
+                    { "2", "18", "0", "Green Gables", "Anne Shirley" },
+                    { "3", "10", "0", "London", "Lucy" },
+                    { "4", "12", "0", "London", "Edmund" },
+                    { "5", "32", "55000", "221B Baker Street",
+                      "Sherlock Holmes" },
+                    { "6", "23", "20000", "Pemberly",
+                      "Elizabeth Darcy" } });
+
+    qUpdateSelect(cl, "UPDATE t1 SET age = 20 WHERE name='Elizabeth Darcy'",
+		  "SELECT age FROM t1 WHERE age > 20",
+		  { {"age"},
+		    {"32"} });
+
+    qUpdateSelect(cl, "UPDATE t1 SET age = age + 3 WHERE id=6",
+		  "SELECT age FROM t1",
+		  { {"age"},
+		    {"12"},
+		    {"18"},
+		    {"10"},
+		    {"12"},
+		    {"32"},
+		    {"23"} });
+
+    qUpdateSelect(cl, "UPDATE t1 SET id = id + 10, salary = salary + 19, name = 'xxx', address = 'foo' WHERE age < 11",
+		  "SELECT * FROM t1",
+		  { {"id","age","salary","address","name"},
+                    { "1", "12", "0",
+                      "first star to the right and straight on till morning",
+                      "Peter Pan"},
+                    { "2", "18", "0", "Green Gables", "Anne Shirley" },
+                    { "13", "10", "19", "foo", "xxx" },
+                    { "4", "12", "0", "London", "Edmund" },
+                    { "5", "32", "55000", "221B Baker Street",
+                      "Sherlock Holmes" },
+                    { "6", "23", "20000", "Pemberly",
+                      "Elizabeth Darcy" } });
+
+
     if (!PLAIN) {
         assert_s(cl->execute("DROP TABLE t1"), "testUpdate can't drop t1");
     } else {
@@ -786,7 +818,7 @@ static void
 testDelete(EDBClient * cl)
 {
     cl->plain_execute(
-        "DROP TABLE IF EXISTS table0, table1, table2, table3, table4, table5, table6, table7, table8, table9, table10");
+        "DROP TABLE IF EXISTS table0, table1, table2, table3, table4, table5, table6, table7, table8, table9, table10, table11");
     if (!PLAIN) {
         assert_s(cl->execute(
                      "CREATE TABLE t1 (id integer, age enc integer, salary enc integer, address enc text, name text)"),
@@ -886,9 +918,9 @@ static void
 testSearch(EDBClient * cl)
 {
     cl->plain_execute(
-        "DROP TABLE IF EXISTS table0, table1, table2, table3, table4, table5, table6, table7, table8, table9, table10, table11");
+        "DROP TABLE IF EXISTS table0, table1, table2, table3, table4, table5, table6, table7, table8, table9, table10, table11, table12");
     if (!PLAIN) {
-        assert_s(cl->execute("CREATE TABLE t3 (id integer, searchable enc text)"),
+        assert_s(cl->execute("CREATE TABLE t3 (id integer, searchable enc search text)"),
                  "testSearch couldn't create table");
     }
     assert_s(myExecute(cl, "INSERT INTO t3 VALUES (1, 'short text')"),
@@ -979,5 +1011,6 @@ TestSinglePrinc::run(int argc, char ** argv)
     testSearch(cl);
     cerr << "RESULT: " << npass << "/" << ntest << " passed" << endl;
 
-    delete cl;
+    //was causing seg fault... TODO figure out why
+    //delete cl;
 }

@@ -8,6 +8,7 @@
 #include <iomanip>
 
 #include "AccessManager.h"
+#include "log.h"
 
 #define PRINCTYPE "varchar(255)"
 #define NODIGITS 4
@@ -115,7 +116,7 @@ void
 MetaAccess::addEquals(string princ1, string princ2)
 {
     if (VERBOSE) {
-        cerr << " --> " << princ1 << " = " << princ2 << endl;
+	LOG(am_v) << "addEquals(" << princ1 << "," << princ2 << ")\n";
     }
     //remove any illegal characters (generally, just '.')
     princ1 = sanitize(princ1);
@@ -201,8 +202,8 @@ void
 MetaAccess::addAccess(string princHasAccess, string princAccessible)
 {
     if (VERBOSE) {
-        cerr << " --> " << princHasAccess << " has access to "  <<
-        princAccessible << endl;
+        LOG(am_v) << "addAccess(" << princHasAccess << ","  <<
+        princAccessible << ")";
     }
 
     //get the generic principles these princs are part of
@@ -235,7 +236,7 @@ void
 MetaAccess::addGives(string princ)
 {
     if (VERBOSE) {
-        cerr << " --> " << princ << " gives psswd" << endl;
+      LOG(am_v) << "addGives(" << princ << ")";
     }
     //get the generic principle princ is part of
     string gen_gives = getGeneric(princ);
@@ -395,7 +396,7 @@ MetaAccess::isGenGives(string gen)
 string
 MetaAccess::getTable(string hasAccess, string accessTo)
 {
-    cerr << hasAccess << "->" << accessTo << endl;
+  //cerr << hasAccess << "->" << accessTo << endl;
     assert_s(genHasAccessToGenTable.find(
                  hasAccess) != genHasAccessToGenTable.end(),
              "table for that hasAccess->accessTo does not exist");
@@ -425,7 +426,7 @@ MetaAccess::getGenericPublic(string princ)
     princ = sanitize(princ);
     if (prinToGen.find(princ) == prinToGen.end()) {
         if (VERBOSE) {
-            cerr << "Could not find generic for " << princ << endl;
+	  LOG(am_v) << "Could not find generic for " << princ;
         }
         return "";
     }
@@ -448,7 +449,7 @@ MetaAccess::CheckAccess()
 {
     std::set<string>::iterator gives;
     std::set<string> results;
-    cerr << "CHECKING" << endl;
+    LOG(am_v) << "CHECKING ACCESS TREE FOR FALACIES";
 
     for (gives = givesPsswd.begin(); gives != givesPsswd.end(); gives++) {
         //cerr << *gives << endl;
@@ -482,13 +483,13 @@ MetaAccess::CheckAccess()
     }
 
     if (results.size() != genToPrin.size()) {
-        if(VERBOSE) { cerr << "wrong number of results" << endl; }
+      if(VERBOSE) { LOG(am_v) << "wrong number of results"; }
         return false;
     }
 
     for (gives = results.begin(); gives != results.end(); gives++) {
         if (genToPrin.find(*gives) == genToPrin.end()) {
-            if (VERBOSE) { cerr << "wrong results" << endl; }
+	  if (VERBOSE) { LOG(am_v) << "wrong results"; }
             return false;
         }
     }
@@ -508,7 +509,7 @@ MetaAccess::CreateTables()
     //Public Keys table
     sql = "DROP TABLE IF EXISTS " + public_table;
     if(!conn->execute(sql)) {
-        cerr << "error with sql query " << sql << endl;
+        LOG(am) << "error with sql query " << sql;
         return -1;
     }
     sql = "CREATE TABLE " + public_table + " (Type " +  PRINCTYPE +
@@ -516,7 +517,7 @@ MetaAccess::CreateTables()
           ", Asym_Secret_Key " TN_PK_KEY
           ", Salt bigint, PRIMARY KEY (Type,Value))";
     if(!conn->execute(sql)) {
-        cerr << "error with sql query " << sql << endl;
+        LOG(am) << "error with sql query " << sql;
         return -1;
     }
     //Tables for each principle access link
@@ -527,7 +528,7 @@ MetaAccess::CreateTables()
             table_num++;
             sql = "DROP TABLE IF EXISTS " + table_name + num;
             if(!conn->execute(sql)) {
-                cerr << "error with sql query " << sql << endl;
+	        LOG(am) << "error with sql query " << sql;
                 return -1;
             }
             sql = "CREATE TABLE " + table_name + num + " (" + it->first +
@@ -536,7 +537,7 @@ MetaAccess::CreateTables()
                   TN_PK_KEY
                   ", PRIMARY KEY (" + it->first + "," + *it_s + "))";
             if(!conn->execute(sql)) {
-                cerr << "error with sql query " << sql << endl;
+	        LOG(am) << "error with sql query " << sql;
                 return -1;
             }
             genHasAccessToGenTable[it->first][(*it_s)] = table_name + num;
@@ -555,7 +556,7 @@ MetaAccess::DeleteTables()
     //TODO: fix PRINCVALUE to be application specific
     sql = "DROP TABLE " + public_table + ";";
     if(!conn->execute(sql)) {
-        cerr << "error with sql query " << sql << endl;
+	LOG(am) << "error with sql query " << sql;
         return -1;
     }
     //Tables for each principle access link
@@ -564,7 +565,7 @@ MetaAccess::DeleteTables()
         num = marshallVal(n);
         sql = "DROP TABLE " + table_name + num + ";";
         if(!conn->execute(sql)) {
-            cerr << "error with sql query " << sql << endl;
+            LOG(am) << "error with sql query " << sql;
             return -1;
         }
     }
@@ -655,7 +656,7 @@ int
 KeyAccess::addEquals(string prin1, string prin2)
 {
     if (meta_finished) {
-        cerr << "ERROR: trying to add equals after meta is finished" << endl;
+	LOG(am) << "ERROR: trying to add equals after meta is finished";
         return -1;
     }
 
@@ -667,8 +668,8 @@ int
 KeyAccess::addAccess(string hasAccess, string accessTo)
 {
     if (meta_finished) {
-        cerr << "ERROR: trying to add access after meta is finished" << endl;
-        return -1;
+      LOG(am) << "ERROR: trying to add access after meta is finished";
+      return -1;
     }
 
     meta->addAccess(hasAccess, accessTo);
@@ -679,9 +680,8 @@ int
 KeyAccess::addGives(string prin)
 {
     if (meta_finished) {
-        cerr <<
-        "ERROR: trying to add gives password after meta is finished" << endl;
-        return -1;
+      LOG(am) << "ERROR: trying to add gives password after meta is finished";
+      return -1;
     }
 
     meta->addGives(prin);
@@ -692,9 +692,8 @@ int
 KeyAccess::CreateTables()
 {
     if (meta_finished) {
-        cerr << "ERROR: trying to create tables after meta is finished" <<
-        endl;
-        return -1;
+      LOG(am) << "ERROR: trying to create tables after meta is finished";
+      return -1;
     }
 
     return meta->CreateTables();
@@ -748,8 +747,7 @@ int
 KeyAccess::insert(Prin hasAccess, Prin accessTo)
 {
     if (VERBOSE) {
-        cerr << "-->insert " << hasAccess.type << " = " << hasAccess.value <<
-        " has access to " << accessTo.type << " = " << accessTo.value << endl;
+      LOG(am_v) << "insert(" << hasAccess.type << "=" << hasAccess.value << "," << accessTo.type << "=" << hasAccess.value << ")";
     }
 
     //check that we're not trying to generate a
@@ -769,9 +767,8 @@ KeyAccess::insert(Prin hasAccess, Prin accessTo)
 
     if (Select(prins,table,"*")->size() > 1) {
         if (VERBOSE) {
-            cerr << "relation " + hasAccess.gen + "=" + hasAccess.value +
-            "->" + accessTo.gen + "=" + accessTo.value + " already exists" <<
-            endl;
+	    LOG(am_v) << "relation " + hasAccess.gen + "=" + hasAccess.value +
+            "->" + accessTo.gen + "=" + accessTo.value + " already exists";
         }
         return 1;
     }
@@ -783,8 +780,8 @@ KeyAccess::insert(Prin hasAccess, Prin accessTo)
     //check to see if we already hold keys
     if (keys.find(accessTo) != keys.end()) {
         if (VERBOSE) {
-            cerr << "key for " + accessTo.gen + "=" + accessTo.value +
-            " is already held" << endl;
+	    LOG(am_v) << "key for " + accessTo.gen + "=" + accessTo.value +
+            " is already held";
         }
         keys[accessTo].principles_with_access.insert(hasAccess);
         accessToKey = keys[accessTo].key;
@@ -822,7 +819,7 @@ KeyAccess::insert(Prin hasAccess, Prin accessTo)
     }
 
     if(accessToKey.length() == 0) {
-        cerr << "ERROR: cannot decrypt this key" << endl;
+        LOG(am) << "ERROR: cannot decrypt this key";
         return -1;
     }
 
@@ -863,8 +860,8 @@ KeyAccess::insert(Prin hasAccess, Prin accessTo)
 
     //update table with encrypted key
     if(!conn->execute(sql)) {
-        cerr << "Problem with sql statement: " << sql << endl;
-        return -1;
+        LOG(am) << "Problem with sql statement: " << sql;
+	return -1;
     }
 
     //store key locally if either user is logged on
@@ -881,7 +878,7 @@ KeyAccess::insert(Prin hasAccess, Prin accessTo)
               accessTo.gen + "' AND Value='" + accessTo.value + "';";
         DBResult * dbres;
         if (!conn->execute(sql, dbres)) {
-            cerr << "Problem with sql statement: " << sql << endl;
+	    LOG(am) << "Problem with sql statement: " << sql;
         } else {
             ResType *res = dbres->unpack();
             delete dbres;
@@ -911,7 +908,7 @@ KeyAccess::insert(Prin hasAccess, Prin accessTo)
               hasAccess.gen + "' AND Value='" + hasAccess.value + "';";
         DBResult * dbres;
         if (!conn->execute(sql, dbres)) {
-            cerr << "Problem with sql statement: " << sql << endl;
+	    LOG(am) << "Problem with sql statement: " << sql;
             assert_s(0, "x");
         }
 
@@ -965,8 +962,7 @@ int
 KeyAccess::remove(Prin hasAccess, Prin accessTo)
 {
     if(VERBOSE) {
-        cerr << "-->remove " << hasAccess.type << "=" << hasAccess.value <<
-        "->" << accessTo.type << "=" << accessTo.value << endl;
+      LOG(am_v) << "remove(" << hasAccess.type << "=" << hasAccess.value << "," << accessTo.type << "=" << accessTo.value << ")";
     }
 
     if(hasAccess.gen == "") {
@@ -1076,7 +1072,7 @@ KeyAccess::getKey(Prin prin)
             cerr << "\t" << it->gen << "=" << it->value << endl;
         }
     }
-    cerr << "returning null? " << (prinkey.key.length() == 0) << "\n";
+    //cerr << "returning null? " << (prinkey.key.length() == 0) << "\n";
     return prinkey.key;
 }
 
@@ -1088,7 +1084,7 @@ KeyAccess::getPrinKey(Prin prin)
     }
 
     if(VERBOSE) {
-        cerr << "   fetching key for " << prin.gen << " " << prin.value <<
+        LOG(am_v) << "   fetching key for " << prin.gen << " " << prin.value <<
         endl;
     }
 
@@ -1210,6 +1206,7 @@ KeyAccess::insertPsswd(Prin gives, const string &psswd)
         " is logging in with ";
         myPrint(psswd);
         cerr << endl;
+	LOG(am_v) << "insertPsswd(" << gives.type << "=" << gives.value << ",...)";
     }
 
     int ret = 0;
@@ -1339,6 +1336,7 @@ KeyAccess::removePsswd(Prin prin)
     if(VERBOSE) {
         cerr << "-->" << prin.type << " " << prin.value <<
         " is logging out" << endl;
+	LOG(am_v) << "removePsswd(" << prin.type << "=" << prin.value << ")";
     }
 
     if(prin.gen == "") {
