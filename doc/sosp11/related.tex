@@ -210,6 +210,18 @@ existing database-backed applications.
 %application, so that the server can perform arbitrary computations on
 %the data.
 
+The Virtual Private SaaS from Navajo Systems~\cite{navajo} provides a
+trusted application-level proxy that intercepts network traffic between
+clients and cloud-hosted servers (such as IMAP or POP3), and encrypts
+sensitive data that is stored by the clients on the server.  To the best
+of our understanding, Navajo's proxy breaks up sensitive data (specified
+by application-specific rules) into tokens (such as words in a string),
+and encrypts each of these tokens using an order-preserving encryption
+scheme, which allows token-level searching and sorting.  In contrast,
+CryptDB supports a richer set of operations (most of SQL), reveals only
+the necessary relations to the server based on the queries issued by the
+application, and allows chaining of encryption keys to user passwords,
+so that a compromised proxy cannot leak all data.
 
 {\bf Software security.}  Many tools help programmers either find or
 mitigate mistakes in their code that may lead to vulnerabilities,
@@ -365,8 +377,4 @@ query assurance for most read queries~\cite{sion-assurance}.
 %Merkle hashes or chained hashes~\cite{plutus,cloudproof,sirius} and
 %both freshness and completeness of query results are addressed
 %in~\cite{queryassurance}.
-
-\nz{Navajo Systems~\cite{navajo}.}
-
-\nz{Relational cloud~\cite{curino:relcloud}.}
 
