@@ -798,16 +798,16 @@ testUpdate(EDBClient * cl)
         "UPDATE t1 SET id = id + 10, salary = salary + 19, name = 'xxx', address = 'foo' WHERE age < 11",
         "SELECT * FROM t1",
         { {"id","age","salary","address","name"},
-                    { "1", "12", "0",
-                      "first star to the right and straight on till morning",
-                      "Peter Pan"},
-                    { "2", "18", "0", "Green Gables", "Anne Shirley" },
-                    { "13", "10", "19", "foo", "xxx" },
-                    { "4", "12", "0", "London", "Edmund" },
-                    { "5", "32", "55000", "221B Baker Street",
-                      "Sherlock Holmes" },
-                    { "6", "23", "20000", "Pemberly",
-                      "Elizabeth Darcy" } });
+          { "1", "12", "0",
+            "first star to the right and straight on till morning",
+            "Peter Pan"},
+          { "2", "18", "0", "Green Gables", "Anne Shirley" },
+          { "13", "10", "19", "foo", "xxx" },
+          { "4", "12", "0", "London", "Edmund" },
+          { "5", "32", "55000", "221B Baker Street",
+            "Sherlock Holmes" },
+          { "6", "23", "20000", "Pemberly",
+            "Elizabeth Darcy" } });
 
     if (!PLAIN) {
         assert_s(cl->execute("DROP TABLE t1"), "testUpdate can't drop t1");

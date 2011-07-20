@@ -113,7 +113,8 @@ tokenize(string text)
         if ((it->length() >= 3) &&
             (search_tokens.find(*it) == search_tokens.end())) {
             search_tokens.insert(*it);
-            res->push_back(Binary((uint) it->length(), (unsigned char *) it->c_str()));
+            res->push_back(Binary((uint) it->length(),
+                                  (unsigned char *) it->c_str()));
         }
     }
 

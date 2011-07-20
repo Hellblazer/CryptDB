@@ -46,8 +46,7 @@ class SWP {
      * Decrypts each word in the list ciphs.
      *
      * Decryption only works and should be called if SWPCiphSize is multiple
-     *of AES_BLOCK_BITS
-     * (see canDecrypt flag)
+     * of AES_BLOCK_BITS (see canDecrypt flag)
      *
      */
 
@@ -56,15 +55,14 @@ class SWP {
 
     /*
      * Given the secret key and the word to search for, returns the token to
-     *be used during searching.
+     * be used during searching.
      */
     static Token token(const Binary & key, const Binary & word);
 
     /*
      * Returns a list of indexes of words in the list of ciphertexts ciphs
-     *that match the token based on SWP
-     * or a boolean indicating whether the value exists in the given
-     *ciphertexts or not.
+     * that match the token based on SWP or a boolean indicating whether
+     * the value exists in the given ciphertexts or not.
      */
     static list<unsigned int> * search(const Token & token,
                                        const list<Binary> & ciphs);
