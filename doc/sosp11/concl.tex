@@ -12,13 +12,13 @@ the information revealed to the untrusted DBMS server, and chaining
 encryption keys to user passwords in a way that allows only authorized
 users to gain access to the same encrypted data.  The developer effort
 required to express confidentiality policies for multi-user
-applications is small, ranging between 11 and 13 unique
-annotations of the application's database schema across three existing
-applications (phpBB, HotCRP, and grad-apply).  The throughput penalty
-of \name{} is modest, about \tput for the TPC-C benchmark and 13\%
-for our synthetic phpBB workload.  Our results suggest that \name{} is
-useful for applications where the ability to run confidentially over
-an untrusted or outsourced infrastructure trumps achieving the highest
+applications is small, ranging between 11 and 13 unique annotations of
+the application's database schema across three existing applications
+(phpBB, HotCRP, and grad-apply).  The throughput penalty of \name{} is
+modest, about \tput{} for the TPC-C benchmark and 13\% for our
+synthetic phpBB workload.  Our results suggest that \name{} is useful
+for applications where the ability to run confidentially over an
+untrusted or outsourced infrastructure trumps achieving the highest
 possible performance.
 
 The source code for CryptDB is available for download at
