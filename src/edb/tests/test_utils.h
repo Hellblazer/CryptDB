@@ -7,7 +7,7 @@
 
 #include "EDBClient.h"
 
-#define PLAIN 0
+#define PLAIN 1
 #define STOP_IF_FAIL 1
 
 #ifndef TESTUTILS_H_

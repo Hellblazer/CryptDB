@@ -764,26 +764,23 @@ testUpdate(EDBClient * cl)
                     {"30"},
                     {"21"} });
 
-    qUpdateSelect(cl, "UPDATE t1 SET age = age + 2",
-                  "SELECT * FROM t1",
-                  { {"id","age","salary","address","name"},
-                    { "1", "12", "0",
-                      "first star to the right and straight on till morning",
-                      "Peter Pan"},
-                    { "2", "18", "0", "Green Gables", "Anne Shirley" },
-                    { "3", "10", "0", "London", "Lucy" },
-                    { "4", "12", "0", "London", "Edmund" },
-                    { "5", "32", "55000", "221B Baker Street",
-                      "Sherlock Holmes" },
-                    { "6", "23", "20000", "Pemberly",
-                      "Elizabeth Darcy" } });
+    qUpdateSelect(cl, "SELECT id FROM t1",
+                  "SELECT sum(age) FROM t1",
+                  { {"sum(age)"},
+                    {"95"} });
 
     qUpdateSelect(cl, "UPDATE t1 SET age = 20 WHERE name='Elizabeth Darcy'",
-                  "SELECT age FROM t1 WHERE age > 20",
-                  { {"age"},
-                    {"32"} });
+                  "SELECT * FROM t1 WHERE age > 20",
+                  { {"id","age","salary","address","name"},
+                    { "5", "30", "55000", "221B Baker Street",
+			"Sherlock Holmes" } });
 
-    qUpdateSelect(cl, "UPDATE t1 SET age = age + 3 WHERE id=6",
+    qUpdateSelect(cl, "SELECT id FROM t1",
+                  "SELECT sum(age) FROM t1",
+                  { {"sum(age)"},
+                    {"94"} });
+
+    qUpdateSelect(cl, "UPDATE t1 SET age = age + 2",
                   "SELECT age FROM t1",
                   { {"age"},
                     {"12"},
@@ -791,7 +788,7 @@ testUpdate(EDBClient * cl)
                     {"10"},
                     {"12"},
                     {"32"},
-                    {"23"} });
+                    {"22"} });
 
     qUpdateSelect(
         cl,
@@ -806,9 +803,18 @@ testUpdate(EDBClient * cl)
           { "4", "12", "0", "London", "Edmund" },
           { "5", "32", "55000", "221B Baker Street",
             "Sherlock Holmes" },
-          { "6", "23", "20000", "Pemberly",
+          { "6", "22", "20000", "Pemberly",
             "Elizabeth Darcy" } });
 
+    qUpdateSelect(cl, "SELECT * FROM t1", "SELECT * FROM t1 WHERE address < 'fml'",
+		  { {"id","age","salary","address","name"},
+		      {"1","12","0","first star to the right and straight on till morning", "Peter Pan"},
+		    {"5","32","55000","221B Baker Street","Sherlock Holmes"} });
+
+    qUpdateSelect(cl, "UPDATE t1 SET address = 'Neverland' WHERE id = 1", "SELECT * FROM t1 WHERE address < 'fml'",
+		  { {"id", "age", "salary", "address", "name"},
+		    {"5", "32", "55000", "221B Baker Street", "Sherlock Holmes"} });
+    
     if (!PLAIN) {
         assert_s(cl->execute("DROP TABLE t1"), "testUpdate can't drop t1");
     } else {
