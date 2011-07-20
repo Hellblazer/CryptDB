@@ -79,7 +79,7 @@ whole lot of comments to make:
   agencies governing banking security agree to it?
 [X] * Pg. 6, first paragraph: do you mean "minimum" instead of "maximum"
   in the last sentence?
-[  ] * Pg. 7, sec. 3.3: It seems like you need to constantly reencrypt
+[X] * Pg. 7, sec. 3.3: It seems like you need to constantly reencrypt
   columns as different queries seek to join different columns.  Your
   evaluation section implies that this is essentially not that big a
   problem in practice, but it would be interesting to understand what
@@ -134,17 +134,17 @@ of point solutions into a coherent whole).
 
 There were a few places where things weren't clear to me: 
 
-[ ] - your example of DET on p4 seems curious (i.e. concatenating a 
+[X] - your example of DET on p4 seems curious (i.e. concatenating a 
 deterministic suffix to a RND() prefix); it may be that you do this 
 in practice to aid with onion peeling, but for clarity it might be 
 worth using another example here? 
 
-[ ] - the example on p6 you suggest that you would update C2-Onion1 so as
+[X] - the example on p6 you suggest that you would update C2-Onion1 so as
 to allow the equality test - does this update overwrite the previous
 onion? who has the responsibility of 'remembering' the level of peeling
 that has happened for each column?
 
-[  ] - p9 introduces 'encddb_active' - is this protected? what exactly is 
+[X] - p9 introduces 'encddb_active' - is this protected? what exactly is 
 its format (e.g. just booleans or... ?) 
 
 [  ] In addition, the security eval (final para section 7.1) is kinda weak... 
@@ -196,14 +196,14 @@ some ways quite limited.  If your application is scaling may not want to
 pay the space increase.  But I like the effort and proof-of-concept very
 much.
 
-[  ] The confidentiality threat model is appropriate, but one might emphasize
+[X] The confidentiality threat model is appropriate, but one might emphasize
 more that a DBA or attacker in Threat 2 could still delete the whole
 database.
 
 [  ] Section 2 is long winded.  I'd prefer to see related work in Section 2, and
 a quick overview of the technical approach, before Section 2 happens.
 
-[  ] S2.1: "The DBMS server cannot process queries different from the ones
+[X] S2.1: "The DBMS server cannot process queries different from the ones
 requested by the application."  Can you adjust this text?  It seems like it
 could implement some select, but the result would be meaningless.
 
@@ -220,7 +220,7 @@ quite nice.
 [  ] S2.1: Do you ever mention that "the developer [can] optionally specify the
 lowest security level" again?
 
-[  ] S3: The query plan is "the same as" for the original query but uses
+[X] S3: The query plan is "the same as" for the original query but uses
 "modified operators" in some cases: this is not a contradiction because?
 
 OPE: Nice implementation work.
@@ -233,7 +233,7 @@ more explicit transactions than DB apps often use.  Those explicit
 transactions are a real pain; in PostgreSQL for example an explicit
 transaction can fail, forcing the app to retry, which the app might not do.
 
-[  ] More nice little tidbits: The debugging trace (S4.1).  The key chaining
+[X] More nice little tidbits: The debugging trace (S4.1).  The key chaining
 cache (S4.2).
 
 [ ] S4.2: Say a principal gains access to an object via public_keys.  Is the
@@ -251,11 +251,11 @@ I wrong?  Might this mean that changing the "PRINC TYPE..." live would
 cause expensive recalculation?  More generally one would like to hear more
 about schema changes.
 
-[  ] S7: You say that "As the number of posts in a forum grows, the amortized
+[X] S7: You say that "As the number of posts in a forum grows, the amortized
 storage overhead decreases..."  I guess posts are different from messages,
 which are principals?  Maybe messages are private.
 
-[  ] It is shocking that so much overhead in this encryption-heavy system is due
+[ ] It is shocking that so much overhead in this encryption-heavy system is due
 to your SQL parser.  You should really check this and then thank Moore for
 his law.
 
@@ -330,17 +330,17 @@ What sorts of queries are supported?  Do you permit wildcards in terms
 stored in the database?  Is it an inverted index of some kind, or do
 you do searches over non-inverted text fields?
 
-[  ] o 3.2: "Our idea is to encrypt each data item into an onion".  Yet
+[X] o 3.2: "Our idea is to encrypt each data item into an onion".  Yet
 later in the paragraph, you say that some values are stored in
 multiple onion.  This confused me a great deal on my first reading,
 because I got the idea that you only stored data in a single onion per
 data item.  Please fix this description (maybe by ending the quoted
 sentence with "into one or more onions" instead of "into an onion").
 
-[  ] o 3.2: Please spell out "user-defined functions" instead of saying
+[X] o 3.2: Please spell out "user-defined functions" instead of saying
 UDFs (at least the first time that it is used.
 
-[  ] o 3.2: "Onion 3 rather than Onion 1 or 2".  What defines onion
+[X] o 3.2: "Onion 3 rather than Onion 1 or 2".  What defines onion
 numbering?  Do they have any significance?
 
 [  ] o 3.2: Doesn't the onion strategy sometimes make simple queries to be
@@ -479,12 +479,12 @@ queries, it is likely that it is inevitable to leak some amount of
 information. Characterizing such data leakage and understanding how
 close this paper gets to the theoretical bound would be very useful.
 
-[  ] The paper should also contrast the proposed approach against the CLAMP
+[X] The paper should also contrast the proposed approach against the CLAMP
 system, which was published at the Oakland Symposium a few years ago.
 To defend against server compromise, CLAMP uses isolation mechanisms
 to create a minimal TCB.
 
-[  ] To improve the paper, I would suggest do downgrade some claims. For
+[X] To improve the paper, I would suggest do downgrade some claims. For
 example, section 2.1 states: "We believe that these confidentiality
 properties are about as good as one can provide in practice with
 current encryption technologies." This claim is incorrect, because
