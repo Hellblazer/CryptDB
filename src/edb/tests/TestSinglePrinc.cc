@@ -1033,6 +1033,5 @@ TestSinglePrinc::run(int argc, char ** argv)
     testSearch(cl);
     cerr << "RESULT: " << npass << "/" << ntest << " passed" << endl;
 
-    //was causing seg fault... TODO figure out why
-    //delete cl;
+    delete cl;
 }

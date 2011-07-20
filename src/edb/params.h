@@ -13,7 +13,7 @@
 #define MYSQL_S 1
 
 // Multi-principal vs. single-principal (1 vs. 0)
-#define MULTIPRINC 0
+#define MULTIPRINC 1
 
 // if true, all fields will be automatically encrypted in single principal
 // mode without specifying enc
@@ -34,10 +34,10 @@
 /******* VERBOSITY ****************/
 
 //flag for debugging, particularly verbose
-const bool VERBOSE_G = true;
+const bool VERBOSE_G = false;
 
-const bool VERBOSE_KEYACCESS = false;
-const bool VERBOSE_EDBCLIENT = true;
-const bool VERBOSE_EDBCLIENT_VERY = true;
+const bool VERBOSE_KEYACCESS = true;
+const bool VERBOSE_EDBCLIENT = false;
+const bool VERBOSE_EDBCLIENT_VERY = false;
 
 #endif   /* _PARAMS_H */
