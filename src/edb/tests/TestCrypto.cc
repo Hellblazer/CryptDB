@@ -158,8 +158,8 @@ testSWPSearch() {
 
 	list<Binary> lstw = {mediumtext, smalltext, emptytext,  exacttext};
 
-	Binary encw = SWP::encryptWrapper(key, lstw);
-	list<Binary> * decw = SWP::decryptWrapper(key, encw);
+	Binary encw = CryptoManager::encryptSWP(key, lstw);
+	list<Binary> * decw = CryptoManager::decryptSWP(key, encw);
 
 	list<Binary>::iterator wit = lstw.begin();
 
@@ -172,31 +172,31 @@ testSWPSearch() {
 
 	//test searchability
 
-	Binary overall_ciph = SWP::encryptWrapper(key, vec1);
-	token = SWP::token(key, word1);
+	Binary overall_ciph = CryptoManager::encryptSWP(key, vec1);
+	token = CryptoManager::token(key, word1);
 
-	indexes = SWP::searchWrapper(token, overall_ciph);
+	indexes = CryptoManager::searchSWP(token, overall_ciph);
 	assert_s(indexes->size() == 4, string("incorrect number of findings in vec1, expected 4, returned ") + StringFromVal(indexes->size()));
 	vec_ind = to_vec(*indexes);
 	assert_s(vec_ind[0] == 0, "incorrect index found for entry 0");
 	assert_s(vec_ind[1] == 2, "incorrect index found for entry 1");
 	assert_s(vec_ind[2] == 6, "incorrect index found for entry 2");
 	assert_s(vec_ind[3] == 7, "incorrect index found for entry 3");
-	assert_s(SWP::searchExists(SWP::token(key, word1), SWP::encryptWrapper(key, vec1)), "incorrect found flad in vec2");
+	assert_s(CryptoManager::searchExists(CryptoManager::token(key, word1), CryptoManager::encryptSWP(key, vec1)), "incorrect found flad in vec2");
 
 
-	indexes = SWP::searchWrapper(SWP::token(key, word1), SWP::encryptWrapper(key, vec2));
+	indexes = CryptoManager::searchSWP(CryptoManager::token(key, word1), CryptoManager::encryptSWP(key, vec2));
 	assert_s(indexes != NULL && indexes->size() == 0, "incorrect number of findings in vec2");
-	assert_s(!SWP::searchExists(SWP::token(key, word1), SWP::encryptWrapper(key, vec2)), "incorrect found flad in vec2");
+	assert_s(!CryptoManager::searchExists(CryptoManager::token(key, word1), CryptoManager::encryptSWP(key, vec2)), "incorrect found flad in vec2");
 
-	indexes = SWP::searchWrapper(SWP::token(key, word1), SWP::encryptWrapper(key, vec3));
+	indexes = CryptoManager::searchSWP(CryptoManager::token(key, word1), CryptoManager::encryptSWP(key, vec3));
 	assert_s(indexes != NULL && indexes->size() == 0, "incorrect number of findings in vec3");
-	assert_s(!SWP::searchExists(SWP::token(key, word1), SWP::encryptWrapper(key, vec3)), "incorrect found flad in vec3");
+	assert_s(!CryptoManager::searchExists(CryptoManager::token(key, word1), CryptoManager::encryptSWP(key, vec3)), "incorrect found flad in vec3");
 
-	indexes = SWP::searchWrapper(SWP::token(key, word1), SWP::encryptWrapper(key, vec4));
+	indexes = CryptoManager::searchSWP(CryptoManager::token(key, word1), CryptoManager::encryptSWP(key, vec4));
 	assert_s(indexes != NULL && indexes->size() == 1, "incorrect number of findings in vec4");
 	assert_s(indexes->front() == 0, "incorrect index found for entry 0 in vec4");
-	assert_s(SWP::searchExists(SWP::token(key, word1), SWP::encryptWrapper(key, vec4)), "incorrect found flag in vec4");
+	assert_s(CryptoManager::searchExists(CryptoManager::token(key, word1), CryptoManager::encryptSWP(key, vec4)), "incorrect found flag in vec4");
 
 
 	cout << "   -- OK \n";

@@ -839,11 +839,6 @@ throw (CryptDBError)
         }
         if (ft == TYPE_TEXT) {
 
-            if (tableMetaMap[table]->fieldMetaMap[field]->secLevelDET ==
-                SEMANTIC_DET) {
-                addIfNotContained(fullName(field, table), fieldsDec.DETFields);
-            }
-
             assert_s(hasApostrophe(
                          *wordsIt), "missing apostrophe for type text");
 
@@ -852,22 +847,57 @@ throw (CryptDBError)
                               processValsToInsert(field, table, 0, *wordsIt,
                                                   tmkm);
             } else {
-                //encrypt the value
-                string anonfieldname = getOnionName(fm1, oDET);
 
-                if (fm1->isEncrypted) {
-                    resultQuery = resultQuery + " "  + anonfieldname +
-                                  " = " +
-                                  crypt(*wordsIt, TYPE_TEXT,
-                                        fullName(field,
-                                                 table),
-                                        fullName(anonfieldname,
-                                                 anonTableName),
-                                        PLAIN_DET, DET, 0, tmkm);
-                } else {
-                    resultQuery = resultQuery + " " + anonfieldname + " = " +
-                                  *wordsIt;
-                }
+            	if (fm1->isEncrypted) {
+            		//DET onion
+            		if (fm1->secLevelDET == SEMANTIC_DET) {
+            			addIfNotContained(fullName(field, table), fieldsDec.DETFields);
+            			fm1->secLevelDET = DET;
+            		}
+
+            		//encrypt the value
+            		string anonfieldname = getOnionName(fm1, oDET);
+
+
+            		resultQuery = resultQuery + " "  + anonfieldname +
+            				" = " +
+            				crypt(*wordsIt, TYPE_TEXT,
+            						fullName(field,
+            								table),
+            								fullName(anonfieldname,
+            										anonTableName),
+            										PLAIN_DET, fm1->secLevelDET, 0, tmkm);
+
+            		//OPE onion
+            		if (fm1->exists(fm1->anonFieldNameOPE)) {
+            			string anonName = fm1->anonFieldNameOPE;
+
+            			if (fm1->secLevelDET == SEMANTIC_OPE) {
+            				addIfNotContained(fullName(field, table), fieldsDec.OPEFields);
+            				fm1->secLevelDET = OPESELF;
+            			}
+
+            			resultQuery += ", " + anonName + " = " +
+            					crypt(*wordsIt, TYPE_TEXT, fullName(field,table),
+            							fullName(anonName, anonTableName),
+            							PLAIN_OPE, fm1->secLevelOPE, 0, tmkm);
+            		}
+
+            		//OPE onion
+            		if (fm1->exists(fm1->anonFieldNameSWP)) {
+            			string anonName = fm1->anonFieldNameSWP;
+
+            			resultQuery += ", " + anonName + " = " +
+            					crypt(*wordsIt, TYPE_TEXT, fullName(field,table),
+            							fullName(anonName, anonTableName),
+            							PLAIN_SWP, SWP, 0, tmkm);
+            		}
+
+
+            	} else {
+            		resultQuery = resultQuery + " " + field + " = " +
+            				*wordsIt;
+            	}
 
             }
             wordsIt++;

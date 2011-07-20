@@ -41,7 +41,6 @@ public:
 	 */
 
 	static list<Binary> * encrypt(const Binary & key, const list<Binary> & words);
-	static Binary encryptWrapper(const Binary & key, const list<Binary> & words);
 
 	/*
 	 * Decrypts each word in the list ciphs.
@@ -52,8 +51,6 @@ public:
 	 */
 
 	static list<Binary> * decrypt(const Binary & key, const list<Binary> & ciphs);
-	static list<Binary> * decryptWrapper(const Binary & key, const Binary & overall_ciph);
-
 
 	/*
 	 * Given the secret key and the word to search for, returns the token to be used during searching.
@@ -65,9 +62,7 @@ public:
 	 * or a boolean indicating whether the value exists in the given ciphertexts or not.
 	 */
 	static list<unsigned int> * search(const Token & token, const list<Binary> & ciphs);
-	static list<unsigned int> * searchWrapper(const Token & token, const Binary & overall_ciph);
 	static bool searchExists(const Token & token, const list<Binary> & ciphs);
-	static bool searchExists(const Token & token, const Binary & overall_ciph);
 
 	static const bool canDecrypt = (SWPCiphSize % AES_BLOCK_SIZE == 0);
 

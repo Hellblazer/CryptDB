@@ -230,10 +230,6 @@ list<Binary> * SWP::encrypt(const Binary & key, const list<Binary> & words) {
 	return result;
 }
 
-Binary SWP::encryptWrapper(const Binary & key, const list<Binary> & words) {
-	return Binary(*SWP::encrypt(key, words));
-}
-
 Binary SWP::SWPdecrypt(const Binary & key, const Binary & word, unsigned int index) {
 
 	//S_i
@@ -276,9 +272,6 @@ list<Binary> * SWP::decrypt(const Binary & key, const list<Binary>  & ciph) {
 	return result;
 }
 
-list<Binary> * SWP::decryptWrapper(const Binary & key, const Binary & overall_ciph) {
-	return decrypt(key, *(overall_ciph.split(SWPCiphSize)));
-}
 
 list<unsigned int> * SWP::search(const Token & token, const list<Binary> & ciphs) {
 	list<unsigned int> * res = new list<unsigned int>();
@@ -294,9 +287,6 @@ list<unsigned int> * SWP::search(const Token & token, const list<Binary> & ciphs
 	return res;
 }
 
-list<unsigned int> * SWP::searchWrapper(const Token & token, const Binary & overall_ciph) {
-	return search(token, *(overall_ciph.split(SWPCiphSize)));
-}
 
 
 bool SWP::searchExists(const Token & token, const list<Binary> & ciphs) {
@@ -310,6 +300,3 @@ bool SWP::searchExists(const Token & token, const list<Binary> & ciphs) {
 	return false;
 }
 
-bool SWP::searchExists(const Token & token, const Binary & overall_ciph) {
-	return searchExists(token, *(overall_ciph.split(SWPCiphSize)));
-}

@@ -6,6 +6,7 @@
 
 #include "CryptoManager.h"
 #include "log.h"
+#include <sstream>
 
 /*
    //either provide a level key or provide a master key and the name of the
@@ -91,6 +92,28 @@ CryptoManager::CryptoManager(const string &masterKeyArg)
         InvMod(Paillier_L(PowerMod(Paillier_g,  Paillier_lambda, Paillier_n2),
                           Paillier_n),
                Paillier_n);
+
+}
+
+//this function should in fact be provided by the programmer
+//currently, we split by whitespaces
+// only consider words at least 3 chars in len
+// discard not unique objects
+static list<Binary> * tokenize(string text) {
+	list<string> tokens = parse(text, "", " ,;:.", "");
+
+	std::set<string> search_tokens;
+
+	list<Binary> * res = new list<Binary>();
+
+	for (list<string>::iterator it = tokens.begin(); it != tokens.end(); it++) {
+		if ((it->length() >= 3) && (search_tokens.find(*it) == search_tokens.end())) {
+			search_tokens.insert(*it);
+			res->push_back(Binary(it->length(), (unsigned char *) it->c_str()));
+		}
+	}
+
+	return res;
 
 }
 
@@ -419,6 +442,9 @@ CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft,
 
                 return "";
             }
+            case oSWP: {
+            	assert_s(false, "should not ask to decrypt SWP");
+            }
             default: {
                 myassert(false, "no valid onion in text \n");
                 return "";
@@ -624,6 +650,21 @@ CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft,
             assert_s(false, "nothing higher than OPE_SEM");
 
             return "";
+
+        }
+
+        case oSWP: {
+
+        	assert_s(fromlevel == PLAIN_SWP, "expected onion level to be PLAIN_SWP ");
+        	data = removeApostrophe(data);
+        	string key = getKey(mkey, fullfieldname, fromlevel);
+        	Binary keyB = Binary(AES_KEY_BYTES, (unsigned char *)key.c_str());
+        	Binary ciph = CryptoManager::encryptSWP(keyB, *tokenize(data));
+
+        	return marshallBinary(string((char *)ciph.content, ciph.len));
+        }
+
+        case oINVALID: {
 
         }
         default: {
@@ -1525,3 +1566,27 @@ CryptoManager::~CryptoManager()
     HOMEncTable.clear();
 
 }
+
+
+
+Binary CryptoManager::encryptSWP(const Binary & key, const list<Binary> & words) {
+	return Binary(*SWP::encrypt(key, words));
+}
+
+list<Binary> * CryptoManager::decryptSWP(const Binary & key, const Binary & overall_ciph) {
+	return SWP::decrypt(key, *(overall_ciph.split(SWPCiphSize)));
+}
+
+Token CryptoManager::token(const Binary & key, const Binary & word) {
+	return SWP::token(key, word);
+}
+
+bool CryptoManager::searchExists(const Token & token, const Binary & overall_ciph) {
+	return searchExists(token, *(overall_ciph.split(SWPCiphSize)));
+}
+
+
+list<unsigned int> * CryptoManager::searchSWP(const Token & token, const Binary & overall_ciph) {
+	return SWP::search(token, *(overall_ciph.split(SWPCiphSize)));
+}
+
