@@ -23,23 +23,30 @@ enum log_group {
 class logger : public std::stringstream {
  public:
     logger(log_group g, const char *filearg, uint linearg, const char *fnarg)
-        : mask(1ULL << g), file(filearg), line(linearg), func(fnarg) {}
+        : mask(1ULL << g), file(filearg), line(linearg), func(fnarg)
+    {
+    }
 
-    ~logger() {
+    ~logger()
+    {
         if (enable_mask & mask)
             std::cerr << file << ":" << line
                       << " (" << func << "): "
                       << str() << std::endl;
     }
 
-    static void enable(log_group g) {
+    static void
+    enable(log_group g)
+    {
         if (g == log_all)
             enable_mask = ~0ULL;
         else
             enable_mask |= 1ULL << g;
     }
 
-    static void disable(log_group g) {
+    static void
+    disable(log_group g)
+    {
         if (g == log_all)
             enable_mask = 0;
         else
@@ -55,5 +62,5 @@ class logger : public std::stringstream {
     static uint64_t enable_mask;
 };
 
-#define LOG(g) (logger(log_##g, __FILE__, __LINE__, __func__))
+#define LOG(g) (logger(log_ ## g, __FILE__, __LINE__, __func__))
 

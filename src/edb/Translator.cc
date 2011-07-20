@@ -99,7 +99,7 @@ processInsert(string field, string table, TableMetadata * tm)
                 res += ",  " + fm->anonFieldNameOPE;
             }
             if (fm->has_search) {
-            	res += ", " + fm->anonFieldNameSWP;
+                res += ", " + fm->anonFieldNameSWP;
             }
         } else {
             assert_s(false, "invalid type");
@@ -139,7 +139,6 @@ processCreate(fieldType type, string fieldName, unsigned int index,
               TableMetadata * tm, FieldMetadata * fm)
 throw (CryptDBError)
 {
-
 
     string res = "";
 
@@ -182,7 +181,6 @@ throw (CryptDBError)
 
             fm->has_search = false;
 
-
             break;
         }
         else {
@@ -216,7 +214,6 @@ throw (CryptDBError)
 
                 res = res  + ", " + anonFieldNameOPE + " "+ TN_I64;
 
-
             } else {
                 fm->anonFieldNameOPE = "";
             }
@@ -225,12 +222,12 @@ throw (CryptDBError)
             fm->agg_used = false;
 
             if (fm->has_search) {
-            	fm->anonFieldNameSWP = anonymizeFieldName(index, oSWP,
-            			fieldName);
+                fm->anonFieldNameSWP = anonymizeFieldName(index, oSWP,
+                                                          fieldName);
 
-            	res = res + ", " + fm->anonFieldNameSWP + "  "+TN_TEXT+" ";
+                res = res + ", " + fm->anonFieldNameSWP + "  "+TN_TEXT+" ";
             } else {
-            	fm->anonFieldNameSWP = "";
+                fm->anonFieldNameSWP = "";
             }
 
             break;

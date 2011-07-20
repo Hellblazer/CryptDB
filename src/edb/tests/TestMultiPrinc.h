@@ -12,11 +12,11 @@
 
 class TestMultiPrinc {
  public:
-  TestMultiPrinc();
-  virtual
+    TestMultiPrinc();
+    virtual
     ~TestMultiPrinc();
 
-  static void run(int argc, char ** argv);
+    static void run(int argc, char ** argv);
 };
 
 #endif /* TESTMULTIPRINC_H_ */

@@ -32,7 +32,6 @@
 #define FUNC_ADD_SET "func_add_set(bytea, bytea, bytea)"
 #define AGG "agg"
 
-
 #endif
 
 static bool VERBOSE_V = VERBOSE_EDBCLIENT_VERY;
@@ -67,8 +66,8 @@ dropAll(Connect * conn)
              "cannot drop " FUNC_ADD_SET);
 
     myassert(conn->execute(
-                     "DROP FUNCTION IF EXISTS " SEARCHSWP "; "),
-                 "cannot drop " SEARCHSWP);
+                 "DROP FUNCTION IF EXISTS " SEARCHSWP "; "),
+             "cannot drop " SEARCHSWP);
 
 #if MYSQL_S
 #else
@@ -110,8 +109,8 @@ createAll(Connect * conn, CryptoManager * cm)
                  "CREATE FUNCTION func_add_set RETURNS STRING SONAME 'edb.so'; "),
              "failed to create udf func_add_set");
     myassert(conn->execute(
-                    "CREATE FUNCTION searchSWP RETURNS STRING SONAME 'edb.so'; "),
-                "failed to create udf searchSWP");
+                 "CREATE FUNCTION searchSWP RETURNS STRING SONAME 'edb.so'; "),
+             "failed to create udf searchSWP");
 
     /* old Postgres statements: */
     /*
@@ -411,16 +410,16 @@ throw (CryptDBError)
 }
 
 /*
-static bool
-isEncrypted(string token)
-{
+   static bool
+   isEncrypted(string token)
+   {
     if (MULTIPRINC) {
         return (toLowerCase(token).compare("encfor") == 0);
     } else {
         return (toLowerCase(token).compare("enc") == 0);
     }
-}
-*/
+   }
+ */
 
 static string
 getNameForFilter(FieldMetadata * fm, onion o)
@@ -463,36 +462,35 @@ processAnnotation(MultiPrinc * mp, list<string>::iterator & wordsIt,
     fm->isEncrypted = false;
 
     while (annotations.find(*wordsIt) != annotations.end()) {
-    	string annot = toLowerCase(*wordsIt);
+        string annot = toLowerCase(*wordsIt);
 
+        if (annot == "enc") {
+            fm->isEncrypted = true;
+            if (!MULTIPRINC) {
+                fm->ope_used = true;
+                fm->agg_used = true;
+            }
+            wordsIt++;
+            continue;
+        }
 
-    	if (annot == "enc") {
-    		fm->isEncrypted = true;
-    		if (!MULTIPRINC) {
-    			fm->ope_used = true;
-    			fm->agg_used = true;
-    		}
-    		wordsIt++;
-    		continue;
-    	}
+        if (annot == "search") {
+            fm->has_search = true;
+            wordsIt++;
+            continue;
+        }
 
-    	if (annot == "search") {
-    		fm->has_search = true;
-    		wordsIt++;
-    		continue;
-    	}
+        // MULTI-PRINC annotations
 
-    	// MULTI-PRINC annotations
+        if (annot == "encfor") {
+            fm->isEncrypted = true;
+        }
 
-    	if (annot == "encfor") {
-    		fm->isEncrypted = true;
-    	}
-
-    	mp->processAnnotation(wordsIt, words, tableName, fieldName, fm->isEncrypted,
-    			tm);
+        mp->processAnnotation(wordsIt, words, tableName, fieldName,
+                              fm->isEncrypted,
+                              tm);
 
     }
-
 
 }
 
@@ -590,22 +588,20 @@ throw (CryptDBError)
 
         LOG(edb_v) << "fieldname " << fieldName;
 
-
         //decides if this field is encrypted or not
         processAnnotation(mp, wordsIt, words, tableName, fieldName,
                           fm,
                           tableMetaMap);
 
-
         if (fm->isEncrypted) {
-        	LOG(edb_v) << "encrypted field";
-        	tm->hasEncrypted = true;
+            LOG(edb_v) << "encrypted field";
+            tm->hasEncrypted = true;
         } else {
-        	LOG(edb_v) << "not enc " << fieldName;
-        	fieldSeq +=  fieldName + " " +
-        			mirrorUntilTerm(wordsIt, words, terms, 1, 1,
-        					1);
-        	continue;
+            LOG(edb_v) << "not enc " << fieldName;
+            fieldSeq +=  fieldName + " " +
+                        mirrorUntilTerm(wordsIt, words, terms, 1, 1,
+                                        1);
+            continue;
         }
 
         fm->type = getType(wordsIt, words);
@@ -848,56 +844,62 @@ throw (CryptDBError)
                                                   tmkm);
             } else {
 
-            	if (fm1->isEncrypted) {
-            		//DET onion
-            		if (fm1->secLevelDET == SEMANTIC_DET) {
-            			addIfNotContained(fullName(field, table), fieldsDec.DETFields);
-            			fm1->secLevelDET = DET;
-            		}
+                if (fm1->isEncrypted) {
+                    //DET onion
+                    if (fm1->secLevelDET == SEMANTIC_DET) {
+                        addIfNotContained(fullName(field,
+                                                   table),
+                                          fieldsDec.DETFields);
+                        fm1->secLevelDET = DET;
+                    }
 
-            		//encrypt the value
-            		string anonfieldname = getOnionName(fm1, oDET);
+                    //encrypt the value
+                    string anonfieldname = getOnionName(fm1, oDET);
 
+                    resultQuery = resultQuery + " "  + anonfieldname +
+                                  " = " +
+                                  crypt(*wordsIt, TYPE_TEXT,
+                                        fullName(field,
+                                                 table),
+                                        fullName(anonfieldname,
+                                                 anonTableName),
+                                        PLAIN_DET, fm1->secLevelDET, 0, tmkm);
 
-            		resultQuery = resultQuery + " "  + anonfieldname +
-            				" = " +
-            				crypt(*wordsIt, TYPE_TEXT,
-            						fullName(field,
-            								table),
-            								fullName(anonfieldname,
-            										anonTableName),
-            										PLAIN_DET, fm1->secLevelDET, 0, tmkm);
+                    //OPE onion
+                    if (fm1->exists(fm1->anonFieldNameOPE)) {
+                        string anonName = fm1->anonFieldNameOPE;
 
-            		//OPE onion
-            		if (fm1->exists(fm1->anonFieldNameOPE)) {
-            			string anonName = fm1->anonFieldNameOPE;
+                        if (fm1->secLevelDET == SEMANTIC_OPE) {
+                            addIfNotContained(fullName(field,
+                                                       table),
+                                              fieldsDec.OPEFields);
+                            fm1->secLevelDET = OPESELF;
+                        }
 
-            			if (fm1->secLevelDET == SEMANTIC_OPE) {
-            				addIfNotContained(fullName(field, table), fieldsDec.OPEFields);
-            				fm1->secLevelDET = OPESELF;
-            			}
+                        resultQuery += ", " + anonName + " = " +
+                                       crypt(*wordsIt, TYPE_TEXT,
+                                             fullName(field,table),
+                                             fullName(anonName,
+                                                      anonTableName),
+                                             PLAIN_OPE, fm1->secLevelOPE, 0,
+                                             tmkm);
+                    }
 
-            			resultQuery += ", " + anonName + " = " +
-            					crypt(*wordsIt, TYPE_TEXT, fullName(field,table),
-            							fullName(anonName, anonTableName),
-            							PLAIN_OPE, fm1->secLevelOPE, 0, tmkm);
-            		}
+                    //OPE onion
+                    if (fm1->exists(fm1->anonFieldNameSWP)) {
+                        string anonName = fm1->anonFieldNameSWP;
 
-            		//OPE onion
-            		if (fm1->exists(fm1->anonFieldNameSWP)) {
-            			string anonName = fm1->anonFieldNameSWP;
+                        resultQuery += ", " + anonName + " = " +
+                                       crypt(*wordsIt, TYPE_TEXT,
+                                             fullName(field,table),
+                                             fullName(anonName, anonTableName),
+                                             PLAIN_SWP, SWP, 0, tmkm);
+                    }
 
-            			resultQuery += ", " + anonName + " = " +
-            					crypt(*wordsIt, TYPE_TEXT, fullName(field,table),
-            							fullName(anonName, anonTableName),
-            							PLAIN_SWP, SWP, 0, tmkm);
-            		}
-
-
-            	} else {
-            		resultQuery = resultQuery + " " + field + " = " +
-            				*wordsIt;
-            	}
+                } else {
+                    resultQuery = resultQuery + " " + field + " = " +
+                                  *wordsIt;
+                }
 
             }
             wordsIt++;
@@ -2330,48 +2332,52 @@ throw (CryptDBError)
 
     if (Operation::isILIKE(operation)) {     //DET
 
-    	/* Method 2 search: SWP */
+        /* Method 2 search: SWP */
 
-    	anonField1 = fm1->anonFieldNameSWP;
-    	string anonfull = fullName(anonField1, tableMetaMap[table1]->anonTableName);
+        anonField1 = fm1->anonFieldNameSWP;
+        string anonfull = fullName(anonField1,
+                                   tableMetaMap[table1]->anonTableName);
 
-    	res += "search(" + anonField1 + ", ";
+        res += "search(" + anonField1 + ", ";
 
-    	Binary key = Binary(cm->getKey(mkey, anonfull, SWP));
+        Binary key = Binary(cm->getKey(mkey, anonfull, SWP));
 
-    	Token t = CryptoManager::token(key, Binary(removeApostrophe(op2)));
+        Token t = CryptoManager::token(key, Binary(removeApostrophe(op2)));
 
-    	res += marshallBinary(string((char *)t.ciph.content, t.ciph.len)) + ", " +
-    			marshallBinary(string((char *)t.wordKey.content, t.ciph.len)) + ") ";
+        res +=
+            marshallBinary(string((char *)t.ciph.content,
+                                  t.ciph.len)) + ", " +
+            marshallBinary(string((char *)t.wordKey.content,
+                                  t.ciph.len)) + ") ";
 
-    	return res;
+        return res;
 
-    	/*
-    	 *
-    	 * search method 1 code:
-    	anonField1 = fm1->anonFieldNameDET;
-        anonOp1 = fullName(anonField1, anonTable1);
+        /*
+         *
+         * search method 1 code:
+           anonField1 = fm1->anonFieldNameDET;
+           anonOp1 = fullName(anonField1, anonTable1);
 
-        anonTable1 = tableMetaMap[table1]->anonTableName;
-        anonField1 = fm1->anonFieldNameDET;
-        anonOp1 = fullName(anonField1, anonTable1);
+           anonTable1 = tableMetaMap[table1]->anonTableName;
+           anonField1 = fm1->anonFieldNameDET;
+           anonOp1 = fullName(anonField1, anonTable1);
 
-        fieldType ftype = fm1->type;
+           fieldType ftype = fm1->type;
 
-        res = res + " search( ";
+           res = res + " search( ";
 
-        assert_s(ftype == TYPE_TEXT, string(
+           assert_s(ftype == TYPE_TEXT, string(
                      "field ") + op1 + " has invalid type code " +
                  marshallVal((unsigned int)ftype));
 
-        res = res + crypt(op2, ftype, fullName(field1,
+           res = res + crypt(op2, ftype, fullName(field1,
                                                table1), anonOp1, PLAIN_DET,
                           DET, 0, tmkm);
 
-        res = res + ", " + anonOp1 + ") ";
+           res = res + ", " + anonOp1 + ") ";
 
-        return res;
-        */
+           return res;
+         */
 
     }
 
@@ -2556,7 +2562,7 @@ EDBClient::processValsToInsert(string field, string table, uint64_t salt,
                                                Paillier_len_bytes));
         }
         if (fm->has_search) {
-        	res += ", NULL ";
+            res += ", NULL ";
         }
     } else {
 
@@ -2586,11 +2592,11 @@ EDBClient::processValsToInsert(string field, string table, uint64_t salt,
         }
 
         if (fm->has_search) {
-        	res += ", " +
-        			crypt(value, fm->type, fullname,
-        					fullName(fm->anonFieldNameSWP,
-        							anonTableName), PLAIN_SWP, SWP,
-        							salt, tmkm);
+            res += ", " +
+                   crypt(value, fm->type, fullname,
+                         fullName(fm->anonFieldNameSWP,
+                                  anonTableName), PLAIN_SWP, SWP,
+                         salt, tmkm);
         }
 
     }
@@ -2824,7 +2830,8 @@ throw (CryptDBError)
                                 autoInc[fullname] = max(autoInc[fullname],
                                    unmarshallVal(value));
                                 rb.autoinc = marshallVal(autoInc[fullname]);
-                                LOG(edb_v) << "rb autoinc is now " << rb.autoinc;
+                                LOG(edb_v) << "rb autoinc is now " <<
+                                   rb.autoinc;
                         }
                    }*/
             }
@@ -3194,7 +3201,8 @@ EDBClient::decryptResultsWrapper(const string &query, DBResult * dbres)
                 stringstream ss;
                 for (unsigned int j = 0; j < rets->at(i).size(); j++) {
                     char buf[256];
-                    snprintf(buf, sizeof(buf), "%-30s", rets->at(i).at(j).c_str());
+                    snprintf(buf, sizeof(buf), "%-30s", rets->at(i).at(
+                                 j).c_str());
                     ss << buf;
                 }
                 LOG(edb_v) << ss.str();

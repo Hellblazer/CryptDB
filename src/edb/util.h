@@ -20,7 +20,6 @@
 #include <set>
 #include "Equation.h"
 
-
 #include "NTL/ZZ.h"
 using namespace NTL;
 
@@ -85,8 +84,10 @@ const string dec_first_key =
     "\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x01\x02\x03\x04\x05\x06";
 const string PWD_TABLE_PREFIX = "pwdcryptdb__";
 
-//maps the name of an annotation we want to process to the number of fields after this annotation relevant to it
-const std::set<string> annotations = {"enc", "search", "encfor", "equals", "givespsswd", "hasaccessto"};
+//maps the name of an annotation we want to process to the number of fields
+// after this annotation relevant to it
+const std::set<string> annotations =
+{"enc", "search", "encfor", "equals", "givespsswd", "hasaccessto"};
 
 // ============= DATA STRUCTURES ===================================//
 
@@ -152,7 +153,6 @@ typedef struct FieldMetadata {
     enum SECLEVEL secLevelOPE, secLevelDET;
 
     bool INCREMENT_HAPPENED;
-
 
     bool ope_used;
     bool agg_used;

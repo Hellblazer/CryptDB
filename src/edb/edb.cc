@@ -65,10 +65,10 @@ void     func_add_set_deinit(UDF_INIT *initid);
 char *   func_add_set(UDF_INIT *initid, UDF_ARGS *args, char *result,
                       unsigned long *length, char *is_null, char *error);
 
-
 my_bool searchSWP_init(UDF_INIT *initid, UDF_ARGS *args, char *message);
 void searchSWP_deinit(UDF_INIT *initid);
-my_bool searchSWP(UDF_INIT *initid, UDF_ARGS *args, char *is_null, char *error);
+my_bool searchSWP(UDF_INIT *initid, UDF_ARGS *args, char *is_null,
+                  char *error);
 
 #else /* Postgres */
 
@@ -152,8 +152,9 @@ decrypt_DET(unsigned char *eValueBytes, uint64_t eValueLen, AES_KEY * key)
 }
 
 static bool
-search(const Token & token, const Binary & overall_ciph) {
-	return CryptoManager::searchExists(token, overall_ciph);
+search(const Token & token, const Binary & overall_ciph)
+{
+    return CryptoManager::searchExists(token, overall_ciph);
 }
 
 #if MYSQL_S
@@ -310,7 +311,7 @@ decrypt_int_det(PG_FUNCTION_ARGS)
 #if MYSQL_S
     return (longlong) value;
 #else /* postgres */
-    PG_RETURN_INT64(value);
+PG_RETURN_INT64(value);
 #endif
 
 }
@@ -363,10 +364,10 @@ decrypt_text_sem(PG_FUNCTION_ARGS)
     *length = value.length();
     return (char*) initid->ptr;
 #else
-    bytea * res = (bytea *) palloc(eValueLen+VARHDRSZ);
-    SET_VARSIZE(res, eValueLen+VARHDRSZ);
-    memcpy(VARDATA(res), value, eValueLen);
-    PG_RETURN_BYTEA_P(res);
+bytea * res = (bytea *) palloc(eValueLen+VARHDRSZ);
+SET_VARSIZE(res, eValueLen+VARHDRSZ);
+memcpy(VARDATA(res), value, eValueLen);
+PG_RETURN_BYTEA_P(res);
 #endif
 
 }
@@ -418,10 +419,10 @@ decrypt_text_det(PG_FUNCTION_ARGS)
     *length = value.length();
     return (char*) initid->ptr;
 #else
-    bytea * res = (bytea *) palloc(eValueLen+VARHDRSZ);
-    SET_VARSIZE(res, eValueLen+VARHDRSZ);
-    memcpy(VARDATA(res), value, eValueLen);
-    PG_RETURN_BYTEA_P(res);
+bytea * res = (bytea *) palloc(eValueLen+VARHDRSZ);
+SET_VARSIZE(res, eValueLen+VARHDRSZ);
+memcpy(VARDATA(res), value, eValueLen);
+PG_RETURN_BYTEA_P(res);
 #endif
 
 }
@@ -480,7 +481,7 @@ search(PG_FUNCTION_ARGS)
 #if MYSQL_S
             return 1;
 #else
-            PG_RETURN_BOOL(true);
+PG_RETURN_BOOL(true);
 #endif
         }
         i = i + currLen + 1;
@@ -493,18 +494,14 @@ search(PG_FUNCTION_ARGS)
 #endif
 }
 
-
-
-
 #if MYSQL_S
 
 //TODO: write a version of search for postgres
 
-
 my_bool
 searchSWP_init(UDF_INIT *initid, UDF_ARGS *args, char *message)
 {
-	Token * t = new Token();
+    Token * t = new Token();
 
     uint64_t ciphLen;
     char *ciph = (char *) getba(args, 1, ciphLen);
@@ -512,10 +509,10 @@ searchSWP_init(UDF_INIT *initid, UDF_ARGS *args, char *message)
     uint64_t wordKeyLen;
     char *wordKey = (char *) getba(args, 1, wordKeyLen);
 
-	t->ciph = Binary((unsigned int) ciphLen, (unsigned char *)ciph);
-	t->wordKey = Binary((unsigned int)wordKeyLen, (unsigned char *)wordKey);
+    t->ciph = Binary((unsigned int) ciphLen, (unsigned char *)ciph);
+    t->wordKey = Binary((unsigned int)wordKeyLen, (unsigned char *)wordKey);
 
-	initid->ptr = (char *) t;
+    initid->ptr = (char *) t;
 
     return 0;
 }
@@ -523,8 +520,8 @@ searchSWP_init(UDF_INIT *initid, UDF_ARGS *args, char *message)
 void
 searchSWP_deinit(UDF_INIT *initid)
 {
-	 Token *t = (Token *) initid->ptr;
-	 delete t;
+    Token *t = (Token *) initid->ptr;
+    delete t;
 
 }
 
@@ -538,13 +535,9 @@ searchSWP(UDF_INIT *initid, UDF_ARGS *args, char *is_null, char *error)
 
     return search(*((Token *)(initid->ptr)), w);
 
- }
-
+}
 
 #endif
-
-
-
 
 #if MYSQL_S
 
