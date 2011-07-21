@@ -24,7 +24,6 @@ class EDBClient {
      */
 
     EDBClient(const string &masterKey);
-    EDBClient();
     EDBClient(string server, string user, string psswd, string dbname,
               const string &masterKey,
               uint port = 0);

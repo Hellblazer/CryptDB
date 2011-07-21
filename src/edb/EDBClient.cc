@@ -216,30 +216,6 @@ EDBClient::EDBClient(const string &masterKey)
 
 }
 
-EDBClient::EDBClient()
-{
-    this->isSecure = false;
-    mp = NULL;
-
-    VERBOSE = false;
-    dropOnExit = false;
-
-    /* Make a connection to the database */
-    conn = NULL;
-
-    tableNameMap = map<string, string>();
-    tableMetaMap = map<string, TableMetadata *>();
-
-    totalTables = 0;
-    totalIndexes = 0;
-
-    //dropAll(conn);
-    //createAll(conn, cm);
-
-    //if (VERBOSE) {cout << "UDF-s loaded successfully. \n\n";}
-
-}
-
 ResType *
 EDBClient::plain_execute(const string &query)
 {
