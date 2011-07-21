@@ -1012,10 +1012,8 @@ TestSinglePrinc::run(int argc, char ** argv)
     EDBClient * cl;
     uint64_t mkey = 113341234;
     string masterKey = BytesFromInt(mkey, AES_KEY_BYTES);
-    cl = new EDBClient("localhost", "root", "letmein", "cryptdbtest",
-                       masterKey);
-    assert_s(MULTIPRINC == 0,
-             "MULTIPRINC is on.  Please set it to 0 (in params.h)");
+    cl = new EDBClient("localhost", "root", "letmein", "cryptdbtest", 0, false);
+    cl->setMasterKey(masterKey);
 
     cerr << "Testing create and drop..." << endl;
     testCreateDrop(cl);

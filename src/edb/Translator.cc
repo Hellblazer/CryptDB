@@ -9,9 +9,9 @@
 #include "log.h"
 
 string
-anonymizeTableName(unsigned int tableNo, string tableName)
+anonymizeTableName(unsigned int tableNo, string tableName, bool multiPrinc)
 {
-    if (ANONTABLES) {
+    if (!multiPrinc) {
         return string("table") + marshallVal((uint32_t)tableNo);
     } else {
         return tableName;
@@ -19,11 +19,11 @@ anonymizeTableName(unsigned int tableNo, string tableName)
 }
 
 string
-anonymizeFieldName(unsigned int index, onion o, string origname)
+anonymizeFieldName(unsigned int index, onion o, string origname, bool multiPrinc)
 {
     switch (o) {
     case oDET: {
-        if (!ANONDETFIELD) {
+        if (multiPrinc) {
             return origname;
         } else {
             return string("field") + marshallVal(index) + "DET";
@@ -136,7 +136,7 @@ getFieldName(FieldMetadata *fm)
 
 string
 processCreate(fieldType type, string fieldName, unsigned int index,
-              TableMetadata * tm, FieldMetadata * fm)
+              TableMetadata * tm, FieldMetadata * fm, bool multiPrinc)
 throw (CryptDBError)
 {
 
@@ -148,7 +148,7 @@ throw (CryptDBError)
         if (fm->isEncrypted) {
             // create field for DET encryption
             string anonFieldNameDET = anonymizeFieldName(index, oDET,
-                                                         fieldName);
+                                                         fieldName, multiPrinc);
 
             tm->fieldNameMap[anonFieldNameDET] = fieldName;
             fm->anonFieldNameDET = anonFieldNameDET;
@@ -158,7 +158,7 @@ throw (CryptDBError)
             if (fm->ope_used) {
                 //create field for OPE encryption
                 string anonFieldNameOPE = anonymizeFieldName(index, oOPE,
-                                                             fieldName);
+                                                             fieldName, multiPrinc);
 
                 tm->fieldNameMap[anonFieldNameOPE] = fieldName;
 
@@ -171,7 +171,7 @@ throw (CryptDBError)
 
             if (fm->agg_used) {
                 string anonFieldNameAGG = anonymizeFieldName(index, oAGG,
-                                                             fieldName);
+                                                             fieldName, multiPrinc);
                 fm->anonFieldNameAGG = anonFieldNameAGG;
 
                 res = res + ", " + anonFieldNameAGG + "  "+TN_HOM+" ";
@@ -199,7 +199,7 @@ throw (CryptDBError)
 
         if (fm->isEncrypted) {
             string anonFieldNameDET = anonymizeFieldName(index, oDET,
-                                                         fieldName);
+                                                         fieldName, multiPrinc);
             tm->fieldNameMap[anonFieldNameDET] = fieldName;
             fm->anonFieldNameDET = anonFieldNameDET;
 
@@ -207,7 +207,7 @@ throw (CryptDBError)
 
             if (fm->ope_used) {
                 string anonFieldNameOPE = anonymizeFieldName(index, oOPE,
-                                                             fieldName);
+                                                             fieldName, multiPrinc);
 
                 tm->fieldNameMap[anonFieldNameOPE] = fieldName;
                 fm->anonFieldNameOPE = anonFieldNameOPE;
@@ -223,7 +223,7 @@ throw (CryptDBError)
 
             if (fm->has_search) {
                 fm->anonFieldNameSWP = anonymizeFieldName(index, oSWP,
-                                                          fieldName);
+                                                          fieldName, multiPrinc);
 
                 res = res + ", " + fm->anonFieldNameSWP + "  "+TN_TEXT+" ";
             } else {

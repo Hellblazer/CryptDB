@@ -25,8 +25,8 @@ init(lua_State *L)
         "; password = " << psswd << "; database name = " << dbname << endl;
     }
     uint64_t mkey = 113341234;
-    string masterKey = BytesFromInt(mkey, AES_KEY_BYTES);
-    cl = new EDBClient(server, user, psswd, dbname, masterKey);
+    cl = new EDBClient(server, user, psswd, dbname);
+    cl->setMasterKey(BytesFromInt(mkey, AES_KEY_BYTES));
     cl->VERBOSE = VERBOSE_G;
     initialized = true;
     return 0;

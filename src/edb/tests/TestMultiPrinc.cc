@@ -453,25 +453,30 @@ TestMultiPrinc::run(int argc, char ** argv)
     EDBClient * cl;
     uint64_t mkey = 113341234;
     string masterKey = BytesFromInt(mkey, AES_KEY_BYTES);
-    cl = new EDBClient("localhost", "root", "letmein", "cryptdbtest", masterKey);
-    assert_s(MULTIPRINC == 1,
-             "MULTIPRINCE is off.  Please set it to 1 (in params.h) and run make before attempting this test");
 
+    cl = new EDBClient("localhost", "root", "letmein", "cryptdbtest", 0, true);
+    cl->setMasterKey(masterKey);
     cerr << "Test basic..." << endl;
     BasicFunctionality(cl);
-    cl->~EDBClient();
-    cl = new EDBClient("localhost", "root", "letmein", "cryptdbtest", masterKey);
+    delete cl;
+
+    cl = new EDBClient("localhost", "root", "letmein", "cryptdbtest", 0, true);
+    cl->setMasterKey(masterKey);
     cerr << "Test private messages..." << endl;
     PrivMessages(cl);
-    cl->~EDBClient();
-    cl = new EDBClient("localhost", "root", "letmein", "cryptdbtest", masterKey);
+    delete cl;
+
+    cl = new EDBClient("localhost", "root", "letmein", "cryptdbtest", 0, true);
+    cl->setMasterKey(masterKey);
     cerr << "Test user/group/forum..." << endl;
     UserGroupForum(cl);
-    cl->~EDBClient();
-    cl = new EDBClient("localhost", "root", "letmein", "cryptdbtest", masterKey);
+    delete cl;
+
+    cl = new EDBClient("localhost", "root", "letmein", "cryptdbtest", 0, true);
+    cl->setMasterKey(masterKey);
     cerr << "Test user/group/forum including function..." << endl;
     UserGroupForum_incFunction(cl);
-    cerr << "RESULT: " << npass << "/" << ntest << " passed" << endl;
-
     delete cl;
+
+    cerr << "RESULT: " << npass << "/" << ntest << " passed" << endl;
 }
