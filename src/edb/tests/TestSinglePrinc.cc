@@ -49,18 +49,21 @@ CheckSelectResults(EDBClient * cl, vector<string> in, vector<ResType> out)
     vector<string>::iterator query_it = in.begin();
     vector<ResType>::iterator res_it = out.begin();
 
+    cerr << in.size() << "  " << out.size() << endl;
+
     while(query_it != in.end()) {
         ntest++;
+	bool passed = true;
         ResType * test_res = myExecute(cl, *query_it);
         if(!test_res) {
             LOG(test) << "Query: " << *query_it;
             if (STOP_IF_FAIL) {
                 assert_s(false, "above query generated the wrong result");
             }
-            return;
+	    passed = false;
         }
 
-        if(*test_res != *res_it) {
+        if(passed && *test_res != *res_it) {
             LOG(test) << "From query: " << *query_it;
             cerr << "-----------------------\nExpected result:" << endl;
             PrintRes(*res_it);
@@ -70,10 +73,13 @@ CheckSelectResults(EDBClient * cl, vector<string> in, vector<ResType> out)
             if (STOP_IF_FAIL) {
                 assert_s(false, "above query generated the wrong result");
             }
-            return;
+	    passed = false;
         }
 
-        npass++;
+	if (passed) {
+	  npass++;
+	}
+
         query_it++;
         res_it++;
     }
@@ -170,9 +176,9 @@ static void
 testInsert(EDBClient * cl)
 {
     cl->plain_execute(
-        "DROP TABLE IF EXISTS table0, table1, table2, table3, table4, table5");
-    assert_s(cl->execute(
-                 "CREATE TABLE t1 (id integer, age enc integer, salary enc integer, address enc text, name text)"),
+        "DROP TABLE IF EXISTS table0, table1, table2, table3, table4, table5, t1");
+    assert_s(myCreate(cl,"CREATE TABLE t1 (id integer, age enc integer, salary enc integer, address enc text, name text)",
+		      "CREATE TABLE t1 (id integer, age integer, salary integer, address text, name text)"),
              "testInsert could not create table");
 
     vector<string> tests;
@@ -211,12 +217,10 @@ static void
 testSelect(EDBClient * cl)
 {
     cl->plain_execute(
-        "DROP TABLE IF EXISTS table0, table1, table2, table3, table4, table5, table6");
-    if (!PLAIN) {
-        assert_s(cl->execute(
-                     "CREATE TABLE t1 (id integer, age enc integer, salary enc integer, address enc text, name text)"),
-                 "testSelect couldn't create table");
-    }
+        "DROP TABLE IF EXISTS table0, table1, table2, table3, table4, table5, table6, t1");
+    assert_s(myCreate(cl,"CREATE TABLE t1 (id integer, age enc integer, salary enc integer, address enc text, name enc text)",
+		      "CREATE TABLE t1 (id integer, age integer, salary integer, address text, name text)"),
+	     "testSelect couldn't create table");
     assert_s(myExecute(cl,
                        "INSERT INTO t1 VALUES (1, 10, 0, 'first star to the right and straight on till morning', 'Peter Pan')"),
              "testSelect couldn't insert (1)");
@@ -540,12 +544,11 @@ static void
 testJoin(EDBClient * cl)
 {
     cl->plain_execute(
-        "DROP TABLE IF EXISTS table0, table1, table2, table3, table4, table5, table6, table7, table8");
-    if (!PLAIN) {
-        assert_s(cl->execute(
-                     "CREATE TABLE t1 (id integer, age enc integer, salary enc integer, address enc text, name enc text)"),
+        "DROP TABLE IF EXISTS table0, table1, table2, table3, table4, table5, table6, table7, table8, t1, t2");
+    assert_s(myCreate(cl,"CREATE TABLE t1 (id integer, age enc integer, salary enc integer, address enc text, name enc text)",
+		      "CREATE TABLE t1 (id integer, age integer, salary integer, address text, name text)"),
                  "testJoin couldn't create table");
-    }
+
     assert_s(myExecute(cl,
                        "INSERT INTO t1 VALUES (1, 10, 0, 'first star to the right and straight on till morning', 'Peter Pan')"),
              "testJoin couldn't insert (1)");
@@ -562,11 +565,9 @@ testJoin(EDBClient * cl)
                        "INSERT INTO t1 VALUES (5, 30, 100000, '221B Baker Street', 'Sherlock Holmes')"),
              "testJoin couldn't insert (5)");
 
-    if (!PLAIN) {
-        assert_s(cl->execute(
-                     "CREATE TABLE t2 (id integer, books enc integer, name enc text)"),
-                 "testJoin couldn't create second table");
-    }
+    assert_s(myCreate(cl,"CREATE TABLE t2 (id enc integer, books enc integer, name enc text)",
+		      "CREATE TABLE t2 (id integer, books integer, name text)"),
+                 "testJoin couldn't create table");
     assert_s(myExecute(cl, "INSERT INTO t2 VALUES (1, 6, 'Peter Pan')"),
              "testJoin couldn't insert (1)");
     assert_s(myExecute(cl, "INSERT INTO t2 VALUES (2, 8, 'Anne Shirley')"),
@@ -665,12 +666,10 @@ static void
 testUpdate(EDBClient * cl)
 {
     cl->plain_execute(
-        "DROP TABLE IF EXISTS table0, table1, table2, table3, table4, table5, table6, table7, table8, table9, table10");
-    if (!PLAIN) {
-        assert_s(cl->execute(
-                     "CREATE TABLE t1 (id integer, age enc integer, salary enc integer, address enc text, name text)"),
-                 "testSelect couldn't create table");
-    }
+        "DROP TABLE IF EXISTS table0, table1, table2, table3, table4, table5, table6, table7, table8, table9, table10, t1");
+    assert_s(myCreate(cl,"CREATE TABLE t1 (id integer, age enc integer, salary enc integer, address enc text, name enc text)",
+		      "CREATE TABLE t1 (id integer, age integer, salary integer, address text, name text)"),
+                 "testUpdate couldn't create table");
     assert_s(myExecute(cl,
                        "INSERT INTO t1 VALUES (1, 10, 0, 'first star to the right and straight on till morning', 'Peter Pan')"),
              "testUpdate couldn't insert (1)");
@@ -828,12 +827,10 @@ static void
 testDelete(EDBClient * cl)
 {
     cl->plain_execute(
-        "DROP TABLE IF EXISTS table0, table1, table2, table3, table4, table5, table6, table7, table8, table9, table10, table11");
-    if (!PLAIN) {
-        assert_s(cl->execute(
-                     "CREATE TABLE t1 (id integer, age enc integer, salary enc integer, address enc text, name text)"),
-                 "testSelect couldn't create table");
-    }
+        "DROP TABLE IF EXISTS table0, table1, table2, table3, table4, table5, table6, table7, table8, table9, table10, table11, t1");
+    assert_s(myCreate(cl,"CREATE TABLE t1 (id integer, age enc integer, salary enc integer, address enc text, name enc text)",
+		      "CREATE TABLE t1 (id integer, age integer, salary integer, address text, name text)"),
+                 "testDelete couldn't create table");
     assert_s(myExecute(cl,
                        "INSERT INTO t1 VALUES (1, 10, 0, 'first star to the right and straight on till morning', 'Peter Pan')"),
              "testUpdate couldn't insert (1)");

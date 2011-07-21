@@ -24,6 +24,7 @@
 #include "TestSinglePrinc.h"
 #include "TestMultiPrinc.h"
 #include "TestCrypto.h"
+#include "TestAccessManager.h"
 
 using namespace std;
 
@@ -3898,16 +3899,17 @@ static struct {
     const char *name;
     void (*f)(int ac, char **av);
 } tests[] = {
-    { "access",      &accessManagerTest },
+    { "access",      &TestAccessManager::run },
+    { "old access",  &accessManagerTest },
     { "aes",         &evaluate_AES },
     { "autoinc",     &autoIncTest },
     { "crypto",      &TestCrypto::run },
+    { "multi",       &TestMultiPrinc::run },
     { "paillier",    &testPaillier },
     { "parseaccess", &testParseAccess },
     { "pkcs",        &test_PKCS },
     { "shell",       &interactiveTest },
     { "single",      &TestSinglePrinc::run },
-    { "multi",       &TestMultiPrinc::run },
     { "tables",      &encryptionTablesTest },
     { "trace",       &testTrace },
     { "utils",       &testUtils },

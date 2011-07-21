@@ -6,7 +6,7 @@ MYSQL_PLUGIN_DIR  := /usr/lib/mysql/plugin
 
 CXX	 := g++
 CXXFLAGS := -g -O2 -fno-strict-aliasing -fwrapv -fPIC \
-	    -Wall -Wpointer-arith -Wendif-labels -Wformat=2 \
+	    -Wall -Werror -Wpointer-arith -Wendif-labels -Wformat=2  \
 	    -Wextra -Wmissing-noreturn -Wwrite-strings -Wno-unused-parameter \
 	    -Wmissing-format-attribute -Wswitch-default \
 	    -Wmissing-declarations -Wshadow -Woverloaded-virtual \
@@ -15,14 +15,13 @@ CXXFLAGS := -g -O2 -fno-strict-aliasing -fwrapv -fPIC \
 	    $(shell $(MYSQL_CONFIG) --cflags)
 LDFLAGS	 := -L. -lmysqlclient -lz -llua5.1 \
 	    -Wl,-rpath=$(shell pwd)
-#	    -Wall -Werror -Wpointer-arith -Wendif-labels -Wformat=2 
 
 HEADERS	 := $(wildcard *.h)
 
 CRYPTO_OBJS  := OPE.o util.o HGD.o Binary.o SWPSearch.o CryptoManager.o Equation.o log.o pbkdf2.o
 CRYPTDB_OBJS := AccessManager.o EDBClient.o Connect.o Translator.o MultiPrinc.o
 PROXY_OBJS   := ConnectWrapper.o
-TEST_OBJS    := tests/test.o tests/TestSinglePrinc.o tests/TestCrypto.o tests/test_utils.o tests/TestMultiPrinc.o
+TEST_OBJS    := tests/test.o tests/TestSinglePrinc.o tests/TestCrypto.o tests/test_utils.o tests/TestMultiPrinc.o tests/TestAccessManager.o
 LIBS	     := libedbcrypto.so edb.so libcryptdb.so libexecute.so
 
 all: $(LIBS) tests/test
