@@ -429,6 +429,7 @@ testOrphans(KeyAccess * am) {
     record((am->getKey(m15)).length() == 0, test+"can access message 15 key with chris offline");
     record((am->getKey(s24)).length() == 0, test+"can access subject 24 key with chris offline");
 
+    //L3161
 
 
 }
@@ -442,7 +443,7 @@ TestAccessManager::run(int argc, char ** argv)
   KeyAccess * ka;
   ka = buildTest(new Connect("localhost","root","letmein","cryptdbtest"));
 
-  /*cerr << "testing meta section of KeyAccess..." << endl;
+  cerr << "testing meta section of KeyAccess..." << endl;
   testMeta(ka);
 
   cerr << "single user tests..." << endl;
@@ -456,7 +457,7 @@ TestAccessManager::run(int argc, char ** argv)
   ka->~KeyAccess();
   ka = buildTest(new Connect("localhost","root","letmein","cryptdbtest"));
   cerr << "acyclic graphs (not a tree) tests..." << endl;
-  testNonTree(ka);*/
+  testNonTree(ka);
 
   ka->~KeyAccess();
   ka = buildTest(new Connect("localhost","root","letmein","cryptdbtest"));

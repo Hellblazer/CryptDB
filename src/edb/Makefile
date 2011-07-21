@@ -6,7 +6,7 @@ MYSQL_PLUGIN_DIR  := /usr/lib/mysql/plugin
 
 CXX	 := g++
 CXXFLAGS := -g -O2 -fno-strict-aliasing -fwrapv -fPIC \
-	    -Wall -Wpointer-arith -Wendif-labels -Wformat=2  \
+	    -Wall -Werror -Wpointer-arith -Wendif-labels -Wformat=2  \
 	    -Wextra -Wmissing-noreturn -Wwrite-strings -Wno-unused-parameter \
 	    -Wmissing-format-attribute -Wswitch-default \
 	    -Wmissing-declarations -Wshadow -Woverloaded-virtual \
