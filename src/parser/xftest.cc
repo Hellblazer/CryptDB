@@ -18,8 +18,67 @@
 
 #include "mysql_glue.h"
 
+class CryptItem {
+ public:
+    CryptItem(Item *iarg) : i(iarg) {}
+
+    Item *rewrite(void) {
+        switch (i->type()) {
+        case Item::Type::FIELD_ITEM:
+        {
+            Item_field *ifl = (Item_field *) i;
+            Item *n =
+                new Item_field(0,
+                               ifl->db_name,
+                               strdup((std::string("anontab_") +
+                                      ifl->table_name).c_str()),
+                               strdup((std::string("anonfld_") +
+                                      ifl->field_name).c_str()));
+            n->name = i->name;
+            return n;
+        }
+
+        case Item::Type::FUNC_ITEM: {
+            Item_func *ifn = (Item_func *) i;
+
+            switch (ifn->functype()) {
+            case Item_func::Functype::UNKNOWN_FUNC:
+            {
+                std::string name = ifn->func_name();
+                Item **args = ifn->arguments();
+
+                if (name == "+") {
+                    CryptItem a(args[0]);
+                    CryptItem b(args[1]);
+                    Item *n = new Item_func_plus(a.rewrite(),
+                                                 b.rewrite());
+                    n->name = i->name;
+                    return n;
+                } else {
+                    std::cerr << "not rewriting function " << name << std::endl;
+                    return i;
+                }
+            }
+
+            default:
+                std::cerr << "not rewriting function " << ifn->functype() << std::endl;
+                return i;
+            }
+        }
+
+        default:
+            std::cerr << "not rewriting type " << i->type() << std::endl;
+            return i;
+        }
+    }
+
+ private:
+    Item *i;
+};
+
 /*
  * Traverse the Item tree.  Return values are meaningless.
+ * This should turn into methods in CryptItem..
  */
 static int
 recurse(THD *t, Item *i)
@@ -155,7 +214,7 @@ xftest(void)
             printf("parse error: %d %d %d\n", error, t->is_fatal_error,
                    t->is_error());
             printf("parse error: h %p\n", t->get_internal_handler());
-            printf("parse error: %d %s\n", t->is_error(), t->get_stmt_da()->message());
+            printf("parse error: %d %s\n", t->is_error(), t->stmt_da->message());
         } else {
             printf("command %d\n", lex.sql_command);
 
@@ -163,6 +222,7 @@ xftest(void)
             // based on st_select_lex::print in mysql-server/sql/sql_select.cc
 
             // iterate over the items that select will actually return
+            List<Item> new_item_list;
             auto item_it = List_iterator<Item>(lex.select_lex.item_list);
             for (;;) {
                 Item *item = item_it++;
@@ -170,11 +230,18 @@ xftest(void)
                     break;
 
                 int x = recurse(t, item);
-                printf("x=%d (alias %s)\n", x, item->name);
-            }
 
-            int x = recurse(t, lex.select_lex.where);
-            printf("x=%d\n", x);
+                CryptItem ci(item);
+                String s;
+                Item *newitem = ci.rewrite();
+                newitem->print(&s, QT_ORDINARY);
+                printf("rewrite: %s (x=%d, alias=%s)\n", s.c_ptr(), x, item->name);
+                new_item_list.push_back(newitem);
+            }
+            lex.select_lex.item_list = new_item_list;
+
+            //int x = recurse(t, lex.select_lex.where);
+            //printf("x=%d\n", x);
 
             String s;
             lex.select_lex.print(t, &s, QT_ORDINARY);

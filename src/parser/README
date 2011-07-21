@@ -1,7 +1,10 @@
-% bzr branch lp:mysql-server
-% cd mysql-server
+% wget http://mysql.mirrors.pair.com/Downloads/MySQL-5.5/mysql-5.5.14.tar.gz
+% tar zxf mysql-5.5.14.tar.gz
+% cd mysql-5.5.14
 % mkdir build
 % cd build
-% cmake .. -DWITH_EMBEDDED_SERVER=ON
+% cmake ..
 % make
+
+now, copy config.mk.sample to config.mk and adjust the path for MYSRC
 

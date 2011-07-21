@@ -10,7 +10,7 @@ CXXFLAGS := -I. \
 	    -DHAVE_CONFIG_H -DMYSQL_SERVER -DHAVE_EVENT_SCHEDULER -DDBUG_OFF \
 	    -std=c++0x
 
-LDFLAGS  := -L$(MYBUILD)/sql -lsql -lbinlog -lslave -lmaster -lrpl -lpartition \
+LDFLAGS  := -L$(MYBUILD)/sql -lsql -lpartition \
 	    -L$(MYBUILD)/storage/perfschema -lperfschema \
 	    -L$(MYBUILD)/storage/myisam -lmyisam \
 	    -L$(MYBUILD)/storage/myisammrg -lmyisammrg \
