@@ -12,13 +12,6 @@
 // Postgres
 #define MYSQL_S 1
 
-// if true, all fields will be automatically encrypted in single principal
-// mode without specifying enc
-// this flag is ignored in multi-princ mode
-#define ALWAYS_ENCRYPT 0
-
-#define TRAINING 1
-
 /************* EVAL/DEBUGGING FLAGS ************/
 
 //Flags for evaluation of different scenarios:
