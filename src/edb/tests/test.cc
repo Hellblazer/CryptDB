@@ -2482,7 +2482,7 @@ autoIncTest(int ac, char **av)
         "INSERT INTO t1 (post, age) VALUES ( 'D there you go', 23);");
     assert_s(rt->at(1).at(0).compare("4") == 0, "autoinc not correct4");
 
-    //cl->~EDBClient();
+    //delete cl;
 }
 
 static void
@@ -3422,7 +3422,7 @@ accessManagerTest(int ac, char **av)
     assert_s(!g50_key,
              "g50 key exists after the hundred group keys have been removed");
 
-    am->~KeyAccess();
+    delete am;
 
     /* AccessManager * am;
 

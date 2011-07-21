@@ -1811,7 +1811,7 @@ KeyAccess::finish()
         it->second.key.resize(0);
     }
     keys.clear();
-    meta->~MetaAccess();
+    delete meta;
 }
 
 KeyAccess::~KeyAccess()
