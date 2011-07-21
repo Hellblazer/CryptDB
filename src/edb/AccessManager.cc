@@ -847,7 +847,6 @@ KeyAccess::insert(Prin hasAccess, Prin accessTo)
               string_encrypted_accessToKey +
               ", " + string_salt + ");";
     }
-
     //couldn't get symmetric key for hasAccess, so get public key
     else {
         PKCS * hasAccess_publicKey = getPublicKey(hasAccess);
@@ -934,6 +933,13 @@ KeyAccess::insert(Prin hasAccess, Prin accessTo)
         return 0;
     }
 
+    //if it was an orphan, remove it from the orphan graphs
+    // first check if hasAccess is online, and if not, remove keys from local memory
+    if (isOrphan(accessTo) && !isOrphan(hasAccess)) {
+        return removeFromOrphans(accessTo);
+    }
+
+
     if (isOrphan(hasAccess)) {
         if (hasAccess_has_children) {
             orphanToChildren[hasAccess].insert(accessTo);
@@ -951,9 +957,6 @@ KeyAccess::insert(Prin hasAccess, Prin accessTo)
         return 0;
     }
 
-    if (isOrphan(accessTo) && !isOrphan(hasAccess)) {
-        return removeFromOrphans(accessTo);
-    }
 
     assert_s(isInstance(
                  hasAccess), "hasAccess does not exist; this is an orphan");
@@ -1126,6 +1129,7 @@ KeyAccess::getPrinKey(Prin prin)
             cerr <<
             "     *asking for a key that exists but is not accessible" <<
             endl;
+	    cerr << prinkey.key.length() << endl;
         }
     }
     return prinkey;

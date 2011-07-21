@@ -378,7 +378,7 @@ UserGroupForum_incFunction(EDBClient * cl) {
     //populate things while everyone is logged in
     checkQuery(cl,"INSERT INTO u VALUES (1, 'alice')",empty);
     checkQuery(cl,"INSERT INTO u VALUES (2, 'bob')",empty);
-    checkQuery(cl,"INSERT INTO u VALUES (1, 'chris')",empty);
+    checkQuery(cl,"INSERT INTO u VALUES (3, 'chris')",empty);
 
     checkQuery(cl,"INSERT INTO usergroup VALUES (1,1)",empty);
     checkQuery(cl,"INSERT INTO usergroup VALUES (2,2)",empty);
