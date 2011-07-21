@@ -25,10 +25,10 @@ LDFLAGS  := -L$(MYBUILD)/sql -lsql -lbinlog -lslave -lmaster -lrpl -lpartition \
 
 all:	parsetest xftest
 
-parsetest: parsetest.o
+parsetest: parsetest.o mysql_glue.o
 	$(CXX) $^ -o $@ $(LDFLAGS)
 
-xftest: xftest.o
+xftest: xftest.o mysql_glue.o
 	$(CXX) $^ -o $@ $(LDFLAGS)
 
 %.o: %.cc
