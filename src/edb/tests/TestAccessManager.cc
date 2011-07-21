@@ -41,9 +41,15 @@ static Prin a5 = Prin("u.acc","5");
 
 static Prin m2 = Prin("m.mess","2");
 static Prin m3 = Prin("m.mess","3");
+static Prin m4 = Prin("m.mess","4");
+static Prin m5 = Prin("m.mess","5");
+static Prin m15 = Prin("m.mess","15");
 
 static Prin s4 = Prin("m.sub","4");
+static Prin s5 = Prin("m.sub","5");
 static Prin s6 = Prin("m.sub","6");
+static Prin s7 = Prin("m.sub","7");
+static Prin s24 = Prin("m.sub","24");
 
 static string secretA = "secretA";
 static string secretB = "secretB";
@@ -299,14 +305,131 @@ testOrphans(KeyAccess * am) {
     buildBasic(am);
     am->insertPsswd(bob,secretB);
     am->insert(g5,a5);
+    am->removePsswd(bob);
 
     am->insert(m2,s6);
+    record((am->getKey(s6)).length() > 0,
+	   test+"s6 key does not exist as an orphan");
+    record((am->getKey(m2)).length() > 0,
+	   test+"m2 key does not exist as an orphan");
     string s6_key1 = marshallBinary(am->getKey(s6));
     string m2_key1 = marshallBinary(am->getKey(m2));
-    record(s6_key1.length() > 0,
-	   "s6 key does no exist as an orphan");
-    record(m2_key1.length() > 0,
-	   "m2 key does no exist as an orphan");
+
+    am->insert(u2,m2);
+    record((am->getKey(m2)).length() == 0,
+	   test+"m2 key is available when bob is logged off");
+    record((am->getKey(s6)).length() == 0,
+	   test+"s6 key is available when bob is logged off");
+    
+    am->insertPsswd(bob,secretB);
+    record((am->getKey(s6)).length() > 0,
+	   test+"s6 key is not available when bob is logged on");
+    record((am->getKey(m2)).length() > 0,
+	   test+"m2 key is not available when bob is logged on");
+    string s6_key3 = marshallBinary(am->getKey(s6));
+    string m2_key3 = marshallBinary(am->getKey(m2));
+    record(s6_key1.compare(s6_key3) == 0, test+"s6 key does not match");
+    record(m2_key1.compare(m2_key3) == 0, test+"m2 key does not match");
+
+    am->insert(m3,s4);
+    record((am->getKey(s4)).length() > 0,
+	   test+"s4 key does not exist as an orphan");
+    record((am->getKey(m3)).length() > 0,
+	   test+"m3 key does not exist as an orphan");
+    string s4_key1 = marshallBinary(am->getKey(s4));
+    string m3_key1 = marshallBinary(am->getKey(m3));
+    am->insert(u2,m3);
+    string s4_key2 = marshallBinary(am->getKey(s4));
+    string m3_key2 = marshallBinary(am->getKey(m3));
+    record(s4_key1.compare(s4_key2) == 0, test+"s4 key does not match");
+    record(m3_key1.compare(m3_key2) == 0, test+"m3 key does not match");
+    am->removePsswd(bob);
+    record((am->getKey(s4)).length() == 0, test+"s4 key is available when bob is logged off");
+    record((am->getKey(m3)).length() == 0, test+"m3 key is available when bob is logged off");
+    am->insertPsswd(bob,secretB);
+    string s4_key3 = marshallBinary(am->getKey(s4));
+    string m3_key3 = marshallBinary(am->getKey(m3));
+    record(s4_key1.compare(s4_key3) == 0, test+"s4 key does not match 1v3");
+    record(m3_key1.compare(m3_key3) == 0, test+"m3 key does not match 1v3"); 
+    
+    am->insert(m4,s6);
+    record((am->getKey(m4)).length() > 0, test+"m4 key does not exist as orphan");
+    record((am->getKey(s6)).length() > 0, test+"s6 key does not exist as orphan AND as accessible by bob");
+    string m4_key1 = marshallBinary(am->getKey(m4));
+    string s6_key4 = marshallBinary(am->getKey(s6));
+    record(s6_key1.compare(s6_key4) == 0, test+"s6 key does not match 1v4");
+    am->removePsswd(bob);
+    record((am->getKey(m4)).length() > 0, test+"m4 key does not exist as orphan");
+    record((am->getKey(s6)).length() > 0, test+"s6 key does not exist a child of an orphan");
+    string m4_key2 = marshallBinary(am->getKey(m4));
+    string s6_key5 = marshallBinary(am->getKey(s6));
+    record(s6_key1.compare(s6_key5) == 0, test+"s6 key does not match 1v5");
+    record(m4_key1.compare(m4_key2) == 0, test+"m4 key does not match 1v2");
+
+
+    am->insert(m5,s5);
+    am->insert(m5,s7);
+    string m5_key = am->getKey(m5);
+    string s5_key = am->getKey(s5);
+    string s7_key = am->getKey(s7);
+    record(m5_key.length() > 0, "message 5 key (orphan) not available");
+    record(s5_key.length() > 0, "subject 5 key (orphan) not available");
+    record(s7_key.length() > 0, "subject 7 key (orphan) not available");
+    string m5_key1 = marshallBinary(m5_key);
+    string s5_key1 = marshallBinary(s5_key);
+    string s7_key1 = marshallBinary(s7_key);
+    am->insert(u1,m5);
+    m5_key = am->getKey(m5);
+    s5_key = am->getKey(s5);
+    s7_key = am->getKey(s7);
+    assert_s((am->getKey(alice)).length() == 0, "alice is not logged off");
+    record(m5_key.length() == 0, test+"message 5 key available with alice not logged on");
+    record(s5_key.length() == 0, test+"subject 5 key available with alice not logged on");
+    record(s7_key.length() == 0, test+"subject 7 key available with alice not logged on");
+    am->insertPsswd(alice,secretA);
+    m5_key = am->getKey(m5);
+    s5_key = am->getKey(s5);
+    s7_key = am->getKey(s7);
+    string m5_key2 = marshallBinary(m5_key);
+    string s5_key2 = marshallBinary(s5_key);
+    string s7_key2 = marshallBinary(s7_key);
+    record(m5_key.length() > 0, test+"message 5 key not available with alice logged on");
+    record(m5_key1.compare(m5_key2) == 0, "message 5 key is different");
+    record(s5_key.length() > 0, test+"subject 5 key not available with alice logged on");
+    record(s5_key1.compare(s5_key2) == 0, "subject 5 key is different");
+    record(s7_key.length() > 0, test+"subject 7 key not available with alice logged on");
+    record(s7_key1.compare(s7_key2) == 0, "subject 7 key is different");
+
+
+    am->insert(u3,m15);
+    string m15_key = am->getKey(m15);
+    record(m15_key.length() > 0, test+"cannot access message 15 key (orphan)");
+    string m15_key1 = marshallBinary(m15_key);
+    string u3_key = am->getKey(u3);
+    record(u3_key.length() > 0, test+"cannot access user 3 key (orphan)");
+    string u3_key1 = marshallBinary(u3_key);
+    am->insert(m15, s24);
+    string s24_key = am->getKey(s24);
+    record(s24_key.length() > 0, test+"cannot access subject 24 key (orphan)");
+    string s24_key1 = marshallBinary(s24_key);
+    am->insertPsswd(chris, secretC);
+    string chris_key = am->getKey(chris);
+    record(chris_key.length() > 0, test+"cannot access chris key with chris logged on");
+    string chris_key1 = marshallBinary(chris_key);
+    am->insert(chris, u3);
+    chris_key = am->getKey(chris);
+    record(chris_key.length() > 0, test+"cannot access chris key after chris->u3 insert");
+    string chris_key2 = marshallBinary(chris_key);
+    record(chris_key1.compare(chris_key2) == 0,
+             test+"chris key is different for orphan and chris logged on");
+
+    am->removePsswd(chris);
+    record((am->getKey(chris)).length() == 0, test+"can access chris key with chris offline");
+    record((am->getKey(u3)).length() == 0, test+"can access user 3 key with chris offline");
+    record((am->getKey(m15)).length() == 0, test+"can access message 15 key with chris offline");
+    record((am->getKey(s24)).length() == 0, test+"can access subject 24 key with chris offline");
+
+
 
 }
 
@@ -319,7 +442,7 @@ TestAccessManager::run(int argc, char ** argv)
   KeyAccess * ka;
   ka = buildTest(new Connect("localhost","root","letmein","cryptdbtest"));
 
-  cerr << "testing meta section of KeyAccess..." << endl;
+  /*cerr << "testing meta section of KeyAccess..." << endl;
   testMeta(ka);
 
   cerr << "single user tests..." << endl;
@@ -333,7 +456,7 @@ TestAccessManager::run(int argc, char ** argv)
   ka->~KeyAccess();
   ka = buildTest(new Connect("localhost","root","letmein","cryptdbtest"));
   cerr << "acyclic graphs (not a tree) tests..." << endl;
-  testNonTree(ka);
+  testNonTree(ka);*/
 
   ka->~KeyAccess();
   ka = buildTest(new Connect("localhost","root","letmein","cryptdbtest"));

@@ -3900,7 +3900,7 @@ static struct {
     void (*f)(int ac, char **av);
 } tests[] = {
     { "access",      &TestAccessManager::run },
-    { "old access",  &accessManagerTest },
+    { "access_old",  &accessManagerTest },
     { "aes",         &evaluate_AES },
     { "autoinc",     &autoIncTest },
     { "crypto",      &TestCrypto::run },
