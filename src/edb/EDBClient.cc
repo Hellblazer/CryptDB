@@ -3276,11 +3276,8 @@ cleanup(map<string, TableMetadata *> & tableMetaMap)
 
 EDBClient::~EDBClient()
 {
-
-    //cleanup data structures
-    tableNameMap.clear();
     cleanup(tableMetaMap);
-    cm->~CryptoManager();
+    delete cm;
     delete mp;
 }
 
