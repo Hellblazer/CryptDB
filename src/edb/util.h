@@ -47,10 +47,6 @@ using namespace std;
 #define TN_SYM_KEY "varbinary(16)"
 #define TN_PK_KEY  "varbinary(1200)"
 
-// configuration for debugging, testing
-#define ANONTABLES (1-MULTIPRINC)  //whether to anonymize tables names
-#define ANONDETFIELD (1-MULTIPRINC) //whether to anonymize the det field
-
 #define psswdtable "activeusers"
 
 const unsigned int bitsPerByte = 8;

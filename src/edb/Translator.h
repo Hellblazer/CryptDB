@@ -109,7 +109,7 @@ string processAgg(list<string>::iterator & wordsIt, list<string> & words,
                   bool forquery);
 
 string processCreate(fieldType type, string fieldName, unsigned int index,
-                     TableMetadata * tm, FieldMetadata * fm)
+                     TableMetadata * tm, FieldMetadata * fm, bool multiPrinc)
     throw (CryptDBError);
 
 //returns what should be included in an insert query for a certain field
@@ -149,7 +149,7 @@ void processDecryptionsForOp(string operation, string op1, string op2,
    //
  */
 
-string anonymizeTableName(unsigned int tableNo, string tableName);
-string anonymizeFieldName(unsigned int index, onion o, string origname);
+string anonymizeTableName(unsigned int tableNo, string tableName, bool multiPrinc);
+string anonymizeFieldName(unsigned int index, onion o, string origname, bool multiPrinc);
 
 #endif /* Translator_H_ */

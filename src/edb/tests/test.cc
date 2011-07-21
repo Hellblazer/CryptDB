@@ -384,8 +384,9 @@ class tester : public EDBClient {
     tester(string dbname, const string &masterKey) : EDBClient("localhost",
                                                                "raluca",
                                                                "none", dbname,
-                                                               masterKey)
+                                                               0, false)
     {
+        setMasterKey(masterKey);
     }
     tester(string dbname) : EDBClient("localhost", "raluca", "none", dbname)
     {
@@ -545,7 +546,8 @@ evalImproveSummations()
     string pwd = "letmein";
     cerr << "connecting to host " << host << " user " << user << " pwd " <<
     pwd << " db " << db << endl;
-    EDBClient * cl = new EDBClient(host, user, pwd, db, masterKey);
+    EDBClient * cl = new EDBClient(host, user, pwd, db);
+    cl->setMasterKey(masterKey);
     cl->VERBOSE = true;
 
     cl->execute("CREATE TABLE test_table (id enc integer,  name enc text)");
@@ -582,7 +584,8 @@ interactiveTest(int ac, char **av)
     string pwd = "letmein";
     cerr << "connecting to host " << host << " user " << user << " pwd " <<
     pwd << " db " << db << endl;
-    EDBClient * cl = new EDBClient(host, user, pwd, db, masterKey);
+    EDBClient * cl = new EDBClient(host, user, pwd, db);
+    cl->setMasterKey(masterKey);
     cl->VERBOSE = true;
 
     streamsize len = 100;
@@ -1014,8 +1017,8 @@ microEvaluate(int argc, char ** argv)
 
     string masterKey =  BytesFromInt(mkey, AES_KEY_BYTES);
     EDBClient * clsecure =
-        new EDBClient("localhost", "raluca", "none", "cryptdb",
-                      masterKey);
+        new EDBClient("localhost", "raluca", "none", "cryptdb");
+    clsecure->setMasterKey(masterKey);
     EDBClient * clplain = new EDBClient("localhost", "raluca", "none",
                                         "cryptdb");
 
@@ -1131,8 +1134,8 @@ testEDBClient()
     cout << "\n\n Integration Queries \n------------------- \n \n";
 
     string masterKey =  BytesFromInt(mkey, AES_KEY_BYTES);
-    EDBClient * cl = new EDBClient("localhost", "raluca", "none", "cryptdb",
-                                   masterKey);
+    EDBClient * cl = new EDBClient("localhost", "raluca", "none", "cryptdb");
+    cl->setMasterKey(masterKey);
     cl->VERBOSE = true;
 
     cl->execute("CREATE TABLE people (id integer, name text, age integer);");
@@ -1352,8 +1355,8 @@ test_train()
     cerr << "training \n";
     string masterKey =  BytesFromInt(mkey, AES_KEY_BYTES);
 
-    EDBClient * cl = new EDBClient("localhost", "raluca", "none", "cryptdb",
-                                   masterKey);
+    EDBClient * cl = new EDBClient("localhost", "raluca", "none", "cryptdb");
+    cl->setMasterKey(masterKey);
 
     cl->VERBOSE = true;
     cl->dropOnExit = true;
@@ -2346,8 +2349,8 @@ static void
 encryptionTablesTest(int ac, char **av)
 {
     EDBClient * cl =
-        new EDBClient("localhost", "raluca", "none", "cryptdb", randomBytes(
-                          AES_KEY_BYTES));
+        new EDBClient("localhost", "raluca", "none", "cryptdb");
+    cl->setMasterKey(randomBytes(AES_KEY_BYTES));
 
     int noHOM = 100;
     int noOPE = 100;
@@ -2383,10 +2386,8 @@ static void
 testParseAccess(int ac, char **av)
 {
 
-    EDBClient * cl =
-        new EDBClient("localhost", "raluca", "none", "raluca",
-                      BytesFromInt(mkey,
-                                   AES_KEY_BYTES));
+    EDBClient * cl = new EDBClient("localhost", "raluca", "none", "raluca");
+    cl->setMasterKey(BytesFromInt(mkey, AES_KEY_BYTES));
 
     cl->VERBOSE = true;
     cl->execute(
@@ -2438,7 +2439,8 @@ autoIncTest(int ac, char **av)
     string pwd = "letmein";
     cerr << "connecting to host " << host << " user " << user << " pwd " <<
     pwd << " db " << db << endl;
-    EDBClient * cl = new EDBClient(host, user, pwd, db, masterKey);
+    EDBClient * cl = new EDBClient(host, user, pwd, db);
+    cl->setMasterKey(masterKey);
     cl->VERBOSE = true;
 
     cl->plain_execute("DROP TABLE IF EXISTS t1, users;");
@@ -2482,7 +2484,7 @@ autoIncTest(int ac, char **av)
         "INSERT INTO t1 (post, age) VALUES ( 'D there you go', 23);");
     assert_s(rt->at(1).at(0).compare("4") == 0, "autoinc not correct4");
 
-    //cl->~EDBClient();
+    //delete cl;
 }
 
 static void
@@ -3422,7 +3424,7 @@ accessManagerTest(int ac, char **av)
     assert_s(!g50_key,
              "g50 key exists after the hundred group keys have been removed");
 
-    am->~KeyAccess();
+    delete am;
 
     /* AccessManager * am;
 
@@ -3761,9 +3763,8 @@ testTrace(int argc, char ** argv)
     string masterKey =  BytesFromInt(mkey, AES_KEY_BYTES);
     EDBClient * cl;
 
-    cl = new EDBClient("localhost", "root", "letmein", "phpbb", masterKey,
-                       5123);
-
+    cl = new EDBClient("localhost", "root", "letmein", "phpbb", 5123);
+    cl->setMasterKey(masterKey);
     cl->VERBOSE = false;
 
     // cl->plain_execute("DROP TABLE IF EXISTS

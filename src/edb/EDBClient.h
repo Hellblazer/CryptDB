@@ -23,12 +23,9 @@ class EDBClient {
      * secure mode (queries are plain).
      */
 
-    EDBClient(const string &masterKey);
-    EDBClient();
     EDBClient(string server, string user, string psswd, string dbname,
-              const string &masterKey,
-              uint port = 0);
-    EDBClient(string server, string user, string psswd, string dbname);
+              uint port = 0, bool multiPrinc = false);
+    void setMasterKey(const string &mkey);
 
     // ========= QUERIES ===== //
 
@@ -93,9 +90,6 @@ class EDBClient {
     CryptoManager * cm;     // for cryptography
     ParserMeta * pm;     // for speeding up parsing
     MultiPrinc * mp;     // deals with multi-principal tasks
-
-    // the MASTER KEY for single-principal
-    AES_KEY * mkey;
 
     // Schema state
     map<string, string> tableNameMap;     //map of anonymized table name to

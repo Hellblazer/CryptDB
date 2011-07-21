@@ -82,7 +82,7 @@ dropAll(Connect * conn)
 }
 
 static void
-createAll(Connect * conn, CryptoManager * cm)
+createAll(Connect * conn)
 {
     myassert(conn->execute(
                  "CREATE FUNCTION decrypt_int_sem RETURNS INTEGER SONAME 'edb.so'; "),
@@ -154,16 +154,9 @@ createAll(Connect * conn, CryptoManager * cm)
 //============== CONSTRUCTORS ==================================//
 
 EDBClient::EDBClient(string server, string user, string psswd, string dbname,
-                     const string &masterKey,
-                     uint port)
+                     uint port, bool multiPrinc)
 {
-    //conninfo = "host=farm10 dbname = " + conninfo;
-    this->isSecure = true;
-    this->cm = new CryptoManager(masterKey);
-    mkey = cm->get_key_DET(masterKey);
-
-    string PK = marshallBinary(cm->getPKInfo());
-
+    isSecure = false;
     VERBOSE = VERBOSE_EDBCLIENT;
     dropOnExit = false;
 
@@ -171,73 +164,24 @@ EDBClient::EDBClient(string server, string user, string psswd, string dbname,
     conn = new Connect(server, user, psswd, dbname, port);
 
     dropAll(conn);
-    createAll(conn, cm);
-    if (VERBOSE) {cout << "UDF-s loaded successfully. \n\n"; }
-
-    tableNameMap = map<string, string>();
-    tableMetaMap = map<string, TableMetadata *>();
+    createAll(conn);
+    LOG(edb_v) << "UDFs loaded successfully";
 
     totalTables = 0;
     totalIndexes = 0;
 
-    if (MULTIPRINC) {
+    if (multiPrinc) {
         mp = new MultiPrinc(conn);
     } else {
         mp = NULL;
     }
-
 }
 
-EDBClient::EDBClient(const string &masterKey)
+void
+EDBClient::setMasterKey(const string &mkey)
 {
-    this->isSecure = true;
-    this->cm = new CryptoManager(masterKey);
-    mkey = cm->get_key_DET(masterKey);
-
-    string PK = marshallBinary(cm->getPKInfo());
-
-    VERBOSE = VERBOSE_EDBCLIENT;
-    dropOnExit = false;
-
-    /* Make a connection to the database */
-    conn = NULL;
-
-    tableNameMap = map<string, string>();
-    tableMetaMap = map<string, TableMetadata *>();
-
-    totalTables = 0;
-    totalIndexes = 0;
-
-    if (MULTIPRINC) {
-        mp = new MultiPrinc(conn);
-    } else {
-        mp = NULL;
-    }
-
-}
-
-EDBClient::EDBClient()
-{
-    this->isSecure = false;
-    mp = NULL;
-
-    VERBOSE = false;
-    dropOnExit = false;
-
-    /* Make a connection to the database */
-    conn = NULL;
-
-    tableNameMap = map<string, string>();
-    tableMetaMap = map<string, TableMetadata *>();
-
-    totalTables = 0;
-    totalIndexes = 0;
-
-    //dropAll(conn);
-    //createAll(conn, cm);
-
-    //if (VERBOSE) {cout << "UDF-s loaded successfully. \n\n";}
-
+    isSecure = true;
+    cm = new CryptoManager(mkey);
 }
 
 ResType *
@@ -253,27 +197,6 @@ EDBClient::plain_execute(const string &query)
     ResType *r = reply->unpack();
     delete reply;
     return r;
-}
-
-EDBClient::EDBClient(string server, string user, string psswd, string dbname)
-{
-
-    //conninfo = "host = farm10 dbname = " + conninfo;
-
-    this->isSecure = false;
-    mp = NULL;
-    totalTables = 0;
-
-    VERBOSE = false;
-
-    conn = new Connect(server, user, psswd, dbname);
-
-    if (MULTIPRINC) {
-        mp = new MultiPrinc(conn);
-    } else {
-        mp = NULL;
-    }
-
 }
 
 //ENCRYPTION TABLES
@@ -413,7 +336,7 @@ throw (CryptDBError)
    static bool
    isEncrypted(string token)
    {
-    if (MULTIPRINC) {
+    if (mp) {
         return (toLowerCase(token).compare("encfor") == 0);
     } else {
         return (toLowerCase(token).compare("enc") == 0);
@@ -466,7 +389,7 @@ processAnnotation(MultiPrinc * mp, list<string>::iterator & wordsIt,
 
         if (annot == "enc") {
             fm->isEncrypted = true;
-            if (!MULTIPRINC) {
+            if (!mp) {
                 fm->ope_used = true;
                 fm->agg_used = true;
             }
@@ -533,7 +456,7 @@ throw (CryptDBError)
     unsigned int tableNo = totalTables;
     totalTables++;
     //create anon name
-    string anonTableName = anonymizeTableName(tableNo, tableName);
+    string anonTableName = anonymizeTableName(tableNo, tableName, !!mp);
 
     tableNameMap[anonTableName] = tableName;
 
@@ -607,7 +530,7 @@ throw (CryptDBError)
         fm->type = getType(wordsIt, words);
 
         fieldSeq += processCreate(fm->type, fieldName, i, tm,
-                                  fm) + " ";
+                                  fm, !!mp) + " ";
 
         fieldSeq +=  mirrorUntilTerm(wordsIt, words, terms, noTerms);
 
@@ -644,7 +567,7 @@ throw (CryptDBError)
     QueryMeta qm = getQueryMeta(UPDATE, words, tableMetaMap);
 
     TMKM tmkm;
-    if (MULTIPRINC) {
+    if (mp) {
         tmkm.processingQuery = true;
         mp->getEncForFromFilter(UPDATE, words, tmkm, qm, tableMetaMap);
     }
@@ -1143,7 +1066,7 @@ throw (CryptDBError)
             continue;
         }
 
-        if (MULTIPRINC) {
+        if (mp) {
             assert_s(false,
                      "there should be no adjustment in multi-key mode\n");
         }
@@ -1151,7 +1074,7 @@ throw (CryptDBError)
         string whereClause = ";" + '\0';
         string fname = fullName(field, table);
 
-        /*if (MULTIPRINC) {
+        /*if (mp) {
                 assert_s((mkm.encForMap.find(fname) != mkm.encForMap.end()) &&
                    (tmkm.encForVal.find(fname) != tmkm.encForVal.end()),
                    "internal: process decryptions missing data for encrypted
@@ -1213,14 +1136,14 @@ throw (CryptDBError)
             continue;
         }
 
-        if (MULTIPRINC) {
+        if (mp) {
             assert_s(false,
                      "there should be no adjustment in multi-key mode\n");
         }
         string whereClause = ";" + '\0';
         string fname = fullName(field, table);
 
-        /*if (MULTIPRINC) {
+        /*if (mp) {
                 assert_s((mkm.encForMap.find(fname) != mkm.encForMap.end()) &&
                    (tmkm.encForVal.find(fname) != tmkm.encForVal.end()),
                    "internal: process decryptions missing data for encrypted
@@ -1259,7 +1182,7 @@ throw (CryptDBError)
         if (!tableMetaMap[table]->fieldMetaMap[field]->isEncrypted) {
             continue;
         }
-        if (MULTIPRINC) {
+        if (mp) {
             assert_s(false, "join not supported for multi-user ");
         }
 
@@ -1317,7 +1240,7 @@ throw (CryptDBError)
 
         tableMetaMap[table]->fieldMetaMap[field]->secLevelOPE = OPEJOIN;
 
-        if (MULTIPRINC) {
+        if (mp) {
             assert_s(false,
                      " opejoin adjustment not supported with multi-user\n");
         }
@@ -1626,7 +1549,7 @@ throw (CryptDBError)
 
     //gettimeofday(&starttime, NULL);
 
-    if (MULTIPRINC) {
+    if (mp) {
         tmkm.processingQuery = true;
         mp->prepareSelect(words, tmkm, qm, tableMetaMap);
         if (VERBOSE) { cerr << "done with prepare select \n"; }
@@ -1700,7 +1623,7 @@ throw (CryptDBError)
                                    marshallBinary(cm->getPKInfo()) + ") ";
                 }
 
-                if (MULTIPRINC) {
+                if (mp) {
                     resultQuery +=
                         mp->selectEncFor(table, field, qm, tmkm, tm,
                                          fm);
@@ -1836,7 +1759,7 @@ throw (CryptDBError)
                         tm->anonTableName, table2, anonName, fm->type, qm);
                 }
 
-                if (MULTIPRINC) {
+                if (mp) {
                     resultQuery +=
                         mp->selectEncFor(table2, field2, qm, tmkm, tm,
                                          fm);
@@ -1900,7 +1823,7 @@ throw (CryptDBError)
                 tm->anonTableName, table,
                 getOnionName(tm->fieldMetaMap[field], oDET), fm->type, qm);
 
-            if (MULTIPRINC) {
+            if (mp) {
                 resultQuery += mp->selectEncFor(table, field, qm, tmkm, tm,
                                                 fm);
             }
@@ -1930,7 +1853,7 @@ throw (CryptDBError)
                                                 anonFieldNameForDecrypt(
                                                     fm2), fm2->type, qm);
             }
-            if (MULTIPRINC) {
+            if (mp) {
                 resultQuery += mp->selectEncFor(table, field, qm, tmkm, tm,
                                                 fm2);
             }
@@ -2035,7 +1958,7 @@ getResMeta(list<string> words, vector<vector<string> > & vals, QueryMeta & qm,
                            qm,
                            tm,
                            0);
-            if (MULTIPRINC) {
+            if (mp) {
                 mp->processReturnedField(i, fullName(rm.field[i],
                                                      rm.table[i]), rm.o[i],
                                          tmkm, ignore);
@@ -2066,7 +1989,7 @@ getResMeta(list<string> words, vector<vector<string> > & vals, QueryMeta & qm,
             rm.o[i] = oNONE;
         }
 
-        if (MULTIPRINC) {
+        if (mp) {
             mp->processReturnedField(i, fullName(rm.field[i],
                                                  rm.table[i]), rm.o[i], tmkm,
                                      ignore);
@@ -2135,7 +2058,7 @@ EDBClient::rewriteDecryptSelect(const string &query, ResType * dbAnswer)
     if (VERBOSE) {printRes(vals); }
 
     TMKM tmkm;
-    if (MULTIPRINC) {
+    if (mp) {
         tmkm.processingQuery = false;
         // extracts enc-for principals from queries
         mp->prepareSelect(words, tmkm, qm, tableMetaMap);
@@ -2159,7 +2082,7 @@ EDBClient::rewriteDecryptSelect(const string &query, ResType * dbAnswer)
 
     unsigned int index0 = 0;
     for (unsigned int i = 0; i < nFields; i++) {
-        if ((!rm.isSalt[i]) && (!MULTIPRINC || tmkm.returnBitMap[i])) {
+        if ((!rm.isSalt[i]) && (!mp || tmkm.returnBitMap[i])) {
             rets->at(0).at(index0) = rm.namesForRes[i];
             index0++;
         }
@@ -2181,7 +2104,7 @@ EDBClient::rewriteDecryptSelect(const string &query, ResType * dbAnswer)
 
             // ignore this field if it was requested additionally for multi
             // princ
-            if (MULTIPRINC) {
+            if (mp) {
                 if (!tmkm.returnBitMap[j]) {
                     LOG(edb) << "ignore";
                     continue;
@@ -2245,7 +2168,7 @@ throw (CryptDBError)
         assert_s(Operation::isIN(
                      operation),
                  "only IN statements allowed to have constant on left");
-        if (MULTIPRINC) {
+        if (mp) {
             assert_s(false,
                      "MULTIPRINC first operand of operation should be field");
         }
@@ -2275,7 +2198,7 @@ throw (CryptDBError)
     LOG(edb) << "operands " << op1 << " " << op2;
     if (isField(op1) && isField(op2)) {    //join
         LOG(edb_v) << "IN JOIN";
-        if (MULTIPRINC) {
+        if (mp) {
             assert_s(false, "join not supported in multi-user mode");
         }
         assert_s(Operation::isDET(
@@ -2340,7 +2263,7 @@ throw (CryptDBError)
 
         res += "search(" + anonField1 + ", ";
 
-        Binary key = Binary(cm->getKey(mkey, anonfull, SWP));
+        Binary key = Binary(cm->getKey(cm->getmkey(), anonfull, SWP));
 
         Token t = CryptoManager::token(key, Binary(removeApostrophe(op2)));
 
@@ -2458,7 +2381,7 @@ throw (CryptDBError)
 
     list<string> words = getSQLWords(query);
 
-    if (MULTIPRINC) {
+    if (mp) {
         if (mp->checkPsswd(DELETE, words)) {
             return list<string>();
         }
@@ -2468,7 +2391,7 @@ throw (CryptDBError)
     QueryMeta qm = getQueryMeta(DELETE, words, tableMetaMap);
 
     TMKM tmkm;
-    if (MULTIPRINC) {
+    if (mp) {
         tmkm.processingQuery = true;
         mp->getEncForFromFilter(DELETE, words, tmkm, qm, tableMetaMap);
     }
@@ -2643,7 +2566,7 @@ throw (CryptDBError)
 
     //struct timeval starttime, endtime;
     //gettimeofday(&starttime, NULL);
-    if (MULTIPRINC) {
+    if (mp) {
         tmkm.processingQuery = true;
         //if this is the fake table providing user passwords, ignore query
         if (mp->checkPsswd(INSERT, words)) {
@@ -2718,7 +2641,7 @@ throw (CryptDBError)
                 if (tm->fieldMetaMap[*addit]->isEncrypted)  {
                     fieldsToAdd.push_back(*addit);
                 }
-                if (MULTIPRINC) {
+                if (mp) {
 
                     if (mp->isPrincipal(fullName(*addit, table))) {
                         LOG(edb_v) << "add to princs " << *addit;
@@ -2736,7 +2659,7 @@ throw (CryptDBError)
             fields.push_back(*addit);
         }
 
-        if (MULTIPRINC) {
+        if (mp) {
             //add fields names from princsToAdd
             for (addit = princsToAdd.begin(); addit != princsToAdd.end();
                  addit++) {
@@ -2781,7 +2704,7 @@ throw (CryptDBError)
             vals.push_back(val);
         }
 
-        if (MULTIPRINC) {
+        if (mp) {
             //we now need to add fields from princsToAdd
             for (addit = princsToAdd.begin(); addit != princsToAdd.end();
                  addit++) {
@@ -2816,7 +2739,7 @@ throw (CryptDBError)
             string fieldName = *fieldIt;
             string value = removeApostrophe(*valIt);
 
-            if (MULTIPRINC) {
+            if (mp) {
                 string fullname = fullName(fieldName, table);
                 //FIX AUTOINC
                 /*if (isPrincipal(fullname, accMan, mkm)) {
@@ -2857,7 +2780,7 @@ throw (CryptDBError)
                                                       tmkm);
         }
 
-        if (MULTIPRINC) {
+        if (mp) {
             //we now need to add fields from princsToAdd
             for (addit = princsToAdd.begin(); addit != princsToAdd.end();
                  addit++) {
@@ -2902,7 +2825,7 @@ throw (CryptDBError)
 
     wordsIt++;
 
-    if (MULTIPRINC) {
+    if (mp) {
         if (equalsIgnoreCase(*wordsIt, "annotations")) {
             wordsIt++;
             assert_s(
@@ -3353,11 +3276,8 @@ cleanup(map<string, TableMetadata *> & tableMetaMap)
 
 EDBClient::~EDBClient()
 {
-
-    //cleanup data structures
-    tableNameMap.clear();
     cleanup(tableMetaMap);
-    cm->~CryptoManager();
+    delete cm;
     delete mp;
 }
 
@@ -3663,7 +3583,7 @@ EDBClient::crypt(string data, fieldType ft, string fullname,
         return data;
     }
 
-    if (MULTIPRINC) {
+    if (mp) {
         if (tmkm.processingQuery) {
             string key = mp->get_key(fullname, tmkm);
             cm->setMasterKey(key);
