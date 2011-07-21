@@ -188,34 +188,6 @@ EDBClient::EDBClient(string server, string user, string psswd, string dbname,
 
 }
 
-EDBClient::EDBClient(const string &masterKey)
-{
-    this->isSecure = true;
-    this->cm = new CryptoManager(masterKey);
-    mkey = cm->get_key_DET(masterKey);
-
-    string PK = marshallBinary(cm->getPKInfo());
-
-    VERBOSE = VERBOSE_EDBCLIENT;
-    dropOnExit = false;
-
-    /* Make a connection to the database */
-    conn = NULL;
-
-    tableNameMap = map<string, string>();
-    tableMetaMap = map<string, TableMetadata *>();
-
-    totalTables = 0;
-    totalIndexes = 0;
-
-    if (MULTIPRINC) {
-        mp = new MultiPrinc(conn);
-    } else {
-        mp = NULL;
-    }
-
-}
-
 ResType *
 EDBClient::plain_execute(const string &query)
 {

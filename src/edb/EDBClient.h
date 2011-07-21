@@ -23,7 +23,6 @@ class EDBClient {
      * secure mode (queries are plain).
      */
 
-    EDBClient(const string &masterKey);
     EDBClient(string server, string user, string psswd, string dbname,
               const string &masterKey,
               uint port = 0);
