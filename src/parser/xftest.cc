@@ -20,9 +20,13 @@
 
 class CryptItem {
  public:
-    CryptItem(Item *iarg) : i(iarg) {}
+    CryptItem(Item *iarg) : i(iarg)
+    {
+    }
 
-    Item *rewrite(void) {
+    Item *
+    rewrite(void)
+    {
         switch (i->type()) {
         case Item::Type::FIELD_ITEM:
         {
@@ -31,9 +35,9 @@ class CryptItem {
                 new Item_field(0,
                                ifl->db_name,
                                strdup((std::string("anontab_") +
-                                      ifl->table_name).c_str()),
+                                       ifl->table_name).c_str()),
                                strdup((std::string("anonfld_") +
-                                      ifl->field_name).c_str()));
+                                       ifl->field_name).c_str()));
             n->name = i->name;
             return n;
         }
@@ -96,7 +100,7 @@ class CryptItem {
                 List<Item> newlist;
 
                 auto it = List_iterator<Item>(*arglist);
-                for (;;) {
+                for (;; ) {
                     Item *argitem = it++;
                     if (!argitem)
                         break;
@@ -158,8 +162,8 @@ xftest(void)
         "SELECT x.a, y.b + 2, y.c, y.cc AS ycc "
         "FROM x, y as yy1, y as yy2 "
         "WHERE x.bb = yy1.b AND yy1.k1 = yy2.k2 AND "
-              "(yy2.d > 7 OR yy2.e = (3+4)) AND (yy1.f='hello') AND "
-              "yy2.cc = 9";
+        "(yy2.d > 7 OR yy2.e = (3+4)) AND (yy1.f='hello') AND "
+        "yy2.cc = 9";
     char buf[1024];
     strlcpy(buf, q, sizeof(buf));
     size_t len = strlen(buf);
@@ -192,7 +196,7 @@ xftest(void)
             // iterate over the items that select will actually return
             List<Item> new_item_list;
             auto item_it = List_iterator<Item>(lex.select_lex.item_list);
-            for (;;) {
+            for (;; ) {
                 Item *item = item_it++;
                 if (!item)
                     break;
@@ -205,9 +209,10 @@ xftest(void)
             }
             lex.select_lex.item_list = new_item_list;
 
-            auto join_it = List_iterator<TABLE_LIST>(lex.select_lex.top_join_list);
+            auto join_it = List_iterator<TABLE_LIST>(
+                lex.select_lex.top_join_list);
             List<TABLE_LIST> new_join_list;
-            for (;;) {
+            for (;; ) {
                 TABLE_LIST *t = join_it++;
                 if (!t)
                     break;
@@ -219,7 +224,8 @@ xftest(void)
                 table_name = "anontab_" + table_name;
                 alias = "anontab_" + alias;
                 nt->init_one_table(strdup(db.c_str()), db.size(),
-                                   strdup(table_name.c_str()), table_name.size(),
+                                   strdup(
+                                       table_name.c_str()), table_name.size(),
                                    strdup(alias.c_str()), t->lock_type);
                 new_join_list.push_back(nt);
             }
