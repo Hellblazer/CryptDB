@@ -147,82 +147,12 @@ class CryptItem {
     Item *i;
 };
 
-/*
- * Traverse the Item tree.  Return values are meaningless.
- * This should turn into methods in CryptItem..
- */
-static int
-recurse(THD *t, Item *i)
-{
-    String s;
-    i->print(&s, QT_ORDINARY);
-    printf("recursing into %s\n", s.c_ptr());
-
-    switch (i->type()) {
-    // see types in mysql-server/sql/item.h: enum Type
-
-    case Item::Type::FUNC_ITEM: {
-        Item_func *ifn = (Item_func *) i;
-
-        switch (ifn->functype()) {
-        case Item_func::Functype::EQ_FUNC:
-        case Item_func::Functype::NE_FUNC:
-        case Item_func::Functype::GT_FUNC:
-        case Item_func::Functype::GE_FUNC:
-        case Item_func::Functype::LT_FUNC:
-        case Item_func::Functype::LE_FUNC:
-        {
-            Item **args = ifn->arguments();
-
-            int xr = 0;
-            xr += recurse(t, args[0]);
-            xr += recurse(t, args[1]);
-            return xr;
-        }
-
-        case Item_func::Functype::UNKNOWN_FUNC:
-        {
-            std::string name = ifn->func_name();
-            Item **args = ifn->arguments();
-
-            if (name == "+" || name == "-") {
-                int xr = 0;
-                xr += recurse(t, args[0]);
-                xr += recurse(t, args[1]);
-                return xr;
-            }
-
-            fatal() << "unknown named function " << name.c_str();
-        }
-
-        default:
-            fatal() << "unknown functype " << ifn->functype();
-        }
-    }
-
-    case Item::Type::FIELD_ITEM: {
-        Item_field *ifl = (Item_field *) i;
-        printf("recurse: field item %s.%s.%s\n",
-               ifl->db_name, ifl->table_name, ifl->field_name);
-        return 0;
-    }
-
-    default:
-        fatal() << "unknown item type " << i->type();
-    }
-    return 0;
-}
-
 static void
 xftest(void)
 {
-    my_thread_init();
     THD *t = new THD;
     if (t->store_globals())
         printf("store_globals error\n");
-
-    if (init_errmessage())
-        printf("init_errmessage error\n");
 
     const char *q =
         "SELECT x.a, y.b + 2, y.c, y.cc AS ycc "

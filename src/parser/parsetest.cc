@@ -17,13 +17,9 @@
 static void
 parse(const char *q)
 {
-    my_thread_init();
     THD *t = new THD;
     if (t->store_globals())
         printf("store_globals error\n");
-
-    if (init_errmessage())
-        printf("init_errmessage error\n");
 
     char buf[1024];
     strlcpy(buf, q, sizeof(buf));

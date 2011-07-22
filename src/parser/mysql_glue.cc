@@ -57,4 +57,6 @@ mysql_glue_init(void)
     int plugin_ac = 1;
     char *plugin_av = (char *) "x";
     plugin_init(&plugin_ac, &plugin_av, 0);
+    init_errmessage();
+    my_thread_init();
 }
