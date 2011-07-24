@@ -5,7 +5,7 @@
 #include <stdlib.h>
 
 #include "CryptoManager.h"
-#include "log.h"
+#include "cryptdb_log.h"
 #include <sstream>
 
 // TODO: simplify CryptoManager using a function taking from level to level

@@ -6,7 +6,7 @@
  */
 
 #include "Translator.h"
-#include "log.h"
+#include "cryptdb_log.h"
 
 string
 anonymizeTableName(unsigned int tableNo, string tableName, bool multiPrinc)

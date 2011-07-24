@@ -19,7 +19,7 @@
 #include "AccessManager.h"
 #include "Connect.h"
 #include "Equation.h"
-#include "log.h"
+#include "cryptdb_log.h"
 
 #include "TestSinglePrinc.h"
 #include "TestMultiPrinc.h"
@@ -3929,7 +3929,7 @@ help(int ac, char **av)
 int
 main(int argc, char ** argv)
 {
-    logger::enable(log_all);
+    cryptdb_logger::enable(log_all);
 
     if (argc == 1) {
         interactiveTest(argc, argv);

@@ -20,14 +20,14 @@ enum log_group {
     log_all,
 };
 
-class logger : public std::stringstream {
+class cryptdb_logger : public std::stringstream {
  public:
-    logger(log_group g, const char *filearg, uint linearg, const char *fnarg)
+    cryptdb_logger(log_group g, const char *filearg, uint linearg, const char *fnarg)
         : mask(1ULL << g), file(filearg), line(linearg), func(fnarg)
     {
     }
 
-    ~logger()
+    ~cryptdb_logger()
     {
         if (enable_mask & mask)
             std::cerr << file << ":" << line
@@ -62,5 +62,5 @@ class logger : public std::stringstream {
     static uint64_t enable_mask;
 };
 
-#define LOG(g) (logger(log_ ## g, __FILE__, __LINE__, __func__))
+#define LOG(g) (cryptdb_logger(log_ ## g, __FILE__, __LINE__, __func__))
 

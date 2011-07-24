@@ -1,5 +1,5 @@
 #include "EDBClient.h"
-#include "log.h"
+#include "cryptdb_log.h"
 
 #include <iostream>
 #include <fstream>

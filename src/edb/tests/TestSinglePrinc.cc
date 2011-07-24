@@ -10,7 +10,7 @@
  */
 
 #include "TestSinglePrinc.h"
-#include "log.h"
+#include "cryptdb_log.h"
 
 static int ntest = 0;
 static int npass = 0;

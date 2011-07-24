@@ -7,7 +7,7 @@
 
 #include "TestCrypto.h"
 #include "pbkdf2.h"
-#include "log.h"
+#include "cryptdb_log.h"
 
 TestCrypto::TestCrypto()
 {

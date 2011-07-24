@@ -8,7 +8,7 @@
 #include <iomanip>
 
 #include "AccessManager.h"
-#include "log.h"
+#include "cryptdb_log.h"
 
 #define PRINCTYPE "varchar(255)"
 #define NODIGITS 4
