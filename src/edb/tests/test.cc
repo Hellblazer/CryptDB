@@ -498,9 +498,9 @@ testCryptoManager()
     myassert(masterKey == masterKey2, "marshall test failed");
 
     cerr << " key for field1";
-    myPrint(cm->getKey("field1", SEMANTIC_OPE));
+    myPrint(cm->getKey("field1", SECLEVEL::SEMANTIC_OPE));
     cerr << "\n key for table5.field12OPE";
-    myPrint(cm->getKey("table5.field12OPE", SEMANTIC_OPE));
+    myPrint(cm->getKey("table5.field12OPE", SECLEVEL::SEMANTIC_OPE));
 
     //test SEM
     AES_KEY * aesKey = cm->get_key_SEM(masterKey);
@@ -514,7 +514,7 @@ testCryptoManager()
                              salt) == value,
              "decrypt of encrypt does not return value");
 
-    cerr << "SEMANTIC " << SEMANTIC_OPE << "\n";
+    cerr << "SEMANTIC " << (int) SECLEVEL::SEMANTIC_OPE << "\n";
 
     uint64_t value2 = 10;
     uint64_t eValue2 = cm->encrypt_SEM(value2, aesKey, salt);

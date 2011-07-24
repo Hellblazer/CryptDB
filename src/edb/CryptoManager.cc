@@ -8,26 +8,6 @@
 #include "log.h"
 #include <sstream>
 
-/*
-   //either provide a level key or provide a master key and the name of the
-      field
-   void EDBClient::encrypt(SECLEVEL seclevel, string plaintext, uint64_t salt,
-      unsigned char * levelkey, unsigned char * mkey, string fieldname, string
-      & ciphertext) {
-        switch seclevel {
-        case SEM: {}
-        case DET: {}
-        case OPE: {}
-        case DETJOIN: {}
-        case
-        }
-   }
-   void EDBClient::decrypt(SECLEVEL seclevel, string & plaintext, uint64_t
-      salt, unsigned char * levelkey, unsigned char * mkey, string fieldname,
-      string ciphertext) {
-
-   }
- */
 // TODO: simplify CryptoManager using a function taking from level to level
 // for a type of data using union for answers or inputs
 // TODO: optimizations for CryptAPP, HOM especially; for each user, for each
@@ -125,8 +105,8 @@ tokenize(string text)
 SECLEVEL
 highestEq(SECLEVEL sl)
 {
-    if (sl == SEMANTIC_DET) {
-        return DET;
+    if (sl == SECLEVEL::SEMANTIC_DET) {
+        return SECLEVEL::DET;
     } else {
         return sl;
     }
@@ -136,19 +116,19 @@ static onion
 getOnion(SECLEVEL l1)
 {
     switch (l1) {
-    case PLAIN_DET: {return oDET; }
-    case DETJOIN: {return oDET; }
-    case DET: {return oDET; }
-    case SEMANTIC_DET: {return oDET; }
-    case PLAIN_OPE: {return oOPE; }
-    case OPEJOIN: {return oOPE; }
-    case OPESELF: {return oOPE; }
-    case SEMANTIC_OPE: {return oOPE; }
-    case PLAIN_AGG: {return oAGG; }
-    case SEMANTIC_AGG: {return oAGG; }
-    case PLAIN_SWP: {return oSWP; }
-    case SWP: {return oSWP; }
-    case PLAIN: {return oNONE; }
+    case SECLEVEL::PLAIN_DET: {return oDET; }
+    case SECLEVEL::DETJOIN: {return oDET; }
+    case SECLEVEL::DET: {return oDET; }
+    case SECLEVEL::SEMANTIC_DET: {return oDET; }
+    case SECLEVEL::PLAIN_OPE: {return oOPE; }
+    case SECLEVEL::OPEJOIN: {return oOPE; }
+    case SECLEVEL::OPESELF: {return oOPE; }
+    case SECLEVEL::SEMANTIC_OPE: {return oOPE; }
+    case SECLEVEL::PLAIN_AGG: {return oAGG; }
+    case SECLEVEL::SEMANTIC_AGG: {return oAGG; }
+    case SECLEVEL::PLAIN_SWP: {return oSWP; }
+    case SECLEVEL::SWP: {return oSWP; }
+    case SECLEVEL::PLAIN: {return oNONE; }
     default: {return oINVALID; }
     }
     return oINVALID;
@@ -160,46 +140,46 @@ decreaseLevel(SECLEVEL l, fieldType ft,  onion o)
     switch (o) {
     case oDET: {
         switch (l) {
-        case SEMANTIC_DET: {return DET; }
-        case DET: {
-            return DETJOIN;
+        case SECLEVEL::SEMANTIC_DET: {return SECLEVEL::DET; }
+        case SECLEVEL::DET: {
+            return SECLEVEL::DETJOIN;
         }
-        case DETJOIN: {return PLAIN_DET; }
+        case SECLEVEL::DETJOIN: {return SECLEVEL::PLAIN_DET; }
         default: {
             assert_s(false, "cannot decrease level");
-            return INVALID;
+            return SECLEVEL::INVALID;
         }
         }
     }
     case oOPE: {
         switch (l) {
-        case SEMANTIC_OPE: {return OPESELF; }
-        case OPESELF: {
+        case SECLEVEL::SEMANTIC_OPE: {return SECLEVEL::OPESELF; }
+        case SECLEVEL::OPESELF: {
             if (ft == TYPE_TEXT) {
-                return PLAIN_OPE;
+                return SECLEVEL::PLAIN_OPE;
             } else {
-                return OPEJOIN;
+                return SECLEVEL::OPEJOIN;
             }
         }
-        case OPEJOIN: {return PLAIN_OPE; }
+        case SECLEVEL::OPEJOIN: {return SECLEVEL::PLAIN_OPE; }
         default: {
             assert_s(false, "cannot decrease level");
-            return INVALID;
+            return SECLEVEL::INVALID;
         }
         }
     }
     case oAGG: {
         switch (l) {
-        case SEMANTIC_AGG: {return PLAIN_AGG; }
+        case SECLEVEL::SEMANTIC_AGG: {return SECLEVEL::PLAIN_AGG; }
         default: {
             assert_s(false, "cannot decrease level");
-            return INVALID;
+            return SECLEVEL::INVALID;
         }
         }
     }
     default: {
         assert_s(false, "cannot decrease level");
-        return INVALID;
+        return SECLEVEL::INVALID;
     }
     }
 
@@ -211,47 +191,45 @@ increaseLevel(SECLEVEL l, fieldType ft, onion o)
     switch (o) {
     case oDET: {
         switch (l) {
-        case DET: {return SEMANTIC_DET; }
-        case DETJOIN: {return DET; }
-        case PLAIN_DET: {
-            return DETJOIN;
-        }
+        case SECLEVEL::DET:         return SECLEVEL::SEMANTIC_DET;
+        case SECLEVEL::DETJOIN:     return SECLEVEL::DET;
+        case SECLEVEL::PLAIN_DET:   return SECLEVEL::DETJOIN;
         default: {
             assert_s(false, "cannot increase level");
-            return INVALID;
+            return SECLEVEL::INVALID;   // unreachable
         }
         }
     }
     case oOPE: {
         switch (l) {
-        case OPESELF: {return SEMANTIC_OPE; }
-        case OPEJOIN: {return OPESELF; }
-        case PLAIN_OPE: {
+        case SECLEVEL::OPESELF: {return SECLEVEL::SEMANTIC_OPE; }
+        case SECLEVEL::OPEJOIN: {return SECLEVEL::OPESELF; }
+        case SECLEVEL::PLAIN_OPE: {
             if (ft == TYPE_TEXT) {
-                return OPESELF;
+                return SECLEVEL::OPESELF;
             } else {
-                return OPEJOIN;
+                return SECLEVEL::OPEJOIN;
             }
         }
 
         default: {
             assert_s(false, "cannot increase level");
-            return INVALID;
+            return SECLEVEL::INVALID;
         }
         }
     }
     case oAGG: {
         switch (l) {
-        case PLAIN_AGG: {return SEMANTIC_AGG; }
+        case SECLEVEL::PLAIN_AGG: {return SECLEVEL::SEMANTIC_AGG; }
         default: {
             assert_s(false, "cannot increase level");
-            return INVALID;
+            return SECLEVEL::INVALID;
         }
         }
     }
     default: {
         assert_s(false, "cannot increase level");
-        return INVALID;
+        return SECLEVEL::INVALID;
     }
     }
 
@@ -274,21 +252,19 @@ CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft,
 
     LOG(crypto) << "crypt: salt " << salt << " data " << data
                 << " fullfieldname " << fullfieldname
-                << " fromlevel " << fromlevel
-                << " to level" << tolevel
+                << " fromlevel " << levelnames[(int) fromlevel]
+                << " to level" << levelnames[(int) tolevel]
                 << " onionfrom " << o << " onionto " << o2;
 
     myassert((o != oINVALID) && (o == o2),
              "levels for crypt are not on the same onion");
 
-    int comp = fromlevel - tolevel;
-
-    if (comp == 0) {
+    if (fromlevel == tolevel) {
         //do nothing
         return data;
     }
 
-    if (comp > 0) {
+    if (fromlevel > tolevel) {
         //need to decrypt
 
         switch (ft) {
@@ -297,7 +273,7 @@ CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft,
             switch (o) {
             case oDET: {
                 uint64_t val = unmarshallVal(data);
-                if (fromlevel == SEMANTIC_DET) {
+                if (fromlevel == SECLEVEL::SEMANTIC_DET) {
                     AES_KEY * key =
                         get_key_SEM(getKey(mkey, fullfieldname, fromlevel));
                     val = decrypt_SEM(val, key, salt);
@@ -307,7 +283,7 @@ CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft,
                     }
                 }
 
-                if (fromlevel == DET) {
+                if (fromlevel == SECLEVEL::DET) {
                     AES_KEY * key =
                         get_key_DET(getKey(mkey, fullfieldname, fromlevel));
                     val = decrypt_DET(val, key);
@@ -317,7 +293,7 @@ CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft,
                     }
                 }
 
-                if (fromlevel == DETJOIN) {
+                if (fromlevel == SECLEVEL::DETJOIN) {
                     AES_KEY * key =
                         get_key_DET(getKey(mkey, "join", fromlevel));
                     val = decrypt_DET(val, key);
@@ -333,7 +309,7 @@ CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft,
             }
             case oOPE: {
                 uint64_t val = unmarshallVal(data);
-                if (fromlevel == SEMANTIC_OPE) {
+                if (fromlevel == SECLEVEL::SEMANTIC_OPE) {
                     AES_KEY * key =
                         get_key_SEM(getKey(mkey, fullfieldname, fromlevel));
                     val = decrypt_SEM(val, key, salt);
@@ -343,7 +319,7 @@ CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft,
                     }
                 }
 
-                if (fromlevel == OPESELF) {
+                if (fromlevel == SECLEVEL::OPESELF) {
                     OPE * key =
                         get_key_OPE(getKey(mkey, fullfieldname, fromlevel));
                     val = decrypt_OPE(val, key);
@@ -353,7 +329,7 @@ CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft,
                     }
                 }
 
-                if (fromlevel == OPEJOIN) {
+                if (fromlevel == SECLEVEL::OPEJOIN) {
                     fromlevel = decreaseLevel(fromlevel, ft, oOPE);
                     if (fromlevel == tolevel) {
                         return marshallVal(val);
@@ -366,7 +342,7 @@ CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft,
             }
             case oAGG: {
                 string uval = unmarshallBinary(data);
-                if (fromlevel == SEMANTIC_AGG) {
+                if (fromlevel == SECLEVEL::SEMANTIC_AGG) {
                     uint64_t val = decrypt_Paillier(uval);
                     fromlevel  = decreaseLevel(fromlevel, ft, oAGG);
                     if (fromlevel == tolevel) {
@@ -392,7 +368,7 @@ CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft,
             case oDET: {
 
                 string val = unmarshallBinary(data);
-                if (fromlevel == SEMANTIC_DET) {
+                if (fromlevel == SECLEVEL::SEMANTIC_DET) {
                     LOG(crypto) << "at sem det " << data;
 
                     AES_KEY * key =
@@ -404,7 +380,7 @@ CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft,
                     }
                 }
 
-                if (fromlevel == DET) {
+                if (fromlevel == SECLEVEL::DET) {
                     LOG(crypto) << "at det " << marshallBinary(val);
 
                     AES_KEY * key =
@@ -416,7 +392,7 @@ CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft,
                     }
                 }
 
-                if (fromlevel == DETJOIN) {
+                if (fromlevel == SECLEVEL::DETJOIN) {
                     LOG(crypto) << "at det join " << marshallBinary(val);
 
                     AES_KEY * key =
@@ -435,7 +411,7 @@ CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft,
             case oOPE: {
 
                 uint64_t val = unmarshallVal(data);
-                if (fromlevel == SEMANTIC_OPE) {
+                if (fromlevel == SECLEVEL::SEMANTIC_OPE) {
                     AES_KEY * key =
                         get_key_SEM(getKey(mkey, fullfieldname, fromlevel));
                     val = decrypt_SEM(val, key, salt);
@@ -447,7 +423,7 @@ CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft,
 
                 assert_s(
                     false,
-                    "should not want to decrypt past OPESELF for text \n");
+                    "should not want to decrypt past SECLEVEL::OPESELF for text \n");
 
                 return "";
             }
@@ -472,7 +448,7 @@ CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft,
     }
 
     //ENCRYPT
-    myassert(comp < 0, "problem with crypt: comp should be > 0");
+    myassert(fromlevel < tolevel, "problem with crypt: comp should be > 0");
 
     switch (ft) {
     case TYPE_INTEGER: {
@@ -482,7 +458,7 @@ CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft,
 
             uint64_t val = unmarshallVal(data);
 
-            if (fromlevel == PLAIN_DET) {
+            if (fromlevel == SECLEVEL::PLAIN_DET) {
                 fromlevel = increaseLevel(fromlevel, ft, oDET);
                 AES_KEY * key = get_key_DET(getKey(mkey, "join", fromlevel));
                 val = encrypt_DET(val, key);
@@ -491,7 +467,7 @@ CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft,
                 }
             }
 
-            if (fromlevel == DETJOIN) {
+            if (fromlevel == SECLEVEL::DETJOIN) {
                 fromlevel = increaseLevel(fromlevel, ft, oDET);
                 AES_KEY * key =
                     get_key_DET(getKey(mkey, fullfieldname, fromlevel));
@@ -501,7 +477,7 @@ CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft,
                 }
             }
 
-            if (fromlevel == DET) {
+            if (fromlevel == SECLEVEL::DET) {
                 fromlevel  = increaseLevel(fromlevel, ft, oDET);
                 AES_KEY * key =
                     get_key_SEM(getKey(mkey, fullfieldname, fromlevel));
@@ -518,14 +494,14 @@ CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft,
         case oOPE: {
             uint64_t val = unmarshallVal(data);
 
-            if (fromlevel == PLAIN_OPE) {
+            if (fromlevel == SECLEVEL::PLAIN_OPE) {
                 fromlevel = increaseLevel(fromlevel, ft, oOPE);
                 if (fromlevel == tolevel) {
                     return marshallVal(val);
                 }
             }
 
-            if (fromlevel == OPEJOIN) {
+            if (fromlevel == SECLEVEL::OPEJOIN) {
                 fromlevel = increaseLevel(fromlevel, ft, oOPE);
                 OPE * key = get_key_OPE(getKey(mkey, fullfieldname, fromlevel));
                 val = encrypt_OPE((uint32_t)val, key);
@@ -534,7 +510,7 @@ CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft,
                 }
             }
 
-            if (fromlevel == OPESELF) {
+            if (fromlevel == SECLEVEL::OPESELF) {
 
                 fromlevel  = increaseLevel(fromlevel, ft, oOPE);
                 AES_KEY * key =
@@ -551,7 +527,7 @@ CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft,
         }
         case oAGG: {
             uint64_t val = unmarshallVal(data);
-            if (fromlevel == PLAIN_AGG) {
+            if (fromlevel == SECLEVEL::PLAIN_AGG) {
                 string uval = encrypt_Paillier(val);
                 fromlevel = increaseLevel(fromlevel, ft, oAGG);
                 if (fromlevel == tolevel) {
@@ -576,7 +552,7 @@ CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft,
         switch (o) {
         case oDET: {
 
-            if (fromlevel == PLAIN_DET) {
+            if (fromlevel == SECLEVEL::PLAIN_DET) {
                 LOG(crypto) << "at plain det " << data;
 
                 /* XXX
@@ -590,7 +566,7 @@ CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft,
                     get_key_DET(getKey(mkey, "join", fromlevel));
 
                 data = encrypt_DET(data, key);
-                //cerr << "crypting " << data << " at DET is " <<
+                //cerr << "crypting " << data << " at SECLEVEL::DET is " <<
                 // marshallBinary(uval) << "  ";
                 if (fromlevel == tolevel) {
                     //cerr << "result is " << marshallBinary(uval, newlen);
@@ -601,7 +577,7 @@ CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft,
                 data = unmarshallBinary(data);
             }
 
-            if (fromlevel == DETJOIN) {
+            if (fromlevel == SECLEVEL::DETJOIN) {
                 LOG(crypto) << "at det join " << marshallBinary(data);
 
                 fromlevel = increaseLevel(fromlevel, ft, oDET);
@@ -613,7 +589,7 @@ CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft,
                 }
             }
 
-            if (fromlevel == DET) {
+            if (fromlevel == SECLEVEL::DET) {
                 LOG(crypto) << "at det " << marshallBinary(data);
 
                 fromlevel = increaseLevel(fromlevel, ft, oDET);
@@ -634,7 +610,7 @@ CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft,
         case oOPE: {
             uint64_t val;
 
-            if (fromlevel == PLAIN_OPE) {
+            if (fromlevel == SECLEVEL::PLAIN_OPE) {
                 data = removeApostrophe(data);
                 fromlevel = increaseLevel(fromlevel, ft, oOPE);
                 OPE * key = get_key_OPE(getKey(mkey, fullfieldname, fromlevel));
@@ -646,7 +622,7 @@ CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft,
                 val = unmarshallVal(data);
             }
 
-            if (fromlevel == OPESELF) {
+            if (fromlevel == SECLEVEL::OPESELF) {
                 fromlevel = increaseLevel(fromlevel, ft, oOPE);
                 AES_KEY * key =
                     get_key_SEM(getKey(mkey, fullfieldname, fromlevel));
@@ -664,8 +640,8 @@ CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft,
 
         case oSWP: {
 
-            assert_s(fromlevel == PLAIN_SWP,
-                     "expected onion level to be PLAIN_SWP ");
+            assert_s(fromlevel == SECLEVEL::PLAIN_SWP,
+                     "expected onion level to be SECLEVEL::PLAIN_SWP ");
             data = removeApostrophe(data);
             string key = getKey(mkey, fullfieldname, fromlevel);
             Binary keyB = Binary(AES_KEY_BYTES, (unsigned char *)key.c_str());
@@ -701,7 +677,7 @@ CryptoManager::encrypt_OPE_onion(string uniqueFieldName, uint32_t value,
 {
     uint64_t res = encrypt_OPE(value, uniqueFieldName);
 
-    string key = getKey(uniqueFieldName, SEMANTIC_OPE);
+    string key = getKey(uniqueFieldName, SECLEVEL::SEMANTIC_OPE);
 
     AES_KEY * aesKey = get_key_SEM(key);
     res = encrypt_SEM(res, aesKey, salt);
@@ -714,26 +690,26 @@ CryptoManager::encrypt_DET_onion(string uniqueFieldName, uint32_t value,
                                  uint64_t salt)
 {
     //cout << "KEY USED TO ENCRYPT field to JOINDET " << uniqueFieldName << "
-    // " << marshallKey(getKey("join", DETJOIN)) << "\n"; fflush(stdout);
+    // " << marshallKey(getKey("join", SECLEVEL::DETJOIN)) << "\n"; fflush(stdout);
 
-    string key = getKey("join", DETJOIN);
+    string key = getKey("join", SECLEVEL::DETJOIN);
     AES_KEY * aesKey = get_key_DET(key);
     uint64_t res = encrypt_DET(value, aesKey);
 
     //cout << "join det enc is " << res << "\n";
-    //cout << "KEY USED TO ENCRYPT field to DET " << uniqueFieldName << " " <<
-    // marshallKey(getKey(uniqueFieldName, DET)) << "\n"; fflush(stdout);
+    //cout << "KEY USED TO ENCRYPT field to SECLEVEL::DET " << uniqueFieldName << " " <<
+    // marshallKey(getKey(uniqueFieldName, SECLEVEL::DET)) << "\n"; fflush(stdout);
 
-    key = getKey(uniqueFieldName, DET);
+    key = getKey(uniqueFieldName, SECLEVEL::DET);
     aesKey = get_key_DET(key);
     res =  encrypt_DET(res, aesKey);
 
     //cout << "det enc is " << res << "\n";
 
     //cout << "KEY USED TO ENCRYPT field to SEM " << uniqueFieldName << " " <<
-    // marshallKey(getKey(uniqueFieldName, SEMANTIC)) << "\n"; fflush(stdout);
+    // marshallKey(getKey(uniqueFieldName, SECLEVEL::SEMANTIC)) << "\n"; fflush(stdout);
 
-    key = getKey(uniqueFieldName, SEMANTIC_DET);
+    key = getKey(uniqueFieldName, SECLEVEL::SEMANTIC_DET);
     aesKey = get_key_SEM(key);
     res = encrypt_SEM(res, aesKey, salt);
 
@@ -748,12 +724,12 @@ CryptoManager::encrypt_text_DET_onion(string uniqueFieldName, string value,
     //cerr << "encrypting onion with fname " << uniqueFieldName.c_str() <<
     // "\n";
 
-    string key = getKey(uniqueFieldName, DET);
+    string key = getKey(uniqueFieldName, SECLEVEL::DET);
     AES_KEY * aesKey = get_key_DET(key);
 
     string res = encrypt_DET_wrapper(value, aesKey);
 
-    key = getKey(uniqueFieldName, SEMANTIC_DET);
+    key = getKey(uniqueFieldName, SECLEVEL::SEMANTIC_DET);
     aesKey = get_key_SEM(key);
     return encrypt_SEM(res, aesKey, salt);
 }
@@ -762,11 +738,11 @@ uint64_t
 CryptoManager::encrypt_DET_onion(string uniqueFieldName, string value,
                                  uint64_t salt)
 {
-    string key = getKey(uniqueFieldName, DET);
+    string key = getKey(uniqueFieldName, SECLEVEL::DET);
     AES_KEY * aesKey = get_key_DET(key);
     uint64_t res =  encrypt_DET(unmarshallVal(value), aesKey);
 
-    key = getKey(uniqueFieldName, SEMANTIC_DET);
+    key = getKey(uniqueFieldName, SECLEVEL::SEMANTIC_DET);
     aesKey = get_key_SEM(key);
     res = encrypt_SEM(res, aesKey, salt);
 
@@ -781,7 +757,7 @@ uint32_t
 CryptoManager::encrypt_VAL(string uniqueFieldName, uint32_t value,
                            uint64_t salt)
 {
-    string key = getKey(uniqueFieldName, SEMANTIC_VAL);
+    string key = getKey(uniqueFieldName, SECLEVEL::SEMANTIC_VAL);
     //cout << "key to encrypt " << uniqueFieldName << " is " <<
     // marshallKey(key) << "\n";
     AES_KEY * aesKey = get_key_SEM(key);
@@ -794,7 +770,7 @@ string
 CryptoManager::encrypt_VAL(string uniqueFieldName, string value,
                            uint64_t salt)
 {
-    string key = getKey(uniqueFieldName, SEMANTIC_VAL);
+    string key = getKey(uniqueFieldName, SECLEVEL::SEMANTIC_VAL);
     AES_KEY * aesKey = get_key_SEM(key);
     return encrypt_SEM(value, aesKey, salt);
 }
@@ -1079,7 +1055,7 @@ CryptoManager::encrypt_OPE(uint32_t plaintext, string uniqueFieldName)
         LOG(crypto_v) << "OPE miss for " << plaintext;
     }
 
-    return encrypt_OPE(plaintext, get_key_OPE(getKey(uniqueFieldName, OPESELF)));
+    return encrypt_OPE(plaintext, get_key_OPE(getKey(uniqueFieldName, SECLEVEL::OPESELF)));
 }
 
 AES_KEY *
@@ -1378,7 +1354,7 @@ CryptoManager::createEncryptionTables(int noOPEarg, int noHOMarg,
          it != fieldsWithOPE.end(); it++) {
         string anonName = *it;
         OPEEncTable[anonName] = map<int, uint64_t>();
-        OPE * currentKey = get_key_OPE(getKey(anonName, OPESELF));
+        OPE * currentKey = get_key_OPE(getKey(anonName, SECLEVEL::OPESELF));
         for (int i = 0; i < noOPE; i++) {
             OPEEncTable[anonName][i] = encrypt_OPE(i, currentKey);
         }

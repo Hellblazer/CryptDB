@@ -353,7 +353,7 @@ getNameForFilter(FieldMetadata * fm, onion o)
     if (o == oDET) {
         //for equality type operations use OPE if you can
         if (fm->exists(fm->anonFieldNameOPE) &&
-            (fm->secLevelOPE != SEMANTIC_OPE)) {
+            (fm->secLevelOPE != SECLEVEL::SEMANTIC_OPE)) {
             return fm->anonFieldNameOPE;
         } else {
             return fm->anonFieldNameDET;
@@ -375,10 +375,10 @@ processAnnotation(MultiPrinc * mp, list<string>::iterator & wordsIt,
                   FieldMetadata * fm, map<string, TableMetadata *> & tm)
 {
     if (DECRYPTFIRST) {
-        tm[tableName]->fieldMetaMap[fieldName]->secLevelDET = DETJOIN;
+        tm[tableName]->fieldMetaMap[fieldName]->secLevelDET = SECLEVEL::DETJOIN;
         //make ope onion uncovered to avoid adjustment --- though this onion
         // does not exist in this mode
-        tm[tableName]->fieldMetaMap[fieldName]->secLevelOPE = OPESELF;
+        tm[tableName]->fieldMetaMap[fieldName]->secLevelOPE = SECLEVEL::OPESELF;
         return;
     }
 
@@ -672,7 +672,7 @@ throw (CryptDBError)
                                            fullName(anonFieldName,
                                                     tableMetaMap[table]->
                                                     anonTableName),
-                                           PLAIN_AGG, SEMANTIC_AGG, 0,
+                                           SECLEVEL::PLAIN_AGG, SECLEVEL::SEMANTIC_AGG, 0,
                                            tmkm) + ", "
                                    + marshallBinary(cm->getPKInfo()) + ") ";
                 }
@@ -703,7 +703,7 @@ throw (CryptDBError)
             if (DECRYPTFIRST) {
                 resultQuery += processValsToInsert(field, table, 0, val, tmkm);
             } else {
-                if (sldet == SEMANTIC_DET) {
+                if (sldet == SECLEVEL::SEMANTIC_DET) {
                     //we need to lower the security level of the column
                     addIfNotContained(fullName(field,
                                                table), fieldsDec.DETFields);
@@ -712,7 +712,7 @@ throw (CryptDBError)
                               fullName(field,
                                        table), fullName(anonfieldName,
                                                         anonTableName),
-                              PLAIN_DET, DET, 0, tmkm);
+                              SECLEVEL::PLAIN_DET, SECLEVEL::DET, 0, tmkm);
 
                 } else {
                     resultQuery = resultQuery +
@@ -721,7 +721,7 @@ throw (CryptDBError)
                                                  table),
                                         fullName(anonfieldName,
                                                  anonTableName),
-                                        PLAIN_DET, sldet, 0, tmkm);
+                                        SECLEVEL::PLAIN_DET, sldet, 0, tmkm);
                 }
 
                 if (FieldMetadata::exists(fm1->anonFieldNameOPE)) {
@@ -729,7 +729,7 @@ throw (CryptDBError)
                     SECLEVEL slope = fm1->secLevelOPE;
                     anonfieldName = fm1->anonFieldNameOPE;
                     resultQuery = resultQuery  + ", " + anonfieldName + " = ";
-                    if (slope == SEMANTIC_OPE) {
+                    if (slope == SECLEVEL::SEMANTIC_OPE) {
                         addIfNotContained(fullName(field,
                                                    table),
                                           fieldsDec.OPEFields);
@@ -740,7 +740,7 @@ throw (CryptDBError)
                                                  table),
                                         fullName(anonfieldName,
                                                  anonTableName),
-                                        PLAIN_OPE, OPESELF, 0, tmkm);
+                                        SECLEVEL::PLAIN_OPE, SECLEVEL::OPESELF, 0, tmkm);
 
                 }
                 if (FieldMetadata::exists(fm1->anonFieldNameAGG)) {
@@ -752,7 +752,7 @@ throw (CryptDBError)
                                                  table),
                                         fullName(anonfieldName,
                                                  anonTableName),
-                                        PLAIN_AGG, SEMANTIC_AGG, 0, tmkm);
+                                        SECLEVEL::PLAIN_AGG, SECLEVEL::SEMANTIC_AGG, 0, tmkm);
                 }
             }
         }
@@ -769,11 +769,11 @@ throw (CryptDBError)
 
                 if (fm1->isEncrypted) {
                     //DET onion
-                    if (fm1->secLevelDET == SEMANTIC_DET) {
+                    if (fm1->secLevelDET == SECLEVEL::SEMANTIC_DET) {
                         addIfNotContained(fullName(field,
                                                    table),
                                           fieldsDec.DETFields);
-                        fm1->secLevelDET = DET;
+                        fm1->secLevelDET = SECLEVEL::DET;
                     }
 
                     //encrypt the value
@@ -786,17 +786,17 @@ throw (CryptDBError)
                                                  table),
                                         fullName(anonfieldname,
                                                  anonTableName),
-                                        PLAIN_DET, fm1->secLevelDET, 0, tmkm);
+                                        SECLEVEL::PLAIN_DET, fm1->secLevelDET, 0, tmkm);
 
                     //OPE onion
                     if (fm1->exists(fm1->anonFieldNameOPE)) {
                         string anonName = fm1->anonFieldNameOPE;
 
-                        if (fm1->secLevelDET == SEMANTIC_OPE) {
+                        if (fm1->secLevelDET == SECLEVEL::SEMANTIC_OPE) {
                             addIfNotContained(fullName(field,
                                                        table),
                                               fieldsDec.OPEFields);
-                            fm1->secLevelDET = OPESELF;
+                            fm1->secLevelDET = SECLEVEL::OPESELF;
                         }
 
                         resultQuery += ", " + anonName + " = " +
@@ -804,7 +804,7 @@ throw (CryptDBError)
                                              fullName(field,table),
                                              fullName(anonName,
                                                       anonTableName),
-                                             PLAIN_OPE, fm1->secLevelOPE, 0,
+                                             SECLEVEL::PLAIN_OPE, fm1->secLevelOPE, 0,
                                              tmkm);
                     }
 
@@ -816,7 +816,7 @@ throw (CryptDBError)
                                        crypt(*wordsIt, TYPE_TEXT,
                                              fullName(field,table),
                                              fullName(anonName, anonTableName),
-                                             PLAIN_SWP, SWP, 0, tmkm);
+                                             SECLEVEL::PLAIN_SWP, SECLEVEL::SWP, 0, tmkm);
                     }
 
                 } else {
@@ -979,13 +979,13 @@ groupings:
             if (comm.compare("order") == 0) {
                 fm->ope_used = true;
 
-                if (fm->secLevelOPE == SEMANTIC_OPE) {
+                if (fm->secLevelOPE == SECLEVEL::SEMANTIC_OPE) {
                     addIfNotContained(fullName(field,
                                                table), fieldsDec.OPEFields);
                 }
 
             } else {                    //group
-                if (fm->secLevelDET == SEMANTIC_DET) {
+                if (fm->secLevelDET == SECLEVEL::SEMANTIC_DET) {
                     addIfNotContained(fullName(field,
                                                table), fieldsDec.DETFields);
                 }
@@ -1096,18 +1096,18 @@ throw (CryptDBError)
             decryptS = "decrypt_int_sem(" + anonfieldName + "," +
                        cm->marshallKey(cm->getKey(fullName(anonfieldName,
                                                            anonTableName),
-                                                  SEMANTIC_DET)) + ", " +
+                                                  SECLEVEL::SEMANTIC_DET)) + ", " +
                        "salt)" + whereClause;
             //cout << "KEY USED TO DECRYPT field from SEM " << anonfieldName
             // << " " << cm->marshallKey(cm->getKey(anonTableName
-            // +"."+anonfieldName, SEMANTIC)) << "\n"; fflush(stdout);
+            // +"."+anonfieldName, SECLEVEL::SEMANTIC)) << "\n"; fflush(stdout);
             break;
         }
         case TYPE_TEXT: {
             decryptS = "decrypt_text_sem(" + anonfieldName + "," +
                        cm->marshallKey(cm->getKey(fullName(anonfieldName,
                                                            anonTableName),
-                                                  SEMANTIC_DET)) + ", " +
+                                                  SECLEVEL::SEMANTIC_DET)) + ", " +
                        "salt)" + whereClause;
             break;
         }
@@ -1122,7 +1122,7 @@ throw (CryptDBError)
 
         result.push_back(resultQ);
 
-        tableMetaMap[table]->fieldMetaMap[field]->secLevelDET = DET;
+        tableMetaMap[table]->fieldMetaMap[field]->secLevelDET = SECLEVEL::DET;
     }
 
     for (list<string>::iterator it = fieldsDec.OPEFields.begin();
@@ -1158,14 +1158,14 @@ throw (CryptDBError)
         string decryptS = "decrypt_int_sem("  + anonfieldName + "," +
                           cm->marshallKey(cm->getKey(fullName(anonfieldName,
                                                               anonTableName),
-                                                     SEMANTIC_OPE)) +
+                                                     SECLEVEL::SEMANTIC_OPE)) +
                           ", " +  "salt)" + whereClause;
 
         string resultQ = string("UPDATE ") + tm->anonTableName +
                          " SET " + anonfieldName + "= " + decryptS;
         result.push_back(resultQ);
 
-        tm->fieldMetaMap[field]->secLevelOPE = OPESELF;
+        tm->fieldMetaMap[field]->secLevelOPE = SECLEVEL::OPESELF;
 
         tm->fieldMetaMap[field]->ope_used = true;
 
@@ -1215,7 +1215,7 @@ throw (CryptDBError)
         decryptS = decryptS + "(" + anonfieldName + "," +
                    cm->marshallKey(cm->getKey(fullName(anonfieldName,
                                                        anonTableName),
-                                              DET)) + ");"+'\0';
+                                              SECLEVEL::DET)) + ");"+'\0';
 
         string resultQ = string("UPDATE ") +
                          tableMetaMap[table]->anonTableName +
@@ -1224,7 +1224,7 @@ throw (CryptDBError)
         //cout << "adding JOIN DEC " << resultQ << "\n"; fflush(stdout);
         result.push_back(resultQ);
 
-        tableMetaMap[table]->fieldMetaMap[field]->secLevelDET = DETJOIN;
+        tableMetaMap[table]->fieldMetaMap[field]->secLevelDET = SECLEVEL::DETJOIN;
     }
 
     for (list<string>::iterator it = fieldsDec.OPEJoinFields.begin();
@@ -1238,7 +1238,7 @@ throw (CryptDBError)
         //" SET " + tableMetaMap[table]->fieldMetaMap[field]->anonFieldNameDET
         //+ " = DECRYPT(0);"+'\0')); //TODO: link in the right key here
 
-        tableMetaMap[table]->fieldMetaMap[field]->secLevelOPE = OPEJOIN;
+        tableMetaMap[table]->fieldMetaMap[field]->secLevelOPE = SECLEVEL::OPEJOIN;
 
         if (mp) {
             assert_s(false,
@@ -1661,7 +1661,7 @@ throw (CryptDBError)
                 getTableField(*wordsIt, tableD, fieldD, qm, tableMetaMap);
                 FieldMetadata * fmd =
                     tableMetaMap[tableD]->fieldMetaMap[fieldD];
-                if (fmd->secLevelDET == SEMANTIC_DET) {
+                if (fmd->secLevelDET == SECLEVEL::SEMANTIC_DET) {
                     addIfNotContained(fullName(fieldD,
                                                tableD), fieldsDec.DETFields);
                 }
@@ -1767,7 +1767,7 @@ throw (CryptDBError)
 
                 if (tableMetaMap[table2]->fieldMetaMap[field2]->secLevelOPE
                     ==
-                    SEMANTIC_OPE) {
+                    SECLEVEL::SEMANTIC_OPE) {
                     addIfNotContained(fullName(realname,
                                                table2), fieldsDec.OPEFields);
                 }
@@ -1828,18 +1828,18 @@ throw (CryptDBError)
                                                 fm);
             }
 
-            if (tm->fieldMetaMap[field]->secLevelDET == SEMANTIC_DET) {
+            if (tm->fieldMetaMap[field]->secLevelDET == SECLEVEL::SEMANTIC_DET) {
                 addIfNotContained(fullName(field, table), fieldsDec.DETFields);
                 addIfNotContained(fullName(field,
                                            table), fieldsDec.DETJoinFields);
             }
-            if (tm->fieldMetaMap[field]->secLevelDET == DET) {
+            if (tm->fieldMetaMap[field]->secLevelDET == SECLEVEL::DET) {
                 addIfNotContained(fullName(field,
                                            table), fieldsDec.DETJoinFields);
             }
         } else {
             FieldMetadata * fm2 = tm->fieldMetaMap[field];
-            if (detToAll && (fm2->secLevelDET == SEMANTIC_DET)) {
+            if (detToAll && (fm2->secLevelDET == SECLEVEL::SEMANTIC_DET)) {
                 addIfNotContained(fullName(field, table), fieldsDec.DETFields);
             }
             if (DECRYPTFIRST) {
@@ -2173,7 +2173,7 @@ throw (CryptDBError)
                      "MULTIPRINC first operand of operation should be field");
         }
         AES_KEY * aesKeyJoin =
-            CryptoManager::get_key_DET(cm->getKey("join", DETJOIN));
+            CryptoManager::get_key_DET(cm->getKey("join", SECLEVEL::DETJOIN));
         string res = "";
         res =
             marshallVal(cm->encrypt_DET((uint64_t) unmarshallVal(op1),
@@ -2246,7 +2246,7 @@ throw (CryptDBError)
         }
 
         res = res + crypt(op2, ftype1, fullName(field1,
-                                                table1), anonOp1, PLAIN_DET,
+                                                table1), anonOp1, SECLEVEL::PLAIN_DET,
                           highestEq(sl), 0, tmkm);
 
         return res;
@@ -2263,7 +2263,7 @@ throw (CryptDBError)
 
         res += "search(" + anonField1 + ", ";
 
-        Binary key = Binary(cm->getKey(cm->getmkey(), anonfull, SWP));
+        Binary key = Binary(cm->getKey(cm->getmkey(), anonfull, SECLEVEL::SWP));
 
         Token t = CryptoManager::token(key, Binary(removeApostrophe(op2)));
 
@@ -2294,8 +2294,8 @@ throw (CryptDBError)
                  marshallVal((unsigned int)ftype));
 
            res = res + crypt(op2, ftype, fullName(field1,
-                                               table1), anonOp1, PLAIN_DET,
-                          DET, 0, tmkm);
+                                               table1), anonOp1, SECLEVEL::PLAIN_DET,
+                          SECLEVEL::DET, 0, tmkm);
 
            res = res + ", " + anonOp1 + ") ";
 
@@ -2323,10 +2323,10 @@ throw (CryptDBError)
     }
 
     //cout << "key used to get to OPE level for "<< tokenOperand << "is " <<
-    //  CryptoManager::marshallKey(cm->getKey(tokenOperand, OPESELF)) << "\n";
+    //  CryptoManager::marshallKey(cm->getKey(tokenOperand, SECLEVEL::OPESELF)) << "\n";
     res = res + " " + fieldname + " " +  operation + " " +
           crypt(op2, fm->type, fullName(field1, table1),
-                anonOp1, PLAIN_OPE, OPESELF, 0, tmkm);
+                anonOp1, SECLEVEL::PLAIN_OPE, SECLEVEL::OPESELF, 0, tmkm);
 
     return res;
 }
@@ -2492,7 +2492,7 @@ EDBClient::processValsToInsert(string field, string table, uint64_t salt,
         res +=  " " +
                crypt(value, fm->type, fullname,
                      fullName(fm->anonFieldNameDET,
-                              anonTableName), PLAIN_DET, fm->secLevelDET,
+                              anonTableName), SECLEVEL::PLAIN_DET, fm->secLevelDET,
                      salt, tmkm);
 
         LOG(edb_v) << "just added key from crypt";
@@ -2501,7 +2501,7 @@ EDBClient::processValsToInsert(string field, string table, uint64_t salt,
             res += ", " +
                    crypt(value, fm->type, fullname,
                          fullName(fm->anonFieldNameOPE,
-                                  anonTableName), PLAIN_OPE, fm->secLevelOPE,
+                                  anonTableName), SECLEVEL::PLAIN_OPE, fm->secLevelOPE,
                          salt, tmkm);
 
         }
@@ -2510,7 +2510,7 @@ EDBClient::processValsToInsert(string field, string table, uint64_t salt,
             res += ", " +
                    crypt(value, fm->type, fullname,
                          fullName(fm->anonFieldNameAGG,
-                                  anonTableName), PLAIN_AGG, SEMANTIC_AGG,
+                                  anonTableName), SECLEVEL::PLAIN_AGG, SECLEVEL::SEMANTIC_AGG,
                          salt, tmkm);
         }
 
@@ -2518,7 +2518,7 @@ EDBClient::processValsToInsert(string field, string table, uint64_t salt,
             res += ", " +
                    crypt(value, fm->type, fullname,
                          fullName(fm->anonFieldNameSWP,
-                                  anonTableName), PLAIN_SWP, SWP,
+                                  anonTableName), SECLEVEL::PLAIN_SWP, SECLEVEL::SWP,
                          salt, tmkm);
         }
 
@@ -3357,7 +3357,7 @@ throw (CryptDBError)
                 cerr << " AGG ";
             }
 
-            if (fm->secLevelDET == SEMANTIC_DET) {
+            if (fm->secLevelDET == SECLEVEL::SEMANTIC_DET) {
                 cerr << " sem ";
             } else {
                 cerr << " det ";
@@ -3535,9 +3535,9 @@ EDBClient::outputOnionState()
                 FieldMetadata * f = fm->second;
                 if (f->isEncrypted) {
                     printf("%-36s", fullName(f->fieldName, tm->first).c_str());
-                    printf(" %-14s", levelnames[f->secLevelDET].c_str());
+                    printf(" %-14s", levelnames[(int) f->secLevelDET].c_str());
                     if (FieldMetadata::exists(f->anonFieldNameOPE))
-                        printf(" %-14s", levelnames[f->secLevelOPE].c_str());
+                        printf(" %-14s", levelnames[(int) f->secLevelOPE].c_str());
                     cout << "\n";
                 }
             }
@@ -3558,8 +3558,8 @@ EDBClient::crypt(string data, fieldType ft, string fullname,
                 << " type " << ft
                 << " fullname " << fullname
                 << " anonfullname " << anonfullname
-                << " fromlevel " << fromlevel
-                << " tolevel " << tolevel
+                << " fromlevel " << levelnames[(int) fromlevel]
+                << " tolevel " << levelnames[(int) tolevel]
                 << " salt " << salt;
 
     if (DECRYPTFIRST) {

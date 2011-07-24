@@ -68,36 +68,39 @@ MultiPrinc::processAnnotation(list<string>::iterator & wordsIt,
 
         //check if there is any annotation for security level
         string secAnns[] =
-        {levelnames[DET], levelnames[DETJOIN], levelnames[OPESELF],
-         levelnames[SEMANTIC_AGG]};
+            { levelnames[(int) SECLEVEL::DET],
+              levelnames[(int) SECLEVEL::DETJOIN],
+              levelnames[(int) SECLEVEL::OPESELF],
+              levelnames[(int) SECLEVEL::SEMANTIC_AGG]
+            };
         unsigned int noSecAnns = 4;
         while ((wordsIt != words.end()) &&
                contains(*wordsIt, secAnns, noSecAnns)) {
             FieldMetadata * fm = tm[tablename]->fieldMetaMap[currentField];
 
-            if (equalsIgnoreCase(levelnames[DET], *wordsIt)) {
+            if (equalsIgnoreCase(levelnames[(int) SECLEVEL::DET], *wordsIt)) {
                 if (VERBOSE_G) { cerr << "at det \n"; }
-                fm->secLevelDET = DET;
+                fm->secLevelDET = SECLEVEL::DET;
                 wordsIt++;
                 continue;
             }
 
-            if (equalsIgnoreCase(levelnames[DETJOIN], *wordsIt)) {
-                fm->secLevelDET = DETJOIN;
+            if (equalsIgnoreCase(levelnames[(int) SECLEVEL::DETJOIN], *wordsIt)) {
+                fm->secLevelDET = SECLEVEL::DETJOIN;
                 wordsIt++;
                 continue;
             }
 
-            if (equalsIgnoreCase(levelnames[OPESELF], *wordsIt)) {
+            if (equalsIgnoreCase(levelnames[(int) SECLEVEL::OPESELF], *wordsIt)) {
                 if (VERBOSE_G) { cerr << "at det and opeself \n"; }
-                fm->secLevelOPE = OPESELF;
-                fm->secLevelDET = DET;
+                fm->secLevelOPE = SECLEVEL::OPESELF;
+                fm->secLevelDET = SECLEVEL::DET;
                 fm->ope_used = true;
                 wordsIt++;
                 continue;
             }
 
-            if (equalsIgnoreCase(levelnames[SEMANTIC_AGG], *wordsIt)) {
+            if (equalsIgnoreCase(levelnames[(int) SECLEVEL::SEMANTIC_AGG], *wordsIt)) {
                 fm->agg_used = true;
                 wordsIt++;
                 continue;

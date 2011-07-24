@@ -120,17 +120,21 @@ typedef struct ParserMeta {
     ParserMeta();
 } ParserMeta;
 
-typedef enum SECLEVEL {INVALID,   PLAIN,  PLAIN_DET,  DETJOIN,  DET,
-                       SEMANTIC_DET, PLAIN_OPE, OPEJOIN, OPESELF,
-                       SEMANTIC_OPE, PLAIN_AGG,
-                       SEMANTIC_AGG, PLAIN_SWP, SWP, SEMANTIC_VAL} SECLEVEL;
+typedef enum class SECLEVEL {
+    INVALID,   PLAIN,  PLAIN_DET,  DETJOIN,  DET,
+    SEMANTIC_DET, PLAIN_OPE, OPEJOIN, OPESELF,
+    SEMANTIC_OPE, PLAIN_AGG,
+    SEMANTIC_AGG, PLAIN_SWP, SWP, SEMANTIC_VAL
+} SECLEVEL;
 
 const string levelnames[] =
 {"invalid","plain","plaindet", "detjoin","det","semanticdet", "plainope",
  "opejoin","ope", "semope", "plainagg", "semmagg", "semval"};
 
-typedef enum command {CREATE, UPDATE, INSERT, SELECT, DROP, DELETE, BEGIN,
-                      COMMIT, ALTER, OTHER} command;
+typedef enum command {
+    CREATE, UPDATE, INSERT, SELECT, DROP, DELETE, BEGIN,
+    COMMIT, ALTER, OTHER
+} command;
 
 typedef struct FieldMetadata {
 

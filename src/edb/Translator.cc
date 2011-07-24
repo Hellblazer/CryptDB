@@ -60,8 +60,8 @@ FieldMetadata::exists(const string &val)
 
 FieldMetadata::FieldMetadata()
 {
-    secLevelOPE = SEMANTIC_OPE;
-    secLevelDET = SEMANTIC_DET;
+    secLevelOPE = SECLEVEL::SEMANTIC_OPE;
+    secLevelDET = SECLEVEL::SEMANTIC_DET;
 
     INCREMENT_HAPPENED = false;
 
@@ -146,7 +146,7 @@ throw (CryptDBError)
     case TYPE_INTEGER: {
 
         if (fm->isEncrypted) {
-            // create field for DET encryption
+            // create field for SECLEVEL::DET encryption
             string anonFieldNameDET = anonymizeFieldName(index, oDET,
                                                          fieldName, multiPrinc);
 
@@ -184,7 +184,7 @@ throw (CryptDBError)
             break;
         }
         else {
-            // create field for DET encryption
+            // create field for SECLEVEL::DET encryption
             fm->fieldName = fieldName;
 
             tm->fieldNameMap[fieldName] = fieldName;
@@ -293,26 +293,26 @@ throw (CryptDBError)
             //join by equality
 
             //if any of the fields are in the semantic state must decrypt
-            if (fmfirst->secLevelDET == SEMANTIC_DET) {
+            if (fmfirst->secLevelDET == SECLEVEL::SEMANTIC_DET) {
                 addIfNotContained(fullName(firstToken,
                                            firstTable), fieldsDec.DETFields);
                 addIfNotContained(fullName(firstToken,
                                            firstTable),
                                   fieldsDec.DETJoinFields);
             }
-            if (fmsecond->secLevelDET == SEMANTIC_DET) {
+            if (fmsecond->secLevelDET == SECLEVEL::SEMANTIC_DET) {
                 addIfNotContained(fullName(secondToken,
                                            secondTable), fieldsDec.DETFields);
                 addIfNotContained(fullName(secondToken,
                                            secondTable),
                                   fieldsDec.DETJoinFields);
             }
-            if (fmfirst->secLevelDET == DET) {
+            if (fmfirst->secLevelDET == SECLEVEL::DET) {
                 addIfNotContained(fullName(firstToken,
                                            firstTable),
                                   fieldsDec.DETJoinFields);
             }
-            if (fmsecond->secLevelDET == DET) {
+            if (fmsecond->secLevelDET == SECLEVEL::DET) {
                 addIfNotContained(fullName(secondToken,
                                            secondTable),
                                   fieldsDec.DETJoinFields);
@@ -326,21 +326,21 @@ throw (CryptDBError)
             assert_s(Operation::isOPE(operation), "unexpected operation ");
 
             //must bring both to joinable level
-            if (fmfirst->secLevelOPE == SEMANTIC_OPE) {
+            if (fmfirst->secLevelOPE == SECLEVEL::SEMANTIC_OPE) {
                 addIfNotContained(fullName(firstToken,
                                            firstTable), fieldsDec.OPEFields);
             }
-            if (fmsecond->secLevelOPE == SEMANTIC_OPE) {
+            if (fmsecond->secLevelOPE == SECLEVEL::SEMANTIC_OPE) {
                 addIfNotContained(fullName(secondToken,
                                            secondTable), fieldsDec.OPEFields);
             }
-            if (fmfirst->secLevelOPE == OPESELF) {
+            if (fmfirst->secLevelOPE == SECLEVEL::OPESELF) {
                 addIfNotContained(fullName(firstToken,
                                            firstTable),
                                   fieldsDec.OPEJoinFields);
             }
 
-            if (fmsecond->secLevelOPE == OPESELF) {
+            if (fmsecond->secLevelOPE == SECLEVEL::OPESELF) {
                 addIfNotContained(fullName(secondToken,
                                            secondTable),
                                   fieldsDec.OPEJoinFields);
@@ -359,14 +359,14 @@ throw (CryptDBError)
         }
 
         if (tableMetaMap[firstTable]->fieldMetaMap[firstToken]->secLevelDET
-            == SEMANTIC_DET) {
+            == SECLEVEL::SEMANTIC_DET) {
             addIfNotContained(fullName(firstToken,
                                        firstTable), fieldsDec.DETFields);
             addIfNotContained(fullName(firstToken,
                                        firstTable), fieldsDec.DETJoinFields);
         }
         if (tableMetaMap[firstTable]->fieldMetaMap[firstToken]->secLevelDET
-            == DET) {
+            == SECLEVEL::DET) {
             addIfNotContained(fullName(firstToken,
                                        firstTable), fieldsDec.DETFields);
         }
@@ -402,7 +402,7 @@ throw (CryptDBError)
         assert_s(fmField->INCREMENT_HAPPENED == false,
                  "cannot perform comparison on field that was incremented \n");
         //filter with equality
-        if (fmField->secLevelDET == SEMANTIC_DET) {
+        if (fmField->secLevelDET == SECLEVEL::SEMANTIC_DET) {
             addIfNotContained(tableField, fieldsDec.DETFields);
         }
 
@@ -413,7 +413,7 @@ throw (CryptDBError)
 
     fmField->ope_used = true;
 
-    if (fmField->secLevelOPE == SEMANTIC_OPE) {
+    if (fmField->secLevelOPE == SECLEVEL::SEMANTIC_OPE) {
         addIfNotContained(tableField, fieldsDec.OPEFields);
     }
 
@@ -483,27 +483,27 @@ SECLEVEL
 getLevelForOnion(FieldMetadata * fm, onion o)
 {
     switch (o) {
-    case oAGG: {return SEMANTIC_AGG; }
+    case oAGG: {return SECLEVEL::SEMANTIC_AGG; }
     case oDET: { return fm->secLevelDET; }
     case oOPE: { return fm->secLevelOPE; }
-    case oNONE: {return PLAIN; }
+    case oNONE: {return SECLEVEL::PLAIN; }
     default: {assert_s(false, "invalid onion type in getLevelForOnion"); }
     }
 
-    return INVALID;
+    return SECLEVEL::INVALID;
 }
 SECLEVEL
 getLevelPlain(onion o)
 {
     switch (o) {
-    case oAGG: {return PLAIN_AGG; }
-    case oDET: { return PLAIN_DET; }
-    case oOPE: { return PLAIN_OPE; }
-    case oNONE: {return PLAIN; }
+    case oAGG: {return SECLEVEL::PLAIN_AGG; }
+    case oDET: { return SECLEVEL::PLAIN_DET; }
+    case oOPE: { return SECLEVEL::PLAIN_OPE; }
+    case oNONE: {return SECLEVEL::PLAIN; }
     default: {assert_s(false, "invalid onion type in getLevelForOnion"); }
     }
 
-    return INVALID;
+    return SECLEVEL::INVALID;
 }
 
 bool
