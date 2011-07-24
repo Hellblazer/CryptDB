@@ -142,6 +142,11 @@ class CryptItem {
             return n;
         }
 
+        case Item::Type::SUBSELECT_ITEM: {
+            // XXX handle sub-selects
+            return i;
+        }
+
         default:
             fatal() << "unknown type " << i->type();
         }
@@ -160,10 +165,10 @@ xftest(void)
 
     const char *q =
         "SELECT x.a, y.b + 2, y.c, y.cc AS ycc "
-        "FROM x, y as yy1, y as yy2 "
+        "FROM x, y as yy1, y as yy2, (SELECT x, y FROM z WHERE q=7) as subt "
         "WHERE x.bb = yy1.b AND yy1.k1 = yy2.k2 AND "
         "(yy2.d > 7 OR yy2.e = (3+4)) AND (yy1.f='hello') AND "
-        "yy2.cc = 9";
+        "yy2.cc = 9 AND yy2.gg = (SELECT COUNT(*) FROM xxc)";
     char buf[1024];
     strlcpy(buf, q, sizeof(buf));
     size_t len = strlen(buf);
@@ -223,6 +228,8 @@ xftest(void)
                 std::string alias(t->alias);
                 table_name = "anontab_" + table_name;
                 alias = "anontab_" + alias;
+
+                // XXX handle sub-selects..
                 nt->init_one_table(strdup(db.c_str()), db.size(),
                                    strdup(
                                        table_name.c_str()), table_name.size(),
