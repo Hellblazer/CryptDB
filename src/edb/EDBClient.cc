@@ -564,12 +564,12 @@ throw (CryptDBError)
     FieldsToDecrypt fieldsDec;
 
     list<string> words = getSQLWords(query);
-    QueryMeta qm = getQueryMeta(UPDATE, words, tableMetaMap);
+    QueryMeta qm = getQueryMeta(cmd::UPDATE, words, tableMetaMap);
 
     TMKM tmkm;
     if (mp) {
         tmkm.processingQuery = true;
-        mp->getEncForFromFilter(UPDATE, words, tmkm, qm, tableMetaMap);
+        mp->getEncForFromFilter(cmd::UPDATE, words, tmkm, qm, tableMetaMap);
     }
 
     list<string>::iterator wordsIt = words.begin();
@@ -1531,7 +1531,7 @@ throw (CryptDBError)
 
     //first figure out what tables are involved to know what fields refer to
     //gettimeofday(&starttime, NULL);
-    QueryMeta qm  = getQueryMeta(SELECT, words, tableMetaMap);
+    QueryMeta qm  = getQueryMeta(cmd::SELECT, words, tableMetaMap);
     LOG(edb_v) << "after get query meta";
 //	gettimeofday(&endtime, NULL);
 //	cout << "get query meta" << timeInMSec(starttime, endtime) << "\n";
@@ -2049,7 +2049,7 @@ EDBClient::rewriteDecryptSelect(const string &query, ResType * dbAnswer)
     //parse
     list<string> words = getSQLWords(query);
 
-    QueryMeta qm = getQueryMeta(SELECT, words, tableMetaMap);
+    QueryMeta qm = getQueryMeta(cmd::SELECT, words, tableMetaMap);
 
     expandWildCard(words, qm, tableMetaMap);
 
@@ -2382,18 +2382,18 @@ throw (CryptDBError)
     list<string> words = getSQLWords(query);
 
     if (mp) {
-        if (mp->checkPsswd(DELETE, words)) {
+        if (mp->checkPsswd(cmd::DELETE, words)) {
             return list<string>();
         }
     }
 
     //first figure out what tables are involved to know what fields refer to
-    QueryMeta qm = getQueryMeta(DELETE, words, tableMetaMap);
+    QueryMeta qm = getQueryMeta(cmd::DELETE, words, tableMetaMap);
 
     TMKM tmkm;
     if (mp) {
         tmkm.processingQuery = true;
-        mp->getEncForFromFilter(DELETE, words, tmkm, qm, tableMetaMap);
+        mp->getEncForFromFilter(cmd::DELETE, words, tmkm, qm, tableMetaMap);
     }
 
     list<string>::iterator wordsIt = words.begin();
@@ -2569,7 +2569,7 @@ throw (CryptDBError)
     if (mp) {
         tmkm.processingQuery = true;
         //if this is the fake table providing user passwords, ignore query
-        if (mp->checkPsswd(INSERT, words)) {
+        if (mp->checkPsswd(cmd::INSERT, words)) {
             //gettimeofday(&endtime, NULL);
             //cerr << "insert passwd took " << timeInMSec(starttime, endtime)
             // << "\n";
@@ -2935,7 +2935,7 @@ considerQuery(command com, const string &query)
 {
 
     switch (com) {
-    case CREATE: {
+    case cmd::CREATE: {
         list<string> words = getSQLWords(query);
         list<string>::iterator wordsIt = words.begin();
         wordsIt++;
@@ -2944,8 +2944,8 @@ considerQuery(command com, const string &query)
         }
         break;
     }
-    case UPDATE: {break; }
-    case INSERT: {
+    case cmd::UPDATE: {break; }
+    case cmd::INSERT: {
         list<string> words = getSQLWords(query);
         if (contains("select", words)) {
             LOG(warn) << "given nested query!";
@@ -2953,7 +2953,7 @@ considerQuery(command com, const string &query)
         }
         break;
     }
-    case SELECT: {
+    case cmd::SELECT: {
         list<string> words = getSQLWords(query);
         //for speed
         /*if ((!contains("from", words)) && (!contains("FROM", words))) {
@@ -2962,7 +2962,7 @@ considerQuery(command com, const string &query)
            }*/
         break;
     }
-    case DROP: {
+    case cmd::DROP: {
         list<string> words = getSQLWords(query);
         list<string>::iterator wordsIt = words.begin();
         wordsIt++;
@@ -2971,15 +2971,15 @@ considerQuery(command com, const string &query)
         }
         break;
     }
-    case DELETE: {break; }
-    case BEGIN: {
+    case cmd::DELETE: {break; }
+    case cmd::BEGIN: {
         LOG(edb_v) << "begin";
         if (DECRYPTFIRST) {
             return true;
         }
         return false;
     }
-    case COMMIT: {
+    case cmd::COMMIT: {
         if (DECRYPTFIRST) {
             return true;
         }
@@ -2992,7 +2992,7 @@ considerQuery(command com, const string &query)
         LOG(edb_v) << "commit";
         return false;
     }
-    case ALTER: {
+    case cmd::ALTER: {
         LOG(edb_v) << "alter";
         if (DECRYPTFIRST) {
             return true;
@@ -3001,7 +3001,7 @@ considerQuery(command com, const string &query)
         return false;
     }
     default:
-    case OTHER: {
+    case cmd::OTHER: {
         LOG(edb_v) << "other";
         return false;
     }
@@ -3032,31 +3032,31 @@ throw (CryptDBError)
 
     //dispatch query to the appropriate rewriterEncryptor
     switch (com) {
-    case CREATE: {return rewriteEncryptCreate(query); }
-    case UPDATE: {return rewriteEncryptUpdate(query); }
-    case INSERT: {return rewriteEncryptInsert(query, ai); }
-    case SELECT: {return rewriteEncryptSelect(query); }
-    case DROP: {return rewriteEncryptDrop(query); }
-    case DELETE: {return rewriteEncryptDelete(query); }
-    case BEGIN: {
+    case cmd::CREATE: {return rewriteEncryptCreate(query); }
+    case cmd::UPDATE: {return rewriteEncryptUpdate(query); }
+    case cmd::INSERT: {return rewriteEncryptInsert(query, ai); }
+    case cmd::SELECT: {return rewriteEncryptSelect(query); }
+    case cmd::DROP: {return rewriteEncryptDrop(query); }
+    case cmd::DELETE: {return rewriteEncryptDelete(query); }
+    case cmd::BEGIN: {
         if (DECRYPTFIRST)
             return list<string>(1, query);
 
         return rewriteEncryptBegin(query);
     }
-    case COMMIT: {
+    case cmd::COMMIT: {
         if (DECRYPTFIRST)
             return list<string>(1, query);
 
         return rewriteEncryptCommit(query);
     }
-    case ALTER: {
+    case cmd::ALTER: {
         if (DECRYPTFIRST)
             return list<string>(1, query);
 
         return rewriteEncryptAlter(query);
     }
-    case OTHER:
+    case cmd::OTHER:
     default: {
         cerr << "other query\n";
         if (DECRYPTFIRST)
@@ -3085,7 +3085,7 @@ EDBClient::decryptResults(const string &query, ResType * dbAnswer)
     }
 
     switch (com) {
-    case SELECT:
+    case cmd::SELECT:
         return rewriteDecryptSelect(query, dbAnswer);
 
     default:
@@ -3113,7 +3113,7 @@ EDBClient::decryptResultsWrapper(const string &query, DBResult * dbres)
 {
     command comm = getCommand(query);
 
-    if (comm == SELECT) {
+    if (comm == cmd::SELECT) {
         LOG(edb) << "going in select";
         ResType * rets = decryptResults(query, dbres->unpack());
 
@@ -3156,7 +3156,7 @@ EDBClient::execute(const string &query)
             return NULL;
         }
 
-        if (getCommand(query) == SELECT) {
+        if (getCommand(query) == cmd::SELECT) {
             ResType *r = res->unpack();
             delete res;
             return r;

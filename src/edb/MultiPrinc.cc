@@ -303,7 +303,7 @@ MultiPrinc::getEncForFromFilter(command comm, list<string> query, TMKM & tmkm,
     if (!PARSING) {
         tmkm.encForVal = map<string, string>();
 
-        assert_s((comm == SELECT) || (comm == UPDATE) || (comm == DELETE),
+        assert_s((comm == cmd::SELECT) || (comm == cmd::UPDATE) || (comm == cmd::DELETE),
                  "query does not have filter");
 
         string table = qm.tables.front();
@@ -361,7 +361,7 @@ MultiPrinc::prepareSelect(list<string> & words, TMKM & tmkm, QueryMeta & qm,
 {
     // records for which principals some values are encrypted by looking in
     // the where clause as well
-    getEncForFromFilter(SELECT, words, tmkm, qm, tm);
+    getEncForFromFilter(cmd::SELECT, words, tmkm, qm, tm);
 
     //add all fields requested in principalsSeen
 
@@ -461,7 +461,7 @@ MultiPrinc::checkPsswd(command comm, list<string> & words)
     list<string>::iterator wordsIt = words.begin();
     string table;
 
-    if (comm == INSERT) {
+    if (comm == cmd::INSERT) {
         roll<string>(wordsIt, 2);
         table = *wordsIt;
         string pw_table;
@@ -492,7 +492,7 @@ MultiPrinc::checkPsswd(command comm, list<string> & words)
         return false;
     }
 
-    if (comm == DELETE) {
+    if (comm == cmd::DELETE) {
         roll<string>(wordsIt, 2);         //now points to table name
         table = *wordsIt;
         string pw_table;

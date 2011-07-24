@@ -151,7 +151,7 @@ SECLEVELS(__temp_m)
     "SECLEVEL_LAST"
 };
 
-typedef enum command {
+typedef enum class cmd {
     CREATE, UPDATE, INSERT, SELECT, DROP, DELETE, BEGIN,
     COMMIT, ALTER, OTHER
 } command;

@@ -630,35 +630,35 @@ consolidateMath(list<string> & words)
 {
     command com = getCommand(*words.begin());
     switch (com) {
-    case CREATE:
+    case cmd::CREATE:
         cerr << "consolidateMath doesn't deal with CREATE" << endl;
         return;
-    case UPDATE:
+    case cmd::UPDATE:
         //consolidateMathUpdate(words);
         return;
-    case SELECT:
+    case cmd::SELECT:
         //consolidateMathSelect(words);
         return;
-    case INSERT:
+    case cmd::INSERT:
         //consolidateMathInsert(words);
         return;
-    case DROP:
+    case cmd::DROP:
         cerr << "consolidateMath doesn't deal with DROP" << endl;
         return;
-    case DELETE:
+    case cmd::DELETE:
         cerr << "consolidateMath doesn't deal with DELETE" << endl;
         return;
-    case BEGIN:
+    case cmd::BEGIN:
         cerr << "consolidateMath doesn't deal with BEGIN" << endl;
         return;
-    case COMMIT:
+    case cmd::COMMIT:
         cerr << "consolidateMath doesn't deal with COMMIT" << endl;
         return;
-    case ALTER:
+    case cmd::ALTER:
         cerr << "consolidateMath doesn't deal with ALTER" << endl;
         return;
     default:
-    case OTHER:
+    case cmd::OTHER:
         cerr << "consolidateMath doesn't deal with OTHER (what is this?)" <<
         endl;
         return;
@@ -792,23 +792,23 @@ getCommand(const string &query)
 throw (CryptDBError)
 {
     static struct { const char *s; command c; } s2c[] =
-    { { "create", CREATE },
-      { "update", UPDATE },
-      { "insert", INSERT },
-      { "select", SELECT },
-      { "drop",   DROP   },
-      { "delete", DELETE },
-      { "commit", COMMIT },
-      { "begin",  BEGIN  },
-      { "alter",  ALTER  },
-      { 0,        OTHER  } };
+    { { "create", cmd::CREATE },
+      { "update", cmd::UPDATE },
+      { "insert", cmd::INSERT },
+      { "select", cmd::SELECT },
+      { "drop",   cmd::DROP   },
+      { "delete", cmd::DELETE },
+      { "commit", cmd::COMMIT },
+      { "begin",  cmd::BEGIN  },
+      { "alter",  cmd::ALTER  },
+      { 0,        cmd::OTHER  } };
 
-    string cmd = query.substr(0, query.find_first_of(" ,;()"));
-    transform(cmd.begin(), cmd.end(), cmd.begin(), ::tolower);
+    string cmds = query.substr(0, query.find_first_of(" ,;()"));
+    transform(cmds.begin(), cmds.end(), cmds.begin(), ::tolower);
     for (uint i = 0; s2c[i].s != 0; i++)
-        if (cmd == s2c[i].s)
+        if (cmds == s2c[i].s)
             return s2c[i].c;
-    return OTHER;
+    return cmd::OTHER;
 }
 
 string

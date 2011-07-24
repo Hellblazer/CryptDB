@@ -625,13 +625,13 @@ throw (CryptDBError)
     unsigned int noDelims = 0;
 
     switch(c) {
-    case SELECT: {noDelims = 2; delims = new string[2]; delims[0] = "from";
+    case cmd::SELECT: {noDelims = 2; delims = new string[2]; delims[0] = "from";
                   delims[1] = "left"; break; }
-    case DELETE: {noDelims = 2; delims = new string[2]; delims[0] = "from";
+    case cmd::DELETE: {noDelims = 2; delims = new string[2]; delims[0] = "from";
                   delims[1] = "left"; break; }
-    case INSERT: {noDelims = 1; delims = new string[1]; delims[0] = "into";
+    case cmd::INSERT: {noDelims = 1; delims = new string[1]; delims[0] = "into";
                   break; }
-    case UPDATE: {noDelims = 1; delims = new string[1]; delims[0] = "update";
+    case cmd::UPDATE: {noDelims = 1; delims = new string[1]; delims[0] = "update";
                   break; }
     default: {assert_s(false, "given unexpected command in getQueryMeta"); }
     }
@@ -672,7 +672,7 @@ throw (CryptDBError)
             LOG(edb_v) << "after mirror, qit is " << *qit;
     }
 
-    if (c == SELECT) {
+    if (c == cmd::SELECT) {
 
         //we are now building field aliases
         list<string>::iterator it;
