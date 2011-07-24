@@ -70,7 +70,7 @@ MultiPrinc::processAnnotation(list<string>::iterator & wordsIt,
         string secAnns[] =
             { levelnames[(int) SECLEVEL::DET],
               levelnames[(int) SECLEVEL::DETJOIN],
-              levelnames[(int) SECLEVEL::OPESELF],
+              levelnames[(int) SECLEVEL::OPE],
               levelnames[(int) SECLEVEL::SEMANTIC_AGG]
             };
         unsigned int noSecAnns = 4;
@@ -91,9 +91,9 @@ MultiPrinc::processAnnotation(list<string>::iterator & wordsIt,
                 continue;
             }
 
-            if (equalsIgnoreCase(levelnames[(int) SECLEVEL::OPESELF], *wordsIt)) {
+            if (equalsIgnoreCase(levelnames[(int) SECLEVEL::OPE], *wordsIt)) {
                 if (VERBOSE_G) { cerr << "at det and opeself \n"; }
-                fm->secLevelOPE = SECLEVEL::OPESELF;
+                fm->secLevelOPE = SECLEVEL::OPE;
                 fm->secLevelDET = SECLEVEL::DET;
                 fm->ope_used = true;
                 wordsIt++;

@@ -122,7 +122,7 @@ getOnion(SECLEVEL l1)
     case SECLEVEL::SEMANTIC_DET: {return oDET; }
     case SECLEVEL::PLAIN_OPE: {return oOPE; }
     case SECLEVEL::OPEJOIN: {return oOPE; }
-    case SECLEVEL::OPESELF: {return oOPE; }
+    case SECLEVEL::OPE: {return oOPE; }
     case SECLEVEL::SEMANTIC_OPE: {return oOPE; }
     case SECLEVEL::PLAIN_AGG: {return oAGG; }
     case SECLEVEL::SEMANTIC_AGG: {return oAGG; }
@@ -153,8 +153,8 @@ decreaseLevel(SECLEVEL l, fieldType ft,  onion o)
     }
     case oOPE: {
         switch (l) {
-        case SECLEVEL::SEMANTIC_OPE: {return SECLEVEL::OPESELF; }
-        case SECLEVEL::OPESELF: {
+        case SECLEVEL::SEMANTIC_OPE: {return SECLEVEL::OPE; }
+        case SECLEVEL::OPE: {
             if (ft == TYPE_TEXT) {
                 return SECLEVEL::PLAIN_OPE;
             } else {
@@ -202,11 +202,11 @@ increaseLevel(SECLEVEL l, fieldType ft, onion o)
     }
     case oOPE: {
         switch (l) {
-        case SECLEVEL::OPESELF: {return SECLEVEL::SEMANTIC_OPE; }
-        case SECLEVEL::OPEJOIN: {return SECLEVEL::OPESELF; }
+        case SECLEVEL::OPE: {return SECLEVEL::SEMANTIC_OPE; }
+        case SECLEVEL::OPEJOIN: {return SECLEVEL::OPE; }
         case SECLEVEL::PLAIN_OPE: {
             if (ft == TYPE_TEXT) {
-                return SECLEVEL::OPESELF;
+                return SECLEVEL::OPE;
             } else {
                 return SECLEVEL::OPEJOIN;
             }
@@ -319,7 +319,7 @@ CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft,
                     }
                 }
 
-                if (fromlevel == SECLEVEL::OPESELF) {
+                if (fromlevel == SECLEVEL::OPE) {
                     OPE * key =
                         get_key_OPE(getKey(mkey, fullfieldname, fromlevel));
                     val = decrypt_OPE(val, key);
@@ -423,7 +423,7 @@ CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft,
 
                 assert_s(
                     false,
-                    "should not want to decrypt past SECLEVEL::OPESELF for text \n");
+                    "should not want to decrypt past SECLEVEL::OPE for text \n");
 
                 return "";
             }
@@ -510,7 +510,7 @@ CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft,
                 }
             }
 
-            if (fromlevel == SECLEVEL::OPESELF) {
+            if (fromlevel == SECLEVEL::OPE) {
 
                 fromlevel  = increaseLevel(fromlevel, ft, oOPE);
                 AES_KEY * key =
@@ -622,7 +622,7 @@ CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft,
                 val = unmarshallVal(data);
             }
 
-            if (fromlevel == SECLEVEL::OPESELF) {
+            if (fromlevel == SECLEVEL::OPE) {
                 fromlevel = increaseLevel(fromlevel, ft, oOPE);
                 AES_KEY * key =
                     get_key_SEM(getKey(mkey, fullfieldname, fromlevel));
@@ -1055,7 +1055,7 @@ CryptoManager::encrypt_OPE(uint32_t plaintext, string uniqueFieldName)
         LOG(crypto_v) << "OPE miss for " << plaintext;
     }
 
-    return encrypt_OPE(plaintext, get_key_OPE(getKey(uniqueFieldName, SECLEVEL::OPESELF)));
+    return encrypt_OPE(plaintext, get_key_OPE(getKey(uniqueFieldName, SECLEVEL::OPE)));
 }
 
 AES_KEY *
@@ -1354,7 +1354,7 @@ CryptoManager::createEncryptionTables(int noOPEarg, int noHOMarg,
          it != fieldsWithOPE.end(); it++) {
         string anonName = *it;
         OPEEncTable[anonName] = map<int, uint64_t>();
-        OPE * currentKey = get_key_OPE(getKey(anonName, SECLEVEL::OPESELF));
+        OPE * currentKey = get_key_OPE(getKey(anonName, SECLEVEL::OPE));
         for (int i = 0; i < noOPE; i++) {
             OPEEncTable[anonName][i] = encrypt_OPE(i, currentKey);
         }

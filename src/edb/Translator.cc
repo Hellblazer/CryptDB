@@ -334,13 +334,13 @@ throw (CryptDBError)
                 addIfNotContained(fullName(secondToken,
                                            secondTable), fieldsDec.OPEFields);
             }
-            if (fmfirst->secLevelOPE == SECLEVEL::OPESELF) {
+            if (fmfirst->secLevelOPE == SECLEVEL::OPE) {
                 addIfNotContained(fullName(firstToken,
                                            firstTable),
                                   fieldsDec.OPEJoinFields);
             }
 
-            if (fmsecond->secLevelOPE == SECLEVEL::OPESELF) {
+            if (fmsecond->secLevelOPE == SECLEVEL::OPE) {
                 addIfNotContained(fullName(secondToken,
                                            secondTable),
                                   fieldsDec.OPEJoinFields);

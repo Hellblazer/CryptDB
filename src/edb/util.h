@@ -129,7 +129,7 @@ typedef struct ParserMeta {
     m(SEMANTIC_DET)     \
     m(PLAIN_OPE)        \
     m(OPEJOIN)          \
-    m(OPESELF)          \
+    m(OPE)              \
     m(SEMANTIC_OPE)     \
     m(PLAIN_AGG)        \
     m(SEMANTIC_AGG)     \

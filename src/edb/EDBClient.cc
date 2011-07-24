@@ -378,7 +378,7 @@ processAnnotation(MultiPrinc * mp, list<string>::iterator & wordsIt,
         tm[tableName]->fieldMetaMap[fieldName]->secLevelDET = SECLEVEL::DETJOIN;
         //make ope onion uncovered to avoid adjustment --- though this onion
         // does not exist in this mode
-        tm[tableName]->fieldMetaMap[fieldName]->secLevelOPE = SECLEVEL::OPESELF;
+        tm[tableName]->fieldMetaMap[fieldName]->secLevelOPE = SECLEVEL::OPE;
         return;
     }
 
@@ -740,7 +740,7 @@ throw (CryptDBError)
                                                  table),
                                         fullName(anonfieldName,
                                                  anonTableName),
-                                        SECLEVEL::PLAIN_OPE, SECLEVEL::OPESELF, 0, tmkm);
+                                        SECLEVEL::PLAIN_OPE, SECLEVEL::OPE, 0, tmkm);
 
                 }
                 if (FieldMetadata::exists(fm1->anonFieldNameAGG)) {
@@ -796,7 +796,7 @@ throw (CryptDBError)
                             addIfNotContained(fullName(field,
                                                        table),
                                               fieldsDec.OPEFields);
-                            fm1->secLevelDET = SECLEVEL::OPESELF;
+                            fm1->secLevelDET = SECLEVEL::OPE;
                         }
 
                         resultQuery += ", " + anonName + " = " +
@@ -1165,7 +1165,7 @@ throw (CryptDBError)
                          " SET " + anonfieldName + "= " + decryptS;
         result.push_back(resultQ);
 
-        tm->fieldMetaMap[field]->secLevelOPE = SECLEVEL::OPESELF;
+        tm->fieldMetaMap[field]->secLevelOPE = SECLEVEL::OPE;
 
         tm->fieldMetaMap[field]->ope_used = true;
 
@@ -2323,10 +2323,10 @@ throw (CryptDBError)
     }
 
     //cout << "key used to get to OPE level for "<< tokenOperand << "is " <<
-    //  CryptoManager::marshallKey(cm->getKey(tokenOperand, SECLEVEL::OPESELF)) << "\n";
+    //  CryptoManager::marshallKey(cm->getKey(tokenOperand, SECLEVEL::OPE)) << "\n";
     res = res + " " + fieldname + " " +  operation + " " +
           crypt(op2, fm->type, fullName(field1, table1),
-                anonOp1, SECLEVEL::PLAIN_OPE, SECLEVEL::OPESELF, 0, tmkm);
+                anonOp1, SECLEVEL::PLAIN_OPE, SECLEVEL::OPE, 0, tmkm);
 
     return res;
 }
