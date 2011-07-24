@@ -51,6 +51,44 @@ parse(const char *q)
             lex.select_lex.print(t, &s, QT_ORDINARY);
             //lex.unit.print(&s, QT_ORDINARY);
             printf("reconstructed query: %s\n", s.c_ptr());
+
+            // for lex.sql_command SQLCOM_UPDATE
+            for (auto it = List_iterator<Item>(lex.value_list);;) {
+                Item *i = it++;
+                if (!i)
+                    break;
+
+                String s;
+                i->print(&s, QT_ORDINARY);
+                printf("value_list item: %s\n", s.c_ptr());
+            }
+
+            // for lex.sql_command SQLCOM_INSERT
+            for (auto it = List_iterator<Item>(lex.field_list);;) {
+                Item *i = it++;
+                if (!i)
+                    break;
+
+                String s;
+                i->print(&s, QT_ORDINARY);
+                printf("field_list item: %s\n", s.c_ptr());
+            }
+
+            for (auto lit = List_iterator<List_item>(lex.many_values);;) {
+                List<Item> *li = lit++;
+                if (!li)
+                    break;
+
+                for (auto it = List_iterator<Item>(*li);;) {
+                    Item *i = it++;
+                    if (!i)
+                        break;
+
+                    String s;
+                    i->print(&s, QT_ORDINARY);
+                    printf("update_list item: %s\n", s.c_ptr());
+                }
+            }
         }
 
         t->end_statement();
