@@ -1,8 +1,10 @@
-#include "fatal.h"
-
 #include <string>
 #include <stdio.h>
 #include <bsd/string.h>
+
+#include "fatal.h"
+#include "mysql_glue.h"
+#include "stringify.h"
 
 #include "sql_priv.h"
 #include "unireg.h"
@@ -15,8 +17,6 @@
 #include "sql_plugin.h"
 #include "derror.h"
 #include "item.h"
-
-#include "mysql_glue.h"
 
 class CryptItem {
  public:
@@ -207,9 +207,7 @@ xftest(void)
                     break;
 
                 CryptItem ci(item);
-                String s;
                 Item *newitem = ci.rewrite();
-                newitem->print(&s, QT_ORDINARY);
                 new_item_list.push_back(newitem);
             }
             lex.select_lex.item_list = new_item_list;
@@ -241,10 +239,7 @@ xftest(void)
             CryptItem wi(lex.select_lex.where);
             lex.select_lex.where = wi.rewrite();
 
-            String s;
-            lex.select_lex.print(t, &s, QT_ORDINARY);
-            //lex.unit.print(&s, QT_ORDINARY);
-            printf("output query: %s\n", s.c_ptr());
+            cout << "output query: " << lex << endl;
         }
 
         t->end_statement();

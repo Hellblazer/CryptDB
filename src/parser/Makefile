@@ -6,7 +6,7 @@ CXXFLAGS := -I. \
 	    -I$(MYSRC)/sql \
 	    -I$(MYSRC)/regex \
 	    -I$(MYBUILD)/sql \
-	    -Wall -Wno-unused-parameter -fno-exceptions -fno-rtti -g -O2 \
+	    -Wall -Wno-unused-parameter -fno-rtti -g -O2 \
 	    -DHAVE_CONFIG_H -DMYSQL_SERVER -DHAVE_EVENT_SCHEDULER -DDBUG_OFF \
 	    -std=c++0x
 
@@ -31,7 +31,7 @@ parsetest: parsetest.o mysql_glue.o
 xftest: xftest.o mysql_glue.o
 	$(CXX) $^ -o $@ $(LDFLAGS)
 
-%.o: %.cc
+%.o: %.cc $(wildcard *.h)
 	$(CXX) $(CXXFLAGS) $< -c -o $@
 
 clean:

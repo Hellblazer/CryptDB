@@ -3,6 +3,9 @@
 #include <stdio.h>
 #include <bsd/string.h>
 
+#include "mysql_glue.h"
+#include "stringify.h"
+
 #include "sql_priv.h"
 #include "unireg.h"
 #include "strfunc.h"
@@ -14,38 +17,7 @@
 #include "sql_plugin.h"
 #include "derror.h"
 
-#include "mysql_glue.h"
-
 using namespace std;
-
-static ostream&
-operator<<(ostream &out, Item &i)
-{
-    String s;
-    i.print(&s, QT_ORDINARY);
-    out << s.c_ptr();
-    return out;
-}
-
-template<class T>
-static ostream&
-operator<<(ostream &out, List<T> &l)
-{
-    out << "<";
-    bool first = true;
-    for (auto it = List_iterator<T>(l);;) {
-        T *i = it++;
-        if (!i)
-            break;
-
-        if (!first)
-            out << ", ";
-        out << *i;
-        first = false;
-    }
-    out << ">";
-    return out;
-}
 
 static void
 parse(const char *q)
@@ -78,12 +50,7 @@ parse(const char *q)
             printf("parse error: h %p\n", t->get_internal_handler());
             printf("parse error: %d %s\n", t->is_error(), t->stmt_da->message());
         } else {
-            printf("command %d\n", lex.sql_command);
-
-            String s;
-            lex.select_lex.print(t, &s, QT_ORDINARY);
-            //lex.unit.print(&s, QT_ORDINARY);
-            printf("reconstructed query: %s\n", s.c_ptr());
+            cout << "reconstructed query: " << lex << endl;
 
             // for lex.sql_command SQLCOM_UPDATE
             cout << "value_list: " << lex.value_list << endl;
