@@ -1,3 +1,5 @@
+#include <iostream>
+
 #include <stdio.h>
 #include <bsd/string.h>
 
@@ -13,6 +15,37 @@
 #include "derror.h"
 
 #include "mysql_glue.h"
+
+using namespace std;
+
+static ostream&
+operator<<(ostream &out, Item &i)
+{
+    String s;
+    i.print(&s, QT_ORDINARY);
+    out << s.c_ptr();
+    return out;
+}
+
+template<class T>
+static ostream&
+operator<<(ostream &out, List<T> &l)
+{
+    out << "<";
+    bool first = true;
+    for (auto it = List_iterator<T>(l);;) {
+        T *i = it++;
+        if (!i)
+            break;
+
+        if (!first)
+            out << ", ";
+        out << *i;
+        first = false;
+    }
+    out << ">";
+    return out;
+}
 
 static void
 parse(const char *q)
@@ -53,42 +86,11 @@ parse(const char *q)
             printf("reconstructed query: %s\n", s.c_ptr());
 
             // for lex.sql_command SQLCOM_UPDATE
-            for (auto it = List_iterator<Item>(lex.value_list);;) {
-                Item *i = it++;
-                if (!i)
-                    break;
-
-                String s;
-                i->print(&s, QT_ORDINARY);
-                printf("value_list item: %s\n", s.c_ptr());
-            }
+            cout << "value_list: " << lex.value_list << endl;
 
             // for lex.sql_command SQLCOM_INSERT
-            for (auto it = List_iterator<Item>(lex.field_list);;) {
-                Item *i = it++;
-                if (!i)
-                    break;
-
-                String s;
-                i->print(&s, QT_ORDINARY);
-                printf("field_list item: %s\n", s.c_ptr());
-            }
-
-            for (auto lit = List_iterator<List_item>(lex.many_values);;) {
-                List<Item> *li = lit++;
-                if (!li)
-                    break;
-
-                for (auto it = List_iterator<Item>(*li);;) {
-                    Item *i = it++;
-                    if (!i)
-                        break;
-
-                    String s;
-                    i->print(&s, QT_ORDINARY);
-                    printf("update_list item: %s\n", s.c_ptr());
-                }
-            }
+            cout << "field_list: " << lex.field_list << endl;
+            cout << "many_values: " << lex.many_values << endl;
         }
 
         t->end_statement();
