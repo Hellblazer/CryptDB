@@ -40,8 +40,6 @@ class ColType {
 
 class CItemType {
  public:
-    virtual CItemType *getSpecific(Item *) { return this; }
-
     virtual Item *do_rewrite(Item *) = 0;
     virtual std::set<ColType> do_enctype(Item *) { throw 5; /* XXX */ }
 };
@@ -59,18 +57,21 @@ class CItemTypeDir : public CItemType {
         types[t] = ct;
     }
 
-    CItemType *lookup(Item *i, T t, const char *errname) {
+    Item *do_rewrite(Item *i) {
+        return lookup(i)->do_rewrite(i);
+    }
+
+ protected:
+    virtual CItemType *lookup(Item *i) = 0;
+
+    CItemType *do_lookup(Item *i, T t, const char *errname) {
         auto x = types.find(t);
         if (x == types.end()) {
             stringstream ss;
-            ss << "unhandled " << errname << " " << t;
+            ss << "missing " << errname << " " << t;
             throw std::runtime_error(ss.str());
         }
-        return x->second->getSpecific(i);
-    }
-
-    Item *do_rewrite(Item *) {
-        throw std::runtime_error("directory cannot rewrite");
+        return x->second;
     }
 
  private:
@@ -78,29 +79,28 @@ class CItemTypeDir : public CItemType {
 };
 
 static class CItemBaseDir : public CItemTypeDir<Item::Type> {
- public:
-    CItemType *getSpecific(Item *i) {
-        return lookup(i, i->type(), "type");
+    CItemType *lookup(Item *i) {
+        return do_lookup(i, i->type(), "type");
     }
 } itemTypes;
 
 static class CItemFuncDir : public CItemTypeDir<Item_func::Functype> {
+    CItemType *lookup(Item *i) {
+        return do_lookup(i, ((Item_func *) i)->functype(), "func type");
+    }
  public:
     CItemFuncDir() {
         itemTypes.reg(Item::Type::FUNC_ITEM, this);
         itemTypes.reg(Item::Type::COND_ITEM, this);
     }
-    CItemType *getSpecific(Item *i) {
-        return lookup(i, ((Item_func *) i)->functype(), "func type");
-    }
 } funcTypes;
 
 static class CItemFuncNameDir : public CItemTypeDir<std::string> {
+    CItemType *lookup(Item *i) {
+        return do_lookup(i, ((Item_func *) i)->func_name(), "func name");
+    }
  public:
     CItemFuncNameDir() { funcTypes.reg(Item_func::Functype::UNKNOWN_FUNC, this); }
-    CItemType *getSpecific(Item *i) {
-        return lookup(i, ((Item_func *) i)->func_name(), "func name");
-    }
 } funcNames;
 
 /*
@@ -109,8 +109,7 @@ static class CItemFuncNameDir : public CItemTypeDir<std::string> {
 static Item *
 rewrite(Item *i)
 {
-    CItemType *t = itemTypes.getSpecific(i);
-    Item *n = t->do_rewrite(i);
+    Item *n = itemTypes.do_rewrite(i);
     n->name = i->name;
     return n;
 }
@@ -118,8 +117,7 @@ rewrite(Item *i)
 static std::set<ColType>
 enctype(Item *i)
 {
-    CItemType *t = itemTypes.getSpecific(i);
-    return t->do_enctype(i);
+    return itemTypes.do_enctype(i);
 }
 
 /*
