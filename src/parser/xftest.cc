@@ -5,6 +5,7 @@
 #include <stdexcept>
 #include <vector>
 #include <set>
+#include <algorithm>
 
 #include <stdio.h>
 #include <bsd/string.h>
@@ -29,19 +30,32 @@
 #define CONCAT(a, b)    CONCAT2(a, b)
 #define ANON            CONCAT(__anon_id_, __LINE__)
 
-enum class Cipher { Plain, AES, OPE, Paillier, SWP };
+enum class Cipher   { Plain, AES, OPE, Paillier, SWP };
 enum class DataType { integer, string };
+
+struct EncKey {
+    int id;     // XXX not right, but assume 0 is any key
+};
 
 class ColType {
  public:
-    std::vector<std::pair<Cipher, Key> > enc;       // last is outermost
+    ColType(DataType dt) { type = dt; }
+
+    std::vector<std::pair<Cipher, EncKey> > enc;  // last is outermost
     DataType type;
+
+    /* XXX
+     * how to express a constant data element (that comes from the query),
+     * which can be encrypted in any number of layers, vs. a column data
+     * element (that comes from the DBMS), which cannot be encrypted up in
+     * more layers (instead requiring something else to be decrypted down)?
+     */
 };
 
 class CItemType {
  public:
-    virtual Item *do_rewrite(Item *) = 0;
-    virtual std::set<ColType> do_enctype(Item *) { throw 5; /* XXX */ }
+    virtual Item *do_rewrite(Item *) const = 0;
+    virtual std::vector<ColType> do_enctype(Item *) const = 0;
 };
 
 /*
@@ -57,14 +71,18 @@ class CItemTypeDir : public CItemType {
         types[t] = ct;
     }
 
-    Item *do_rewrite(Item *i) {
+    Item *do_rewrite(Item *i) const {
         return lookup(i)->do_rewrite(i);
     }
 
- protected:
-    virtual CItemType *lookup(Item *i) = 0;
+    std::vector<ColType> do_enctype(Item *i) const {
+        return lookup(i)->do_enctype(i);
+    }
 
-    CItemType *do_lookup(Item *i, T t, const char *errname) {
+ protected:
+    virtual CItemType *lookup(Item *i) const = 0;
+
+    CItemType *do_lookup(Item *i, T t, const char *errname) const {
         auto x = types.find(t);
         if (x == types.end()) {
             stringstream ss;
@@ -79,13 +97,13 @@ class CItemTypeDir : public CItemType {
 };
 
 static class CItemBaseDir : public CItemTypeDir<Item::Type> {
-    CItemType *lookup(Item *i) {
+    CItemType *lookup(Item *i) const {
         return do_lookup(i, i->type(), "type");
     }
 } itemTypes;
 
 static class CItemFuncDir : public CItemTypeDir<Item_func::Functype> {
-    CItemType *lookup(Item *i) {
+    CItemType *lookup(Item *i) const {
         return do_lookup(i, ((Item_func *) i)->functype(), "func type");
     }
  public:
@@ -96,7 +114,7 @@ static class CItemFuncDir : public CItemTypeDir<Item_func::Functype> {
 } funcTypes;
 
 static class CItemFuncNameDir : public CItemTypeDir<std::string> {
-    CItemType *lookup(Item *i) {
+    CItemType *lookup(Item *i) const {
         return do_lookup(i, ((Item_func *) i)->func_name(), "func name");
     }
  public:
@@ -114,7 +132,7 @@ rewrite(Item *i)
     return n;
 }
 
-static std::set<ColType>
+static std::vector<ColType>
 enctype(Item *i)
 {
     return itemTypes.do_enctype(i);
@@ -125,9 +143,11 @@ enctype(Item *i)
  */
 template<class T>
 class CItemSubtype : public CItemType {
-    virtual Item *do_rewrite(Item *i) { return do_rewrite((T*) i); }
+    virtual Item *do_rewrite(Item *i) const { return do_rewrite((T*) i); }
+    virtual std::vector<ColType> do_enctype(Item *i) const { return do_enctype((T*) i); }
  private:
-    virtual Item *do_rewrite(T *) = 0;
+    virtual Item *do_rewrite(T *) const = 0;
+    virtual std::vector<ColType> do_enctype(T *) const = 0;
 };
 
 template<class T, Item::Type TYPE>
@@ -152,7 +172,7 @@ class CItemSubtypeFN : public CItemSubtype<T> {
  * Actual item handlers.
  */
 static class CItemField : public CItemSubtypeIT<Item_field, Item::Type::FIELD_ITEM> {
-    Item *do_rewrite(Item_field *i) {
+    Item *do_rewrite(Item_field *i) const {
         return
             new Item_field(0,
                            i->db_name,
@@ -161,35 +181,55 @@ static class CItemField : public CItemSubtypeIT<Item_field, Item::Type::FIELD_IT
                            strdup((std::string("anonfld_") +
                                    i->field_name).c_str()));
     }
+
+    std::vector<ColType> do_enctype(Item_field *i) const {
+        return {};
+    }
 } ANON;
 
 static class CItemString : public CItemSubtypeIT<Item_string, Item::Type::STRING_ITEM> {
-    Item *do_rewrite(Item_string *i) {
+    Item *do_rewrite(Item_string *i) const {
         std::string s("ENCRYPTED:");
         s += std::string(i->str_value.ptr(), i->str_value.length());
         return new Item_string(strdup(s.c_str()), s.size(),
                                i->str_value.charset());
     }
+
+    std::vector<ColType> do_enctype(Item_string *i) const {
+        return { DataType::string };
+    }
 } ANON;
 
 static class CItemInt : public CItemSubtypeIT<Item_num, Item::Type::INT_ITEM> {
-    Item *do_rewrite(Item_num *i) {
+    Item *do_rewrite(Item_num *i) const {
         return new Item_int(i->val_int() + 1000);
+    }
+
+    std::vector<ColType> do_enctype(Item_num *i) const {
+        return { DataType::integer };
     }
 } ANON;
 
 static class CItemSubselect : public CItemSubtypeIT<Item_subselect, Item::Type::SUBSELECT_ITEM> {
-    Item *do_rewrite(Item_subselect *i) {
+    Item *do_rewrite(Item_subselect *i) const {
         // XXX handle sub-selects
         return i;
+    }
+
+    std::vector<ColType> do_enctype(Item_subselect *i) const {
+        return {};
     }
 } ANON;
 
 template<Item_func::Functype FT, class IT>
 class CItemCompare : public CItemSubtypeFT<Item_func, FT> {
-    Item *do_rewrite(Item_func *i) {
+    Item *do_rewrite(Item_func *i) const {
         Item **args = i->arguments();
         return new IT(rewrite(args[0]), rewrite(args[1]));
+    }
+
+    std::vector<ColType> do_enctype(Item_func *i) const {
+        return {};
     }
 };
 
@@ -203,7 +243,7 @@ static CItemCompare<Item_func::Functype::LE_FUNC,    Item_func_le>    ANON;
 
 template<Item_func::Functype FT, class IT>
 class CItemCond : public CItemSubtypeFT<Item_cond, FT> {
-    Item *do_rewrite(Item_cond *i) {
+    Item *do_rewrite(Item_cond *i) const {
         List<Item> *arglist = i->argument_list();
         List<Item> newlist;
 
@@ -218,6 +258,10 @@ class CItemCond : public CItemSubtypeFT<Item_cond, FT> {
 
         return new IT(newlist);
     }
+
+    std::vector<ColType> do_enctype(Item_cond *i) const {
+        return {};
+    }
 };
 
 static CItemCond<Item_func::Functype::COND_AND_FUNC, Item_cond_and> ANON;
@@ -225,23 +269,35 @@ static CItemCond<Item_func::Functype::COND_OR_FUNC,  Item_cond_or>  ANON;
 
 extern const char str_plus[] = "+";
 static class CItemPlus : public CItemSubtypeFN<Item_func, str_plus> {
-    Item *do_rewrite(Item_func *i) {
+    Item *do_rewrite(Item_func *i) const {
         Item **args = i->arguments();
         return new Item_func_plus(rewrite(args[0]), rewrite(args[1]));
+    }
+
+    std::vector<ColType> do_enctype(Item_func *i) const {
+        return {};
     }
 } ANON;
 
 static class CItemLike : public CItemSubtypeFT<Item_func_like, Item_func::Functype::LIKE_FUNC> {
-    Item *do_rewrite(Item_func_like *i) {
+    Item *do_rewrite(Item_func_like *i) const {
         return i;
+    }
+
+    std::vector<ColType> do_enctype(Item_func_like *i) const {
+        return {};
     }
 } ANON;
 
 static class CItemSP : public CItemSubtypeFT<Item_func, Item_func::Functype::FUNC_SP> {
-    Item *do_rewrite(Item_func *i) {
+    Item *do_rewrite(Item_func *i) const {
         stringstream ss;
         ss << "unsupported store procedure call " << *i;
         throw std::runtime_error(ss.str());
+    }
+
+    std::vector<ColType> do_enctype(Item_func *i) const {
+        return {};
     }
 } ANON;
 
