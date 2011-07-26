@@ -205,7 +205,7 @@ class CItemCond : public CItemSubtypeFT<Item_cond, FT> {
 static CItemCond<Item_func::Functype::COND_AND_FUNC, Item_cond_and> ANON;
 static CItemCond<Item_func::Functype::COND_OR_FUNC,  Item_cond_or>  ANON;
 
-char str_plus[] = "+";
+extern const char str_plus[] = "+";
 static class CItemPlus : public CItemSubtypeFN<Item_func, str_plus> {
     Item *do_rewrite(Item_func *i) {
         Item **args = i->arguments();
