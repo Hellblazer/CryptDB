@@ -107,8 +107,8 @@ rewrite(Item *i)
  */
 template<class T>
 class CItemSubtype : public CItemType {
- public:
     virtual Item *do_rewrite(Item *i) { return do_rewrite((T*) i); }
+ private:
     virtual Item *do_rewrite(T *) = 0;
 };
 
@@ -134,7 +134,6 @@ class CItemSubtypeFN : public CItemSubtype<T> {
  * Actual item handlers.
  */
 static class CItemField : public CItemSubtypeIT<Item_field, Item::Type::FIELD_ITEM> {
- public:
     Item *do_rewrite(Item_field *i) {
         return
             new Item_field(0,
@@ -147,7 +146,6 @@ static class CItemField : public CItemSubtypeIT<Item_field, Item::Type::FIELD_IT
 } ANON;
 
 static class CItemString : public CItemSubtypeIT<Item_string, Item::Type::STRING_ITEM> {
- public:
     Item *do_rewrite(Item_string *i) {
         std::string s("ENCRYPTED:");
         s += std::string(i->str_value.ptr(), i->str_value.length());
@@ -157,14 +155,12 @@ static class CItemString : public CItemSubtypeIT<Item_string, Item::Type::STRING
 } ANON;
 
 static class CItemInt : public CItemSubtypeIT<Item_num, Item::Type::INT_ITEM> {
- public:
     Item *do_rewrite(Item_num *i) {
         return new Item_int(i->val_int() + 1000);
     }
 } ANON;
 
 static class CItemSubselect : public CItemSubtypeIT<Item_subselect, Item::Type::SUBSELECT_ITEM> {
- public:
     Item *do_rewrite(Item_subselect *i) {
         // XXX handle sub-selects
         return i;
@@ -173,7 +169,6 @@ static class CItemSubselect : public CItemSubtypeIT<Item_subselect, Item::Type::
 
 template<Item_func::Functype FT, class IT>
 class CItemCompare : public CItemSubtypeFT<Item_func, FT> {
- public:
     Item *do_rewrite(Item_func *i) {
         Item **args = i->arguments();
         return new IT(rewrite(args[0]), rewrite(args[1]));
@@ -190,7 +185,6 @@ static CItemCompare<Item_func::Functype::LE_FUNC,    Item_func_le>    ANON;
 
 template<Item_func::Functype FT, class IT>
 class CItemCond : public CItemSubtypeFT<Item_cond, FT> {
- public:
     Item *do_rewrite(Item_cond *i) {
         List<Item> *arglist = i->argument_list();
         List<Item> newlist;
@@ -213,7 +207,6 @@ static CItemCond<Item_func::Functype::COND_OR_FUNC,  Item_cond_or>  ANON;
 
 char str_plus[] = "+";
 static class CItemPlus : public CItemSubtypeFN<Item_func, str_plus> {
- public:
     Item *do_rewrite(Item_func *i) {
         Item **args = i->arguments();
         return new Item_func_plus(rewrite(args[0]), rewrite(args[1]));
@@ -221,14 +214,12 @@ static class CItemPlus : public CItemSubtypeFN<Item_func, str_plus> {
 } ANON;
 
 static class CItemLike : public CItemSubtypeFT<Item_func_like, Item_func::Functype::LIKE_FUNC> {
- public:
     Item *do_rewrite(Item_func_like *i) {
         return i;
     }
 } ANON;
 
 static class CItemSP : public CItemSubtypeFT<Item_func, Item_func::Functype::FUNC_SP> {
- public:
     Item *do_rewrite(Item_func *i) {
         stringstream ss;
         ss << "unsupported store procedure call " << *i;
