@@ -3929,7 +3929,13 @@ help(int ac, char **av)
 int
 main(int argc, char ** argv)
 {
-    cryptdb_logger::enable(log_all);
+    cryptdb_logger::enable(log_crypto);
+    cryptdb_logger::enable(log_crypto_v);
+    cryptdb_logger::enable(log_edb);
+    cryptdb_logger::enable(log_edb_v);
+    cryptdb_logger::enable(log_test);
+    cryptdb_logger::enable(log_am);
+    cryptdb_logger::enable(log_am_v);
 
     if (argc == 1) {
         interactiveTest(argc, argv);

@@ -250,12 +250,13 @@ CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft,
     onion o = getOnion(fromlevel);
     onion o2 = getOnion(tolevel);
 
-  /*  LOG(crypto) << "crypt: salt " << salt << " data " << data
-                << " fullfieldname " << fullfieldname
-                << " fromlevel " << levelnames[(int) fromlevel]
-                << " to level" << levelnames[(int) tolevel]
-                << " onionfrom " << o << " onionto " << o2;
-*/
+    LOG(crypto_data)
+        << "crypt: salt " << salt << " data " << data
+        << " fullfieldname " << fullfieldname
+        << " fromlevel " << levelnames[(int) fromlevel]
+        << " to level" << levelnames[(int) tolevel]
+        << " onionfrom " << o << " onionto " << o2;
+
     myassert((o != oINVALID) && (o == o2),
              "levels for crypt are not on the same onion");
 
