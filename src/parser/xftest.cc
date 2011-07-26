@@ -46,7 +46,12 @@ class CItemSubtype : public CItemType {
 template <class T>
 class CItemTypeDir : public CItemType {
  public:
-    void reg(T t, CItemType *ct) { types[t] = ct; }
+    void reg(T t, CItemType *ct) {
+        auto x = types.find(t);
+        if (x != types.end())
+            throw std::runtime_error("duplicate key");
+        types[t] = ct;
+    }
 
     CItemType *lookup(Item *i, T t, const char *errname) {
         auto x = types.find(t);
@@ -174,12 +179,13 @@ class CItemCompare : public CItemSubtype<Item_func> {
     }
 };
 
-static CItemCompare<Item_func::Functype::EQ_FUNC, Item_func_eq> ANON;
-static CItemCompare<Item_func::Functype::NE_FUNC, Item_func_ne> ANON;
-static CItemCompare<Item_func::Functype::GT_FUNC, Item_func_gt> ANON;
-static CItemCompare<Item_func::Functype::GE_FUNC, Item_func_ge> ANON;
-static CItemCompare<Item_func::Functype::LT_FUNC, Item_func_lt> ANON;
-static CItemCompare<Item_func::Functype::LE_FUNC, Item_func_le> ANON;
+static CItemCompare<Item_func::Functype::EQ_FUNC,    Item_func_eq>    ANON;
+static CItemCompare<Item_func::Functype::EQUAL_FUNC, Item_func_equal> ANON;
+static CItemCompare<Item_func::Functype::NE_FUNC,    Item_func_ne>    ANON;
+static CItemCompare<Item_func::Functype::GT_FUNC,    Item_func_gt>    ANON;
+static CItemCompare<Item_func::Functype::GE_FUNC,    Item_func_ge>    ANON;
+static CItemCompare<Item_func::Functype::LT_FUNC,    Item_func_lt>    ANON;
+static CItemCompare<Item_func::Functype::LE_FUNC,    Item_func_le>    ANON;
 
 template<Item_func::Functype FT, class IT>
 class CItemCond : public CItemSubtype<Item_cond> {
@@ -220,6 +226,30 @@ static class CItemPlus : public CItemSubtype<Item_func> {
     }
 } ANON;
 
+static class CItemLike : public CItemSubtype<Item_func_like> {
+ public:
+    CItemLike() {
+        funcTypes.reg(Item_func::Functype::LIKE_FUNC, this);
+    }
+
+    Item *do_rewrite(Item_func_like *i) {
+        return i;
+    }
+} ANON;
+
+static class CItemSP : public CItemSubtype<Item_func> {
+ public:
+    CItemSP() {
+        funcTypes.reg(Item_func::Functype::FUNC_SP, this);
+    }
+
+    Item *do_rewrite(Item_func *i) {
+        stringstream ss;
+        ss << "unsupported store procedure call " << *i;
+        throw std::runtime_error(ss.str());
+    }
+} ANON;
+
 /*
  * Test harness.
  */
@@ -235,7 +265,8 @@ xftest(void)
         "FROM x, y as yy1, y as yy2, (SELECT x, y FROM z WHERE q=7) as subt "
         "WHERE x.bb = yy1.b AND yy1.k1 = yy2.k2 AND "
         "(yy2.d > 7 OR yy2.e = (3+4)) AND (yy1.f='hello') AND "
-        "yy2.cc = 9 AND yy2.gg = (SELECT COUNT(*) FROM xxc)";
+        "yy2.cc = 9 AND yy2.gg = (SELECT COUNT(*) FROM xxc) AND "
+        "yy2.ss LIKE '%foo%'";
     char buf[1024];
     strlcpy(buf, q, sizeof(buf));
     size_t len = strlen(buf);
