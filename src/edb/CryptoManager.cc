@@ -250,12 +250,12 @@ CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft,
     onion o = getOnion(fromlevel);
     onion o2 = getOnion(tolevel);
 
-    LOG(crypto) << "crypt: salt " << salt << " data " << data
+  /*  LOG(crypto) << "crypt: salt " << salt << " data " << data
                 << " fullfieldname " << fullfieldname
                 << " fromlevel " << levelnames[(int) fromlevel]
                 << " to level" << levelnames[(int) tolevel]
                 << " onionfrom " << o << " onionto " << o2;
-
+*/
     myassert((o != oINVALID) && (o == o2),
              "levels for crypt are not on the same onion");
 
@@ -671,84 +671,6 @@ CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft,
 
 }
 
-uint64_t
-CryptoManager::encrypt_OPE_onion(string uniqueFieldName, uint32_t value,
-                                 uint64_t salt)
-{
-    uint64_t res = encrypt_OPE(value, uniqueFieldName);
-
-    string key = getKey(uniqueFieldName, SECLEVEL::SEMANTIC_OPE);
-
-    AES_KEY * aesKey = get_key_SEM(key);
-    res = encrypt_SEM(res, aesKey, salt);
-
-    return res;
-}
-
-uint64_t
-CryptoManager::encrypt_DET_onion(string uniqueFieldName, uint32_t value,
-                                 uint64_t salt)
-{
-    //cout << "KEY USED TO ENCRYPT field to JOINDET " << uniqueFieldName << "
-    // " << marshallKey(getKey("join", SECLEVEL::DETJOIN)) << "\n"; fflush(stdout);
-
-    string key = getKey("join", SECLEVEL::DETJOIN);
-    AES_KEY * aesKey = get_key_DET(key);
-    uint64_t res = encrypt_DET(value, aesKey);
-
-    //cout << "join det enc is " << res << "\n";
-    //cout << "KEY USED TO ENCRYPT field to SECLEVEL::DET " << uniqueFieldName << " " <<
-    // marshallKey(getKey(uniqueFieldName, SECLEVEL::DET)) << "\n"; fflush(stdout);
-
-    key = getKey(uniqueFieldName, SECLEVEL::DET);
-    aesKey = get_key_DET(key);
-    res =  encrypt_DET(res, aesKey);
-
-    //cout << "det enc is " << res << "\n";
-
-    //cout << "KEY USED TO ENCRYPT field to SEM " << uniqueFieldName << " " <<
-    // marshallKey(getKey(uniqueFieldName, SECLEVEL::SEMANTIC)) << "\n"; fflush(stdout);
-
-    key = getKey(uniqueFieldName, SECLEVEL::SEMANTIC_DET);
-    aesKey = get_key_SEM(key);
-    res = encrypt_SEM(res, aesKey, salt);
-
-    return res;
-
-}
-
-string
-CryptoManager::encrypt_text_DET_onion(string uniqueFieldName, string value,
-                                      uint64_t salt)
-{
-    //cerr << "encrypting onion with fname " << uniqueFieldName.c_str() <<
-    // "\n";
-
-    string key = getKey(uniqueFieldName, SECLEVEL::DET);
-    AES_KEY * aesKey = get_key_DET(key);
-
-    string res = encrypt_DET_wrapper(value, aesKey);
-
-    key = getKey(uniqueFieldName, SECLEVEL::SEMANTIC_DET);
-    aesKey = get_key_SEM(key);
-    return encrypt_SEM(res, aesKey, salt);
-}
-
-uint64_t
-CryptoManager::encrypt_DET_onion(string uniqueFieldName, string value,
-                                 uint64_t salt)
-{
-    string key = getKey(uniqueFieldName, SECLEVEL::DET);
-    AES_KEY * aesKey = get_key_DET(key);
-    uint64_t res =  encrypt_DET(unmarshallVal(value), aesKey);
-
-    key = getKey(uniqueFieldName, SECLEVEL::SEMANTIC_DET);
-    aesKey = get_key_SEM(key);
-    res = encrypt_SEM(res, aesKey, salt);
-
-    return res;
-
-}
 
 string assembleWords(list<string> * words);
 list<string> * getWords(string text);

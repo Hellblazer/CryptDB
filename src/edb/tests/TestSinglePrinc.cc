@@ -565,7 +565,7 @@ testJoin(EDBClient * cl)
                        "INSERT INTO t1 VALUES (5, 30, 100000, '221B Baker Street', 'Sherlock Holmes')"),
              "testJoin couldn't insert (5)");
 
-    assert_s(myCreate(cl,"CREATE TABLE t2 (id enc integer, books enc integer, name enc text)",
+    assert_s(myCreate(cl,"CREATE TABLE t2 (id integer, books enc integer, name enc text)",
 		      "CREATE TABLE t2 (id integer, books integer, name text)"),
                  "testJoin couldn't create table");
     assert_s(myExecute(cl, "INSERT INTO t2 VALUES (1, 6, 'Peter Pan')"),
@@ -1023,6 +1023,7 @@ TestSinglePrinc::run(int argc, char ** argv)
     cerr << "Testing update..." << endl;
     testUpdate(cl);
     cerr << "Testing delete..." << endl;
+    if (1) {return;}
     testDelete(cl);
     cerr << "Testing search..." << endl;
     testSearch(cl);

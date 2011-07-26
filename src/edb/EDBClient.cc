@@ -792,11 +792,11 @@ throw (CryptDBError)
                     if (fm1->exists(fm1->anonFieldNameOPE)) {
                         string anonName = fm1->anonFieldNameOPE;
 
-                        if (fm1->secLevelDET == SECLEVEL::SEMANTIC_OPE) {
+                        if (fm1->secLevelOPE == SECLEVEL::SEMANTIC_OPE) {
                             addIfNotContained(fullName(field,
                                                        table),
                                               fieldsDec.OPEFields);
-                            fm1->secLevelDET = SECLEVEL::OPE;
+                            fm1->secLevelOPE = SECLEVEL::OPE;
                         }
 
                         resultQuery += ", " + anonName + " = " +
@@ -1579,7 +1579,7 @@ throw (CryptDBError)
     string oldTable = "";
 
     while (!equalsIgnoreCase(*wordsIt, "from")) {
-        LOG(edb_v) << "query so far: " << resultQuery;
+        if (VERBOSE_V) {LOG(edb_v) << "query so far: " << resultQuery;}
 
         string table, field;
 
@@ -2016,7 +2016,7 @@ getResMeta(list<string> words, vector<vector<string> > & vals, QueryMeta & qm,
 static void
 printRes(vector<vector<string> > & vals)
 {
-    LOG(edb) << "Raw results from the server to decrypt:";
+    cerr << "Raw results from the server to decrypt:";
 
     stringstream ssn;
     for (unsigned int i = 0; i < vals[0].size(); i++) {
@@ -2024,7 +2024,7 @@ printRes(vector<vector<string> > & vals)
         snprintf(buf, sizeof(buf), "%-20s", vals[0][i].c_str());
         ssn << buf;
     }
-    LOG(edb) << ssn.str();
+    cerr << ssn.str();
 
     /* next, print out the rows */
     for (unsigned int i = 0; i < vals.size() - 1; i++) {
@@ -2034,7 +2034,7 @@ printRes(vector<vector<string> > & vals)
             snprintf(buf, sizeof(buf), "%-20s", vals[i+1][j].c_str());
             ss << buf;
         }
-        LOG(edb) << ss.str();
+        cerr << ss.str();
     }
 }
 

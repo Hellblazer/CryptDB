@@ -343,7 +343,7 @@ testSWPSearch()
                                                                word1),
                                           CryptoManager::encryptSWP(key,
                                                                     vec3)),
-             "incorrect found flad in vec3");
+             "incorrect found flag in vec3");
 
     indexes = CryptoManager::searchSWP(CryptoManager::token(key,
                                                             word1),
