@@ -33,13 +33,6 @@ class CItemType {
     virtual Item *do_rewrite(Item *) = 0;
 };
 
-template<class T>
-class CItemSubtype : public CItemType {
- public:
-    virtual Item *do_rewrite(Item *i) { return do_rewrite((T*) i); }
-    virtual Item *do_rewrite(T *) = 0;
-};
-
 /*
  * Directories for locating an appropriate CItemType for a given Item.
  */
@@ -110,14 +103,38 @@ rewrite(Item *i)
 }
 
 /*
- * CItemType classes for supported Items.
+ * CItemType classes for supported Items: supporting machinery.
  */
-static class CItemField : public CItemSubtype<Item_field> {
+template<class T>
+class CItemSubtype : public CItemType {
  public:
-    CItemField() {
-        itemTypes.reg(Item::Type::FIELD_ITEM, this);
-    }
+    virtual Item *do_rewrite(Item *i) { return do_rewrite((T*) i); }
+    virtual Item *do_rewrite(T *) = 0;
+};
 
+template<class T, Item::Type TYPE>
+class CItemSubtypeIT : public CItemSubtype<T> {
+ public:
+    CItemSubtypeIT() { itemTypes.reg(TYPE, this); }
+};
+
+template<class T, Item_func::Functype TYPE>
+class CItemSubtypeFT : public CItemSubtype<T> {
+ public:
+    CItemSubtypeFT() { funcTypes.reg(TYPE, this); }
+};
+
+template<class T, const char *TYPE>
+class CItemSubtypeFN : public CItemSubtype<T> {
+ public:
+    CItemSubtypeFN() { funcNames.reg(std::string(TYPE), this); }
+};
+
+/*
+ * Actual item handlers.
+ */
+static class CItemField : public CItemSubtypeIT<Item_field, Item::Type::FIELD_ITEM> {
+ public:
     Item *do_rewrite(Item_field *i) {
         return
             new Item_field(0,
@@ -129,12 +146,8 @@ static class CItemField : public CItemSubtype<Item_field> {
     }
 } ANON;
 
-static class CItemString : public CItemSubtype<Item_string> {
+static class CItemString : public CItemSubtypeIT<Item_string, Item::Type::STRING_ITEM> {
  public:
-    CItemString() {
-        itemTypes.reg(Item::Type::STRING_ITEM, this);
-    }
-
     Item *do_rewrite(Item_string *i) {
         std::string s("ENCRYPTED:");
         s += std::string(i->str_value.ptr(), i->str_value.length());
@@ -143,36 +156,24 @@ static class CItemString : public CItemSubtype<Item_string> {
     }
 } ANON;
 
-static class CItemInt : public CItemSubtype<Item_num> {
+static class CItemInt : public CItemSubtypeIT<Item_num, Item::Type::INT_ITEM> {
  public:
-    CItemInt() {
-        itemTypes.reg(Item::Type::INT_ITEM, this);
-    }
-
     Item *do_rewrite(Item_num *i) {
         return new Item_int(i->val_int() + 1000);
     }
 } ANON;
 
-static class CItemSubselect : public CItemType {
+static class CItemSubselect : public CItemSubtypeIT<Item_subselect, Item::Type::SUBSELECT_ITEM> {
  public:
-    CItemSubselect() {
-        itemTypes.reg(Item::Type::SUBSELECT_ITEM, this);
-    }
-
-    Item *do_rewrite(Item *i) {
+    Item *do_rewrite(Item_subselect *i) {
         // XXX handle sub-selects
         return i;
     }
 } ANON;
 
 template<Item_func::Functype FT, class IT>
-class CItemCompare : public CItemSubtype<Item_func> {
+class CItemCompare : public CItemSubtypeFT<Item_func, FT> {
  public:
-    CItemCompare() {
-        funcTypes.reg(FT, this);
-    }
-
     Item *do_rewrite(Item_func *i) {
         Item **args = i->arguments();
         return new IT(rewrite(args[0]), rewrite(args[1]));
@@ -188,12 +189,8 @@ static CItemCompare<Item_func::Functype::LT_FUNC,    Item_func_lt>    ANON;
 static CItemCompare<Item_func::Functype::LE_FUNC,    Item_func_le>    ANON;
 
 template<Item_func::Functype FT, class IT>
-class CItemCond : public CItemSubtype<Item_cond> {
+class CItemCond : public CItemSubtypeFT<Item_cond, FT> {
  public:
-    CItemCond() {
-        funcTypes.reg(FT, this);
-    }
-
     Item *do_rewrite(Item_cond *i) {
         List<Item> *arglist = i->argument_list();
         List<Item> newlist;
@@ -214,35 +211,24 @@ class CItemCond : public CItemSubtype<Item_cond> {
 static CItemCond<Item_func::Functype::COND_AND_FUNC, Item_cond_and> ANON;
 static CItemCond<Item_func::Functype::COND_OR_FUNC,  Item_cond_or>  ANON;
 
-static class CItemPlus : public CItemSubtype<Item_func> {
+char str_plus[] = "+";
+static class CItemPlus : public CItemSubtypeFN<Item_func, str_plus> {
  public:
-    CItemPlus() {
-        funcNames.reg("+", this);
-    }
-
     Item *do_rewrite(Item_func *i) {
         Item **args = i->arguments();
         return new Item_func_plus(rewrite(args[0]), rewrite(args[1]));
     }
 } ANON;
 
-static class CItemLike : public CItemSubtype<Item_func_like> {
+static class CItemLike : public CItemSubtypeFT<Item_func_like, Item_func::Functype::LIKE_FUNC> {
  public:
-    CItemLike() {
-        funcTypes.reg(Item_func::Functype::LIKE_FUNC, this);
-    }
-
     Item *do_rewrite(Item_func_like *i) {
         return i;
     }
 } ANON;
 
-static class CItemSP : public CItemSubtype<Item_func> {
+static class CItemSP : public CItemSubtypeFT<Item_func, Item_func::Functype::FUNC_SP> {
  public:
-    CItemSP() {
-        funcTypes.reg(Item_func::Functype::FUNC_SP, this);
-    }
-
     Item *do_rewrite(Item_func *i) {
         stringstream ss;
         ss << "unsupported store procedure call " << *i;
