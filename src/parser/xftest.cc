@@ -3,6 +3,8 @@
 #include <iostream>
 #include <sstream>
 #include <stdexcept>
+#include <vector>
+#include <set>
 
 #include <stdio.h>
 #include <bsd/string.h>
@@ -27,10 +29,21 @@
 #define CONCAT(a, b)    CONCAT2(a, b)
 #define ANON            CONCAT(__anon_id_, __LINE__)
 
+enum class Cipher { Plain, AES, OPE, Paillier, SWP };
+enum class DataType { integer, string };
+
+class ColType {
+ public:
+    std::vector<std::pair<Cipher, Key> > enc;       // last is outermost
+    DataType type;
+};
+
 class CItemType {
  public:
     virtual CItemType *getSpecific(Item *) { return this; }
+
     virtual Item *do_rewrite(Item *) = 0;
+    virtual std::set<ColType> do_enctype(Item *) { throw 5; /* XXX */ }
 };
 
 /*
@@ -100,6 +113,13 @@ rewrite(Item *i)
     Item *n = t->do_rewrite(i);
     n->name = i->name;
     return n;
+}
+
+static std::set<ColType>
+enctype(Item *i)
+{
+    CItemType *t = itemTypes.getSpecific(i);
+    return t->do_enctype(i);
 }
 
 /*
