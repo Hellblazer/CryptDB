@@ -673,6 +673,7 @@ testUpdate(EDBClient * cl)
     assert_s(myExecute(cl,
                        "INSERT INTO t1 VALUES (1, 10, 0, 'first star to the right and straight on till morning', 'Peter Pan')"),
              "testUpdate couldn't insert (1)");
+
     assert_s(myExecute(cl,
                        "INSERT INTO t1 VALUES (2, 16, 1000, 'Green Gables', 'Anne Shirley')"),
              "testUpdate couldn't insert (2)");

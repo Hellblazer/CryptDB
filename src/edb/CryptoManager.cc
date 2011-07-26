@@ -812,17 +812,18 @@ static vector<unsigned char>
 getXorVector(size_t len, AES_KEY * key, uint64_t salt)
 {
     size_t AESBlocks = len / AES_BLOCK_BYTES;
-    if (AESBlocks * AES_BLOCK_BYTES < len)
+    if (AESBlocks * AES_BLOCK_BYTES < len) {
         AESBlocks++;
+    }
 
     //construct vector with which we will XOR
     vector<unsigned char> v(AESBlocks * AES_BLOCK_BYTES);
 
-    for (unsigned int i = 0; i < AESBlocks; i++)
+    for (unsigned int i = 0; i < AESBlocks; i++) {
         AES_encrypt((const uint8_t*) BytesFromInt(salt+i,
                                                   AES_BLOCK_BYTES).c_str(),
                     &v[i*AES_BLOCK_BYTES], key);
-
+    }
     return v;
 }
 
@@ -832,8 +833,9 @@ CryptoManager::encrypt_SEM(const string &ptext, AES_KEY * key, uint64_t salt)
     vector<unsigned char> xorVector = getXorVector(ptext.length(), key, salt);
 
     stringstream ss;
-    for (unsigned int i = 0; i < ptext.length(); i++)
+    for (unsigned int i = 0; i < ptext.length(); i++) {
         ss << (uint8_t) (((uint8_t)ptext[i]) ^ xorVector[i]);
+    }
 
     return ss.str();
 }

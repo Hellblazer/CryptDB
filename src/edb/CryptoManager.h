@@ -44,8 +44,7 @@ class CryptoManager {
     //expects AES_KEY_BYTES long key
     void setMasterKey(const string &masterKey);
 
-    //**************** Public Key Cryptosystem (PKCS)
-    // ****************************************/
+    //**** Public Key Cryptosystem (PKCS) *****//
 
     static const unsigned int PKCS_bytes_size = 256;     //this is the size in
                                                          // openssl
@@ -75,8 +74,6 @@ class CryptoManager {
     static void freeKey(PKCS * key);
 
     //***************************************************************************************/
-    string encrypt_text_DET_onion(string uniqueFieldName, string value,
-                                  uint64_t salt);
 
     uint32_t encrypt_VAL(string uniqueFieldName, uint32_t value,
                          uint64_t salt);
