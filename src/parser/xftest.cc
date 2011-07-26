@@ -10,7 +10,7 @@
 #include <stdio.h>
 #include <bsd/string.h>
 
-#include "fatal.h"
+#include "errstream.h"
 #include "mysql_glue.h"
 #include "stringify.h"
 
@@ -30,32 +30,95 @@
 #define CONCAT(a, b)    CONCAT2(a, b)
 #define ANON            CONCAT(__anon_id_, __LINE__)
 
-enum class Cipher   { Plain, AES, OPE, Paillier, SWP };
+enum class Cipher   { AES, OPE, Paillier, SWP };
 enum class DataType { integer, string };
 
 struct EncKey {
+ public:
+    EncKey(int i) : id(i) {}
     int id;     // XXX not right, but assume 0 is any key
+};
+
+class EncType {
+ public:
+    std::vector<std::pair<Cipher, EncKey> > onion;  // last is outermost
+
+    /* Find a common enctype between two onions */
+    bool match(const EncType &other, EncType *out) const {
+        EncType res;
+
+        auto ai = onion.begin();
+        auto ae = onion.end();
+        auto bi = other.onion.begin();
+        auto be = other.onion.end();
+
+        if (other.onion.size() > onion.size()) {
+            swap(ai, bi);
+            swap(ae, be);
+        }
+
+        /* ai is no shorter than bi */
+        while (ai != ae) {
+            if (bi == be) {
+                /*
+                 * We can add layers of public-key encryption..
+                 * XXX it doesn't seem good that PK layers are added here,
+                 * but adding non-PK layers on top of constants is elsewhere.
+                 */
+                if (ai->first == Cipher::Paillier)
+                    res.onion.push_back(*ai);
+                else
+                    return false;
+            } else {
+                if (ai->first != bi->first)
+                    return false;
+
+                struct EncKey k = ai->second;
+                if (k.id == 0) {
+                    k = bi->second;
+                } else {
+                    if (k.id != bi->second.id)
+                        return false;
+                }
+
+                res.onion.push_back(make_pair(ai->first, k));
+            }
+
+            ai++;
+            bi++;
+        }
+
+        *out = res;
+        return true;
+    }
+
+    bool match(const std::vector<EncType> &encs, EncType *out) const {
+        for (auto i = encs.begin(); i != encs.end(); i++)
+            if (match(*i, out))
+                return true;
+        return false;
+    }
 };
 
 class ColType {
  public:
-    ColType(DataType dt) { type = dt; }
+    ColType(DataType dt, bool isconst = false) : type(dt), is_const(isconst) {}
+    ColType(DataType dt, std::vector<EncType> e, bool isconst = false) : type(dt), encs(e), is_const(isconst) {}
 
-    std::vector<std::pair<Cipher, EncKey> > enc;  // last is outermost
     DataType type;
-
-    /* XXX
-     * how to express a constant data element (that comes from the query),
-     * which can be encrypted in any number of layers, vs. a column data
-     * element (that comes from the DBMS), which cannot be encrypted up in
-     * more layers (instead requiring something else to be decrypted down)?
+    std::vector<EncType> encs;
+    bool is_const;
+    /*
+     * is_const means any encryption type can be generated (e.g., because
+     * the value is a constant that can be encrypted in proxy).  otherwise,
+     * only public-key encryptions (e.g., Paillier/HOM) can be generated.
      */
 };
 
 class CItemType {
  public:
     virtual Item *do_rewrite(Item *) const = 0;
-    virtual std::vector<ColType> do_enctype(Item *) const = 0;
+    virtual ColType do_enctype(Item *) const = 0;
 };
 
 /*
@@ -67,7 +130,7 @@ class CItemTypeDir : public CItemType {
     void reg(T t, CItemType *ct) {
         auto x = types.find(t);
         if (x != types.end())
-            throw std::runtime_error("duplicate key");
+            thrower() << "duplicate key " << t;
         types[t] = ct;
     }
 
@@ -75,7 +138,7 @@ class CItemTypeDir : public CItemType {
         return lookup(i)->do_rewrite(i);
     }
 
-    std::vector<ColType> do_enctype(Item *i) const {
+    ColType do_enctype(Item *i) const {
         return lookup(i)->do_enctype(i);
     }
 
@@ -84,11 +147,8 @@ class CItemTypeDir : public CItemType {
 
     CItemType *do_lookup(Item *i, T t, const char *errname) const {
         auto x = types.find(t);
-        if (x == types.end()) {
-            stringstream ss;
-            ss << "missing " << errname << " " << t;
-            throw std::runtime_error(ss.str());
-        }
+        if (x == types.end())
+            thrower() << "missing " << errname << " " << t;
         return x->second;
     }
 
@@ -132,7 +192,7 @@ rewrite(Item *i)
     return n;
 }
 
-static std::vector<ColType>
+static ColType
 enctype(Item *i)
 {
     return itemTypes.do_enctype(i);
@@ -144,10 +204,10 @@ enctype(Item *i)
 template<class T>
 class CItemSubtype : public CItemType {
     virtual Item *do_rewrite(Item *i) const { return do_rewrite((T*) i); }
-    virtual std::vector<ColType> do_enctype(Item *i) const { return do_enctype((T*) i); }
+    virtual ColType do_enctype(Item *i) const { return do_enctype((T*) i); }
  private:
     virtual Item *do_rewrite(T *) const = 0;
-    virtual std::vector<ColType> do_enctype(T *) const = 0;
+    virtual ColType do_enctype(T *) const = 0;
 };
 
 template<class T, Item::Type TYPE>
@@ -182,8 +242,13 @@ static class CItemField : public CItemSubtypeIT<Item_field, Item::Type::FIELD_IT
                                    i->field_name).c_str()));
     }
 
-    std::vector<ColType> do_enctype(Item_field *i) const {
-        return {};
+    ColType do_enctype(Item_field *i) const {
+        /* XXX
+         * need to look up current schema state.
+         * return one EncType for each onion level
+         * that can be exposed for this column.
+         */
+        return DataType::string;
     }
 } ANON;
 
@@ -195,8 +260,8 @@ static class CItemString : public CItemSubtypeIT<Item_string, Item::Type::STRING
                                i->str_value.charset());
     }
 
-    std::vector<ColType> do_enctype(Item_string *i) const {
-        return { DataType::string };
+    ColType do_enctype(Item_string *i) const {
+        return ColType(DataType::string, true);
     }
 } ANON;
 
@@ -205,8 +270,8 @@ static class CItemInt : public CItemSubtypeIT<Item_num, Item::Type::INT_ITEM> {
         return new Item_int(i->val_int() + 1000);
     }
 
-    std::vector<ColType> do_enctype(Item_num *i) const {
-        return { DataType::integer };
+    ColType do_enctype(Item_num *i) const {
+        return ColType(DataType::integer, true);
     }
 } ANON;
 
@@ -216,8 +281,9 @@ static class CItemSubselect : public CItemSubtypeIT<Item_subselect, Item::Type::
         return i;
     }
 
-    std::vector<ColType> do_enctype(Item_subselect *i) const {
-        return {};
+    ColType do_enctype(Item_subselect *i) const {
+        /* XXX */
+        return DataType::integer;
     }
 } ANON;
 
@@ -228,9 +294,7 @@ class CItemCompare : public CItemSubtypeFT<Item_func, FT> {
         return new IT(rewrite(args[0]), rewrite(args[1]));
     }
 
-    std::vector<ColType> do_enctype(Item_func *i) const {
-        return {};
-    }
+    ColType do_enctype(Item_func *i) const { return DataType::integer; }
 };
 
 static CItemCompare<Item_func::Functype::EQ_FUNC,    Item_func_eq>    ANON;
@@ -259,9 +323,7 @@ class CItemCond : public CItemSubtypeFT<Item_cond, FT> {
         return new IT(newlist);
     }
 
-    std::vector<ColType> do_enctype(Item_cond *i) const {
-        return {};
-    }
+    ColType do_enctype(Item_cond *i) const { return DataType::integer; }
 };
 
 static CItemCond<Item_func::Functype::COND_AND_FUNC, Item_cond_and> ANON;
@@ -274,8 +336,24 @@ static class CItemPlus : public CItemSubtypeFN<Item_func, str_plus> {
         return new Item_func_plus(rewrite(args[0]), rewrite(args[1]));
     }
 
-    std::vector<ColType> do_enctype(Item_func *i) const {
-        return {};
+    ColType do_enctype(Item_func *i) const {
+        Item **args = i->arguments();
+        ColType t0 = enctype(args[0]);
+        ColType t1 = enctype(args[0]);
+
+        if (t0.type != DataType::integer || t1.type != DataType::integer)
+            thrower() << "non-integer plus " << *args[0] << ", " << *args[1];
+
+        EncType e;
+        e.onion = {};
+        if (e.match(t0.encs, &e) && e.match(t1.encs, &e))
+            return ColType(DataType::integer, {e});
+
+        e.onion = { make_pair(Cipher::Paillier, 0) };
+        if (e.match(t0.encs, &e) && e.match(t1.encs, &e))
+            return ColType(DataType::integer, {e});
+
+        thrower() << "no common HOM type: " << *args[0] << ", " << *args[1];
     }
 } ANON;
 
@@ -284,21 +362,16 @@ static class CItemLike : public CItemSubtypeFT<Item_func_like, Item_func::Functy
         return i;
     }
 
-    std::vector<ColType> do_enctype(Item_func_like *i) const {
-        return {};
-    }
+    ColType do_enctype(Item_func_like *i) const { return DataType::integer; }
 } ANON;
 
 static class CItemSP : public CItemSubtypeFT<Item_func, Item_func::Functype::FUNC_SP> {
-    Item *do_rewrite(Item_func *i) const {
-        stringstream ss;
-        ss << "unsupported store procedure call " << *i;
-        throw std::runtime_error(ss.str());
+    void error(Item_func *i) const __attribute__((noreturn)) {
+        thrower() << "unsupported store procedure call " << *i;
     }
 
-    std::vector<ColType> do_enctype(Item_func *i) const {
-        return {};
-    }
+    Item *do_rewrite(Item_func *i) const __attribute__((noreturn)) { error(i); }
+    ColType do_enctype(Item_func *i) const __attribute__((noreturn)) { error(i); }
 } ANON;
 
 /*
