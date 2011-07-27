@@ -17,7 +17,7 @@ class TestAccessManager {
   virtual
     ~TestAccessManager();
 
-  static void run(int argc, char ** argv);
+  static void run(const TestConfig &tc, int argc, char ** argv);
 };
 
 #endif /* TESTACCESSMANAGER */

@@ -22,13 +22,13 @@ TestMultiPrinc::~TestMultiPrinc()
 }
 
 static void
-checkQuery(EDBClient * cl, const string &query, const ResType &expect)
+checkQuery(const TestConfig &tc, EDBClient * cl, const string &query, const ResType &expect)
 {
     ntest++;
     ResType * test_res = myExecute(cl, query);
     if (!test_res) {
         cerr << "Query: " << query << " cannot execute" << endl;
-        if (STOP_IF_FAIL) {
+        if (tc.stop_if_fail) {
             assert_s(false, "above query could not execute");
         }
         return;
@@ -40,7 +40,7 @@ checkQuery(EDBClient * cl, const string &query, const ResType &expect)
         PrintRes(expect);
         cerr << "but it returned:" << endl;
         PrintRes(*test_res);
-        if (STOP_IF_FAIL) {
+        if (tc.stop_if_fail) {
             assert_s(false, "above query returned incorrect result");
         }
         return;
@@ -50,7 +50,7 @@ checkQuery(EDBClient * cl, const string &query, const ResType &expect)
 }
 
 static void
-testNULL(EDBClient * cl, const string &annotated, const string &plain) {
+testNULL(const TestConfig &tc, EDBClient * cl, const string &annotated, const string &plain) {
   ntest++;
   if (myCreate(cl, annotated, plain)) {
     if (PLAIN) {
@@ -59,7 +59,7 @@ testNULL(EDBClient * cl, const string &annotated, const string &plain) {
       cerr << "Query:\n" << annotated << endl;
     }
     cerr << "did not return NULL" << endl;
-    if (STOP_IF_FAIL) {
+    if (tc.stop_if_fail) {
       assert_s(false, "above query did not fail (should have)");
     }
     return;
@@ -68,7 +68,7 @@ testNULL(EDBClient * cl, const string &annotated, const string &plain) {
 }
 
 static void
-BasicFunctionality(EDBClient * cl)
+BasicFunctionality(const TestConfig &tc, EDBClient * cl)
 {
     cl->plain_execute(
         "DROP TABLE IF EXISTS u, t1, plain_users, pwdcryptdb__users, cryptdb_publis, cryptdb_initialized_principles, cryptdb0;");
@@ -103,27 +103,27 @@ BasicFunctionality(EDBClient * cl)
         "INSERT INTO plain_users (username, psswd) VALUES ('alice','secretalice');");
 
     //check responses to normal queries
-    checkQuery(cl,"INSERT INTO u VALUES (1, 'alice')",empty);
+    checkQuery(tc, cl,"INSERT INTO u VALUES (1, 'alice')",empty);
 
-    checkQuery(cl, "SELECT * FROM u",
+    checkQuery(tc, cl, "SELECT * FROM u",
                { {"id", "username"},
                  {"1", "alice"} });
 
-    checkQuery(cl,"INSERT INTO t1 VALUES (1, 'text which is inserted', 23)",
+    checkQuery(tc, cl,"INSERT INTO t1 VALUES (1, 'text which is inserted', 23)",
                empty);
 
-    checkQuery(cl,"SELECT * FROM t1",
+    checkQuery(tc, cl,"SELECT * FROM t1",
                { {"id", "post", "age"},
                  {"1", "text which is inserted", "23"} });
 
-    checkQuery(cl,"SELECT post FROM t1 WHERE id = 1 AND age = 23",
+    checkQuery(tc, cl,"SELECT post FROM t1 WHERE id = 1 AND age = 23",
                { {"post"},
                  {"text which is inserted"} });
 
-    checkQuery(cl,"UPDATE t1 SET post = 'hello!' WHERE age > 22 AND id = 1",
+    checkQuery(tc, cl,"UPDATE t1 SET post = 'hello!' WHERE age > 22 AND id = 1",
                empty);
 
-    checkQuery(cl,"SELECT * FROM t1",
+    checkQuery(tc, cl,"SELECT * FROM t1",
                { {"id", "post", "age"},
                  {"1", "hello!", "23"} });
 
@@ -132,17 +132,17 @@ BasicFunctionality(EDBClient * cl)
         "users (username, psswd) VALUES ('raluca','secretraluca');",
         "INSERT INTO plain_users (username, psswd) VALUES ('raluca','secretraluca');");
 
-    checkQuery(cl,"INSERT INTO u VALUES (2, 'raluca');", empty);
+    checkQuery(tc, cl,"INSERT INTO u VALUES (2, 'raluca');", empty);
 
-    checkQuery(cl,"SELECT * FROM u",
+    checkQuery(tc, cl,"SELECT * FROM u",
                { {"id","username"},
                  {"1", "alice"},
                  {"2", "raluca"} });
 
-    checkQuery(cl,"INSERT INTO t1 VALUES (2, 'raluca has text here', 5)",
+    checkQuery(tc, cl,"INSERT INTO t1 VALUES (2, 'raluca has text here', 5)",
                empty);
 
-    checkQuery(cl,"SELECT * FROM t1",
+    checkQuery(tc, cl,"SELECT * FROM t1",
                { {"id", "post", "age"},
                  {"1","hello!","23"},
                  {"2","raluca has text here","5"} });
@@ -150,7 +150,7 @@ BasicFunctionality(EDBClient * cl)
 }
 
 static void
-PrivMessages(EDBClient * cl)
+PrivMessages(const TestConfig &tc, EDBClient * cl)
 {
     cl->plain_execute(
         "DROP TABLE IF EXISTS u, msgs, privmsg, plain_users, pwdcryptdb__users, cryptdb_publis, cryptdb_initialized_principles, cryptdb0;");
@@ -182,26 +182,26 @@ PrivMessages(EDBClient * cl)
         "users (username, psswd) VALUES ('bob','secretbob');",
         "INSERT INTO plain_users (username, psswd) VALUES ('bob','secretbob');");
 
-    checkQuery(cl,"INSERT INTO u VALUES (1, 'alice')",empty);
-    checkQuery(cl,"INSERT INTO u VALUES (2, 'bob')",empty);
+    checkQuery(tc, cl,"INSERT INTO u VALUES (1, 'alice')",empty);
+    checkQuery(tc, cl,"INSERT INTO u VALUES (2, 'bob')",empty);
 
     checkQuery(
-        cl,"INSERT INTO privmsg (msgid, recid, senderid) VALUES (9, 1, 2)",
+        tc, cl,"INSERT INTO privmsg (msgid, recid, senderid) VALUES (9, 1, 2)",
         empty);
-    checkQuery(cl,"INSERT INTO msgs VALUES (1, 'hello world')",empty);
+    checkQuery(tc, cl,"INSERT INTO msgs VALUES (1, 'hello world')",empty);
 
-    checkQuery(cl,"SELECT msgtext from msgs WHERE msgid = 1",
+    checkQuery(tc, cl,"SELECT msgtext from msgs WHERE msgid = 1",
                { {"msgtext"},
                  {"hello world"} });
     checkQuery(
-        cl,
+        tc, cl,
         "SELECT msgtext from msgs, privmsg, u WHERE username = 'alice' AND userid = recid AND msgs.msgid = privmsg.msgid",
         empty);
 
-    checkQuery(cl,"INSERT INTO msgs VALUES (9, 'message for alice from bob')",
+    checkQuery(tc, cl,"INSERT INTO msgs VALUES (9, 'message for alice from bob')",
                empty);
     checkQuery(
-        cl,
+        tc, cl,
         "SELECT msgtext from msgs, privmsg, u WHERE username = 'alice' AND userid = recid AND msgs.msgid = privmsg.msgid",
         { {"msgtext"},
           {"message for alice from bob"} });
@@ -210,7 +210,7 @@ PrivMessages(EDBClient * cl)
 }
 
 static void
-UserGroupForum(EDBClient * cl) {
+UserGroupForum(const TestConfig &tc, EDBClient * cl) {
     cl->plain_execute("DROP TABLE IF EXISTS u, usergroup, groupforum, forum, plain_users, pwdcryptdb__users, cryptdb_public, cryptdb_initialized_principles, cryptdb0;");
     assert_s(myCreate(cl,"CREATE TABLE u (userid integer, username givespsswd userid text);",
                       "CREATE TABLE u (userid integer, username text);"),
@@ -232,33 +232,33 @@ UserGroupForum(EDBClient * cl) {
     myCreate(cl,"INSERT INTO "+ PWD_TABLE_PREFIX + "users (username, psswd) VALUES ('chris','secretchris');","INSERT INTO plain_users (username, psswd) VALUES ('chris','secretchris');");
 
     //populate things while everyone is logged in
-    checkQuery(cl,"INSERT INTO u VALUES (1, 'alice')",empty);
-    checkQuery(cl,"INSERT INTO u VALUES (2, 'bob')",empty);
-    checkQuery(cl,"INSERT INTO u VALUES (3, 'chris')",empty);
+    checkQuery(tc, cl,"INSERT INTO u VALUES (1, 'alice')",empty);
+    checkQuery(tc, cl,"INSERT INTO u VALUES (2, 'bob')",empty);
+    checkQuery(tc, cl,"INSERT INTO u VALUES (3, 'chris')",empty);
 
-    checkQuery(cl,"INSERT INTO usergroup VALUES (1,1)",empty);
-    checkQuery(cl,"INSERT INTO usergroup VALUES (2,2)",empty);
-    checkQuery(cl,"INSERT INTO usergroup VALUES (3,1)",empty);
-    checkQuery(cl,"INSERT INTO usergroup VALUES (3,2)",empty);
+    checkQuery(tc, cl,"INSERT INTO usergroup VALUES (1,1)",empty);
+    checkQuery(tc, cl,"INSERT INTO usergroup VALUES (2,2)",empty);
+    checkQuery(tc, cl,"INSERT INTO usergroup VALUES (3,1)",empty);
+    checkQuery(tc, cl,"INSERT INTO usergroup VALUES (3,2)",empty);
 
-    checkQuery(cl,"SELECT * FROM usergroup",
+    checkQuery(tc, cl,"SELECT * FROM usergroup",
                { {"userid", "groupid"},
                  {"1","1"},
                  {"2","2"},
                  {"3","1"},
                  {"3","2"} });
 
-    checkQuery(cl,"INSERT INTO groupforum VALUES (1,1,14)",empty);
-    checkQuery(cl,"INSERT INTO groupforum VALUES (1,1,20)",empty);
+    checkQuery(tc, cl,"INSERT INTO groupforum VALUES (1,1,14)",empty);
+    checkQuery(tc, cl,"INSERT INTO groupforum VALUES (1,1,20)",empty);
 
     return;
 
-    checkQuery(cl,"SELECT * FROM groupforum",
+    checkQuery(tc, cl,"SELECT * FROM groupforum",
 	       { {"forumid","groupid","optionid"},
 		 {"1","1","14"},
 		 {"1","1","20"} } );
 
-    checkQuery(cl,"INSERT INTO forum VALUES (1,'success-- you can see forum text')",empty);
+    checkQuery(tc, cl,"INSERT INTO forum VALUES (1,'success-- you can see forum text')",empty);
 
     myCreate(cl,"DELETE FROM "+ PWD_TABLE_PREFIX + "users WHERE username='alice';",
 	     "DELETE FROM plain_users WHERE username='alice'");
@@ -270,7 +270,7 @@ UserGroupForum(EDBClient * cl) {
     //alice
     myCreate(cl,"INSERT INTO "+ PWD_TABLE_PREFIX + "users (username, psswd) VALUES ('alice','secretalice');",
 	     "INSERT INTO plain_users (username, psswd) VALUES ('alice','secretalice');");
-    checkQuery(cl,"SELECT forumtext from forum WHERE forumid=1",
+    checkQuery(tc, cl,"SELECT forumtext from forum WHERE forumid=1",
 	       { {"forumtext"},
 		 {"success-- you can see forum text"} } );
     myCreate(cl,"DELETE FROM "+ PWD_TABLE_PREFIX + "users WHERE username='alice';",
@@ -279,18 +279,18 @@ UserGroupForum(EDBClient * cl) {
     //bob
     myCreate(cl,"INSERT INTO "+ PWD_TABLE_PREFIX + "users (username, psswd) VALUES ('bob','secretbob');",
 	     "INSERT INTO plain_users (username, psswd) VALUES ('bob','secretbob');");
-    testNULL(cl,"SELECT forumtext from forum WHERE forumid=1","");
+    testNULL(tc, cl,"SELECT forumtext from forum WHERE forumid=1","");
     myCreate(cl,"DELETE FROM "+ PWD_TABLE_PREFIX + "users WHERE username='bob';",
 	     "DELETE FROM plain_users WHERE username='bob'");    
 
     //chris
     myCreate(cl,"INSERT INTO "+ PWD_TABLE_PREFIX + "users (username, psswd) VALUES ('chris','secretchris');",
 	     "INSERT INTO plain_users (username, psswd) VALUES ('chris','secretchris');");
-    checkQuery(cl,"SELECT forumtext from forum WHERE forumid=1",
+    checkQuery(tc, cl,"SELECT forumtext from forum WHERE forumid=1",
 	       { {"forumtext"},
 		 {"success-- you can see forum text"} } );
-    checkQuery(cl,"UPDATE forum SET forumtext='you win!' WHERE forumid=1",empty);
-    checkQuery(cl,"SELECT forumtext from forum WHERE forumid=1",
+    checkQuery(tc, cl,"UPDATE forum SET forumtext='you win!' WHERE forumid=1",empty);
+    checkQuery(tc, cl,"SELECT forumtext from forum WHERE forumid=1",
 	       { {"forumtext"},
 		 {"you win!"} } );
     myCreate(cl,"DELETE FROM "+ PWD_TABLE_PREFIX + "users WHERE username='chris';",
@@ -299,11 +299,11 @@ UserGroupForum(EDBClient * cl) {
     //alice
     myCreate(cl,"INSERT INTO "+ PWD_TABLE_PREFIX + "users (username, psswd) VALUES ('alice','secretalice');",
 	     "INSERT INTO plain_users (username, psswd) VALUES ('alice','secretalice');");
-    checkQuery(cl,"SELECT forumtext from forum WHERE forumid=1",
+    checkQuery(tc, cl,"SELECT forumtext from forum WHERE forumid=1",
 	       { {"forumtext"},
 		 {"you win!"} } );
-    checkQuery(cl,"INSERT INTO forum VALUES (2, 'orphaned text!  everyone should be able to reach')",empty);
-    checkQuery(cl,"SELECT forumtext from forum WHERE forumid=2",
+    checkQuery(tc, cl,"INSERT INTO forum VALUES (2, 'orphaned text!  everyone should be able to reach')",empty);
+    checkQuery(tc, cl,"SELECT forumtext from forum WHERE forumid=2",
 	       { {"forumtext"},
 		 {"orphaned text!  everyone should be able to reach"} } );
     myCreate(cl,"DELETE FROM "+ PWD_TABLE_PREFIX + "users WHERE username='alice';",
@@ -312,7 +312,7 @@ UserGroupForum(EDBClient * cl) {
     //bob
     myCreate(cl,"INSERT INTO "+ PWD_TABLE_PREFIX + "users (username, psswd) VALUES ('bob','secretbob');",
 	     "INSERT INTO plain_users (username, psswd) VALUES ('bob','secretbob');");
-    checkQuery(cl,"SELECT forumtext from forum WHERE forumid=2",
+    checkQuery(tc, cl,"SELECT forumtext from forum WHERE forumid=2",
 	       { {"forumtext"},
 		 {"orphaned text!  everyone should be able to reach"} } );
     myCreate(cl,"DELETE FROM "+ PWD_TABLE_PREFIX + "users WHERE username='bob';",
@@ -321,11 +321,11 @@ UserGroupForum(EDBClient * cl) {
     //chris
     myCreate(cl,"INSERT INTO "+ PWD_TABLE_PREFIX + "users (username, psswd) VALUES ('chris','secretchris');",
 	     "INSERT INTO plain_users (username, psswd) VALUES ('chris','secretchris');");
-    checkQuery(cl,"SELECT forumtext from forum WHERE forumid=2",
+    checkQuery(tc, cl,"SELECT forumtext from forum WHERE forumid=2",
 	       { {"forumtext"},
 		 {"orphaned text!  everyone should be able to reach"} } );
-    checkQuery(cl,"INSERT INTO groupforum VALUES (2, 2, 20)",empty);
-    checkQuery(cl,"SELECT forumtext FROM forum, groupforum, usergroup, u WHERE forum.forumid=groupforum.forumid AND groupforum.groupid=usergroup.groupid AND usergroup.userid=u.userid AND u.username='chris' AND groupforum.optionid=20",
+    checkQuery(tc, cl,"INSERT INTO groupforum VALUES (2, 2, 20)",empty);
+    checkQuery(tc, cl,"SELECT forumtext FROM forum, groupforum, usergroup, u WHERE forum.forumid=groupforum.forumid AND groupforum.groupid=usergroup.groupid AND usergroup.userid=u.userid AND u.username='chris' AND groupforum.optionid=20",
 	       { {"forumtext"},
 		 {"you win!"},
 		 {"orphaned text!  everyone should be able to reach"} } );
@@ -335,7 +335,7 @@ UserGroupForum(EDBClient * cl) {
     //bob
     myCreate(cl,"INSERT INTO "+ PWD_TABLE_PREFIX + "users (username, psswd) VALUES ('bob','secretbob');",
 	     "INSERT INTO plain_users (username, psswd) VALUES ('bob','secretbob');");
-    checkQuery(cl,"SELECT forumtext FROM forum, groupforum, usergroup, u WHERE forum.forumid=groupforum.forumid AND groupforum.groupid=usergroup.groupid AND usergroup.userid=u.userid AND u.username='bob' AND groupforum.optionid=20",
+    checkQuery(tc, cl,"SELECT forumtext FROM forum, groupforum, usergroup, u WHERE forum.forumid=groupforum.forumid AND groupforum.groupid=usergroup.groupid AND usergroup.userid=u.userid AND u.username='bob' AND groupforum.optionid=20",
 	       { {"forumtext"},
 		 {"orphaned text!  everyone should be able to reach"} } );
     myCreate(cl,"DELETE FROM "+ PWD_TABLE_PREFIX + "users WHERE username='bob';",
@@ -344,7 +344,7 @@ UserGroupForum(EDBClient * cl) {
     //alice
     myCreate(cl,"INSERT INTO "+ PWD_TABLE_PREFIX + "users (username, psswd) VALUES ('alice','secretalice');",
 	     "INSERT INTO plain_users (username, psswd) VALUES ('alice','secretalice');");
-    checkQuery(cl,"SELECT forumtext FROM forum, groupforum, usergroup, u WHERE forum.forumid=groupforum.forumid AND groupforum.groupid=usergroup.groupid AND usergroup.userid=u.userid AND u.username='alice' AND groupforum.optionid=20",
+    checkQuery(tc, cl,"SELECT forumtext FROM forum, groupforum, usergroup, u WHERE forum.forumid=groupforum.forumid AND groupforum.groupid=usergroup.groupid AND usergroup.userid=u.userid AND u.username='alice' AND groupforum.optionid=20",
 	       { {"forumtext"},
 		 {"you win!"} } );
     myCreate(cl,"DELETE FROM "+ PWD_TABLE_PREFIX + "users WHERE username='alice';",
@@ -354,7 +354,7 @@ UserGroupForum(EDBClient * cl) {
 
 
 static void
-UserGroupForum_incFunction(EDBClient * cl) {
+UserGroupForum_incFunction(const TestConfig &tc, EDBClient * cl) {
     cl->plain_execute("DROP TABLE IF EXISTS u, usergroup, groupforum, forum, plain_users, pwdcryptdb__users, cryptdb_public, cryptdb_initialized_principles, cryptdb0;");
     assert_s(myCreate(cl,"CREATE TABLE u (userid integer, username givespsswd userid text);",
                       "CREATE TABLE u (userid integer, username text);"),
@@ -376,35 +376,35 @@ UserGroupForum_incFunction(EDBClient * cl) {
     myCreate(cl,"INSERT INTO "+ PWD_TABLE_PREFIX + "users (username, psswd) VALUES ('chris','secretchris');","INSERT INTO plain_users (username, psswd) VALUES ('chris','secretchris');");
 
     //populate things while everyone is logged in
-    checkQuery(cl,"INSERT INTO u VALUES (1, 'alice')",empty);
-    checkQuery(cl,"INSERT INTO u VALUES (2, 'bob')",empty);
-    checkQuery(cl,"INSERT INTO u VALUES (3, 'chris')",empty);
+    checkQuery(tc, cl,"INSERT INTO u VALUES (1, 'alice')",empty);
+    checkQuery(tc, cl,"INSERT INTO u VALUES (2, 'bob')",empty);
+    checkQuery(tc, cl,"INSERT INTO u VALUES (3, 'chris')",empty);
 
-    checkQuery(cl,"INSERT INTO usergroup VALUES (1,1)",empty);
-    checkQuery(cl,"INSERT INTO usergroup VALUES (2,2)",empty);
-    checkQuery(cl,"INSERT INTO usergroup VALUES (3,1)",empty);
-    checkQuery(cl,"INSERT INTO usergroup VALUES (3,2)",empty);
+    checkQuery(tc, cl,"INSERT INTO usergroup VALUES (1,1)",empty);
+    checkQuery(tc, cl,"INSERT INTO usergroup VALUES (2,2)",empty);
+    checkQuery(tc, cl,"INSERT INTO usergroup VALUES (3,1)",empty);
+    checkQuery(tc, cl,"INSERT INTO usergroup VALUES (3,2)",empty);
 
-    checkQuery(cl,"SELECT * FROM usergroup",
+    checkQuery(tc, cl,"SELECT * FROM usergroup",
                { {"userid", "groupid"},
                  {"1","1"},
                  {"2","2"},
                  {"3","1"},
                  {"3","2"} });
 
-    checkQuery(cl,"INSERT INTO groupforum VALUES (1,1,14)",empty);
-    checkQuery(cl,"INSERT INTO groupforum VALUES (1,1,20)",empty);
-    checkQuery(cl,"INSERT INTO groupforum VALUES (1,2,2)",empty);
-    checkQuery(cl,"INSERT INTO groupforum VALUES (1,2,0)",empty);
+    checkQuery(tc, cl,"INSERT INTO groupforum VALUES (1,1,14)",empty);
+    checkQuery(tc, cl,"INSERT INTO groupforum VALUES (1,1,20)",empty);
+    checkQuery(tc, cl,"INSERT INTO groupforum VALUES (1,2,2)",empty);
+    checkQuery(tc, cl,"INSERT INTO groupforum VALUES (1,2,0)",empty);
 
-    checkQuery(cl,"SELECT * FROM groupforum",
+    checkQuery(tc, cl,"SELECT * FROM groupforum",
 	       { {"forumid","groupid","optionid"},
 		 {"1","1","14"},
 		 {"1","1","20"},
 		 {"1","2","2"},
 		 {"1","2","0"} });
 
-    checkQuery(cl,"INSERT INTO forum VALUES (1,'success-- you can see forum text')",empty);
+    checkQuery(tc, cl,"INSERT INTO forum VALUES (1,'success-- you can see forum text')",empty);
 
     myCreate(cl,"DELETE FROM "+ PWD_TABLE_PREFIX + "users WHERE username='alice';",
 	     "DELETE FROM plain_users WHERE username='alice'");
@@ -416,7 +416,7 @@ UserGroupForum_incFunction(EDBClient * cl) {
     //alice
     myCreate(cl,"INSERT INTO "+ PWD_TABLE_PREFIX + "users (username, psswd) VALUES ('alice','secretalice');",
 	     "INSERT INTO plain_users (username, psswd) VALUES ('alice','secretalice');");
-    checkQuery(cl,"SELECT forumtext from forum WHERE forumid=1",
+    checkQuery(tc, cl,"SELECT forumtext from forum WHERE forumid=1",
 	       { {"forumtext"},
 		 {"success-- you can see forum text"} } );
     myCreate(cl,"DELETE FROM "+ PWD_TABLE_PREFIX + "users WHERE username='alice';",
@@ -425,17 +425,17 @@ UserGroupForum_incFunction(EDBClient * cl) {
     //bob
     myCreate(cl,"INSERT INTO "+ PWD_TABLE_PREFIX + "users (username, psswd) VALUES ('bob','secretbob');",
 	     "INSERT INTO plain_users (username, psswd) VALUES ('bob','secretbob');");
-    if (STOP_IF_FAIL) {
+    if (tc.stop_if_fail) {
       cerr << "\n\nIn FUNCTION-BASED!!! version of groupsusersforums tests\n\n" << endl;
     }
-    testNULL(cl,"SELECT forumtext from forum WHERE forumid=1","");
+    testNULL(tc, cl,"SELECT forumtext from forum WHERE forumid=1","");
     myCreate(cl,"DELETE FROM "+ PWD_TABLE_PREFIX + "users WHERE username='bob';",
 	     "DELETE FROM plain_users WHERE username='bob'");    
 
     //chris
     myCreate(cl,"INSERT INTO "+ PWD_TABLE_PREFIX + "users (username, psswd) VALUES ('chris','secretchris');",
 	     "INSERT INTO plain_users (username, psswd) VALUES ('chris','secretchris');");
-    checkQuery(cl,"SELECT forumtext from forum WHERE forumid=1",
+    checkQuery(tc, cl,"SELECT forumtext from forum WHERE forumid=1",
 	       { {"forumtext"},
 		 {"success-- you can see forum text"} } );
     myCreate(cl,"DELETE FROM "+ PWD_TABLE_PREFIX + "users WHERE username='chris';",
@@ -448,34 +448,34 @@ UserGroupForum_incFunction(EDBClient * cl) {
 
 
 void
-TestMultiPrinc::run(int argc, char ** argv)
+TestMultiPrinc::run(const TestConfig &tc, int argc, char ** argv)
 {
     EDBClient * cl;
     uint64_t mkey = 113341234;
     string masterKey = BytesFromInt(mkey, AES_KEY_BYTES);
 
-    cl = new EDBClient("localhost", "root", "letmein", "cryptdbtest", 0, true);
+    cl = new EDBClient(tc.host, tc.user, tc.pass, tc.db, 0, true);
     cl->setMasterKey(masterKey);
     cerr << "Test basic..." << endl;
-    BasicFunctionality(cl);
+    BasicFunctionality(tc, cl);
     delete cl;
 
-    cl = new EDBClient("localhost", "root", "letmein", "cryptdbtest", 0, true);
+    cl = new EDBClient(tc.host, tc.user, tc.pass, tc.db, 0, true);
     cl->setMasterKey(masterKey);
     cerr << "Test private messages..." << endl;
-    PrivMessages(cl);
+    PrivMessages(tc, cl);
     delete cl;
 
-    cl = new EDBClient("localhost", "root", "letmein", "cryptdbtest", 0, true);
+    cl = new EDBClient(tc.host, tc.user, tc.pass, tc.db, 0, true);
     cl->setMasterKey(masterKey);
     cerr << "Test user/group/forum..." << endl;
-    UserGroupForum(cl);
+    UserGroupForum(tc, cl);
     delete cl;
 
-    cl = new EDBClient("localhost", "root", "letmein", "cryptdbtest", 0, true);
+    cl = new EDBClient(tc.host, tc.user, tc.pass, tc.db, 0, true);
     cl->setMasterKey(masterKey);
     cerr << "Test user/group/forum including function..." << endl;
-    UserGroupForum_incFunction(cl);
+    UserGroupForum_incFunction(tc, cl);
     delete cl;
 
     cerr << "RESULT: " << npass << "/" << ntest << " passed" << endl;
