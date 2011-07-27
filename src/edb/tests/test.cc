@@ -1002,7 +1002,17 @@ interactiveTest(const TestConfig &tc, int ac, char **av)
 
                cl->outputOnionState();*/
         } else {
-            cl->execute(cmd);
+            ResType *r = cl->execute(cmd);
+            for (unsigned int i = 0; r && i < r->size(); i++) {
+                stringstream ss;
+                for (unsigned int j = 0; j < r->at(i).size(); j++) {
+                    char buf[256];
+                    snprintf(buf, sizeof(buf), "%-30s", r->at(i).at(
+                                 j).c_str());
+                    ss << buf;
+                }
+                cout << ss.str() << endl;
+            }
         }
     }
 

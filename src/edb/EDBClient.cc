@@ -2016,7 +2016,7 @@ getResMeta(list<string> words, vector<vector<string> > & vals, QueryMeta & qm,
 static void
 printRes(vector<vector<string> > & vals)
 {
-    cerr << "Raw results from the server to decrypt:";
+    LOG(edb) << "Raw results from the server to decrypt:";
 
     stringstream ssn;
     for (unsigned int i = 0; i < vals[0].size(); i++) {
@@ -2024,7 +2024,7 @@ printRes(vector<vector<string> > & vals)
         snprintf(buf, sizeof(buf), "%-20s", vals[0][i].c_str());
         ssn << buf;
     }
-    cerr << ssn.str();
+    LOG(edb) << ssn.str();
 
     /* next, print out the rows */
     for (unsigned int i = 0; i < vals.size() - 1; i++) {
@@ -2034,7 +2034,7 @@ printRes(vector<vector<string> > & vals)
             snprintf(buf, sizeof(buf), "%-20s", vals[i+1][j].c_str());
             ss << buf;
         }
-        cerr << ss.str();
+        LOG(edb) << ss.str();
     }
 }
 
