@@ -3929,12 +3929,15 @@ help(const TestConfig &tc, int ac, char **av)
 {
     cerr << "Usage: " << av[0] << " [options] testname" << endl;
     cerr << "Options:" << endl
-         << "    -v           verbose (specify multiple times for more verbose)" << endl
          << "    -s           stop on failure [" << tc.stop_if_fail << "]" << endl
          << "    -h host      database server [" << tc.host << "]" << endl
          << "    -u user      database username [" << tc.user << "]" << endl
          << "    -p pass      database password [" << tc.pass << "]" << endl
-         << "    -d db        database to use [" << tc.db << "]" << endl;
+         << "    -d db        database to use [" << tc.db << "]" << endl
+         << "    -v group     enable verbose messages in group" << endl;
+    cerr << "Verbose groups:" << endl;
+    for (auto i = log_name_to_group.begin(); i != log_name_to_group.end(); i++)
+        cerr << "    " << i->first << endl;
     cerr << "Supported tests:" << endl;
     for (uint i = 0; i < NELEM(tests); i++)
         cerr << "    " << tests[i].name << endl;
@@ -3945,27 +3948,16 @@ main(int argc, char ** argv)
 {
     TestConfig tc;
     int c;
-    int vlevel = 0;
 
-    while ((c = getopt(argc, argv, "vsh:u:p:d:")) != -1) {
+    while ((c = getopt(argc, argv, "v:sh:u:p:d:")) != -1) {
         switch (c) {
         case 'v':
-            vlevel++;
-
-            if (vlevel > 0) {
-                cryptdb_logger::enable(log_edb_query);
+            if (log_name_to_group.find(optarg) == log_name_to_group.end()) {
+                help(tc, argc, argv);
+                exit(0);
             }
 
-            if (vlevel > 1) {
-                cryptdb_logger::enable(log_crypto);
-                cryptdb_logger::enable(log_crypto_v);
-                cryptdb_logger::enable(log_edb);
-                cryptdb_logger::enable(log_edb_v);
-                cryptdb_logger::enable(log_test);
-                cryptdb_logger::enable(log_am);
-                cryptdb_logger::enable(log_am_v);
-            }
-
+            cryptdb_logger::enable(log_name_to_group[optarg]);
             break;
 
         case 's':
