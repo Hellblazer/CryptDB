@@ -6,6 +6,7 @@
  */
 
 #include "Connect.h"
+#include "cryptdb_log.h"
 
 Connect::Connect(string server, string user, string passwd,
                  string dbname, uint port)
@@ -16,7 +17,7 @@ Connect::Connect(string server, string user, string passwd,
     /* Connect to database */
     if (!mysql_real_connect(conn, server.c_str(), user.c_str(),
                             passwd.c_str(), dbname.c_str(), port, 0, 0)) {
-        fprintf(stderr, "%s\n", mysql_error(conn));
+        LOG(warn) << "mysql_real_connect: " << mysql_error(conn);
         exit(1);
     }
 
@@ -40,7 +41,7 @@ Connect::execute(const string &query, DBResult * & res)
 {
 #if MYSQL_S
     if (mysql_query(conn, query.c_str())) {
-        fprintf(stderr, "mysql error: %s\n", mysql_error(conn));
+        LOG(warn) << "mysql_query: " << mysql_error(conn);
         res = 0;
         return false;
     } else {
