@@ -327,22 +327,13 @@ bool
 SWP::searchExists(const Token & token, const list<Binary> & ciphs)
 {
 
-	ofstream myfile;
-	myfile.open("mylog", ios::app);
-	myfile << "traversing list..\n";
-
 	for (list<Binary>::const_iterator cit = ciphs.begin(); cit != ciphs.end();
-         cit++) {
-		myfile << cit->toString() << "\n";
-        if (SWPsearch(token, *cit)) {
-        	myfile << "found!" << "\n";
-        	myfile.close();
-            return true;
-        }
-    }
+			cit++) {
+		if (SWPsearch(token, *cit)) {
+			return true;
+		}
+	}
 
-	myfile << "not found\n";
-    myfile.close();
-    return false;
+	return false;
 }
 

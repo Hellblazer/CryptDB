@@ -157,27 +157,9 @@ decrypt_DET(unsigned char *eValueBytes, uint64_t eValueLen, AES_KEY * key)
 static bool
 search(const Token & token, const Binary & overall_ciph)
 {
-	ofstream myfile;
-	myfile.open("mylog", ios::app);
-	myfile << "========================\n";
-	myfile << "search receives as args: \n";
-	myfile <<"ciph " << marshallBinary(string((char *)token.ciph.content, (unsigned int) token.ciph.len)) << "\n";
-	myfile << "wordKey " <<  marshallBinary(string((char *)token.wordKey.content, (unsigned int) token.wordKey.len)) << "\n";
-	myfile << "overall_ciph " << marshallBinary(string((char *)overall_ciph.content, (unsigned int) overall_ciph.len)) << "\n";
 
-	myfile.close();
+   return CryptoManager::searchExists(token, overall_ciph);
 
-    bool flag = CryptoManager::searchExists(token, overall_ciph);
-
-	myfile.open("mylog", ios::app);
-
-    myfile << "found?" << flag << "\n";
-
-    myfile << "========================\n";
-
-    myfile.close();
-
-    return flag;
 }
 
 #if MYSQL_S
@@ -570,7 +552,6 @@ searchSWP_deinit(UDF_INIT *initid)
 
 my_bool
 searchSWP(UDF_INIT *initid, UDF_ARGS *args, char *is_null, char *error)
-
 {
 
 	ofstream myfile;
