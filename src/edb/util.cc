@@ -80,43 +80,46 @@ randomValue()
     return IntFromBytes((const uint8_t*) randomBytes(8).c_str(), 8);
 }
 
-void
+string
 myPrint(const unsigned char * a, unsigned int aLen)
 {
-    for (unsigned int i = 0; i < aLen; i++) {
-        fprintf(stderr, "%d ", (int)(a[i]-0));
-    }
+    stringstream ss;
+    for (unsigned int i = 0; i < aLen; i++)
+        ss << (int)(a[i]-0) << " ";
+    return ss.str();
 }
 
-void
+string
 myPrint(const string &s)
 {
-    myPrint((const uint8_t *) s.c_str(), (uint) s.length());
+    return myPrint((const uint8_t *) s.c_str(), (uint) s.length());
 }
 
-void
-myPrint(vector<bool> & bitmap)
+string
+myPrint(const vector<bool> & bitmap)
 {
+    stringstream ss;
     for (auto it = bitmap.begin(); it != bitmap.end(); it++)
-        cout << *it << " ";
-    cout << "\n";
+        ss << *it << " ";
+    return ss.str();
 }
 
-void
+string
 myPrint(const unsigned int * a, unsigned int aLen)
 {
-    for (unsigned int i = 0; i < aLen; i++) {
-        fprintf(stderr, "%d ", a[i]);
-    }
+    stringstream ss;
+    for (unsigned int i = 0; i < aLen; i++)
+        ss << (int) a[i] << " ";
+    return ss.str();
 }
 
-void
+string
 myPrint(const char * a)
 {
-    for (unsigned int i = 0; i<strlen(a); i++) {
-        fprintf(stderr, "%d ", a[i]);
-
-    }
+    stringstream ss;
+    for (unsigned int i = 0; i<strlen(a); i++)
+        ss << (int) a[i] << " ";
+    return ss.str();
 }
 
 string
@@ -142,15 +145,13 @@ checkStr(list<string>::iterator & it, list<string> & words, const string &s1,
     return "";
 }
 
-void
+string
 myPrint(const list<string> & lst)
 {
-    for (list<string>::const_iterator it = lst.begin(); it!=lst.end();
-         it++) {
-        fprintf(stderr, " %s,", it->c_str());
-    }
-
-    fprintf(stderr, "\n");
+    stringstream ss;
+    for (auto it = lst.begin(); it!=lst.end(); it++)
+        ss << " " << *it << ",";
+    return ss.str();
 }
 
 string
@@ -162,20 +163,6 @@ toString(const list<string> & lst)
 
     for (it = lst.begin(); it!=lst.end(); it++) {
         res = res + "<" + *it + "> ";
-    }
-
-    return res;
-}
-
-string
-toString(const vector<bool> & vec)
-{
-    vector<bool>::const_iterator it;
-
-    string res = "";
-
-    for (it = vec.begin(); it!=vec.end(); it++) {
-        res = res + StringFromVal(*it) + " ";
     }
 
     return res;
@@ -196,62 +183,41 @@ toString(const std::set<string> & lst)
 }
 
 string
-toString(unsigned char * key, unsigned int len)
-{
-    string res;
-    for (unsigned int i = 0; i < len; i++) {
-        res += StringFromVal(key[i]) + " ";
-    }
-    return res;
-}
-
-void
 myPrint(const vector<vector<string> > & d)
 {
+    stringstream ss;
+
     size_t rows = d.size();
     if (d.size() == 0)
-        return;
+        return "";
 
     size_t cols = d[0].size();
     for (size_t i = 0; i < rows; i++) {
+        ss << "<";
         for (size_t j = 0; j < cols; j++) {
-            fprintf(stderr, " %s15", d[i][j].c_str());
+            ss << " " << left << setw(15) << d[i][j];
         }
-        cerr << "\n";
+        ss << " > ";
     }
-    cerr << "\n";
+    return ss.str();
 }
 
 string
-toString(const ResType & rt)
+myPrint(const list<const char *> & lst)
 {
-    size_t n = rt.size();
-
-    string res = "";
-
-    for (size_t i = 0; i < n; i++) {
-        size_t m = rt[i].size();
-        for (size_t j = 0; j < m; j++) {
-            res = res + " " + rt[i][j].c_str();
-        }
-        res += "\n";
-    }
-
-    return res;
-}
-
-void
-myPrint(list<const char *> & lst)
-{
+    stringstream ss;
     for (auto it = lst.begin(); it!=lst.end(); it++)
-        fprintf(stderr, " %s \n", *it);
+        ss << *it << " ";
+    return ss.str();
 }
 
-void
+string
 myPrint(const vector<string> & lst)
 {
+    stringstream ss;
     for (auto it = lst.begin(); it!=lst.end(); it++)
-        fprintf(stderr, " %s \n", it->c_str());
+        ss << *it << " ";
+    return ss.str();
 }
 
 string

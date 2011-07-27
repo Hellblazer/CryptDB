@@ -352,21 +352,18 @@ const ParserMeta parserMeta = ParserMeta();
 string randomBytes(unsigned int len);
 uint64_t randomValue();
 
-void myPrint(const unsigned char * a, unsigned int aLen);
-void myPrint(const char * a);
-void myPrint(const list<string> & lst);
-void myPrint(list<const char *> & lst);
-void myPrint(const vector<string> & vec);
-void myPrint(const vector<vector<string> > & d);
-void myPrint(vector<bool> & bitmap);
-void myPrint(const unsigned int * a, unsigned int aLen);
-void myPrint(const string &s);
+string myPrint(const unsigned char * a, unsigned int aLen) __attribute__((warn_unused_result));
+string myPrint(const char * a) __attribute__((warn_unused_result));
+string myPrint(const list<string> & lst) __attribute__((warn_unused_result));
+string myPrint(const list<const char *> & lst) __attribute__((warn_unused_result));
+string myPrint(const vector<string> & vec) __attribute__((warn_unused_result));
+string myPrint(const vector<vector<string> > & d) __attribute__((warn_unused_result));
+string myPrint(const vector<bool> & bitmap) __attribute__((warn_unused_result));
+string myPrint(const unsigned int * a, unsigned int aLen) __attribute__((warn_unused_result));
+string myPrint(const string &s) __attribute__((warn_unused_result));
 
 string toString(const list<string> & lst);
-string toString(const vector<bool> & vec);
 string toString(const std::set<string> & lst);
-string toString(const ResType & rt);
-string toString(unsigned char * key, unsigned int len);
 
 // tries to represent value in minimum no of bytes, avoiding the \0 character
 string StringFromVal(uint64_t value, unsigned int padLen = 0);

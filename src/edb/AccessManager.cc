@@ -1211,8 +1211,8 @@ int
 KeyAccess::insertPsswd(Prin gives, const string &psswd)
 {
     if(VERBOSE) {
-        LOG(am_v) << gives.type << " " << gives.value << " is logging in with ";
-        myPrint(psswd);
+        LOG(am_v) << gives.type << " " << gives.value
+                  << " is logging in with " << myPrint(psswd);
         LOG(am_v) << "insertPsswd(" << gives.type << "=" << gives.value << ",...)";
     }
 
@@ -1409,9 +1409,8 @@ KeyAccess::addToKeys(Prin prin, PrinKey key)
                  prin) != key.principles_with_access.end(),
              "addToKeys hasAccess prin is not in key's principles_with_access");
     if(VERBOSE) {
-        LOG(am_v) << "adding key ";
-        myPrint(key.key);
-        LOG(am_v) << " for " << prin.gen << " " << prin.value;
+        LOG(am_v) << "adding key " << myPrint(key.key)
+                  << " for " << prin.gen << " " << prin.value;
     }
 
     if (keys.find(prin) != keys.end()) {

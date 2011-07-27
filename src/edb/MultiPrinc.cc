@@ -561,8 +561,8 @@ MultiPrinc::insertRelations(const list<string> & values, string table,
     list<string>::iterator fieldIt = fields.begin();
     list<string>::const_iterator valIt = values.begin();
 
-    if (VERBOSE_G) { LOG(mp) << "fields are "; myPrint(fields); }
-    if (VERBOSE_G) { LOG(mp) << "values are "; myPrint(values); }
+    if (VERBOSE_G) { LOG(mp) << "fields are " << myPrint(fields); }
+    if (VERBOSE_G) { LOG(mp) << "values are " << myPrint(values); }
 
     while (fieldIt != fields.end()) {
         vals[*fieldIt] = removeApostrophe(*valIt);

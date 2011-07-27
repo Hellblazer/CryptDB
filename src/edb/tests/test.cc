@@ -82,11 +82,9 @@ test_OPE()
     string ciphertext = ope->encrypt(plaintext_s);
     string decryption = ope->decrypt(ciphertext);
 
-    cerr << "Plaintext is "; myPrint(plaintext_s); cerr << "\n";
-
-    cerr << "Ciphertext is "; myPrint(ciphertext); cerr << "\n";
-
-    cerr << "Decryption is "; myPrint(decryption); cerr << "\n";
+    LOG(test) << "Plaintext is " << myPrint(plaintext_s);
+    LOG(test) << "Ciphertext is " << myPrint(ciphertext);
+    LOG(test) << "Decryption is " << myPrint(decryption);
 
     myassert(plaintext_s == decryption, "OPE test failed \n");
 
@@ -171,11 +169,10 @@ test_HGD()
 
     ZZ sample = HGD(K, N1, N2, SEED, len*bitsPerByte, bitsPrecision);
 
-    cerr << "N1 is "; myPrint(StringFromZZ(N1)); cerr << "\n";
-    cerr << "N2 is "; myPrint(StringFromZZ(N2)); cerr << "\n";
-    cerr << "K is "; myPrint(StringFromZZ(K)); cerr << "\n";
-    cerr << "HGD sample is ";
-    myPrint(StringFromZZ(sample)); cerr << "\n";
+    LOG(test) << "N1 is " << myPrint(StringFromZZ(N1));
+    LOG(test) << "N2 is " << myPrint(StringFromZZ(N2));
+    LOG(test) << "K is " << myPrint(StringFromZZ(K));
+    LOG(test) << "HGD sample is " << myPrint(StringFromZZ(sample));
 
     unsigned int tests = 1000;
     cerr << " Started " << tests << " tests \n";
@@ -472,9 +469,7 @@ tester::testClientParser()
                                           // this point is more of a manual
                                           // check
         list<string> response = rewriteEncryptQuery(it->c_str());
-        fprintf(stderr, "query issued/response: \n%s \n", it->c_str());
-        myPrint(response);
-        fprintf(stderr, "\n");
+        LOG(test) << "query issued/response: " << *it << ", " << myPrint(response);
     }
 
     exit();
@@ -492,17 +487,16 @@ testCryptoManager()
 
     //test marshall and unmarshall key
     string m = cm->marshallKey(masterKey);
-    cerr << " master key is ";
-    myPrint(masterKey);
-    cerr << " and marshall is " << m << "\n";
+    LOG(test) << "master key is " << myPrint(masterKey);
+    LOG(test) << "marshall is " << m;
     string masterKey2 = cm->unmarshallKey(m);
 
     myassert(masterKey == masterKey2, "marshall test failed");
 
-    cerr << " key for field1";
-    myPrint(cm->getKey("field1", SECLEVEL::SEMANTIC_OPE));
-    cerr << "\n key for table5.field12OPE";
-    myPrint(cm->getKey("table5.field12OPE", SECLEVEL::SEMANTIC_OPE));
+    LOG(test) << "key for field1: "
+              << myPrint(cm->getKey("field1", SECLEVEL::SEMANTIC_OPE));
+    LOG(test) << "key for table5.field12OPE:"
+              << myPrint(cm->getKey("table5.field12OPE", SECLEVEL::SEMANTIC_OPE));
 
     //test SEM
     AES_KEY * aesKey = cm->get_key_SEM(masterKey);
@@ -1234,7 +1228,7 @@ testUtils(const TestConfig &tc, int ac, char **av)
     const char * query =
         "SELECT sum(1), name, age, year FROM debug WHERE debug.name = 'raluca ?*; ada' AND a+b=5 ORDER BY name;";
 
-    myPrint(parse(query, delimsStay, delimsGo, keepIntact));
+    LOG(test) << myPrint(parse(query, delimsStay, delimsGo, keepIntact));
 }
 
 static void __attribute__((unused))
@@ -2820,8 +2814,7 @@ accessManagerTest(const TestConfig &tc, int ac, char **av)
     am->insert(u1,g5);
     am->insert(g5,f2);
     string alice_key = am->getKey(f2);
-    myPrint(alice_key);
-    cerr << endl;
+    LOG(test) << myPrint(alice_key);
     string f2_key1 = marshallBinary(alice_key);
     assert_s(alice_key.length() > 0, "alice can't access the forum 2 key");
     am->removePsswd(alice);
@@ -3581,7 +3574,7 @@ accessManagerTest(const TestConfig &tc, int ac, char **av)
           have key");
        assert_s(am->getKey("t1.id", "1") != NULL, "access manager should have
           key");
-       myPrint(am->getKey("users.id", "1"), AES_KEY_BYTES);
+       LOG(test) << myPrint(am->getKey("users.id", "1"), AES_KEY_BYTES);
 
        am->finish();
 

@@ -60,11 +60,10 @@ testHDG()
 
     ZZ sample = HGD(K, N1, N2, SEED, len*bitsPerByte, bitsPrecision);
 
-    cerr << "N1 is "; myPrint(StringFromZZ(N1)); cerr << "\n";
-    cerr << "N2 is "; myPrint(StringFromZZ(N2)); cerr << "\n";
-    cerr << "K is "; myPrint(StringFromZZ(K)); cerr << "\n";
-    cerr << "HGD sample is ";
-    myPrint(StringFromZZ(sample)); cerr << "\n";
+    LOG(test) << "N1 is " << myPrint(StringFromZZ(N1));
+    LOG(test) << "N2 is " << myPrint(StringFromZZ(N2));
+    LOG(test) << "K is " << myPrint(StringFromZZ(K));
+    LOG(test) << "HGD sample is " << myPrint(StringFromZZ(sample));
     */
 }
 
