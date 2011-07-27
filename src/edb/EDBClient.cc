@@ -13,10 +13,11 @@
 #define DECRYPT_text_sem "decrypt_text_sem"
 #define DECRYPT_text_det "decrypt_text_det"
 #define SEARCH "search"
+#define SEARCHSWP "searchSWP"
 #define FUNC_ADD_FINAL "agg"
 #define SUM_AGG "agg"
 #define FUNC_ADD_SET "func_add_set"
-#define SEARCHSWP "searchSWP"
+
 
 #else
 
@@ -59,15 +60,14 @@ dropAll(Connect * conn)
                  "DROP FUNCTION IF EXISTS " SEARCH "; "),
              "cannot drop " SEARCH);
     myassert(conn->execute(
+                    "DROP FUNCTION IF EXISTS " SEARCHSWP "; "),
+                "cannot drop " SEARCHSWP);
+    myassert(conn->execute(
                  "DROP FUNCTION IF EXISTS " FUNC_ADD_FINAL "; "),
              "cannot drop " FUNC_ADD_FINAL);
     myassert(conn->execute(
                  "DROP FUNCTION IF EXISTS " FUNC_ADD_SET "; "),
              "cannot drop " FUNC_ADD_SET);
-
-    myassert(conn->execute(
-                 "DROP FUNCTION IF EXISTS " SEARCHSWP "; "),
-             "cannot drop " SEARCHSWP);
 
 #if MYSQL_S
 #else
@@ -85,22 +85,22 @@ static void
 createAll(Connect * conn)
 {
     myassert(conn->execute(
-                 "CREATE FUNCTION decrypt_int_sem RETURNS INTEGER SONAME 'edb.so'; "),
+                 "CREATE FUNCTION "DECRYPT_int_sem" RETURNS INTEGER SONAME 'edb.so'; "),
              "failed to create udf decrypt_int_sem ");
     myassert(conn->execute(
-                 "CREATE FUNCTION decrypt_int_det RETURNS INTEGER SONAME 'edb.so'; "),
+                 "CREATE FUNCTION "DECRYPT_int_det" RETURNS INTEGER SONAME 'edb.so'; "),
              "failed to create udf decrypt_int_det");
     myassert(conn->execute(
-                 "CREATE FUNCTION encrypt_int_det RETURNS INTEGER SONAME 'edb.so'; "),
+                 "CREATE FUNCTION "ENCRYPT_int_det" RETURNS INTEGER SONAME 'edb.so'; "),
              "failed to create udf encrypt_int_det");
     myassert(conn->execute(
-                 "CREATE FUNCTION decrypt_text_sem RETURNS STRING SONAME 'edb.so'; "),
+                 "CREATE FUNCTION "DECRYPT_text_sem" RETURNS STRING SONAME 'edb.so'; "),
              "failed to create udf decrypt_text_sem");
     myassert(conn->execute(
-                 "CREATE FUNCTION decrypt_text_det RETURNS STRING SONAME 'edb.so'; "),
+                 "CREATE FUNCTION "DECRYPT_text_det" RETURNS STRING SONAME 'edb.so'; "),
              "failed to create udf decrypt_text_det");
     myassert(conn->execute(
-                 "CREATE FUNCTION search RETURNS INTEGER SONAME 'edb.so'; "),
+                 "CREATE FUNCTION "SEARCH" RETURNS INTEGER SONAME 'edb.so'; "),
              "failed to create udf search");
     myassert(conn->execute(
                  "CREATE AGGREGATE FUNCTION agg RETURNS STRING SONAME 'edb.so'; "),
@@ -109,7 +109,7 @@ createAll(Connect * conn)
                  "CREATE FUNCTION func_add_set RETURNS STRING SONAME 'edb.so'; "),
              "failed to create udf func_add_set");
     myassert(conn->execute(
-                 "CREATE FUNCTION searchSWP RETURNS STRING SONAME 'edb.so'; "),
+                 "CREATE FUNCTION "SEARCHSWP" RETURNS INTEGER SONAME 'edb.so'; "),
              "failed to create udf searchSWP");
 
     /* old Postgres statements: */
@@ -2152,6 +2152,25 @@ EDBClient::rewriteDecryptSelect(const string &query, ResType * dbAnswer)
     return rets;
 }
 
+// It removes "%" from the search constant - we want to consider them
+// at some point
+// e.g. LIKE "ana%" means that 'ana' should be at the beginning
+static string getLIKEToken(const string & s) {
+
+	string res = removeApostrophe(s);
+	unsigned int len = res.length();
+
+	if (res[0]=='%') {
+		res = res.substr(1, --len);
+	}
+	if (res[len-1] == '%') {
+		res = res.substr(0, --len);
+	}
+
+	LOG(edb_v) << "search token is <" << res << ">\n";
+	return toLowerCase(res);
+}
+
 string
 EDBClient::processOperation(string operation, string op1, string op2,
                             QueryMeta & qm, string encryptedsubquery,
@@ -2261,22 +2280,24 @@ throw (CryptDBError)
     if (Operation::isILIKE(operation)) {     //DET
 
         /* Method 2 search: SWP */
+    	 LOG(edb_v) << "IS ILIKE";
 
         anonField1 = fm1->anonFieldNameSWP;
         string anonfull = fullName(anonField1,
                                    tableMetaMap[table1]->anonTableName);
 
-        res += "search(" + anonField1 + ", ";
+        res += SEARCHSWP"(";
 
         Binary key = Binary(cm->getKey(cm->getmkey(), anonfull, SECLEVEL::SWP));
 
-        Token t = CryptoManager::token(key, Binary(removeApostrophe(op2)));
+        Token t = CryptoManager::token(key, Binary(getLIKEToken(op2)));
 
         res +=
             marshallBinary(string((char *)t.ciph.content,
                                   t.ciph.len)) + ", " +
             marshallBinary(string((char *)t.wordKey.content,
-                                  t.ciph.len)) + ") ";
+                                  t.wordKey.len)) +  ", " +  anonField1 + ") = 1; ";
+
 
         return res;
 
@@ -2309,6 +2330,7 @@ throw (CryptDBError)
 
     }
 
+    LOG(edb_v) << "IS OPE";
     //operation is OPE
 
     anonField1 = tableMetaMap[table1]->fieldMetaMap[field1]->anonFieldNameOPE;

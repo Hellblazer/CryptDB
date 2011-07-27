@@ -1013,6 +1013,9 @@ TestSinglePrinc::run(const TestConfig &tc, int argc, char ** argv)
     cl = new EDBClient(tc.host, tc.user, tc.pass, tc.db, 0, false);
     cl->setMasterKey(masterKey);
 
+    cerr << "Testing search..." << endl;
+    testSearch(tc, cl);
+    if (1) {return;}//focusing on search debugging for now
     cerr << "Testing create and drop..." << endl;
     testCreateDrop(tc, cl);
     cerr << "Testing insert..." << endl;
@@ -1025,8 +1028,7 @@ TestSinglePrinc::run(const TestConfig &tc, int argc, char ** argv)
     testUpdate(tc, cl);
     cerr << "Testing delete..." << endl;
     testDelete(tc, cl);
-    cerr << "Testing search..." << endl;
-    testSearch(tc, cl);
+
     cerr << "RESULT: " << npass << "/" << ntest << " passed" << endl;
 
     delete cl;

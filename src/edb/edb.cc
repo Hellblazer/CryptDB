@@ -19,6 +19,9 @@
 #include "util.h"
 #include "CryptoManager.h" /* various functions for EDB */
 
+#include <iostream>
+#include <fstream>
+
 extern "C" {
 #if MYSQL_S
 
@@ -154,7 +157,27 @@ decrypt_DET(unsigned char *eValueBytes, uint64_t eValueLen, AES_KEY * key)
 static bool
 search(const Token & token, const Binary & overall_ciph)
 {
-    return CryptoManager::searchExists(token, overall_ciph);
+	ofstream myfile;
+	myfile.open("mylog", ios::app);
+	myfile << "========================\n";
+	myfile << "search receives as args: \n";
+	myfile <<"ciph " << marshallBinary(string((char *)token.ciph.content, (unsigned int) token.ciph.len)) << "\n";
+	myfile << "wordKey " <<  marshallBinary(string((char *)token.wordKey.content, (unsigned int) token.wordKey.len)) << "\n";
+	myfile << "overall_ciph " << marshallBinary(string((char *)overall_ciph.content, (unsigned int) overall_ciph.len)) << "\n";
+
+	myfile.close();
+
+    bool flag = CryptoManager::searchExists(token, overall_ciph);
+
+	myfile.open("mylog", ios::app);
+
+    myfile << "found?" << flag << "\n";
+
+    myfile << "========================\n";
+
+    myfile.close();
+
+    return flag;
 }
 
 #if MYSQL_S
@@ -442,6 +465,7 @@ decrypt_text_det(PG_FUNCTION_ARGS)
 my_bool
 search_init(UDF_INIT *initid, UDF_ARGS *args, char *message)
 {
+
     return 0;
 }
 
@@ -506,10 +530,16 @@ search(PG_FUNCTION_ARGS)
 my_bool
 searchSWP_init(UDF_INIT *initid, UDF_ARGS *args, char *message)
 {
+
+	 ofstream myfile;
+	 myfile.open("mylog", ios::app);
+	 myfile << "swp init.\n";
+
+
     Token * t = new Token();
 
     uint64_t ciphLen;
-    char *ciph = (char *) getba(args, 1, ciphLen);
+    char *ciph = (char *) getba(args, 0, ciphLen);
 
     uint64_t wordKeyLen;
     char *wordKey = (char *) getba(args, 1, wordKeyLen);
@@ -517,7 +547,12 @@ searchSWP_init(UDF_INIT *initid, UDF_ARGS *args, char *message)
     t->ciph = Binary((unsigned int) ciphLen, (unsigned char *)ciph);
     t->wordKey = Binary((unsigned int)wordKeyLen, (unsigned char *)wordKey);
 
+    myfile << "ciph is " << marshallBinary(string(ciph, (unsigned int)ciphLen)) << "\n";
+    myfile << "wordKey is " << marshallBinary(string(wordKey,(unsigned int) wordKeyLen)) << "\n";
+
     initid->ptr = (char *) t;
+
+    myfile.close();
 
     return 0;
 }
@@ -525,7 +560,10 @@ searchSWP_init(UDF_INIT *initid, UDF_ARGS *args, char *message)
 void
 searchSWP_deinit(UDF_INIT *initid)
 {
-    Token *t = (Token *) initid->ptr;
+	cerr << "in udf \n";
+	cout << "in udf \n"; fflush(stdout);
+    return;
+	Token *t = (Token *) initid->ptr;
     delete t;
 
 }
@@ -534,11 +572,27 @@ my_bool
 searchSWP(UDF_INIT *initid, UDF_ARGS *args, char *is_null, char *error)
 
 {
-    uint64_t wordLen;
-    char * word = (char *)getba(ARGS, 0, wordLen);
-    Binary w = Binary((unsigned int)wordLen, (unsigned char *)word);
 
-    return search(*((Token *)(initid->ptr)), w);
+	ofstream myfile;
+	myfile.open("mylog", ios::app);
+	myfile << "swp search.\n";
+
+	uint64_t allciphLen;
+    char * allciph = (char *)getba(ARGS, 2, allciphLen);
+    Binary overallciph = Binary((unsigned int)allciphLen, (unsigned char *)allciph);
+
+    myfile << "overallciph " << marshallBinary(string(allciph, (unsigned int)allciphLen)) << "\n";
+
+    myfile.close();
+    bool flag = search(*((Token *)(initid->ptr)), overallciph);
+    myfile.open("mylog", ios::app);
+
+    myfile << "finally: found? " << flag << "\n";
+
+
+    myfile.close();
+
+    return flag;
 
 }
 

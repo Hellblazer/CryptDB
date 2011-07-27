@@ -7,6 +7,7 @@
 
 #include "SWPSearch.h"
 #include <iostream>
+#include <fstream>
 
 unsigned char fixedIV[] =
 {34, 145, 42, 12, 56, 13, 111, 100, 98, 6, 2, 63, 88, 4, 22, 74};
@@ -71,8 +72,9 @@ Binary
 SWP::encryptSym(const Binary & key, const Binary & val, const Binary & iv)
 {
 
-    assert_s(iv.len == AES_BLOCK_SIZE, "iv has incorrect length");
     assert_s(key.len == AES_BLOCK_SIZE, "key has incorrect length");
+    assert_s(iv.len == AES_BLOCK_SIZE, "iv has incorrect length");
+
 
     AES_KEY aes_key;
 
@@ -325,13 +327,22 @@ bool
 SWP::searchExists(const Token & token, const list<Binary> & ciphs)
 {
 
-    for (list<Binary>::const_iterator cit = ciphs.begin(); cit != ciphs.end();
+	ofstream myfile;
+	myfile.open("mylog", ios::app);
+	myfile << "traversing list..\n";
+
+	for (list<Binary>::const_iterator cit = ciphs.begin(); cit != ciphs.end();
          cit++) {
+		myfile << cit->toString() << "\n";
         if (SWPsearch(token, *cit)) {
+        	myfile << "found!" << "\n";
+        	myfile.close();
             return true;
         }
     }
 
+	myfile << "not found\n";
+    myfile.close();
     return false;
 }
 

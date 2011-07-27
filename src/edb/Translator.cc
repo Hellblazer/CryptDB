@@ -320,36 +320,42 @@ throw (CryptDBError)
             }
 
             return;
-        } else {
-            //join by inequality
-
-            assert_s(false, "join not supported for inequality");
-            assert_s(Operation::isOPE(operation), "unexpected operation ");
-
-            //must bring both to joinable level
-            if (fmfirst->secLevelOPE == SECLEVEL::SEMANTIC_OPE) {
-                addIfNotContained(fullName(firstToken,
-                                           firstTable), fieldsDec.OPEFields);
-            }
-            if (fmsecond->secLevelOPE == SECLEVEL::SEMANTIC_OPE) {
-                addIfNotContained(fullName(secondToken,
-                                           secondTable), fieldsDec.OPEFields);
-            }
-            if (fmfirst->secLevelOPE == SECLEVEL::OPE) {
-                addIfNotContained(fullName(firstToken,
-                                           firstTable),
-                                  fieldsDec.OPEJoinFields);
-            }
-
-            if (fmsecond->secLevelOPE == SECLEVEL::OPE) {
-                addIfNotContained(fullName(secondToken,
-                                           secondTable),
-                                  fieldsDec.OPEJoinFields);
-            }
-
-            return;
         }
 
+        //join by inequality
+
+        assert_s(false, "join not supported for inequality");
+        assert_s(Operation::isOPE(operation), "unexpected operation ");
+
+        //must bring both to joinable level
+        if (fmfirst->secLevelOPE == SECLEVEL::SEMANTIC_OPE) {
+        	addIfNotContained(fullName(firstToken,
+        			firstTable), fieldsDec.OPEFields);
+        }
+        if (fmsecond->secLevelOPE == SECLEVEL::SEMANTIC_OPE) {
+        	addIfNotContained(fullName(secondToken,
+        			secondTable), fieldsDec.OPEFields);
+        }
+        if (fmfirst->secLevelOPE == SECLEVEL::OPE) {
+        	addIfNotContained(fullName(firstToken,
+        			firstTable),
+        			fieldsDec.OPEJoinFields);
+        }
+
+        if (fmsecond->secLevelOPE == SECLEVEL::OPE) {
+        	addIfNotContained(fullName(secondToken,
+        			secondTable),
+        			fieldsDec.OPEJoinFields);
+        }
+
+        return;
+
+    }
+
+    // It is not join
+
+    if (Operation::isILIKE(operation)) {
+    	return;
     }
 
     if (Operation::isIN(operation) && (isField(firstToken))) {

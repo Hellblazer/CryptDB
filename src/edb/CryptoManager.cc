@@ -92,12 +92,15 @@ tokenize(string text)
          it++) {
         if ((it->length() >= 3) &&
             (search_tokens.find(*it) == search_tokens.end())) {
-            search_tokens.insert(*it);
+            string token = toLowerCase(*it);
+            cerr << " <"  << token << "> ";
+        	search_tokens.insert(token);
             res->push_back(Binary((uint) it->length(),
-                                  (unsigned char *) it->c_str()));
+                                  (unsigned char *) token.c_str()));
         }
     }
 
+    search_tokens.clear();
     return res;
 
 }
@@ -177,6 +180,10 @@ decreaseLevel(SECLEVEL l, fieldType ft,  onion o)
         }
         }
     }
+    case oSWP: {
+        	assert_s(l == SECLEVEL::SWP, "cannot decrease level for other than level SWP on the SWP onion");
+        	return SECLEVEL::PLAIN_SWP;
+    }
     default: {
         assert_s(false, "cannot decrease level");
         return SECLEVEL::INVALID;
@@ -226,6 +233,10 @@ increaseLevel(SECLEVEL l, fieldType ft, onion o)
             return SECLEVEL::INVALID;
         }
         }
+    }
+    case oSWP: {
+    	assert_s(l == SECLEVEL::PLAIN_SWP,  "cannot increase beyond SWP");
+    	return SECLEVEL::SWP;
     }
     default: {
         assert_s(false, "cannot increase level");
@@ -644,11 +655,27 @@ CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft,
             assert_s(fromlevel == SECLEVEL::PLAIN_SWP,
                      "expected onion level to be SECLEVEL::PLAIN_SWP ");
             data = removeApostrophe(data);
+            fromlevel = increaseLevel(fromlevel, ft, oSWP);
             string key = getKey(mkey, fullfieldname, fromlevel);
-            Binary keyB = Binary(AES_KEY_BYTES, (unsigned char *)key.c_str());
-            Binary ciph = CryptoManager::encryptSWP(keyB, *tokenize(data));
 
-            return marshallBinary(string((char *)ciph.content, ciph.len));
+            Binary keyB = Binary(AES_KEY_BYTES, (unsigned char *)key.c_str());
+            cerr << "TOKENS: ";
+            list<Binary> * tokens = tokenize(data);
+            cerr << "\n";
+            Binary ovciph = CryptoManager::encryptSWP(keyB, *tokens);
+            delete tokens;
+
+
+            //DEBUGGING
+            Token t = token(key, Binary("text"));
+            LOG(crypto) << "can we find text here:" << searchExists(t, ovciph) << "\n";
+            LOG(crypto) << "overallciph " << marshallBinary(string((char *)ovciph.content, ovciph.len)) << "\n";
+            LOG(crypto) << "t.wordKey " << marshallBinary(string((char *)t.wordKey.content, t.wordKey.len)) << "\n";
+            LOG(crypto) << "t.ciph " << marshallBinary(string((char *)t.ciph.content, t.ciph.len)) << "\n";
+
+            assert_s(fromlevel == tolevel, "cannot go higher than SWP on onion SWP");
+
+            return marshallBinary(string((char *)ovciph.content, ovciph.len));
         }
 
         case oINVALID: {
