@@ -85,7 +85,7 @@ myPrint(const unsigned char * a, unsigned int aLen)
 {
     stringstream ss;
     for (unsigned int i = 0; i < aLen; i++)
-        ss << (int)(a[i]-0) << " ";
+        ss << (int)(a[i]) << " ";
     return ss.str();
 }
 
