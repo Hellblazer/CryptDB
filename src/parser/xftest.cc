@@ -32,6 +32,7 @@
 
 enum class Cipher   { AES, OPE, Paillier, SWP };
 enum class DataType { integer, string };
+std::set<Cipher> pkCiphers = { Cipher::Paillier };
 
 struct EncKey {
  public:
@@ -41,34 +42,35 @@ struct EncKey {
 
 class EncType {
  public:
+    EncType(bool c = false) : isconst(c) {}
+    EncType(std::vector<std::pair<Cipher, EncKey> > o)
+        : onion(o), isconst(false) {}
+
     std::vector<std::pair<Cipher, EncKey> > onion;  // last is outermost
+    bool isconst;
 
     /* Find a common enctype between two onions */
     bool match(const EncType &other, EncType *out) const {
+        std::vector<const EncType*> v = { this, &other };
+        std::sort(v.begin(), v.end(), [](const EncType *a, const EncType *b) {
+                  return a->onion.size() > b->onion.size(); });
+
+        const EncType *a = v[0];    // longer, if any
+        const EncType *b = v[1];
         EncType res;
 
-        auto ai = onion.begin();
-        auto ae = onion.end();
-        auto bi = other.onion.begin();
-        auto be = other.onion.end();
+        auto ai = a->onion.begin();
+        auto ae = a->onion.end();
+        auto bi = b->onion.begin();
+        auto be = b->onion.end();
 
-        if (other.onion.size() > onion.size()) {
-            swap(ai, bi);
-            swap(ae, be);
-        }
-
-        /* ai is no shorter than bi */
-        while (ai != ae) {
+        for (; ai != ae; ai++, bi++) {
             if (bi == be) {
-                /*
-                 * We can add layers of public-key encryption..
-                 * XXX it doesn't seem good that PK layers are added here,
-                 * but adding non-PK layers on top of constants is elsewhere.
-                 */
-                if (ai->first == Cipher::Paillier)
-                    res.onion.push_back(*ai);
-                else
+                if (a->isconst || pkCiphers.find(ai->first) != pkCiphers.end()) {
+                    res.onion.push_back(*ai);   // can add layers
+                } else {
                     return false;
+                }
             } else {
                 if (ai->first != bi->first)
                     return false;
@@ -83,9 +85,6 @@ class EncType {
 
                 res.onion.push_back(make_pair(ai->first, k));
             }
-
-            ai++;
-            bi++;
         }
 
         *out = res;
@@ -102,17 +101,11 @@ class EncType {
 
 class ColType {
  public:
-    ColType(DataType dt, bool isconst = false) : type(dt), is_const(isconst) {}
-    ColType(DataType dt, std::vector<EncType> e, bool isconst = false) : type(dt), encs(e), is_const(isconst) {}
+    ColType(DataType dt) : type(dt) {}
+    ColType(DataType dt, std::vector<EncType> e) : type(dt), encs(e) {}
 
     DataType type;
     std::vector<EncType> encs;
-    bool is_const;
-    /*
-     * is_const means any encryption type can be generated (e.g., because
-     * the value is a constant that can be encrypted in proxy).  otherwise,
-     * only public-key encryptions (e.g., Paillier/HOM) can be generated.
-     */
 };
 
 class CItemType {
@@ -248,7 +241,12 @@ static class CItemField : public CItemSubtypeIT<Item_field, Item::Type::FIELD_IT
          * return one EncType for each onion level
          * that can be exposed for this column.
          */
-        return DataType::string;
+        return ColType(DataType::string, {
+                        EncType({ make_pair(Cipher::AES, 123) }),
+                        EncType({ make_pair(Cipher::OPE, 124),
+                                  make_pair(Cipher::AES, 125) }),
+                        EncType({ make_pair(Cipher::Paillier, 126) }),
+                       });
     }
 } ANON;
 
@@ -261,7 +259,7 @@ static class CItemString : public CItemSubtypeIT<Item_string, Item::Type::STRING
     }
 
     ColType do_enctype(Item_string *i) const {
-        return ColType(DataType::string, true);
+        return ColType(DataType::string, {EncType(true)});
     }
 } ANON;
 
@@ -271,7 +269,7 @@ static class CItemInt : public CItemSubtypeIT<Item_num, Item::Type::INT_ITEM> {
     }
 
     ColType do_enctype(Item_num *i) const {
-        return ColType(DataType::integer, true);
+        return ColType(DataType::integer, {EncType(true)});
     }
 } ANON;
 
