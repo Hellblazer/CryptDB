@@ -239,7 +239,7 @@ evaluateMetrics(const TestConfig &tc, int argc, char ** argv)
 
     time_t timerStart, timerEnd;
 
-    EDBClient * cl = new EDBClient("localhost", "raluca", "none", "cryptdb");
+    EDBClient * cl = new EDBClient(tc.host, tc.user, tc.pass, tc.db);
 
     cl->execute(
         "CREATE TABLE testplain (field1 int, field2 int, field3 int);");
@@ -382,14 +382,15 @@ evaluateMetrics(const TestConfig &tc, int argc, char ** argv)
 //tests protected methods of EDBClient
 class tester : public EDBClient {
  public:
-    tester(string dbname, const string &masterKey) : EDBClient("localhost",
-                                                               "raluca",
-                                                               "none", dbname,
-                                                               0, false)
+    tester(const TestConfig &tc, const string &masterKey) : EDBClient(tc.host,
+                                                                      tc.user,
+                                                                      tc.pass,
+                                                                      tc.db,
+                                                                      0, false)
     {
         setMasterKey(masterKey);
     }
-    tester(string dbname) : EDBClient("localhost", "raluca", "none", dbname)
+    tester(const TestConfig &tc) : EDBClient(tc.host, tc.user, tc.pass, tc.db)
     {
     };
     void testClientParser();
@@ -538,13 +539,13 @@ testCryptoManager()
 const uint64_t mkey = 113341234;
 
 static void __attribute__((unused))
-evalImproveSummations()
+evalImproveSummations(const TestConfig &tc)
 {
     string masterKey = BytesFromInt(mkey, AES_KEY_BYTES);
-    string host = "localhost";
-    string user = "root";
-    string db = "mysql";
-    string pwd = "letmein";
+    string host = tc.host;
+    string user = tc.user;
+    string db = tc.db;
+    string pwd = tc.pass;
     cerr << "connecting to host " << host << " user " << user << " pwd " <<
     pwd << " db " << db << endl;
     EDBClient * cl = new EDBClient(host, user, pwd, db);
@@ -578,10 +579,10 @@ interactiveTest(const TestConfig &tc, int ac, char **av)
     cout << "To exit, hit \\q\n";
 
     string masterKey = BytesFromInt(mkey, AES_KEY_BYTES);
-    string host = "localhost";
-    string user = "root";
-    string db = "mysql";
-    string pwd = "letmein";
+    string host = tc.host;
+    string user = tc.user;
+    string db = tc.db;
+    string pwd = tc.pass;
     cerr << "connecting to host " << host << " user " << user << " pwd " <<
     pwd << " db " << db << endl;
     EDBClient * cl = new EDBClient(host, user, pwd, db);
@@ -1017,10 +1018,10 @@ microEvaluate(const TestConfig &tc, int argc, char ** argv)
 
     string masterKey =  BytesFromInt(mkey, AES_KEY_BYTES);
     EDBClient * clsecure =
-        new EDBClient("localhost", "raluca", "none", "cryptdb");
+        new EDBClient(tc.host, tc.user, tc.pass, tc.db);
     clsecure->setMasterKey(masterKey);
-    EDBClient * clplain = new EDBClient("localhost", "raluca", "none",
-                                        "cryptdb");
+    EDBClient * clplain = new EDBClient(tc.host, tc.user, tc.pass,
+                                        tc.db);
 
     clsecure->VERBOSE = false;
     clplain->VERBOSE = false;
@@ -1129,12 +1130,12 @@ microEvaluate(const TestConfig &tc, int argc, char ** argv)
 
 //integration test
 static void __attribute__((unused))
-testEDBClient()
+testEDBClient(const TestConfig &tc)
 {
     cout << "\n\n Integration Queries \n------------------- \n \n";
 
     string masterKey =  BytesFromInt(mkey, AES_KEY_BYTES);
-    EDBClient * cl = new EDBClient("localhost", "raluca", "none", "cryptdb");
+    EDBClient * cl = new EDBClient(tc.host, tc.user, tc.pass, tc.db);
     cl->setMasterKey(masterKey);
     cl->VERBOSE = true;
 
@@ -1349,13 +1350,13 @@ convertQueries()
 }
 
 static void __attribute__((unused))
-test_train()
+test_train(const TestConfig &tc)
 {
 
     cerr << "training \n";
     string masterKey =  BytesFromInt(mkey, AES_KEY_BYTES);
 
-    EDBClient * cl = new EDBClient("localhost", "raluca", "none", "cryptdb");
+    EDBClient * cl = new EDBClient(tc.host, tc.user, tc.pass, tc.db);
     cl->setMasterKey(masterKey);
 
     cl->VERBOSE = true;
@@ -1457,7 +1458,7 @@ test_train()
         if (isSecure) {
                 cl = new EDBClient("cryptdb", masterKey);
         } else {
-                cl = new EDBClient("cryptdb");
+                cl = new EDBClient(tc.db);
         }
         cl->VERBOSE = verbose;
 
@@ -1897,7 +1898,7 @@ suffix(int no)
 
 
         } else {
-                 cl = new EDBClient("cryptdb");
+                 cl = new EDBClient(tc.db);
         }
 
         string workload = string("eval/pieces/piece") + suffix(index);
@@ -1955,7 +1956,7 @@ suffix(int no)
 
         cl->create_trained_instance(true);
 
-        EDBClient * plaincl = new EDBClient("cryptdb");
+        EDBClient * plaincl = new EDBClient(tc.db);
 
         int res = system("psql < eval/tpcc/sqlTableCreates");
         res = system("psql < eval/tpcc/index.sql");
@@ -2105,7 +2106,7 @@ suffix(int no)
 
         }
         else {
-                cl = new EDBClient("cryptdb");
+                cl = new EDBClient(tc.db);
         }
 
         int index = 0;
@@ -2276,7 +2277,7 @@ suffix(int no)
 
         }
         else {
-                cl = new EDBClient("cryptdb");
+                cl = new EDBClient(tc.db);
 
 
         }
@@ -2349,7 +2350,7 @@ static void
 encryptionTablesTest(const TestConfig &tc, int ac, char **av)
 {
     EDBClient * cl =
-        new EDBClient("localhost", "raluca", "none", "cryptdb");
+        new EDBClient(tc.host, tc.user, tc.pass, tc.db);
     cl->setMasterKey(randomBytes(AES_KEY_BYTES));
 
     int noHOM = 100;
@@ -2386,7 +2387,7 @@ static void
 testParseAccess(const TestConfig &tc, int ac, char **av)
 {
 
-    EDBClient * cl = new EDBClient("localhost", "raluca", "none", "raluca");
+    EDBClient * cl = new EDBClient(tc.host, tc.user, tc.pass, tc.db);
     cl->setMasterKey(BytesFromInt(mkey, AES_KEY_BYTES));
 
     cl->VERBOSE = true;
@@ -2433,10 +2434,10 @@ autoIncTest(const TestConfig &tc, int ac, char **av)
 {
 
     string masterKey = BytesFromInt(mkey, AES_KEY_BYTES);
-    string host = "localhost";
-    string user = "root";
-    string db = "mysql";
-    string pwd = "letmein";
+    string host = tc.host;
+    string user = tc.user;
+    string db = tc.db;
+    string pwd = tc.pass;
     cerr << "connecting to host " << host << " user " << user << " pwd " <<
     pwd << " db " << db << endl;
     EDBClient * cl = new EDBClient(host, user, pwd, db);
@@ -2603,8 +2604,8 @@ accessManagerTest(const TestConfig &tc, int ac, char **av)
     "============================= AccessManager2 =================================="
          << endl;
     MetaAccess * meta;
-    meta = new MetaAccess(new Connect("localhost", "root", "letmein",
-                                      "mysql"),true);
+    meta = new MetaAccess(new Connect(tc.host, tc.user, tc.pass,
+                                      tc.db),true);
 
     meta->addEquals("u.uid","g.uid");
     meta->addAccess("u.uid","g.gid");
@@ -2617,7 +2618,7 @@ accessManagerTest(const TestConfig &tc, int ac, char **av)
         !meta->CheckAccess(), "passes access check with broken access tree");
 
     KeyAccess * am;
-    am = new KeyAccess(new Connect("localhost","root","letmein","mysql"));
+    am = new KeyAccess(new Connect(tc.host,tc.user,tc.pass,tc.db));
 
     am->addEquals("u.uid","g.uid");     //1
     am->addAccess("u.uname","u.uid");
@@ -3430,8 +3431,7 @@ accessManagerTest(const TestConfig &tc, int ac, char **av)
 
        // This test is no longer valid due to orphans.
 
-       am = new AccessManager(new Connect("localhost", "root", "letmein",
-          "mysql"));
+       am = new AccessManager(new Connect(tc.host, tc.user, tc.pass, tc.db));
 
        am->addEquals("i.uid","u.uid");
        am->givesPsswd("u.uname");
@@ -3447,8 +3447,7 @@ accessManagerTest(const TestConfig &tc, int ac, char **av)
 
        am->finish();
 
-       am = new AccessManager(new Connect("localhost", "root", "letmein",
-          "mysql"));
+       am = new AccessManager(new Connect(tc.host, tc.user, tc.pass, tc.db));
 
        //OUR EXAMPLE TEST
      * */
@@ -3525,8 +3524,7 @@ accessManagerTest(const TestConfig &tc, int ac, char **av)
 
        cerr << "LONG STRINGS OF EQUALITY TESTING!"  << endl;
 
-       am = new AccessManager(new Connect("localhost", "root", "letmein",
-          "mysql"));
+       am = new AccessManager(new Connect(tc.host, tc.user, tc.pass, tc.db));
 
        am->givesPsswd("u.uname");
        am->addEquals("u.uid","p.uid");
@@ -3553,9 +3551,7 @@ accessManagerTest(const TestConfig &tc, int ac, char **av)
 
 
        cerr << "Test\n";
-       am = new AccessManager(new Connect("localhost", "root", "letmein",
-          "mysql"));
-
+       am = new AccessManager(new Connect(tc.host, tc.user, tc.pass, tc.db));
 
        am->addEquals("t1.id", "users.id");
        am->givesPsswd("users.username");
@@ -3577,8 +3573,7 @@ accessManagerTest(const TestConfig &tc, int ac, char **av)
 
        cerr << "TEST: users properly log out \n";
 
-       am = new AccessManager(new Connect("localhost", "root", "letmein",
-          "mysql"));
+       am = new AccessManager(new Connect(tc.host, tc.user, tc.pass, tc.db));
 
        cerr << "1-----------------------------------------------" << endl;
        assert_s(0==am->addEquals("users.id", "t1.id"), "operation failed");
@@ -3642,8 +3637,7 @@ accessManagerTest(const TestConfig &tc, int ac, char **av)
 
        cerr <<" ===========================\n TEST ORPHAN \n";
 
-       am = new AccessManager(new Connect("localhost", "root", "letmein",
-          "mysql"));
+       am = new AccessManager(new Connect(tc.host, tc.user, tc.pass, tc.db));
 
        assert_s(0<=am->givesPsswd("u.uname"), "problem with gives psswd");
 
@@ -3689,8 +3683,7 @@ accessManagerTest(const TestConfig &tc, int ac, char **av)
        //return;
 
 
-       am = new AccessManager(new Connect("localhost", "root", "letmein",
-          "mysql"));
+       am = new AccessManager(new Connect(tc.host, tc.user, tc.pass, tc.db));
 
        cerr << "remove test \n";
 
@@ -3762,7 +3755,7 @@ testTrace(const TestConfig &tc, int argc, char ** argv)
     string masterKey =  BytesFromInt(mkey, AES_KEY_BYTES);
     EDBClient * cl;
 
-    cl = new EDBClient("localhost", "root", "letmein", "phpbb", 5123);
+    cl = new EDBClient(tc.host, tc.user, tc.pass, tc.db, 5123);
     cl->setMasterKey(masterKey);
     cl->VERBOSE = false;
 
@@ -4064,10 +4057,10 @@ main(int argc, char ** argv)
 
         //testCryptoManager();
         //testEDBClient();
-        //tester t = tester("cryptdb", randomBytes(AES_KEY_BYTES));
+        //tester t = tester(tc, randomBytes(AES_KEY_BYTES));
         //t.testClientParser();
 
-        //tester t = tester("cryptdb");
+        //tester t = tester(tc);
         //t.testMarshallBinary();
 
         //microEvaluate(argc, argv); //microEvaluate

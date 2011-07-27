@@ -450,17 +450,17 @@ TestAccessManager::run(const TestConfig &tc, int argc, char ** argv)
   testSingleUser(tc, ka);
 
   delete ka;
-  ka = buildTest(new Connect("localhost","root","letmein","cryptdbtest"));
+  ka = buildTest(new Connect(tc.host, tc.user, tc.pass, tc.db));
   cerr << "multi user tests..." << endl;
   testMultiBasic(tc, ka);
 
   delete ka;
-  ka = buildTest(new Connect("localhost","root","letmein","cryptdbtest"));
+  ka = buildTest(new Connect(tc.host, tc.user, tc.pass, tc.db));
   cerr << "acyclic graphs (not a tree) tests..." << endl;
   testNonTree(tc, ka);
 
   ka->~KeyAccess();
-  ka = buildTest(new Connect("localhost","root","letmein","cryptdbtest"));
+  ka = buildTest(new Connect(tc.host, tc.user, tc.pass, tc.db));
   cerr << "orphan tests..." << endl;
   testOrphans(tc, ka);
 
