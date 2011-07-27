@@ -3914,11 +3914,11 @@ help(const TestConfig &tc, int ac, char **av)
     cerr << "Usage: " << av[0] << " [options] testname" << endl;
     cerr << "Options:" << endl
          << "    -v           verbose" << endl
-         << "    -s           stop on failure" << endl
-         << "    -h host      database server" << endl
-         << "    -u user      database username" << endl
-         << "    -p pass      database password" << endl
-         << "    -d db        database to use" << endl;
+         << "    -s           stop on failure [" << tc.stop_if_fail << "]" << endl
+         << "    -h host      database server [" << tc.host << "]" << endl
+         << "    -u user      database username [" << tc.user << "]" << endl
+         << "    -p pass      database password [" << tc.pass << "]" << endl
+         << "    -d db        database to use [" << tc.db << "]" << endl;
     cerr << "Supported tests:" << endl;
     for (uint i = 0; i < NELEM(tests); i++)
         cerr << "    " << tests[i].name << endl;
