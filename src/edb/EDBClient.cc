@@ -2280,24 +2280,29 @@ throw (CryptDBError)
     if (Operation::isILIKE(operation)) {     //DET
 
         /* Method 2 search: SWP */
-    	 LOG(edb_v) << "IS ILIKE";
+    	 LOG(edb_v) << "IS LIKE/ILIKE";
 
         anonField1 = fm1->anonFieldNameSWP;
         string anonfull = fullName(anonField1,
                                    tableMetaMap[table1]->anonTableName);
 
-        res += SEARCHSWP"(";
+        if (removeApostrophe(op2).length() == 0) {
 
-        Binary key = Binary(cm->getKey(cm->getmkey(), anonfull, SECLEVEL::SWP));
+        	res += anonField1 + " LIKE '' ";
 
-        Token t = CryptoManager::token(key, Binary(getLIKEToken(op2)));
+        } else {
+        	res += SEARCHSWP"(";
 
-        res +=
-            marshallBinary(string((char *)t.ciph.content,
-                                  t.ciph.len)) + ", " +
-            marshallBinary(string((char *)t.wordKey.content,
-                                  t.wordKey.len)) +  ", " +  anonField1 + ") = 1; ";
+        	Binary key = Binary(cm->getKey(cm->getmkey(), anonfull, SECLEVEL::SWP));
 
+        	Token t = CryptoManager::token(key, Binary(getLIKEToken(op2)));
+
+        	res +=
+        			marshallBinary(string((char *)t.ciph.content,
+        					t.ciph.len)) + ", " +
+        					marshallBinary(string((char *)t.wordKey.content,
+        							t.wordKey.len)) +  ", " +  anonField1 + ") = 1; ";
+        }
 
         return res;
 

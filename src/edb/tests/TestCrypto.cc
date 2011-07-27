@@ -366,24 +366,6 @@ testSWPSearch()
 
 
 
-
-
-
-
-
-
-    string overallciph = unmarshallBinary("X'a4ca443eaca985378032aa8d356b854f75febcd5bd60f2949463524043736347'");
-    string ciph = unmarshallBinary("X'e92eedb4a284cb530ac60feb7ba138c0'");
-    string wordKey = unmarshallBinary("X'c54b4ef2a6e63fd6b52e285535ba5a2b'");
-
-
-    token.ciph = Binary(ciph);
-    token.wordKey = Binary(wordKey);
-    cerr << "len of key is " << wordKey.length() << "\n";
-
-    cerr << "found?" << CryptoManager::searchExists(token, Binary(overallciph)) << "\n";
-
-
 }
 
 void

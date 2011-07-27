@@ -952,7 +952,7 @@ testSearch(const TestConfig &tc, EDBClient * cl)
                            {"2", "Text with CAPITALIZATION"} };
     reply.push_back(convert(rows1,3));
 
-    query.push_back("SELECT * FROM t3 WHERE searchable LIKE 'short text'");
+    query.push_back("SELECT * FROM t3 WHERE searchable LIKE 'short'");
     string rows2[2][2] = { {"id", "searchable"},
                            {"1", "short text"} };
     reply.push_back(convert(rows2,2));
@@ -962,24 +962,20 @@ testSearch(const TestConfig &tc, EDBClient * cl)
                            {"3", ""} };
     reply.push_back(convert(rows3,2));
 
-    query.push_back("SELECT * FROM t3 WHERE searchable LIKE 'Text%'");
+    query.push_back("SELECT * FROM t3 WHERE searchable LIKE 'capitalization'");
     string rows4[2][2] = { {"id", "searchable"},
                            {"2", "Text with CAPITALIZATION"} };
     reply.push_back(convert(rows4,2));
 
-    query.push_back("SELECT * FROM t3 WHERE searchable LIKE '%shadows'");
+    query.push_back("SELECT * FROM t3 WHERE searchable LIKE 'noword'");
     ResType empty;
     empty.clear();
     reply.push_back(empty);
 
-    query.push_back("SELECT * FROM t3 WHERE searchable LIKE 'when%'");
+    query.push_back("SELECT * FROM t3 WHERE searchable LIKE 'when'");
     string rows5[2][2] = { {"id", "searchable"},
                            {"4",
                             "When I have fears that I may cease to be, before my pen has gleaned my teaming brain; before high-piled books in charactery hold like rich garners the full-ripened grain.  When I behold upon the nights starred face Huge cloudy symbols of high romance And think that I may never live to trace Their shadows with the magic hand of chance.  And when I feel, fair creature of the hour That I shall never look upon thee more, Never have relish of the faerie power Of unreflecting love, I stand alone of the edge of the wide world and think, to love and fame to nothingness do sink"} };
-    reply.push_back(convert(rows5,2));
-
-    query.push_back(
-        "SELECT * FROM t3 WHERE searchable LIKE '%magic hand of chance%'");
     reply.push_back(convert(rows5,2));
 
     query.push_back("SELECT * FROM t3 WHERE searchable < 'slow'");
@@ -1013,9 +1009,6 @@ TestSinglePrinc::run(const TestConfig &tc, int argc, char ** argv)
     cl = new EDBClient(tc.host, tc.user, tc.pass, tc.db, 0, false);
     cl->setMasterKey(masterKey);
 
-    cerr << "Testing search..." << endl;
-    testSearch(tc, cl);
-    if (1) {return;}//focusing on search debugging for now
     cerr << "Testing create and drop..." << endl;
     testCreateDrop(tc, cl);
     cerr << "Testing insert..." << endl;
@@ -1028,6 +1021,8 @@ TestSinglePrinc::run(const TestConfig &tc, int argc, char ** argv)
     testUpdate(tc, cl);
     cerr << "Testing delete..." << endl;
     testDelete(tc, cl);
+    cerr << "Testing search..." << endl;
+    testSearch(tc, cl);
 
     cerr << "RESULT: " << npass << "/" << ntest << " passed" << endl;
 
