@@ -3953,6 +3953,7 @@ main(int argc, char ** argv)
             break;
 
         case 's':
+
             tc.stop_if_fail = true;
             break;
 

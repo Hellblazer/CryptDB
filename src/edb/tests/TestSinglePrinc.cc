@@ -792,7 +792,7 @@ testUpdate(const TestConfig &tc, EDBClient * cl)
 
     qUpdateSelect(
         tc, cl,
-        "UPDATE t1 SET id = id + 10, salary = salary + 19, name = 'xxx', address = 'foo' WHERE age < 11",
+        "UPDATE t1 SET id = id + 10, salary = salary + 19, name = 'xxx', address = 'foo' WHERE address = 'London'",
         "SELECT * FROM t1",
         { {"id","age","salary","address","name"},
           { "1", "12", "0",
@@ -800,7 +800,7 @@ testUpdate(const TestConfig &tc, EDBClient * cl)
             "Peter Pan"},
           { "2", "18", "0", "Green Gables", "Anne Shirley" },
           { "13", "10", "19", "foo", "xxx" },
-          { "4", "12", "0", "London", "Edmund" },
+          { "14", "12", "19", "foo", "xxx" },
           { "5", "32", "55000", "221B Baker Street",
             "Sherlock Holmes" },
           { "6", "22", "20000", "Pemberly",

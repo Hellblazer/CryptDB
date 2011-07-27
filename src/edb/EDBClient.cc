@@ -2191,6 +2191,8 @@ throw (CryptDBError)
 
     FieldMetadata * fm1 = tableMetaMap[table1]->fieldMetaMap[field1];
 
+    assert_s(!fm1->INCREMENT_HAPPENED, "field " + field1 + " has already been used in an aggregate so predicates cannot be evaluated any more ");
+
     fieldType ftype1 = fm1->type;
 
     string res = "";
@@ -2211,6 +2213,9 @@ throw (CryptDBError)
         getTableField(op2, table3, field3, qm, tableMetaMap);
         TableMetadata * tm2 = tableMetaMap[table3];
         FieldMetadata * fm2 = tm2->fieldMetaMap[field3];
+
+        assert_s(!fm2->INCREMENT_HAPPENED, "field " + field3 + " has already been used in an aggregate so predicates cannot be evaluated any more ");
+
         string anonTable2 = tm2->anonTableName;
         string anonField2 = fm2->anonFieldNameDET;
         string anonOp2 = fullName(anonField2, anonTable2);
