@@ -11,6 +11,7 @@
 #include <iostream>
 #include <istream>
 #include <fstream>
+#include <iomanip>
 #include <pthread.h>
 #include <stdlib.h>
 #include <sys/time.h>
@@ -1003,15 +1004,20 @@ interactiveTest(const TestConfig &tc, int ac, char **av)
                cl->outputOnionState();*/
         } else {
             ResType *r = cl->execute(cmd);
-            for (unsigned int i = 0; r && i < r->size(); i++) {
-                stringstream ss;
-                for (unsigned int j = 0; j < r->at(i).size(); j++) {
-                    char buf[256];
-                    snprintf(buf, sizeof(buf), "%-30s", r->at(i).at(
-                                 j).c_str());
-                    ss << buf;
+            if (r && r->size() > 0) {
+                std::vector<size_t> width(r->at(0).size());
+                for (uint i = 0; i < (*r)[0].size(); i++) {
+                    width[i] = 0;
+                    for (uint j = 0; j < r->size(); j++)
+                        if ((*r)[j][i].length() > width[i])
+                            width[i] = (*r)[j][i].length();
                 }
-                cout << ss.str() << endl;
+                for (unsigned int i = 0; r && i < r->size(); i++) {
+                    stringstream ss;
+                    for (unsigned int j = 0; j < r->at(i).size(); j++)
+                        ss << left << setw((int) (width[j] + 2)) << r->at(i).at(j);
+                    cout << ss.str() << endl;
+                }
             }
         }
     }
