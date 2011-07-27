@@ -72,7 +72,7 @@ static void
 BasicFunctionality(const TestConfig &tc, EDBClient * cl)
 {
     cl->plain_execute(
-        "DROP TABLE IF EXISTS u, t1, plain_users, pwdcryptdb__users, cryptdb_publis, cryptdb_initialized_principles, cryptdb0;");
+        "DROP TABLE IF EXISTS u, t1, plain_users, pwdcryptdb__users, cryptdb_publis, cryptdb_initialized_principals, cryptdb0;");
     assert_s(myCreate(
                  cl,
                  "CREATE TABLE t1 (id integer, post encfor id det text, age encfor id ope bigint);",
@@ -154,7 +154,7 @@ static void
 PrivMessages(const TestConfig &tc, EDBClient * cl)
 {
     cl->plain_execute(
-        "DROP TABLE IF EXISTS u, msgs, privmsg, plain_users, pwdcryptdb__users, cryptdb_publis, cryptdb_initialized_principles, cryptdb0;");
+        "DROP TABLE IF EXISTS u, msgs, privmsg, plain_users, pwdcryptdb__users, cryptdb_publis, cryptdb_initialized_principals, cryptdb0;");
     assert_s(myCreate(
                  cl,
                  "CREATE TABLE msgs (msgid equals privmsg.msgid integer, msgtext encfor msgid text)",
@@ -212,7 +212,7 @@ PrivMessages(const TestConfig &tc, EDBClient * cl)
 
 static void
 UserGroupForum(const TestConfig &tc, EDBClient * cl) {
-    cl->plain_execute("DROP TABLE IF EXISTS u, usergroup, groupforum, forum, plain_users, pwdcryptdb__users, cryptdb_public, cryptdb_initialized_principles, cryptdb0;");
+    cl->plain_execute("DROP TABLE IF EXISTS u, usergroup, groupforum, forum, plain_users, pwdcryptdb__users, cryptdb_public, cryptdb_initialized_principals, cryptdb0;");
     assert_s(myCreate(cl,"CREATE TABLE u (userid integer, username givespsswd userid text);",
                       "CREATE TABLE u (userid integer, username text);"),
                          "failed: u table");
@@ -356,7 +356,7 @@ UserGroupForum(const TestConfig &tc, EDBClient * cl) {
 
 static void
 UserGroupForum_incFunction(const TestConfig &tc, EDBClient * cl) {
-    cl->plain_execute("DROP TABLE IF EXISTS u, usergroup, groupforum, forum, plain_users, pwdcryptdb__users, cryptdb_public, cryptdb_initialized_principles, cryptdb0;");
+    cl->plain_execute("DROP TABLE IF EXISTS u, usergroup, groupforum, forum, plain_users, pwdcryptdb__users, cryptdb_public, cryptdb_initialized_principals, cryptdb0;");
     assert_s(myCreate(cl,"CREATE TABLE u (userid integer, username givespsswd userid text);",
                       "CREATE TABLE u (userid integer, username text);"),
                          "failed: u table");

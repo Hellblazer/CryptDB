@@ -22,9 +22,9 @@ using namespace std;
  * This class maintains the flow of access based on user-annotated schema.
  *
  * a user refers to a physical user
- * a principle refers to a field in the database that has encrypted entries
+ * a principal refers to a field in the database that has encrypted entries
  *  and/or has other fields encrypted for it
- * a generic principle is a collection of principle that all refer to the same
+ * a generic principal is a collection of principal that all refer to the same
  *  values
  */
 
@@ -35,9 +35,9 @@ using namespace std;
 #define THRESHOLD 100
 
 typedef struct Prin {
-    //the name of the principle (either a generic or a principle)
+    //the name of the principal (either a generic or a principal)
     string type;
-    //the value of the principle
+    //the value of the principal
     string value;
     //the generic this Prin is part of (if it's already a generic, this is the
     // same)
@@ -87,8 +87,8 @@ typedef struct Prin {
 typedef struct PrinKey {
     string key;
 
-    // principles currently holding the keys to access this key
-    std::set<Prin> principles_with_access;
+    // principals currently holding the keys to access this key
+    std::set<Prin> principals_with_access;
 
     bool
     operator==(const PrinKey &a) const
@@ -101,13 +101,13 @@ class MetaAccess {
  public:
     MetaAccess(Connect * c, bool verb);
 
-    //defines two names that refer to the same principle
+    //defines two names that refer to the same principal
     void addEquals(string princ1, string princ2);
 
     //princHasAccess has access to princAccessible
     void addAccess(string princHasAccess, string princAccessible);
 
-    //adds princ to the set of principles which can give a password
+    //adds princ to the set of principals which can give a password
     void addGives(string princ);
 
     //prints out all the information stored in memory
@@ -125,11 +125,11 @@ class MetaAccess {
 
     //all four of the following functions only go one step along the access
     // graph
-    //returns the set of all principles (not generics) that can immediately
+    //returns the set of all principals (not generics) that can immediately
     // access princ
     //does not include princ or any type which princ equals
     std::set<string> getTypesAccessibleFrom(string princ);
-    //returns the set of all principles (not generics) that princ has
+    //returns the set of all principals (not generics) that princ has
     // immediate access to
     //does not include princ or any type which princ equals
     std::set<string> getTypesHasAccessTo(string princ);
@@ -140,8 +140,8 @@ class MetaAccess {
     //includes gen
     std::set<string> getGenHasAccessTo(string gen);
 
-    //returns the set of all the principles (not generics) that are equal to
-    // principle princ
+    //returns the set of all the principals (not generics) that are equal to
+    // principal princ
     std::set<string> getEquals(string princ);
 
     //returns true if princ gives passsword
@@ -173,19 +173,19 @@ class MetaAccess {
     string unsanitize(string sanitized);
     std::set<string> unsanitizeSet(std::set<string> sanitized);
 
-    //user-supplied principle to generic principle
+    //user-supplied principal to generic principal
     map<string, string> prinToGen;
-    //generic principle to user-supplied principles
+    //generic principal to user-supplied principals
     map<string, std::set<string> > genToPrin;
 
-    //maps the principles which have access to things to the principles they
+    //maps the principals which have access to things to the principals they
     // have access to
     map<string, std::set<string> > genHasAccessToList;
-    //maps the principles which are accessible by things to the principles
+    //maps the principals which are accessible by things to the principals
     // they are accessible by
     map<string, std::set<string> > genAccessibleByList;
 
-    //keeps track of principles which can give passwords
+    //keeps track of principals which can give passwords
     std::set<string> givesPsswd;
 
     //maps a pair of generics to a table
@@ -204,20 +204,20 @@ class KeyAccess {
     KeyAccess(Connect * connect);
 
     //meta access functions
-    //defines two names that refer to the same principle
+    //defines two names that refer to the same principal
     int addEquals(string prin1, string prin2);
     //princHasAccess has access to princAccessible
     int addAccess(string hasAccess, string accessTo);
-    //adds princ to the set of principles which can give a password
+    //adds princ to the set of principals which can give a password
     int addGives(string prin);
     //this method should only be called once, after all the access and equals
     // links have been added
     int CreateTables();
-    //returns the set of all principles (not generics) that can immediately
+    //returns the set of all principals (not generics) that can immediately
     // access princ
     //does not include princ or any type which princ equals
     std::set<string> getTypesAccessibleFrom(string princ);
-    //returns the set of all principles (not generics) that princ has
+    //returns the set of all principals (not generics) that princ has
     // immediate access to
     //does not include princ or any type which princ equals
     std::set<string> getTypesHasAccessTo(string princ);
@@ -227,8 +227,8 @@ class KeyAccess {
     //returns the set of all generics that gen has access to
     //does include gen
     std::set<string> getGenHasAccessTo(string gen);
-    //returns the set of all the principles (not generics) that are equal to
-    // principle princ
+    //returns the set of all the principals (not generics) that are equal to
+    // principal princ
     std::set<string> getEquals(string princ);
 
     //get generic public
@@ -238,7 +238,7 @@ class KeyAccess {
 
     bool isType(string type);
 
-    //add a key for the principle hasAccess to access principle accessTo
+    //add a key for the principal hasAccess to access principal accessTo
     //input: both Prins are expected to not be generics
     //requires: if hasAccess is a givesPsswd, it must exist (KeyAccess cannot
     // generate password derived keys)
@@ -251,28 +251,28 @@ class KeyAccess {
     //input: both Prins are expected not to be generics
     int remove(Prin hasAccess, Prin accessTo);
 
-    //returns the symmetric key for the principle Prin, if held
+    //returns the symmetric key for the principal Prin, if held
     //returns keys of length AES_KEY_BYTES
     string getKey(Prin prin);
 
-    //returns the symmetric key for the principle Prin, if held
+    //returns the symmetric key for the principal Prin, if held
     //returns keys of length AES_KEY_BYTES
     PrinKey getPrinKey(Prin prin);
 
-    //returns the public key for the principle prin, NULL if prin is not found
+    //returns the public key for the principal prin, NULL if prin is not found
     PKCS * getPublicKey(Prin prin);
-    //returns the secret key for the principle prin
+    //returns the secret key for the principal prin
     //requires: access to prin's symmetric key
     PrinKey getSecretKey(Prin prin);
 
     //inserts a givesPsswd value
-    //if the value has access to other principles, all those keys are accessed
+    //if the value has access to other principals, all those keys are accessed
     // and decrypted
     //requires: psswd be of length AES_KEY_BYTES
     int insertPsswd(Prin gives, const string &psswd);
 
     //removes a givesPsswd value
-    //if the value is holding keys to other principles that no other inserted
+    //if the value is holding keys to other principals that no other inserted
     // givesPsswd value has access to, the keys are dropped from keys
     int removePsswd(Prin prin);
 
@@ -285,11 +285,11 @@ class KeyAccess {
     //describes keys currently held by the proxy
     map<Prin, PrinKey> keys;
     //describes uncached keys accessible in the database
-    // string is the gen of the accessTo key; principle Prin has access to the
+    // string is the gen of the accessTo key; principal Prin has access to the
     // key
     map<string, std::set<Prin> > uncached_keys;
 
-    //describe all chains disconnected from a physical principle
+    //describe all chains disconnected from a physical principal
     map<Prin, std::set<Prin> > orphanToParents;
     map<Prin, std::set<Prin> > orphanToChildren;
     //the MetaAccess that described the possible access links
@@ -304,7 +304,7 @@ class KeyAccess {
     PrinKey buildKey(Prin hasAccess, const string &sym_key);
 
     //adds prin to the map keys
-    //if keys already holds this keys, the principles_with_access sets are
+    //if keys already holds this keys, the principals_with_access sets are
     // merged
     //returns: 0  if key added successfully
     //         1  if prin already has this key
@@ -331,7 +331,7 @@ class KeyAccess {
     //         <0 if an error occurs
     int RemoveRow(Prin hasAccess, Prin accessTo);
 
-    //generates a public/secret asymmetric key pair for principle prin,
+    //generates a public/secret asymmetric key pair for principal prin,
     // encrypts the secret key with key prin_key and stores the public key and
     // encrypted secret key in the public keys table
     //requires prin_key with key and len
@@ -342,7 +342,7 @@ class KeyAccess {
 
     //returns: str_encrypted_key decrypted symmetrically with
     // key_for_decrypting
-    //         principles_with_access is empty
+    //         principals_with_access is empty
     PrinKey decryptSym(string str_encrypted_key,
                        const string &key_for_decrypting,
                        string str_salt);
@@ -357,7 +357,7 @@ class KeyAccess {
 #endif
     //if prin has uncached keys, finds and returns them
     //if key is found in keys, prints an error message
-    //requres: all keys in uncached_keys to have their principles still logged
+    //requres: all keys in uncached_keys to have their principals still logged
     // on
     //returns: PrinKey for prin is exists
     //         empty PrinKey if prin does not have an accessible key
