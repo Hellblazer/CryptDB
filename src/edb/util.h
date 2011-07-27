@@ -322,9 +322,9 @@ void myassert(bool value, const string &mess = "assertion failed");
 double timeInSec(struct timeval tvstart, struct timeval tvend);
 
 //parsing
-const char delimsStay[5] = {'(', ')', '=', ',', '\0'};
-const char delimsGo[5] = {';', ' ', '\t', '\n', '\0'};
-const char keepIntact[2] ={'\'', '\0'};
+const char delimsStay[] = {'(', ')', '=', ',', '>', '<', '\0'};
+const char delimsGo[] = {';', ' ', '\t', '\n', '\0'};
+const char keepIntact[] ={'\'', '\0'};
 
 bool isKeyword(const string &token);
 
