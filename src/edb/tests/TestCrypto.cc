@@ -343,7 +343,7 @@ testSWPSearch()
                                                                word1),
                                           CryptoManager::encryptSWP(key,
                                                                     vec3)),
-             "incorrect found flad in vec3");
+             "incorrect found flag in vec3");
 
     indexes = CryptoManager::searchSWP(CryptoManager::token(key,
                                                             word1),
@@ -363,7 +363,7 @@ testSWPSearch()
 }
 
 void
-TestCrypto::run(int argc, char ** argv)
+TestCrypto::run(const TestConfig &tc, int argc, char ** argv)
 {
     cerr << "TESTING CRYPTO" << endl;
     cerr << "Testing OPE..." << endl;

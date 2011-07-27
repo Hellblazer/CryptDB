@@ -10,8 +10,10 @@ enum log_group {
     // common debug messages
     log_crypto,
     log_crypto_v,
+    log_crypto_data,
     log_edb,
     log_edb_v,
+    log_edb_query,
     log_test,
     log_am,
     log_am_v,

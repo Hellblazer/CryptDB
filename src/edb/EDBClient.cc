@@ -792,11 +792,11 @@ throw (CryptDBError)
                     if (fm1->exists(fm1->anonFieldNameOPE)) {
                         string anonName = fm1->anonFieldNameOPE;
 
-                        if (fm1->secLevelDET == SECLEVEL::SEMANTIC_OPE) {
+                        if (fm1->secLevelOPE == SECLEVEL::SEMANTIC_OPE) {
                             addIfNotContained(fullName(field,
                                                        table),
                                               fieldsDec.OPEFields);
-                            fm1->secLevelDET = SECLEVEL::OPE;
+                            fm1->secLevelOPE = SECLEVEL::OPE;
                         }
 
                         resultQuery += ", " + anonName + " = " +
@@ -1579,7 +1579,7 @@ throw (CryptDBError)
     string oldTable = "";
 
     while (!equalsIgnoreCase(*wordsIt, "from")) {
-        LOG(edb_v) << "query so far: " << resultQuery;
+        if (VERBOSE_V) {LOG(edb_v) << "query so far: " << resultQuery;}
 
         string table, field;
 
@@ -3023,10 +3023,9 @@ throw (CryptDBError)
 
     //some queries do not need to be encrypted
     if (!considerQuery(com, query)) {
-        if (VERBOSE) { cerr << "query not considered \n"; }
+        if (VERBOSE) { LOG(edb_v) << "query not considered: " << query; }
         list<string> res;
         res.push_back(query);
-        if (VERBOSE) { cerr << "returning query " << query << "\n"; }
         return res;
     }
 
@@ -3187,12 +3186,10 @@ EDBClient::execute(const string &query)
     size_t noQueries = queries.size();
     size_t counter = 0;
 
-    LOG(edb_v) << "Translated queries:";
-
     for (; queryIt != queries.end(); queryIt++) {
         counter++;
 
-        LOG(edb_v) << *queryIt;
+        LOG(edb_query) << "Translated query: " << *queryIt;
 
         DBResult * reply;
         reply = NULL;

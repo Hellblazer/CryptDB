@@ -40,7 +40,8 @@ parse(const char *q)
         lex_start(t);
         mysql_reset_thd_for_next_command(t);
 
-        t->set_db("", 0);
+        string db = "current_db";
+        t->set_db(db.data(), db.length());
 
         printf("q=%s\n", buf);
         bool error = parse_sql(t, &ps, 0);

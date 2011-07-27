@@ -67,6 +67,7 @@ FieldMetadata::FieldMetadata()
 
     ope_used = false;
     agg_used = false;
+    has_search = false;
 }
 
 string

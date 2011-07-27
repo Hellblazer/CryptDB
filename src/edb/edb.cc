@@ -350,8 +350,9 @@ decrypt_text_sem(PG_FUNCTION_ARGS)
     key.resize(AES_KEY_BYTES);
     int offset = 1;
 
-    for (unsigned int i = 0; i < AES_KEY_BYTES; i++)
+    for (unsigned int i = 0; i < AES_KEY_BYTES; i++) {
         key[i] = getb(ARGS,offset+i);
+    }
 
     uint64_t salt = getui(ARGS, offset + AES_KEY_BYTES);
 
@@ -360,8 +361,10 @@ decrypt_text_sem(PG_FUNCTION_ARGS)
     delete aesKey;
 
 #if MYSQL_S
-    initid->ptr = strdup(value.c_str());
-    *length = value.length();
+    unsigned char * res = new unsigned char[value.length()];
+    initid->ptr = (char *) res;
+    memcpy(res, value.c_str(), value.length());
+    *length =  value.length();
     return (char*) initid->ptr;
 #else
     bytea * res = (bytea *) palloc(eValueLen+VARHDRSZ);
@@ -415,8 +418,10 @@ decrypt_text_det(PG_FUNCTION_ARGS)
     delete aesKey;
 
 #if MYSQL_S
-    initid->ptr = strdup(value.c_str());
-    *length = value.length();
+    unsigned char * res = new unsigned char[value.length()];
+    initid->ptr = (char *) res;
+    memcpy(res, value.c_str(), value.length());
+    *length =  value.length();
     return (char*) initid->ptr;
 #else
     bytea * res = (bytea *) palloc(eValueLen+VARHDRSZ);
