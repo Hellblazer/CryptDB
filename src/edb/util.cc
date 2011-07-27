@@ -96,15 +96,6 @@ myPrint(const string &s)
 }
 
 string
-myPrint(const vector<bool> & bitmap)
-{
-    stringstream ss;
-    for (auto it = bitmap.begin(); it != bitmap.end(); it++)
-        ss << *it << " ";
-    return ss.str();
-}
-
-string
 myPrint(const unsigned int * a, unsigned int aLen)
 {
     stringstream ss;

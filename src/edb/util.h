@@ -358,7 +358,6 @@ string myPrint(const list<string> & lst) __attribute__((warn_unused_result));
 string myPrint(const list<const char *> & lst) __attribute__((warn_unused_result));
 string myPrint(const vector<string> & vec) __attribute__((warn_unused_result));
 string myPrint(const vector<vector<string> > & d) __attribute__((warn_unused_result));
-string myPrint(const vector<bool> & bitmap) __attribute__((warn_unused_result));
 string myPrint(const unsigned int * a, unsigned int aLen) __attribute__((warn_unused_result));
 string myPrint(const string &s) __attribute__((warn_unused_result));
 
