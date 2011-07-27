@@ -3923,7 +3923,7 @@ help(const TestConfig &tc, int ac, char **av)
 {
     cerr << "Usage: " << av[0] << " [options] testname" << endl;
     cerr << "Options:" << endl
-         << "    -v           verbose" << endl
+         << "    -v           verbose (specify multiple times for more verbose)" << endl
          << "    -s           stop on failure [" << tc.stop_if_fail << "]" << endl
          << "    -h host      database server [" << tc.host << "]" << endl
          << "    -u user      database username [" << tc.user << "]" << endl
@@ -3939,17 +3939,27 @@ main(int argc, char ** argv)
 {
     TestConfig tc;
     int c;
+    int vlevel = 0;
 
     while ((c = getopt(argc, argv, "vsh:u:p:d:")) != -1) {
         switch (c) {
         case 'v':
-            cryptdb_logger::enable(log_crypto);
-            cryptdb_logger::enable(log_crypto_v);
-            cryptdb_logger::enable(log_edb);
-            cryptdb_logger::enable(log_edb_v);
-            cryptdb_logger::enable(log_test);
-            cryptdb_logger::enable(log_am);
-            cryptdb_logger::enable(log_am_v);
+            vlevel++;
+
+            if (vlevel > 0) {
+                cryptdb_logger::enable(log_edb_query);
+            }
+
+            if (vlevel > 1) {
+                cryptdb_logger::enable(log_crypto);
+                cryptdb_logger::enable(log_crypto_v);
+                cryptdb_logger::enable(log_edb);
+                cryptdb_logger::enable(log_edb_v);
+                cryptdb_logger::enable(log_test);
+                cryptdb_logger::enable(log_am);
+                cryptdb_logger::enable(log_am_v);
+            }
+
             break;
 
         case 's':
