@@ -190,7 +190,7 @@ EDBClient::plain_execute(const string &query)
     LOG(edb) << "in plain execute";
     DBResult * reply;
     if (!conn->execute(query, reply)) {
-        cerr << "failed to execute " << query << "\n";
+        LOG(edb) << "failed to execute: " << query;
         return NULL;
     }
 
@@ -623,7 +623,7 @@ throw (CryptDBError)
         //detect if it is an increment
         if (isField(*wordsIt)) {         //this is an increment
 
-            if (VERBOSE) { cerr << "increment for " << field << "\n"; }
+            if (VERBOSE) { LOG(edb_v) << "increment for " << field; }
 
             fm1->INCREMENT_HAPPENED = true;
             string anonFieldName = getOnionName(
@@ -1552,7 +1552,7 @@ throw (CryptDBError)
     if (mp) {
         tmkm.processingQuery = true;
         mp->prepareSelect(words, tmkm, qm, tableMetaMap);
-        if (VERBOSE) { cerr << "done with prepare select \n"; }
+        if (VERBOSE) { LOG(edb_v) << "done with prepare select"; }
     }
 
 //	gettimeofday(&endtime, NULL);
@@ -2155,10 +2155,11 @@ EDBClient::rewriteDecryptSelect(const string &query, ResType * dbAnswer)
 // It removes "%" from the search constant - we want to consider them
 // at some point
 // e.g. LIKE "ana%" means that 'ana' should be at the beginning
-static string getLIKEToken(const string & s) {
-
+static string
+getLIKEToken(const string &s)
+{
 	string res = removeApostrophe(s);
-	unsigned int len = res.length();
+	unsigned int len = (uint) res.length();
 
 	if (res[0]=='%') {
 		res = res.substr(1, --len);
@@ -3205,7 +3206,7 @@ EDBClient::execute(const string &query)
     try {
         queries = rewriteEncryptQuery(query, ai);
     } catch (CryptDBError se) {
-        LOG(warn) << "problem with query " << query << " " << se.msg;
+        LOG(warn) << "problem with query " << query << ": " << se.msg;
         return NULL;
     }
 
@@ -3260,7 +3261,7 @@ EDBClient::execute(const string &query)
                 //rets->at(0).at(0) = "1";
                 rets = decryptResultsWrapper(query, reply);
             } catch (CryptDBError e) {
-                cerr << e.msg;
+                LOG(warn) << e.msg;
                 queries.clear();
                 delete reply;
                 return NULL;

@@ -49,7 +49,7 @@ CheckSelectResults(const TestConfig &tc, EDBClient * cl, vector<string> in, vect
     vector<string>::iterator query_it = in.begin();
     vector<ResType>::iterator res_it = out.begin();
 
-    cerr << in.size() << "  " << out.size() << endl;
+    LOG(test) << in.size() << "  " << out.size();
 
     while(query_it != in.end()) {
         ntest++;
@@ -129,9 +129,7 @@ testCreateDrop(const TestConfig &tc, EDBClient * cl)
                  "SELECT * FROM table0"),
              "t1 (first time) was not created properly");
 
-    cerr << sql << endl;
-    sql =
-        "CREATE TABLE t2 (id enc integer, other_id integer, words enc text, other_words text)";
+    sql = "CREATE TABLE t2 (id enc integer, other_id integer, words enc text, other_words text)";
     assert_s(cl->execute(sql), "Problem creating table t2 (first time)");
     assert_s(cl->plain_execute(
                  "SELECT * FROM table1"),

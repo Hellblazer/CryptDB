@@ -4,6 +4,7 @@
  */
 
 #include "MultiPrinc.h"
+#include "cryptdb_log.h"
 
 MultiPrinc::MultiPrinc(Connect * connarg)
 {
@@ -49,20 +50,19 @@ MultiPrinc::processAnnotation(list<string>::iterator & wordsIt,
                                                        TableMetadata *> & tm)
 {
 
-    cerr << "processing annotation \n";
+    LOG(mp) << "processing annotation";
     if (equalsIgnoreCase(*wordsIt, "encfor")) {
 
-        if (VERBOSE_G) { cerr << "encfor \n"; }
+        if (VERBOSE_G) { LOG(mp) << "encfor"; }
         wordsIt++;
         string field2 = *wordsIt;
         wordsIt++;
         mkm.encForMap[fullName(currentField, tablename)] = fullName(field2,
                                                                     tablename);
-        if (VERBOSE_G) { cerr << "==> " <<
+        if (VERBOSE_G) { LOG(mp) << "==> " <<
                          fullName(currentField, tablename) << " " << fullName(
                              field2,
-                             tablename)
-                         << "\n"; }
+                             tablename); }
         mkm.reverseEncFor[fullName(field2, tablename)] = true;
         encryptfield = true;
 
@@ -79,7 +79,7 @@ MultiPrinc::processAnnotation(list<string>::iterator & wordsIt,
             FieldMetadata * fm = tm[tablename]->fieldMetaMap[currentField];
 
             if (equalsIgnoreCase(levelnames[(int) SECLEVEL::DET], *wordsIt)) {
-                if (VERBOSE_G) { cerr << "at det \n"; }
+                if (VERBOSE_G) { LOG(mp) << "at det"; }
                 fm->secLevelDET = SECLEVEL::DET;
                 wordsIt++;
                 continue;
@@ -92,7 +92,7 @@ MultiPrinc::processAnnotation(list<string>::iterator & wordsIt,
             }
 
             if (equalsIgnoreCase(levelnames[(int) SECLEVEL::OPE], *wordsIt)) {
-                if (VERBOSE_G) { cerr << "at det and opeself \n"; }
+                if (VERBOSE_G) { LOG(mp) << "at det and opeself"; }
                 fm->secLevelOPE = SECLEVEL::OPE;
                 fm->secLevelDET = SECLEVEL::DET;
                 fm->ope_used = true;
@@ -242,7 +242,7 @@ getEqualityExpr(list<string>::iterator & it, list<string> & query,
                 QueryMeta & qm, map<string, TableMetadata *> & tableMetaMap)
 {
 
-    //cerr << "eq expr \n";
+    //LOG(mp) << "eq expr \n";
     string lst[] = {"and", "or"};
     unsigned int lstno = 2;
 
@@ -250,12 +250,12 @@ getEqualityExpr(list<string>::iterator & it, list<string> & query,
     string a, op, b;
 
     while ((it!=query.end()) && !isQuerySeparator(*it)) {
-        cerr << "before get triple \n";
+        LOG(mp) << "before get triple \n";
         //get the first pair of expressions and point after it
         if (!getTriple(it, query.end(), a, op, b)) {
             return res;
         }
-        cerr << "working with " << a << " " << op << " " << b << "\n";
+        LOG(mp) << "working with " << a << " " << op << " " << b << "\n";
         //we have a triple, let's check it is a good one and that it is not
         // part of an expression (i.e. a keyword or the end comes after)
         if (validate(a, op,
@@ -271,7 +271,7 @@ getEqualityExpr(list<string>::iterator & it, list<string> & query,
             eo.op = op;
             eo.b = b;
             res->push_back(eo);
-            cerr << "adding " << a << " " << op << " " << b << "\n";
+            LOG(mp) << "adding " << a << " " << op << " " << b << "\n";
 
         } else {
             // we might be inside a longer expression, e.g., a = 5+b, proceed
@@ -322,33 +322,31 @@ MultiPrinc::getEncForFromFilter(command comm, list<string> query, TMKM & tmkm,
             op = it->op;
             b = it->b;
 
-            if (VERBOSE) { cerr << "EXPR " << a << op << b << "\n"; }
+            if (VERBOSE) { LOG(mp) << "EXPR " << a << op << b << "\n"; }
             if (mkm.reverseEncFor.find(a) != mkm.reverseEncFor.end()) {
-                if (VERBOSE) { cerr << "RECORDING " << a << op << b << "\n"; }
+                if (VERBOSE) { LOG(mp) << "RECORDING " << a << op << b << "\n"; }
                 tmkm.encForVal[a] =  b;
             } else {
                 if (VERBOSE) {
-                    cerr << "do not record \n";
-                    cerr << "here is what that map contains: ";
+                    LOG(mp) << "do not record \n";
+                    LOG(mp) << "here is what that map contains: ";
                     for (auto xit = mkm.reverseEncFor.begin();
                          xit != mkm.reverseEncFor.end(); xit++) {
-                        cerr << xit->first << " ";
+                        LOG(mp) << xit->first << " ";
                     }
-                    cerr << "\n";
                 }
             }
         }
 
         if (VERBOSE) {
-            cerr << "here is what that encforval contains: ";
+            LOG(mp) << "here is what that encforval contains: ";
             for (auto it = tmkm.encForVal.begin();
                  it != tmkm.encForVal.end(); it++) {
-                cerr << it->first << " " << it->second << "\n";
+                LOG(mp) << it->first << " " << it->second << "\n";
             }
-            cerr << "\n";
         }
 
-        if (VERBOSE) { cerr << "done with all expressions \n"; }
+        if (VERBOSE) { LOG(mp) << "done with all expressions \n"; }
 
     }
 }
@@ -496,7 +494,7 @@ MultiPrinc::checkPsswd(command comm, list<string> & words)
         roll<string>(wordsIt, 2);         //now points to table name
         table = *wordsIt;
         string pw_table;
-        if (VERBOSE_G) { cerr << "table in DELETE " << table <<"\n"; }
+        if (VERBOSE_G) { LOG(mp) << "table in DELETE " << table <<"\n"; }
         if ((pw_table = getPsswdTable(table)).length() > 0) {
             roll<string>(wordsIt, 2);             // now points to givespsswd
                                                   // fieldname
@@ -530,18 +528,18 @@ MultiPrinc::checkPredicate(string hasaccess, map<string, string> & vals)
         query[query.length()-1]=' ';
         query += ");";
         DBResult * dbres;
-        if (VERBOSE_G) { cerr << "check pred: " << query << "\n"; }
+        if (VERBOSE_G) { LOG(mp) << "check pred: " << query << "\n"; }
         assert_s(conn->execute(
                      query.c_str(),
                      dbres), "failure while executing query " + query);
         ResType * result = dbres->unpack();
         delete dbres;
         if (result->at(1).at(0).compare("1") == 0) {
-            if (VERBOSE_G) { cerr << "pred OK\n"; }
+            if (VERBOSE_G) { LOG(mp) << "pred OK\n"; }
             delete result;
             return true;
         } else {
-            if (VERBOSE_G) { cerr << "pred NO\n"; }
+            if (VERBOSE_G) { LOG(mp) << "pred NO\n"; }
             delete result;
             return false;
         }
@@ -563,8 +561,8 @@ MultiPrinc::insertRelations(const list<string> & values, string table,
     list<string>::iterator fieldIt = fields.begin();
     list<string>::const_iterator valIt = values.begin();
 
-    if (VERBOSE_G) { cerr << "fields are "; myPrint(fields); cerr << "\n"; }
-    if (VERBOSE_G) { cerr << "values are "; myPrint(values); cerr << "\n"; }
+    if (VERBOSE_G) { LOG(mp) << "fields are "; myPrint(fields); }
+    if (VERBOSE_G) { LOG(mp) << "values are "; myPrint(values); }
 
     while (fieldIt != fields.end()) {
         vals[*fieldIt] = removeApostrophe(*valIt);
@@ -586,13 +584,13 @@ MultiPrinc::insertRelations(const list<string> & values, string table,
             tmkm.encForVal[encForField] = vals[getField(encForField)];
         }
         string hasaccess = fullField;
-        if (VERBOSE_G) { cerr << "hasaccess " << hasaccess << "\n"; }
+        if (VERBOSE_G) { LOG(mp) << "hasaccess " << hasaccess; }
 
         if (accMan->isType(hasaccess)) {
-            cerr << hasaccess << " is type \n";
+            LOG(mp) << hasaccess << " is type \n";
             std::set<string> accessto_lst = accMan->getTypesHasAccessTo(
                 hasaccess);
-            if (VERBOSE_G) { cerr << hasaccess << " has access to  " <<
+            if (VERBOSE_G) { LOG(mp) << hasaccess << " has access to  " <<
                              " <" << toString(accessto_lst) << ">\n"; }
 
             for (std::set<string>::iterator accIt = accessto_lst.begin();
@@ -603,17 +601,17 @@ MultiPrinc::insertRelations(const list<string> & values, string table,
                     // insert
                     continue;
                 }
-                cerr << "before predicate \n";
+                LOG(mp) << "before predicate \n";
                 //TODO: checkPredicate should also take accessto
                 if (checkPredicate(hasaccess, vals)) {
                     //need to insert
-                    cerr << "inserting \n";
+                    LOG(mp) << "inserting \n";
                     int resacc =
                         accMan->insert(Prin(hasaccess,
                                             vals[*fieldIt]),
                                        Prin(*accIt, vals[getField(accessto)]));
                     assert_s(resacc >=0, "access manager insert failed");
-                    if (VERBOSE_G) { cerr << "after insert\n"; }
+                    if (VERBOSE_G) { LOG(mp) << "after insert\n"; }
                 }
             }
         }
@@ -667,12 +665,12 @@ MultiPrinc::get_key(string fieldName, TempMKM & tmkm)
     string encForField = mkm.encForMap[fieldName];
 
     if (tmkm.encForVal.find(encForField) != tmkm.encForVal.end()) {
-        if (VERBOSE_G) {cerr << "asking get key for " << encForField <<
+        if (VERBOSE_G) {LOG(mp) << "asking get key for " << encForField <<
                         " <" << tmkm.encForVal[encForField] << "> \n"; }
         string key =
             accMan->getKey(Prin(encForField,
                                 removeApostrophe(tmkm.encForVal[encForField])));
-        cerr << "-- key from accman is " <<
+        LOG(mp) << "-- key from accman is " <<
         CryptoManager::marshallKey(key) << "\n";
         assert_s(
             key.length() > 0, "access manager does not have needed key!!");
@@ -698,13 +696,13 @@ MultiPrinc::get_key(string fieldName, TMKM & tmkm,
         string key =
             accMan->getKey(Prin(encForField,
                                 removeApostrophe(tmkm.encForVal[encForField])));
-        if (VERBOSE_G) {cerr << "using encforval; encForField " <<
+        if (VERBOSE_G) {LOG(mp) << "using encforval; encForField " <<
                         encForField << " val " <<
                         tmkm.encForVal[encForField] <<
                         " encforreturned index " <<
                         tmkm.encForReturned[encForField] <<
                         "\n"; }
-        cerr << "-- key from accman is " <<
+        LOG(mp) << "-- key from accman is " <<
         CryptoManager::marshallKey(key) << "\n";
         assert_s(key.length() > 0, "access manager does not have key\n");
         return key;
@@ -713,9 +711,9 @@ MultiPrinc::get_key(string fieldName, TMKM & tmkm,
     if (tmkm.encForReturned.find(encForField) != tmkm.encForReturned.end()) {
         string val = res[tmkm.encForReturned[encForField]];
         string key = accMan->getKey(Prin(encForField, removeApostrophe(val)));
-        cerr << "-- key from accman is " <<
+        LOG(mp) << "-- key from accman is " <<
         CryptoManager::marshallKey(key) << "\n";
-        if (VERBOSE_G) {cerr << "using encforreturned: get key " <<
+        if (VERBOSE_G) {LOG(mp) << "using encforreturned: get key " <<
                         encForField << " val " << val <<
                         " encforreturned index " <<
                         tmkm.encForReturned[encForField] << "\n"; }

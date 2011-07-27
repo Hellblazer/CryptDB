@@ -1,9 +1,11 @@
 #include <algorithm>
 #include <string>
 #include <iomanip>
+#include <stdexcept>
 
 #include "openssl/rand.h"
 #include "util.h"
+#include "cryptdb_log.h"
 
 using namespace std;
 
@@ -12,8 +14,8 @@ myassert(bool value, const string &mess)
 {
     if (ASSERTS_ON) {
         if (!value) {
-            fprintf(stderr, "ERROR: %s\n", mess.c_str());
-            throw mess.c_str();
+            LOG(warn) << "ERROR: " << mess;
+            throw std::runtime_error(mess);
         }
     }
 }
@@ -24,9 +26,7 @@ throw (CryptDBError)
 {
     if (ASSERTS_ON) {
         if (!value) {
-            CryptDBError se(msg);
-            cerr << se.msg << "\n";
-            throw se;
+            throw CryptDBError(msg);
         }
     }
 }

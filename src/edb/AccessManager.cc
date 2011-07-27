@@ -1071,12 +1071,12 @@ KeyAccess::getKey(Prin prin)
     }
     PrinKey prinkey = getPrinKey(prin);
     if(VERBOSE) {
-        cerr << "     " << prin.gen  << "=" << prin.value <<
-        " has principles with access: " << endl;
+        LOG(am_v) << "     " << prin.gen  << "=" << prin.value
+                  << " has principles with access: ";
         std::set<Prin>::iterator it;
         for(it = prinkey.principles_with_access.begin();
             it != prinkey.principles_with_access.end(); it++) {
-            cerr << "\t" << it->gen << "=" << it->value << endl;
+            LOG(am_v) << "\t" << it->gen << "=" << it->value;
         }
     }
     //cerr << "returning null? " << (prinkey.key.length() == 0) << "\n";
@@ -1211,12 +1211,9 @@ int
 KeyAccess::insertPsswd(Prin gives, const string &psswd)
 {
     if(VERBOSE) {
-        cerr << "-->" << gives.type << " " << gives.value <<
-        " is logging in with ";
+        LOG(am_v) << gives.type << " " << gives.value << " is logging in with ";
         myPrint(psswd);
-        cerr << endl;
-        LOG(am_v) << "insertPsswd(" << gives.type << "=" << gives.value <<
-        ",...)";
+        LOG(am_v) << "insertPsswd(" << gives.type << "=" << gives.value << ",...)";
     }
 
     int ret = 0;
@@ -1412,9 +1409,9 @@ KeyAccess::addToKeys(Prin prin, PrinKey key)
                  prin) != key.principles_with_access.end(),
              "addToKeys hasAccess prin is not in key's principles_with_access");
     if(VERBOSE) {
-        cerr << "   adding key ";
+        LOG(am_v) << "adding key ";
         myPrint(key.key);
-        cerr << " for " << prin.gen << " " << prin.value << endl;
+        LOG(am_v) << " for " << prin.gen << " " << prin.value;
     }
 
     if (keys.find(prin) != keys.end()) {
@@ -1773,7 +1770,7 @@ KeyAccess::getUncached(Prin prin)
     }
 
     if (VERBOSE) {
-        cerr << "   checking for uncached keys" << endl;
+        LOG(am_v) << "checking for uncached keys";
     }
 
     PrinKey empty;

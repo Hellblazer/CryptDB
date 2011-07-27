@@ -93,8 +93,8 @@ tokenize(string text)
         if ((it->length() >= 3) &&
             (search_tokens.find(*it) == search_tokens.end())) {
             string token = toLowerCase(*it);
-            cerr << " <"  << token << "> ";
-        	search_tokens.insert(token);
+            LOG(crypto) << "token <"  << token << ">";
+            search_tokens.insert(token);
             res->push_back(Binary((uint) it->length(),
                                   (unsigned char *) token.c_str()));
         }
@@ -659,9 +659,8 @@ CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft,
             string key = getKey(mkey, fullfieldname, fromlevel);
 
             Binary keyB = Binary(AES_KEY_BYTES, (unsigned char *)key.c_str());
-            cerr << "TOKENS: ";
+            LOG(crypto) << "tokenizing " << data;
             list<Binary> * tokens = tokenize(data);
-            cerr << "\n";
             Binary ovciph = CryptoManager::encryptSWP(keyB, *tokens);
             delete tokens;
 

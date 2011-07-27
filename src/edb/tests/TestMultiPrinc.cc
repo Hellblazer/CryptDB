@@ -6,6 +6,7 @@
  */
 
 #include "TestMultiPrinc.h"
+#include "cryptdb_log.h"
 
 static int ntest = 0;
 static int npass = 0;
@@ -27,7 +28,7 @@ checkQuery(const TestConfig &tc, EDBClient * cl, const string &query, const ResT
     ntest++;
     ResType * test_res = myExecute(cl, query);
     if (!test_res) {
-        cerr << "Query: " << query << " cannot execute" << endl;
+        LOG(test) << "Query: " << query << " cannot execute";
         if (tc.stop_if_fail) {
             assert_s(false, "above query could not execute");
         }
@@ -35,10 +36,10 @@ checkQuery(const TestConfig &tc, EDBClient * cl, const string &query, const ResT
     }
 
     if (*test_res != expect) {
-        cerr << "On query:\n" << query << endl;
-        cerr << "we expected resultset:" << endl;
+        LOG(test) << "On query:\n" << query;
+        LOG(test) << "we expected resultset:";
         PrintRes(expect);
-        cerr << "but it returned:" << endl;
+        LOG(test) << "but it returned:";
         PrintRes(*test_res);
         if (tc.stop_if_fail) {
             assert_s(false, "above query returned incorrect result");
@@ -54,11 +55,11 @@ testNULL(const TestConfig &tc, EDBClient * cl, const string &annotated, const st
   ntest++;
   if (myCreate(cl, annotated, plain)) {
     if (PLAIN) {
-      cerr << "Query:\n" << plain << endl;
+      LOG(test) << "Query:\n" << plain;
     } else {
-      cerr << "Query:\n" << annotated << endl;
+      LOG(test) << "Query:\n" << annotated;
     }
-    cerr << "did not return NULL" << endl;
+    LOG(test) << "did not return NULL";
     if (tc.stop_if_fail) {
       assert_s(false, "above query did not fail (should have)");
     }

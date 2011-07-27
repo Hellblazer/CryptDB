@@ -176,7 +176,7 @@ testPBKDF2(void)
     for (uint i = 0; i < sizeof(test_vectors) / sizeof(test_vectors[0]);
          i++) {
         struct test_vector *vec = &test_vectors[i];
-        printf("vector %u\n", i);
+        LOG(test) << "vector " << i;
         for (uint j = 1; j < 32; j += 3) {
             string k = pbkdf2(string(vec->pass),
                               string(vec->salt),
@@ -212,14 +212,14 @@ to_vec(const list<unsigned int> & lst)
 static void
 testSWPSearch()
 {
-    cout << "   -- test Song-Wagner-Perrig crypto ... \n";
+    LOG(test) << "   -- test Song-Wagner-Perrig crypto ...";
 
     Binary mediumtext = Binary::toBinary("hello world!");
     Binary smalltext = Binary::toBinary("hi");
     Binary emptytext = Binary::toBinary("");
     Binary exacttext = Binary::toBinary("123456789012345");
 
-    cout << "		+ test encrypt/decrypt \n";
+    LOG(test) << "		+ test encrypt/decrypt";
 
     list<Binary> lst = {mediumtext, smalltext, emptytext, exacttext};
 
@@ -243,7 +243,7 @@ testSWPSearch()
 
     //test searchability
 
-    cout << "		+ test searchability \n";
+    LOG(test) << "		+ test searchability";
 
     Binary word1 = Binary::toBinary("ana");
     Binary word2 = Binary::toBinary("dana");
@@ -285,7 +285,7 @@ testSWPSearch()
 
     //test encrypt/decrypt wrappers
 
-    cout << "		+ test wrappers \n";
+    LOG(test) << "		+ test wrappers";
 
     list<Binary> lstw = {mediumtext, smalltext, emptytext,  exacttext};
 
@@ -362,7 +362,7 @@ testSWPSearch()
                                                                    vec4)),
              "incorrect found flag in vec4");
 
-    cout << "   -- OK \n";
+    LOG(test) << "   -- OK";
 
 
 
