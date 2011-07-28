@@ -561,8 +561,8 @@ MultiPrinc::insertRelations(const list<string> & values, string table,
     list<string>::iterator fieldIt = fields.begin();
     list<string>::const_iterator valIt = values.begin();
 
-    if (VERBOSE_G) { LOG(mp) << "fields are " << myPrint(fields); }
-    if (VERBOSE_G) { LOG(mp) << "values are " << myPrint(values); }
+    if (VERBOSE_G) { LOG(mp) << "fields are " << toString(fields, id_op); }
+    if (VERBOSE_G) { LOG(mp) << "values are " << toString(fields, id_op); }
 
     while (fieldIt != fields.end()) {
         vals[*fieldIt] = removeApostrophe(*valIt);
@@ -591,7 +591,7 @@ MultiPrinc::insertRelations(const list<string> & values, string table,
             std::set<string> accessto_lst = accMan->getTypesHasAccessTo(
                 hasaccess);
             if (VERBOSE_G) { LOG(mp) << hasaccess << " has access to  " <<
-                             " <" << toString(accessto_lst) << ">\n"; }
+                             " <" << toString(accessto_lst, id_op) << ">\n"; }
 
             for (std::set<string>::iterator accIt = accessto_lst.begin();
                  accIt != accessto_lst.end(); accIt++) {

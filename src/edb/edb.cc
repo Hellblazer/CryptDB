@@ -669,7 +669,7 @@ func_add(PG_FUNCTION_ARGS)
         PG_RETURN_BYTEA_P(NULL);
     }
 
-    if (DEBUG) { cerr << myPrint(bytesA, lenN2) << "\n"; }
+    if (DEBUG) { cerr << stringToByteInts(string(bytesA, lenN2)) << "\n"; }
 
     unsigned char * bytesRes = homomorphicAdd(bytesA, bytesB, bytesN2, lenN2);
     //cerr << "product "; myPrint(bytesRes, lenN2); cerr << " ";

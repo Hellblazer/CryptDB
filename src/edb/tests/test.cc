@@ -70,7 +70,8 @@ test_OPE()
     {158, 242, 169, 240, 255, 166, 39, 177, 149, 166, 190, 237, 178, 254, 187,
      40};
 
-    cerr <<"Key is "; myPrint(key, AES_KEY_SIZE/bitsPerByte); cerr << "\n";
+    cerr <<"Key is " << stringToByteInts(string((char *) key,
+                                                AES_KEY_SIZE/bitsPerByte)) << "\n";
 
     OPE * ope = new OPE((const char *) key, OPEPlaintextSize,
                         OPECiphertextSize);
@@ -82,9 +83,9 @@ test_OPE()
     string ciphertext = ope->encrypt(plaintext_s);
     string decryption = ope->decrypt(ciphertext);
 
-    LOG(test) << "Plaintext is " << myPrint(plaintext_s);
-    LOG(test) << "Ciphertext is " << myPrint(ciphertext);
-    LOG(test) << "Decryption is " << myPrint(decryption);
+    LOG(test) << "Plaintext is " << stringToByteInts(plaintext_s);
+    LOG(test) << "Ciphertext is " << stringToByteInts(ciphertext);
+    LOG(test) << "Decryption is " << stringToByteInts(decryption);
 
     myassert(plaintext_s == decryption, "OPE test failed \n");
 
@@ -169,10 +170,10 @@ test_HGD()
 
     ZZ sample = HGD(K, N1, N2, SEED, len*bitsPerByte, bitsPrecision);
 
-    LOG(test) << "N1 is " << myPrint(StringFromZZ(N1));
-    LOG(test) << "N2 is " << myPrint(StringFromZZ(N2));
-    LOG(test) << "K is " << myPrint(StringFromZZ(K));
-    LOG(test) << "HGD sample is " << myPrint(StringFromZZ(sample));
+    LOG(test) << "N1 is " << stringToByteInts(StringFromZZ(N1));
+    LOG(test) << "N2 is " << stringToByteInts(StringFromZZ(N2));
+    LOG(test) << "K is " << stringToByteInts(StringFromZZ(K));
+    LOG(test) << "HGD sample is " << stringToByteInts(StringFromZZ(sample));
 
     unsigned int tests = 1000;
     cerr << " Started " << tests << " tests \n";
@@ -469,7 +470,7 @@ tester::testClientParser()
                                           // this point is more of a manual
                                           // check
         list<string> response = rewriteEncryptQuery(it->c_str());
-        LOG(test) << "query issued/response: " << *it << ", " << myPrint(response);
+        LOG(test) << "query issued/response: " << *it << ", " << toString(response, stringToByteInts);
     }
 
     exit();
@@ -487,16 +488,16 @@ testCryptoManager()
 
     //test marshall and unmarshall key
     string m = cm->marshallKey(masterKey);
-    LOG(test) << "master key is " << myPrint(masterKey);
+    LOG(test) << "master key is " << stringToByteInts(masterKey);
     LOG(test) << "marshall is " << m;
     string masterKey2 = cm->unmarshallKey(m);
 
     myassert(masterKey == masterKey2, "marshall test failed");
 
     LOG(test) << "key for field1: "
-              << myPrint(cm->getKey("field1", SECLEVEL::SEMANTIC_OPE));
+              << stringToByteInts(cm->getKey("field1", SECLEVEL::SEMANTIC_OPE));
     LOG(test) << "key for table5.field12OPE:"
-              << myPrint(cm->getKey("table5.field12OPE", SECLEVEL::SEMANTIC_OPE));
+              << stringToByteInts(cm->getKey("table5.field12OPE", SECLEVEL::SEMANTIC_OPE));
 
     //test SEM
     AES_KEY * aesKey = cm->get_key_SEM(masterKey);
@@ -1228,7 +1229,7 @@ testUtils(const TestConfig &tc, int ac, char **av)
     const char * query =
         "SELECT sum(1), name, age, year FROM debug WHERE debug.name = 'raluca ?*; ada' AND a+b=5 ORDER BY name;";
 
-    LOG(test) << myPrint(parse(query, delimsStay, delimsGo, keepIntact));
+    LOG(test) << toString(parse(query, delimsStay, delimsGo, keepIntact), id_op);
 }
 
 static void __attribute__((unused))
@@ -2814,7 +2815,7 @@ accessManagerTest(const TestConfig &tc, int ac, char **av)
     am->insert(u1,g5);
     am->insert(g5,f2);
     string alice_key = am->getKey(f2);
-    LOG(test) << myPrint(alice_key);
+    LOG(test) << stringToByteInts(alice_key);
     string f2_key1 = marshallBinary(alice_key);
     assert_s(alice_key.length() > 0, "alice can't access the forum 2 key");
     am->removePsswd(alice);

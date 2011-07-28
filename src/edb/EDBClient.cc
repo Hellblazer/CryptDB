@@ -1311,12 +1311,11 @@ list<string>
 EDBClient::rewriteEncryptSelect(const string &query)
 throw (CryptDBError)
 {
-
     FieldsToDecrypt fieldsDec;
 
     if (!isNested(query)) {
         list<string> words = getSQLWords(query);
-        LOG(edb) << "after sql words " << toString(words);
+        LOG(edb) << "after sql words " << toString(words, angleBrackets);
         return rewriteSelectHelper(words);
     }
 
@@ -1543,7 +1542,7 @@ throw (CryptDBError)
 //	cout << "expand wild card " << timeInMSec(starttime, endtime) << "\n";
     //=========================================================
 
-    LOG(edb_v) << "new query is " << toString(words);
+    LOG(edb_v) << "new query is: " << toString(words, angleBrackets);
 
     list<string>::iterator wordsIt = words.begin();
 
@@ -1905,7 +1904,7 @@ getResMeta(list<string> words, vector<vector<string> > & vals, QueryMeta & qm,
            map<string, TableMetadata * > & tm, MultiPrinc * mp,
            TMKM & tmkm)
 {
-    LOG(edb_v) << toString(words);
+    LOG(edb_v) << toString(words, angleBrackets);
 
     ResMeta rm = ResMeta();
 

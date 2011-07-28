@@ -352,17 +352,31 @@ const ParserMeta parserMeta = ParserMeta();
 string randomBytes(unsigned int len);
 uint64_t randomValue();
 
-string myPrint(const unsigned char * a, unsigned int aLen) __attribute__((warn_unused_result));
-string myPrint(const char * a) __attribute__((warn_unused_result));
-string myPrint(const list<string> & lst) __attribute__((warn_unused_result));
-string myPrint(const list<const char *> & lst) __attribute__((warn_unused_result));
-string myPrint(const vector<string> & vec) __attribute__((warn_unused_result));
-string myPrint(const vector<vector<string> > & d) __attribute__((warn_unused_result));
-string myPrint(const unsigned int * a, unsigned int aLen) __attribute__((warn_unused_result));
-string myPrint(const string &s) __attribute__((warn_unused_result));
+string stringToByteInts(const string &s);
+string angleBrackets(const string &s);
+static inline string id_op(const string &x) { return x; }
 
-string toString(const list<string> & lst);
-string toString(const std::set<string> & lst);
+/*
+ * Turn a list (of type C) into a string, applying op to each element.
+ * Handy ops are id_op, angleBrackets, and stringToByteInts.
+ */
+template<class C, class T>
+string
+toString(const C &l, T op)
+{
+    stringstream ss;
+    bool first = true;
+    for (auto i = l.begin(); i != l.end(); i++) {
+        if (first)
+            ss << "(";
+        else
+            ss << ", ";
+        ss << op(*i);
+        first = false;
+    }
+    ss << ")";
+    return ss.str();
+}
 
 // tries to represent value in minimum no of bytes, avoiding the \0 character
 string StringFromVal(uint64_t value, unsigned int padLen = 0);

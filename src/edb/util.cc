@@ -81,36 +81,23 @@ randomValue()
 }
 
 string
-myPrint(const unsigned char * a, unsigned int aLen)
+stringToByteInts(const string &s)
 {
     stringstream ss;
-    for (unsigned int i = 0; i < aLen; i++)
-        ss << (int)(a[i]) << " ";
+    bool first = true;
+    for (size_t i = 0; i < s.length(); i++) {
+        if (!first)
+            ss << " ";
+        ss << (uint) (uint8_t) s[i];
+        first = false;
+    }
     return ss.str();
 }
 
 string
-myPrint(const string &s)
+angleBrackets(const string &s)
 {
-    return myPrint((const uint8_t *) s.c_str(), (uint) s.length());
-}
-
-string
-myPrint(const unsigned int * a, unsigned int aLen)
-{
-    stringstream ss;
-    for (unsigned int i = 0; i < aLen; i++)
-        ss << (int) a[i] << " ";
-    return ss.str();
-}
-
-string
-myPrint(const char * a)
-{
-    stringstream ss;
-    for (unsigned int i = 0; i<strlen(a); i++)
-        ss << (int) a[i] << " ";
-    return ss.str();
+    return "<" + s + ">";
 }
 
 string
@@ -134,81 +121,6 @@ checkStr(list<string>::iterator & it, list<string> & words, const string &s1,
 
     assert_s(false, string("expected ") + s1 + " or " + s2 + " given " + *it );
     return "";
-}
-
-string
-myPrint(const list<string> & lst)
-{
-    stringstream ss;
-    for (auto it = lst.begin(); it!=lst.end(); it++)
-        ss << " " << *it << ",";
-    return ss.str();
-}
-
-string
-toString(const list<string> & lst)
-{
-    list<string>::const_iterator it;
-
-    string res = "";
-
-    for (it = lst.begin(); it!=lst.end(); it++) {
-        res = res + "<" + *it + "> ";
-    }
-
-    return res;
-}
-
-string
-toString(const std::set<string> & lst)
-{
-    std::set<string>::const_iterator it;
-
-    string res = "";
-
-    for (it = lst.begin(); it != lst.end(); it++) {
-        res = res + *it + " ";
-    }
-
-    return res;
-}
-
-string
-myPrint(const vector<vector<string> > & d)
-{
-    stringstream ss;
-
-    size_t rows = d.size();
-    if (d.size() == 0)
-        return "";
-
-    size_t cols = d[0].size();
-    for (size_t i = 0; i < rows; i++) {
-        ss << "<";
-        for (size_t j = 0; j < cols; j++) {
-            ss << " " << left << setw(15) << d[i][j];
-        }
-        ss << " > ";
-    }
-    return ss.str();
-}
-
-string
-myPrint(const list<const char *> & lst)
-{
-    stringstream ss;
-    for (auto it = lst.begin(); it!=lst.end(); it++)
-        ss << *it << " ";
-    return ss.str();
-}
-
-string
-myPrint(const vector<string> & lst)
-{
-    stringstream ss;
-    for (auto it = lst.begin(); it!=lst.end(); it++)
-        ss << *it << " ";
-    return ss.str();
 }
 
 string
@@ -721,11 +633,7 @@ consolidateMath(list<string> & words)
 void
 consolidate(list<string> & words)
 {
-
     consolidateComparisons(words);
-    //cerr << "after comparisons we have " << toString(words) << "\n";
-    //consolidateMath(words);
-    //err << "after math we have " << toString(words) << "\n";
 }
 
 //query to parse
