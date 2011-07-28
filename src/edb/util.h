@@ -28,19 +28,20 @@ using namespace std;
 // ==== CONSTANTS ============== //
 
 #define PAILLIER_LEN_BYTES 256
-#define PAILLIER_LEN_BYTES_C "256"
+#define SVAL2(s) #s
+#define SVAL(s) SVAL2(s)
 
 #if MYSQL_S
 #define TN_I32 "integer"
 #define TN_I64 "bigint"
 #define TN_TEXT "blob"
-#define TN_HOM "varbinary(" PAILLIER_LEN_BYTES_C ")"
+#define TN_HOM "varbinary(" SVAL(PAILLIER_LEN_BYTES) ")"
 #define TN_PTEXT "text"
 #else
 #define TN_I32 "integer"
 #define TN_I64 "bigint"
 #define TN_TEXT "BYTEA"
-#define TN_HOM "BYTEA(" PAILLIER_LEN_BYTES_C ")"
+#define TN_HOM "BYTEA(" SVAL(PAILLIER_LEN_BYTES) ")"
 #define TN_PTEXT "text"
 #endif
 
