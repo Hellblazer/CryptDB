@@ -19,9 +19,6 @@
 #include "util.h"
 #include "CryptoManager.h" /* various functions for EDB */
 
-#include <iostream>
-#include <fstream>
-
 extern "C" {
 #if MYSQL_S
 
@@ -70,7 +67,7 @@ char *   func_add_set(UDF_INIT *initid, UDF_ARGS *args, char *result,
 
 my_bool searchSWP_init(UDF_INIT *initid, UDF_ARGS *args, char *message);
 void searchSWP_deinit(UDF_INIT *initid);
-my_bool searchSWP(UDF_INIT *initid, UDF_ARGS *args, char *is_null,
+longlong searchSWP(UDF_INIT *initid, UDF_ARGS *args, char *is_null,
                   char *error);
 
 #else /* Postgres */
@@ -513,28 +510,18 @@ my_bool
 searchSWP_init(UDF_INIT *initid, UDF_ARGS *args, char *message)
 {
 
-	 ofstream myfile;
-	 myfile.open("mylog", ios::app);
-	 myfile << "swp init.\n";
-
-
     Token * t = new Token();
 
     uint64_t ciphLen;
-    char *ciph = (char *) getba(args, 0, ciphLen);
+    unsigned char *ciph = getba(args, 0, ciphLen);
 
     uint64_t wordKeyLen;
-    char *wordKey = (char *) getba(args, 1, wordKeyLen);
+    unsigned char *wordKey = getba(args, 1, wordKeyLen);
 
-    t->ciph = Binary((unsigned int) ciphLen, (unsigned char *)ciph);
-    t->wordKey = Binary((unsigned int)wordKeyLen, (unsigned char *)wordKey);
-
-    myfile << "ciph is " << marshallBinary(string(ciph, (unsigned int)ciphLen)) << "\n";
-    myfile << "wordKey is " << marshallBinary(string(wordKey,(unsigned int) wordKeyLen)) << "\n";
+    t->ciph = Binary((unsigned int) ciphLen, ciph);
+    t->wordKey = Binary((unsigned int)wordKeyLen, wordKey);
 
     initid->ptr = (char *) t;
-
-    myfile.close();
 
     return 0;
 }
@@ -542,38 +529,23 @@ searchSWP_init(UDF_INIT *initid, UDF_ARGS *args, char *message)
 void
 searchSWP_deinit(UDF_INIT *initid)
 {
-	cerr << "in udf \n";
-	cout << "in udf \n"; fflush(stdout);
-    return;
 	Token *t = (Token *) initid->ptr;
     delete t;
 
 }
 
-my_bool
+longlong
 searchSWP(UDF_INIT *initid, UDF_ARGS *args, char *is_null, char *error)
 {
 
-	ofstream myfile;
-	myfile.open("mylog", ios::app);
-	myfile << "swp search.\n";
 
 	uint64_t allciphLen;
-    char * allciph = (char *)getba(ARGS, 2, allciphLen);
-    Binary overallciph = Binary((unsigned int)allciphLen, (unsigned char *)allciph);
+    unsigned char * allciph = getba(ARGS, 2, allciphLen);
+    Binary overallciph = Binary((unsigned int)allciphLen, allciph);
 
-    myfile << "overallciph " << marshallBinary(string(allciph, (unsigned int)allciphLen)) << "\n";
+    Token * t = (Token *) initid->ptr;
 
-    myfile.close();
-    bool flag = search(*((Token *)(initid->ptr)), overallciph);
-    myfile.open("mylog", ios::app);
-
-    myfile << "finally: found? " << flag << "\n";
-
-
-    myfile.close();
-
-    return flag;
+    return search(*t, overallciph);
 
 }
 

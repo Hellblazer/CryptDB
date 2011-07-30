@@ -58,7 +58,7 @@ CheckSelectResults(const TestConfig &tc, EDBClient * cl, vector<string> in, vect
         if(!test_res) {
             LOG(test) << "Query: " << *query_it;
             if (tc.stop_if_fail) {
-                assert_s(false, "above query generated the wrong result");
+                assert_s(false, "above query failed");
             }
 	    passed = false;
         }
