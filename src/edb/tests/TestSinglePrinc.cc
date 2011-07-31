@@ -40,7 +40,7 @@ convert(string rows[][N], int num_rows)
 }
 
 static vector<vector<string> > removeType(const vector<vector<string> > & a) {
-	unsigned int len = a.size();
+	unsigned int len = (uint) a.size();
 
 	if (len < 2) {
 		return a;
