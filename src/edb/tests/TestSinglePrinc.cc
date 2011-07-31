@@ -39,6 +39,31 @@ convert(string rows[][N], int num_rows)
     return res;
 }
 
+static bool equals(const vector<vector<string> > & a, const vector<vector<string> > & b) {
+    if (a.size()  != b.size()) {
+    	return false;
+    }
+    unsigned int len = a.size();
+
+    if (len == 0) {
+    	return true;
+    }
+
+	if (a[0] != b[0]) {
+		return false;
+	}
+
+	for (unsigned int i = 2; i < len; i++) {
+		if (a[i] != b[i]) {
+			return false;
+		}
+	}
+
+	return true;
+
+
+}
+
 static void
 CheckSelectResults(const TestConfig &tc, EDBClient * cl, vector<string> in, vector<ResType> out)
 {
@@ -63,7 +88,7 @@ CheckSelectResults(const TestConfig &tc, EDBClient * cl, vector<string> in, vect
 	    passed = false;
         }
 
-        if(passed && *test_res != *res_it) {
+        if(passed && !equals(*test_res,*res_it)) {
             LOG(test) << "From query: " << *query_it;
             cerr << "-----------------------\nExpected result:" << endl;
             PrintRes(*res_it);
@@ -103,7 +128,7 @@ qUpdateSelect(const TestConfig &tc, EDBClient *cl, const string &update,
         return;
     }
 
-    if (*test_res != expect) {
+    if (!equals(*test_res, expect)) {
         cerr << "Expected result:" << endl;
         PrintRes(expect);
         cerr << "Got result:" << endl;

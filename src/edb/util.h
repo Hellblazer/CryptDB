@@ -164,6 +164,8 @@ typedef struct FieldMetadata {
     fieldType type;
     string fieldName;
 
+    enum_field_types mysql_type;
+
     string anonFieldNameDET;
     string anonFieldNameOPE;
     string anonFieldNameAGG;

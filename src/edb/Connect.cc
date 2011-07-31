@@ -155,6 +155,7 @@ DBResult::unpack()
 
     // first row contains names
     res->push_back(vector<string>(cols));
+    res->push_back(vector<string>(cols));
 
     bool binFlags[cols];
     for (int j = 0;; j++) {
@@ -164,7 +165,10 @@ DBResult::unpack()
 
         binFlags[j] = mysql_isBinary(field->type, field->charsetnr);
         (*res)[0][j] = string(field->name);
+        (*res)[1][j] = StringFromVal(field->type);
     }
+
+    unsigned int offset = 2;
 
     for (int index = 0;; index++) {
         MYSQL_ROW row = mysql_fetch_row(n);
@@ -176,15 +180,15 @@ DBResult::unpack()
 
         for (int j = 0; j < cols; j++) {
             if (binFlags[j] && !DECRYPTFIRST) {
-                (*res)[index+1][j] = marshallBinary(string(row[j], lengths[j]));
+                (*res)[index+offset][j] = marshallBinary(string(row[j], lengths[j]));
             } else {
                 if (row[j] == NULL) {
                     /*
                      * XXX why are we losing NULLs?
                      */
-                    (*res)[index+1][j] = "";
+                    (*res)[index+offset][j] = "";
                 } else {
-                    (*res)[index+1][j] = string(row[j], lengths[j]);
+                    (*res)[index+offset][j] = string(row[j], lengths[j]);
                 }
             }
         }

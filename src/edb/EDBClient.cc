@@ -233,8 +233,8 @@ EDBClient::replenishEncryptionTables()
     cm->replenishEncryptionTables();
 }
 
-static fieldType
-getType(list<string>::iterator & it, list<string> & words)
+static void
+setType(list<string>::iterator & it, list<string> & words, FieldMetadata * fm)
 {
 
     unsigned int noTerms = 2;
@@ -253,10 +253,13 @@ getType(list<string>::iterator & it, list<string> & words)
     mirrorUntilTerm(it, words, terms, noTerms, 0, 1);
 
     if (isint) {
-        return TYPE_INTEGER;
+        fm->type = TYPE_INTEGER;
+        fm->mysql_type = MYSQL_TYPE_LONG;
     } else {
-        return TYPE_TEXT;
+        fm->type = TYPE_TEXT;
+        fm->mysql_type = MYSQL_TYPE_STRING;
     }
+
 
 }
 
@@ -527,7 +530,7 @@ throw (CryptDBError)
             continue;
         }
 
-        fm->type = getType(wordsIt, words);
+        setType(wordsIt, words, fm);
 
         fieldSeq += processCreate(fm->type, fieldName, i, tm,
                                   fm, !!mp) + " ";
@@ -2070,7 +2073,8 @@ EDBClient::rewriteDecryptSelect(const string &query, ResType * dbAnswer)
 
     //prepare the result
     ResType * rets = new ResType;
-    rets = new vector<vector<string> >(rm.nTuples+1);
+    unsigned int offset = 2;
+    rets = new vector<vector<string> >(rm.nTuples+offset);
 
     size_t nFields = rm.nFields;
     size_t nTrueFields = rm.nTrueFields;
@@ -2082,13 +2086,19 @@ EDBClient::rewriteDecryptSelect(const string &query, ResType * dbAnswer)
     for (unsigned int i = 0; i < nFields; i++) {
         if ((!rm.isSalt[i]) && (!mp || tmkm.returnBitMap[i])) {
             rets->at(0).at(index0) = rm.namesForRes[i];
+            if (rm.o[index0] == oNONE) { // val not encrypted
+            	rets->at(1).at(index0) = vals[1][index0];//return the type from the mysql server
+            } else {
+            	rets->at(1).at(index0) = tableMetaMap[rm.table[index0]]->fieldMetaMap[rm.field[index0]]->mysql_type;
+            }
             index0++;
         }
     }
 
+
     for (unsigned int i = 0; i < rm.nTuples; i++)
     {
-        rets->at(i+1) = vector<string>(nTrueFields);
+        rets->at(i+offset) = vector<string>(nTrueFields);
         unsigned int index = 0;
         uint64_t salt = 0;
 
@@ -2096,7 +2106,7 @@ EDBClient::rewriteDecryptSelect(const string &query, ResType * dbAnswer)
 
             if (rm.isSalt[j]) {             // this is salt
                 LOG(edb) << "salt";
-                salt = unmarshallVal(vals[i+1][j]);
+                salt = unmarshallVal(vals[i+offset][j]);
                 continue;
             }
 
@@ -2118,7 +2128,7 @@ EDBClient::rewriteDecryptSelect(const string &query, ResType * dbAnswer)
 
             if (rm.o[j] == oNONE) {             //not encrypted
                 LOG(edb) << "its not enc";
-                rets->at(i+1).at(index) = vals[i+1][j];
+                rets->at(i+offset).at(index) = vals[i+1][j];
                 index++;
                 continue;
             }
@@ -2131,13 +2141,13 @@ EDBClient::rewriteDecryptSelect(const string &query, ResType * dbAnswer)
                                            tableMetaMap[table]->anonTableName);
             rets->at(i+
                      1).at(index) =
-                crypt(vals[i+1][j], fm->type, fullName(field,
+                crypt(vals[i+offset][j], fm->type, fullName(field,
                                                        table),
                       fullAnonName,
                       getLevelForOnion(fm,
                                        rm.o[j]),
                       getLevelPlain(rm.o[j]), salt,
-                      tmkm, vals[i+1]);
+                      tmkm, vals[i+offset]);
 
             index++;
 
