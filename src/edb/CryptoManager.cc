@@ -40,10 +40,11 @@ CryptoManager::CryptoManager(const string &masterKeyArg)
     AES_set_encrypt_key((const uint8_t*) masterKeyArg.c_str(),
                         AES_KEY_SIZE, masterKey);
 
-    RAND_seed((const uint8_t*) masterKeyArg.c_str(), MASTER_KEY_SIZE);
+    RAND_seed((const uint8_t*) masterKeyArg.c_str(),
+              (int) masterKeyArg.size());
 
     SetSeed(ZZFromBytes((const uint8_t *) masterKeyArg.c_str(),
-                        MASTER_KEY_SIZE));
+                        (int) masterKeyArg.size()));
 
     useEncTables = false;
 
@@ -899,10 +900,11 @@ CryptoManager::setMasterKey(const string &masterKeyArg)
     AES_set_encrypt_key(
         (const uint8_t *) masterKeyArg.c_str(), AES_KEY_SIZE, masterKey);
 
-    RAND_seed((const uint8_t *) masterKeyArg.c_str(), MASTER_KEY_SIZE);
+    RAND_seed((const uint8_t *) masterKeyArg.c_str(),
+              (int) masterKeyArg.size());
 
     SetSeed(ZZFromBytes((const uint8_t *) masterKeyArg.c_str(),
-                        MASTER_KEY_SIZE));
+                        (int) masterKeyArg.size()));
 }
 
 /*
