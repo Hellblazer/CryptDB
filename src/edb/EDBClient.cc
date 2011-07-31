@@ -184,17 +184,17 @@ EDBClient::setMasterKey(const string &mkey)
     cm = new CryptoManager(mkey);
 }
 
-ResType *
+ResType
 EDBClient::plain_execute(const string &query)
 {
     LOG(edb) << "in plain execute";
     DBResult * reply;
     if (!conn->execute(query, reply)) {
         LOG(edb) << "failed to execute: " << query;
-        return NULL;
+        return ResType(false);
     }
 
-    ResType *r = reply->unpack();
+    ResType r = reply->unpack();
     delete reply;
     return r;
 }
@@ -1891,7 +1891,7 @@ throw (CryptDBError)
 //words are the keywords of expanded unanonymized queries
 //words is unencrypted and unmodified query
 static ResMeta
-getResMeta(list<string> words, vector<vector<string> > & vals, QueryMeta & qm,
+getResMeta(list<string> words, const ResType &vals, QueryMeta & qm,
            map<string, TableMetadata * > & tm, MultiPrinc * mp,
            TMKM & tmkm)
 {
@@ -1899,11 +1899,9 @@ getResMeta(list<string> words, vector<vector<string> > & vals, QueryMeta & qm,
 
     ResMeta rm = ResMeta();
 
-    unsigned int offset = 2;
-
-    size_t nFields = vals[0].size();
+    size_t nFields = vals.names.size();
     rm.nFields = nFields;
-    rm.nTuples = vals.size() - offset;
+    rm.nTuples = vals.rows.size();
 
     //try to fill in these values based on the information in vals
     rm.isSalt = new bool[nFields];
@@ -1929,7 +1927,7 @@ getResMeta(list<string> words, vector<vector<string> > & vals, QueryMeta & qm,
         }
 
         //case : salt
-        if (isFieldSalt(vals[0][i])) {
+        if (isFieldSalt(vals.names[i])) {
             rm.isSalt[i] = true;
             rm.o[i] = oNONE;
             continue;
@@ -2007,32 +2005,30 @@ getResMeta(list<string> words, vector<vector<string> > & vals, QueryMeta & qm,
 }
 
 static void
-printRes(vector<vector<string> > & vals)
+printRes(const ResType &r)
 {
-    LOG(edb) << "Raw results from the server to decrypt:";
-
     stringstream ssn;
-    for (unsigned int i = 0; i < vals[0].size(); i++) {
+    for (unsigned int i = 0; i < r.names.size(); i++) {
         char buf[256];
-        snprintf(buf, sizeof(buf), "%-20s", vals[0][i].c_str());
+        snprintf(buf, sizeof(buf), "%-20s", r.names[i].c_str());
         ssn << buf;
     }
     LOG(edb) << ssn.str();
 
     /* next, print out the rows */
-    for (unsigned int i = 0; i < vals.size() - 1; i++) {
+    for (unsigned int i = 0; i < r.rows.size(); i++) {
         stringstream ss;
-        for (unsigned int j = 0; j < vals[i].size(); j++) {
+        for (unsigned int j = 0; j < r.rows[i].size(); j++) {
             char buf[256];
-            snprintf(buf, sizeof(buf), "%-20s", vals[i+1][j].c_str());
+            snprintf(buf, sizeof(buf), "%-20s", r.rows[i][j].c_str());
             ss << buf;
         }
         LOG(edb) << ss.str();
     }
 }
 
-ResType *
-EDBClient::rewriteDecryptSelect(const string &query, ResType * dbAnswer)
+ResType
+EDBClient::rewriteDecryptSelect(const string &query, const ResType &dbAnswer)
 {
 
     //cerr << "in decrypt \n";
@@ -2046,9 +2042,10 @@ EDBClient::rewriteDecryptSelect(const string &query, ResType * dbAnswer)
 
     expandWildCard(words, qm, tableMetaMap);
 
-    vector<vector<string> > vals = *dbAnswer;
-
-    if (VERBOSE) {printRes(vals); }
+    if (VERBOSE) {
+        LOG(edb) << "Raw results from the server to decrypt:";
+        printRes(dbAnswer);
+    }
 
     TMKM tmkm;
     if (mp) {
@@ -2057,7 +2054,7 @@ EDBClient::rewriteDecryptSelect(const string &query, ResType * dbAnswer)
         mp->prepareSelect(words, tmkm, qm, tableMetaMap);
     }
 
-    ResMeta rm = getResMeta(words, vals, qm, tableMetaMap, mp, tmkm);
+    ResMeta rm = getResMeta(words, dbAnswer, qm, tableMetaMap, mp, tmkm);
 
     //====================================================
 
@@ -2065,24 +2062,24 @@ EDBClient::rewriteDecryptSelect(const string &query, ResType * dbAnswer)
 
     //prepare the result
 
-    unsigned int offset = 2;
-    ResType * rets = new vector<vector<string> >(rm.nTuples+offset);
+    ResType rets;
+    rets.rows = vector<vector<string> >(rm.nTuples);
 
     size_t nFields = rm.nFields;
     size_t nTrueFields = rm.nTrueFields;
 
     //fill in field names and types
-    rets->at(0) = vector<string>(nTrueFields);
-    rets->at(1) = vector<string>(nTrueFields);
+    rets.names.resize(nTrueFields);
+    rets.types.resize(nTrueFields);
 
     unsigned int index0 = 0;
     for (unsigned int i = 0; i < nFields; i++) {
         if ((!rm.isSalt[i]) && (!mp || tmkm.returnBitMap[i])) {
-            rets->at(0).at(index0) = rm.namesForRes[i];
+            rets.names[index0] = rm.namesForRes[i];
             if (rm.o[i] == oNONE) { // val not encrypted
-            	rets->at(1).at(index0) = vals[1][i];//return the type from the mysql server
+            	rets.types[index0] = dbAnswer.types[i]; //return the type from the mysql server
             } else {
-            	rets->at(1).at(index0) = tableMetaMap[rm.table[i]]->fieldMetaMap[rm.field[i]]->mysql_type;
+            	rets.types[index0] = tableMetaMap[rm.table[i]]->fieldMetaMap[rm.field[i]]->mysql_type;
             }
             index0++;
         }
@@ -2091,7 +2088,7 @@ EDBClient::rewriteDecryptSelect(const string &query, ResType * dbAnswer)
 
     for (unsigned int i = 0; i < rm.nTuples; i++)
     {
-        rets->at(i+offset) = vector<string>(nTrueFields);
+        rets.rows[i].resize(nTrueFields);
         unsigned int index = 0;
         uint64_t salt = 0;
 
@@ -2099,7 +2096,7 @@ EDBClient::rewriteDecryptSelect(const string &query, ResType * dbAnswer)
 
             if (rm.isSalt[j]) {             // this is salt
                 LOG(edb) << "salt";
-                salt = unmarshallVal(vals[i+offset][j]);
+                salt = unmarshallVal(dbAnswer.rows[i][j]);
                 continue;
             }
 
@@ -2121,7 +2118,7 @@ EDBClient::rewriteDecryptSelect(const string &query, ResType * dbAnswer)
 
             if (rm.o[j] == oNONE) {             //not encrypted
                 LOG(edb) << "its not enc";
-                rets->at(i+offset).at(index) = vals[i+offset][j];
+                rets.rows[i][index] = dbAnswer.rows[i][j];
                 index++;
                 continue;
             }
@@ -2132,14 +2129,12 @@ EDBClient::rewriteDecryptSelect(const string &query, ResType * dbAnswer)
             string fullAnonName = fullName(getOnionName(fm,
                                                         rm.o[j]),
                                            tableMetaMap[table]->anonTableName);
-            rets->at(i+offset).at(index) =
-                crypt(vals[i+offset][j], fm->type, fullName(field,
-                                                       table),
+            rets.rows[i][index] =
+                crypt(dbAnswer.rows[i][j], fm->type, fullName(field, table),
                       fullAnonName,
-                      getLevelForOnion(fm,
-                                       rm.o[j]),
+                      getLevelForOnion(fm, rm.o[j]),
                       getLevelPlain(rm.o[j]), salt,
-                      tmkm, vals[i+offset]);
+                      tmkm, dbAnswer.rows[i]);
 
             index++;
 
@@ -2149,7 +2144,6 @@ EDBClient::rewriteDecryptSelect(const string &query, ResType * dbAnswer)
     tmkm.cleanup();
     qm.cleanup();
     rm.cleanup();
-    delete dbAnswer;
     return rets;
 }
 
@@ -3102,13 +3096,13 @@ throw (CryptDBError)
     return list<string>();
 }
 
-ResType *
-EDBClient::decryptResults(const string &query, ResType * dbAnswer)
+ResType
+EDBClient::decryptResults(const string &query, const ResType &dbAnswer)
 {
     if (DECRYPTFIRST)
         return dbAnswer;
 
-    if (dbAnswer->size() == 0)
+    if (dbAnswer.rows.size() == 0)
         return dbAnswer;
 
     // some queries do not need to be encrypted
@@ -3142,28 +3136,18 @@ EDBClient::dropTables()
     }
 }
 
-ResType *
+ResType
 EDBClient::decryptResultsWrapper(const string &query, DBResult * dbres)
 {
     command comm = getCommand(query);
 
     if (comm == cmd::SELECT) {
         LOG(edb) << "going in select";
-        ResType * rets = decryptResults(query, dbres->unpack());
+        ResType rets = decryptResults(query, dbres->unpack());
 
         if (VERBOSE) {
-            LOG(edb_v) << "Decrypted results:";
-
-            for (unsigned int i = 0; i < rets->size(); i++) {
-                stringstream ss;
-                for (unsigned int j = 0; j < rets->at(i).size(); j++) {
-                    char buf[256];
-                    snprintf(buf, sizeof(buf), "%-30s", rets->at(i).at(
-                                 j).c_str());
-                    ss << buf;
-                }
-                LOG(edb_v) << ss.str();
-            }
+            LOG(edb) << "Decrypted results:";
+            printRes(rets);
         }
 
         return rets;
@@ -3171,11 +3155,10 @@ EDBClient::decryptResultsWrapper(const string &query, DBResult * dbres)
 
     LOG(edb) << "return empty results";
     //empty result
-    return new ResType();
-
+    return ResType();
 }
 
-ResType *
+ResType
 EDBClient::execute(const string &query)
 {
     DBResult * res = 0;
@@ -3187,16 +3170,16 @@ EDBClient::execute(const string &query)
         if (!conn->execute(query, res)) {
             fprintf(stderr, "%s failed: %s \n", query.c_str(), conn->getError(
                         ).c_str());
-            return NULL;
+            return ResType(false);
         }
 
         if (getCommand(query) == cmd::SELECT) {
-            ResType *r = res->unpack();
+            ResType r = res->unpack();
             delete res;
             return r;
         } else {
             delete res;
-            return new ResType();
+            return ResType();
         }
     }
 
@@ -3209,12 +3192,11 @@ EDBClient::execute(const string &query)
         queries = rewriteEncryptQuery(query, &ai);
     } catch (CryptDBError se) {
         LOG(warn) << "problem with query " << query << ": " << se.msg;
-        return NULL;
+        return ResType(false);
     }
 
-    if (queries.size() == 0) {
-        return new ResType();
-    }
+    if (queries.size() == 0)
+        return ResType();
 
     auto queryIt = queries.begin();
 
@@ -3235,7 +3217,7 @@ EDBClient::execute(const string &query)
 
         if (!conn->execute(*queryIt, reply)) {
             LOG(warn) << "query " << *queryIt << "failed";
-            return NULL;
+            return ResType(false);
         }
 
         if (VERBOSE) {
@@ -3253,14 +3235,14 @@ EDBClient::execute(const string &query)
             assert_s(counter == noQueries, "counter differs from noQueries");
 
             LOG(edb) << "onto decrypt results";
-            ResType * rets;
+            ResType rets;
             try {
                 rets = decryptResultsWrapper(query, reply);
             } catch (CryptDBError e) {
                 LOG(warn) << e.msg;
                 queries.clear();
                 delete reply;
-                return NULL;
+                return ResType(false);
             }
 
             LOG(edb) << "done with decrypt results";
@@ -3273,8 +3255,7 @@ EDBClient::execute(const string &query)
     }
 
     assert_s(false, "invalid control path");
-
-    return new ResType();
+    return ResType(false);
 }
 
 void

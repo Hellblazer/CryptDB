@@ -8,36 +8,32 @@
 #include "test_utils.h"
 
 void
-PrintRes(ResType res)
+PrintRes(const ResType &res)
 {
-    for(auto outer = res.begin(); outer != res.end(); outer++) {
-        for(auto inner = outer->begin(); inner != outer->end(); inner++) {
+    for (auto i = res.names.begin(); i != res.names.end(); i++)
+        cerr << *i << " | ";
+    cerr << endl;
+    for (auto outer = res.rows.begin(); outer != res.rows.end(); outer++) {
+        for (auto inner = outer->begin(); inner != outer->end(); inner++)
             cerr << *inner << " | ";
-        }
         cerr << endl;
     }
 }
 
-ResType *
+ResType
 myExecute(EDBClient * cl, string query)
 {
-    ResType * res;
-    if (PLAIN) {
-        res = cl->plain_execute(query);
-    } else {
-        res = cl->execute(query);
-    }
-    return res;
+    if (PLAIN)
+        return cl->plain_execute(query);
+    else
+        return cl->execute(query);
 }
 
-ResType *
+ResType
 myCreate(EDBClient *cl, string annotated_query, string plain_query)
 {
-    ResType * res;
-    if (PLAIN) {
-        res = cl->plain_execute(plain_query);
-    } else {
-        res = cl->execute(annotated_query);
-    }
-    return res;
+    if (PLAIN)
+        return cl->plain_execute(plain_query);
+    else
+        return cl->execute(annotated_query);
 }

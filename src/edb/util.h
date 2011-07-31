@@ -88,8 +88,6 @@ const std::set<string> annotations =
 
 // ============= DATA STRUCTURES ===================================//
 
-typedef vector<vector<string> > ResType;
-
 #if MYSQL_S
 #include "mysql.h"
 typedef MYSQL_RES DBResult_native;
@@ -97,6 +95,16 @@ typedef MYSQL_RES DBResult_native;
 #include "libpq-fe.h"
 typedef PGresult DBResult_native;
 #endif
+
+class ResType {
+ public:
+    explicit ResType(bool okflag = true) : ok(okflag) {}
+
+    bool ok;  // query executed successfully
+    vector<string> names;
+    vector<enum_field_types> types;
+    vector<vector<string> > rows;
+};
 
 typedef struct CryptDBError {
  public:

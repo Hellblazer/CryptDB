@@ -767,7 +767,7 @@ KeyAccess::insert(Prin hasAccess, Prin accessTo)
     prins.insert(hasAccess);
     prins.insert(accessTo);
 
-    if (Select(prins,table,"*")->size() > 1) {
+    if (Select(prins,table,"*").rows.size() > 0) {
         if (VERBOSE) {
             LOG(am_v) << "relation " + hasAccess.gen + "=" +
             hasAccess.value +
@@ -794,13 +794,11 @@ KeyAccess::insert(Prin hasAccess, Prin accessTo)
     //see if there are any entries with the same second field
     prins.clear();
     prins.insert(accessTo);
-    vector<vector<string> > * resultset = Select(prins,table,"*");
-    vector<vector<string> >::iterator it;
+    ResType resultset = Select(prins,table,"*");
     //keys for this link exist; decrypt them
-    if(resultset->size() > 1) {
-        it = resultset->begin();
-        it++;
-        for(; it != resultset->end(); it++) {
+    if(resultset.rows.size() > 0) {
+        auto it = resultset.rows.begin();
+        for(; it != resultset.rows.end(); it++) {
             Prin this_row;
             this_row.type = hasAccess.type;
             this_row.gen = hasAccess.gen;
@@ -882,12 +880,11 @@ KeyAccess::insert(Prin hasAccess, Prin accessTo)
         if (!conn->execute(sql, dbres)) {
             LOG(am) << "Problem with sql statement: " << sql;
         } else {
-            ResType *res = dbres->unpack();
+            ResType res = dbres->unpack();
             delete dbres;
 
-            if (res->size() < 2)
+            if (res.rows.size() == 0)
                 GenerateAsymKeys(accessTo,accessToPrinKey);
-            delete res;
         }
     }
 
@@ -914,14 +911,13 @@ KeyAccess::insert(Prin hasAccess, Prin accessTo)
             assert_s(0, "x");
         }
 
-        ResType *res = dbres->unpack();
+        ResType res = dbres->unpack();
         delete dbres;
 
         assert_s(
             hasAccessPrinKey.key.length() > 0, "created hasAccess has no key");
-        if (res->size() < 2)
+        if (res.rows.size() == 0)
             GenerateAsymKeys(hasAccess,hasAccessPrinKey);
-        delete res;
 
         addToKeys(accessTo, accessToPrinKey);
         addToKeys(hasAccess, hasAccessPrinKey);
@@ -1156,18 +1152,15 @@ KeyAccess::getPublicKey(Prin prin)
         return NULL;
     }
 
-    ResType *res = dbres->unpack();
+    ResType res = dbres->unpack();
     delete dbres;
 
-    if(res->size() < 2) {
+    if(res.rows.size() == 0) {
         cerr << "No public key for input to getPublicKey" << endl;
-        delete res;
         return NULL;
     }
 
-    string key = unmarshallBinary((*res)[1][2]);
-    delete res;
-
+    string key = unmarshallBinary(res.rows[0][2]);
     return crypt_man->unmarshallKey(key, true);
 }
 
@@ -1192,19 +1185,16 @@ KeyAccess::getSecretKey(Prin prin)
         return error;
     }
 
-    ResType *res = dbres->unpack();
+    ResType res = dbres->unpack();
     delete dbres;
 
-    if(res->size() < 2) {
+    if(res.rows.size() == 0) {
         cerr << "No public key for input to getSecretKey" << endl;
-        delete res;
         return error;
     }
 
-    string string_key = res->at(1).at(3);
-    PrinKey x = decryptSym(res->at(1).at(3), getKey(prin), res->at(1).at(4));
-    delete res;
-    return x;
+    string string_key = res.rows[0][3];
+    return decryptSym(res.rows[0][3], getKey(prin), res.rows[0][4]);
 }
 
 int
@@ -1285,16 +1275,13 @@ KeyAccess::insertPsswd(Prin gives, const string &psswd)
                     }
                     continue;
                 }
-                vector<vector<string> > * res = Select(
-                    prin_set, meta->getTable(*hasAccess,*accessTo), "*");
-                if (res->size() > 1) {
-                    vector<vector<string> >::iterator row = res->begin();
-                    //first row is field names
-                    row++;
-                    while (row != res->end()) {
+                ResType res = Select(prin_set, meta->getTable(*hasAccess,*accessTo), "*");
+                if (res.rows.size() > 0) {
+                    auto row = res.rows.begin();
+                    while (row != res.rows.end()) {
                         //remember to check this Prin on the next level
                         Prin new_prin;
-                        new_prin.gen = res->at(0).at(1);
+                        new_prin.gen = res.names[1];
                         new_prin.value = row->at(1);
                         accessible_values.insert(new_prin);
                         string new_key = getKey(new_prin);
@@ -1586,7 +1573,7 @@ KeyAccess::DFS_hasAccess(Prin start)
     return results;
 }
 
-vector<vector<string> > *
+ResType
 KeyAccess::Select(std::set<Prin> & prin_set, string table_name, string column)
 {
     std::set<Prin>::iterator prin;
@@ -1604,7 +1591,7 @@ KeyAccess::Select(std::set<Prin> & prin_set, string table_name, string column)
     DBResult * dbres;
     if(!conn->execute(sql.c_str(), dbres)) {
         cerr << "SQL error with query: " << sql << endl;
-        return NULL;
+        return ResType(false);
     }
     auto res = dbres->unpack();
     delete dbres;
@@ -1635,9 +1622,7 @@ KeyAccess::SelectCount(std::set<Prin> & prin_set, string table_name)
     auto res = dbres->unpack();
     delete dbres;
 
-    int size = (int) unmarshallVal(res->at(1).at(0));
-    delete res;
-    return size;
+    return (int) unmarshallVal(res.rows[0][0]);
 }
 
 int
@@ -1786,16 +1771,16 @@ KeyAccess::getUncached(Prin prin)
         std::set<Prin> prin_set;
         prin_set.insert(*set_it);
         prin_set.insert(prin);
-        vector<vector<string> > * res =
+        ResType res =
             Select(prin_set, meta->getTable(set_it->gen, prin.gen), "*");
-        if (res->size() > 1) {
+        if (res.rows.size() > 0) {
             PrinKey new_prin_key;
-            if (res->at(1).at(4) == "X''") {             //symmetric key okay
-                new_prin_key = decryptSym(res->at(1).at(2), getKey(
-                                              *set_it), res->at(1).at(3));
+            if (res.rows[0][4] == "X''") {             //symmetric key okay
+                new_prin_key = decryptSym(res.rows[0][2],
+                                          getKey(*set_it), res.rows[0][3]);
             } else {             //use asymmetric
                 PrinKey sec_key = getSecretKey(*set_it);
-                new_prin_key = decryptAsym(res->at(1).at(4), sec_key.key);
+                new_prin_key = decryptAsym(res.rows[0][4], sec_key.key);
             }
             return new_prin_key;
         }

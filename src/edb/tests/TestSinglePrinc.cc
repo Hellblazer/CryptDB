@@ -15,13 +15,6 @@
 static int ntest = 0;
 static int npass = 0;
 
-static void
-assert_del(ResType *r, const char *blah)
-{
-    assert_s(r, blah);
-    delete r;
-}
-
 TestSinglePrinc::TestSinglePrinc()
 {
 
@@ -37,30 +30,17 @@ static ResType
 convert(string rows[][N], int num_rows)
 {
     ResType res;
-    for (int i = 0; i < num_rows; i++) {
+    for (int j = 0; j < N; j++)
+        res.names.push_back(rows[0][j]);
+    for (int i = 1; i < num_rows; i++) {
         vector<string> temp;
         for (int j = 0; j < N; j++)
             temp.push_back(rows[i][j]);
-        res.push_back(temp);
+        res.rows.push_back(temp);
     }
     return res;
 }
 
-static vector<vector<string> > removeType(const vector<vector<string> > & a) {
-	unsigned int len = (uint) a.size();
-
-	if (len < 2) {
-		return a;
-	}
-
-	vector<vector<string> > b =  vector<vector<string> >();
-	b.push_back(a[0]);
-	for (unsigned int i = 2; i < len; i++) {
-		b.push_back(a[i]);
-	}
-
-	return b;
-}
 static void
 CheckSelectResults(const TestConfig &tc, EDBClient * cl, vector<string> in, vector<ResType> out)
 {
@@ -76,8 +56,8 @@ CheckSelectResults(const TestConfig &tc, EDBClient * cl, vector<string> in, vect
 	while(query_it != in.end()) {
 		ntest++;
 		bool passed = true;
-		ResType * test_res = myExecute(cl, *query_it);
-		if(!test_res) {
+		ResType test_res = myExecute(cl, *query_it);
+		if (!test_res.ok) {
 			LOG(test) << "Query: " << *query_it;
 			if (tc.stop_if_fail) {
 				assert_s(false, "above query failed");
@@ -85,21 +65,18 @@ CheckSelectResults(const TestConfig &tc, EDBClient * cl, vector<string> in, vect
 			passed = false;
 		}
 
-		if(passed && removeType(*test_res) != *res_it) {
+		if (passed && !match(test_res, *res_it)) {
 			LOG(test) << "From query: " << *query_it;
 			cerr << "-----------------------\nExpected result:" << endl;
 			PrintRes(*res_it);
 			cerr << "Got result:" << endl;
-			PrintRes(removeType(*test_res));
+			PrintRes(test_res);
 			cerr << "Select or Join test failed\n";
 			if (tc.stop_if_fail) {
 				assert_s(false, "above query generated the wrong result");
 			}
 			passed = false;
 		}
-
-        if (test_res)
-            delete test_res;
 
 		if (passed) {
 			npass++;
@@ -112,13 +89,17 @@ CheckSelectResults(const TestConfig &tc, EDBClient * cl, vector<string> in, vect
 
 static void
 qUpdateSelect(const TestConfig &tc, EDBClient *cl, const string &update,
-              const string &select, const ResType &expect)
+              const string &select, const vector<string> &exp_names,
+              const vector<vector<string> > &exp_rows)
 {
-    assert_del(myExecute(cl, update), "Query failed, Update or Delete test failed\n");
+    assert_res(myExecute(cl, update), "Query failed, Update or Delete test failed\n");
+    ResType expect;
+    expect.names = exp_names;
+    expect.rows = exp_rows;
 
     ntest++;
-    ResType * test_res = myExecute(cl, select);
-    if (!test_res) {
+    ResType test_res = myExecute(cl, select);
+    if (!test_res.ok) {
         cerr << "Update or Delete query " << select << " won't execute";
         if (tc.stop_if_fail) {
             assert_s(false, "above query could not execute");
@@ -126,73 +107,68 @@ qUpdateSelect(const TestConfig &tc, EDBClient *cl, const string &update,
         return;
     }
 
-    if (removeType(*test_res) != expect) {
+    if (!match(test_res, expect)) {
         cerr << "Expected result:" << endl;
         PrintRes(expect);
         cerr << "Got result:" << endl;
-        PrintRes(*test_res);
+        PrintRes(test_res);
         if (tc.stop_if_fail) {
             assert_s(false, update+"; "+select+" generated the wrong result");
         }
-        delete test_res;
         return;
     }
 
-    delete test_res;
     npass++;
 }
 
 static void
 testCreateDrop(const TestConfig &tc, EDBClient * cl)
 {
-    ResType *r = cl->plain_execute(
-        "DROP TABLE IF EXISTS table0, table1, table2, table3, table4");
-    if (r)
-        delete r;
+    cl->plain_execute("DROP TABLE IF EXISTS table0, table1, table2, table3, table4");
 
     string sql = "CREATE TABLE t1 (id integer, words text)";
-    assert_del(cl->execute(sql), "Problem creating table t1 (first time)");
-    assert_del(cl->plain_execute(
+    assert_res(cl->execute(sql), "Problem creating table t1 (first time)");
+    assert_res(cl->plain_execute(
                  "SELECT * FROM table0"),
              "t1 (first time) was not created properly");
 
     sql = "CREATE TABLE t2 (id enc integer, other_id integer, words enc text, other_words text)";
-    assert_del(cl->execute(sql), "Problem creating table t2 (first time)");
-    assert_del(cl->plain_execute(
+    assert_res(cl->execute(sql), "Problem creating table t2 (first time)");
+    assert_res(cl->plain_execute(
                  "SELECT * FROM table1"),
              "t2 (first time) was not created properly");
 
     sql = "DROP TABLE t1";
-    assert_del(cl->execute(sql), "Problem dropping t1");
-    assert_s(!cl->plain_execute("SELECT * FROM table0"), "t1 not dropped");
+    assert_res(cl->execute(sql), "Problem dropping t1");
+    assert_s(!cl->plain_execute("SELECT * FROM table0").ok, "t1 not dropped");
     sql = "DROP TABLE t2";
-    assert_del(cl->execute(sql), "Problem dropping t2");
-    assert_s(!cl->plain_execute("SELECT * FROM table1"), "t2 not dropped");
+    assert_res(cl->execute(sql), "Problem dropping t2");
+    assert_s(!cl->plain_execute("SELECT * FROM table1").ok, "t2 not dropped");
 
     sql = "CREATE TABLE t1 (id integer, words text)";
-    assert_del(cl->execute(sql), "Problem creating table t1 (second time)");
-    assert_del(cl->plain_execute(
+    assert_res(cl->execute(sql), "Problem creating table t1 (second time)");
+    assert_res(cl->plain_execute(
                  "SELECT * FROM table2"),
              "t1 (second time) was not created properly");
 
     sql =
         "CREATE TABLE t2 (id enc integer, other_id integer, words enc text, other_words text)";
-    assert_del(cl->execute(sql), "Problem creating table t2 (second time)");
-    assert_del(cl->plain_execute(
+    assert_res(cl->execute(sql), "Problem creating table t2 (second time)");
+    assert_res(cl->plain_execute(
                  "SELECT * FROM table3"),
              "t2 (second time) was not created properly");
 
-    assert_del(cl->execute("DROP TABLE t1"), "testCreateDrop won't drop t1");
-    assert_del(cl->execute("DROP TABLE t2"), "testCreateDrop won't drop t2");
+    assert_res(cl->execute("DROP TABLE t1"), "testCreateDrop won't drop t1");
+    assert_res(cl->execute("DROP TABLE t2"), "testCreateDrop won't drop t2");
 
     if (!PLAIN) {
         sql =
             "CREATE TABLE t3 (id bigint, dec enc decimal(4,5), nnull enc integer NOT NULL, words enc varchar(200), line enc blob NOT NULL)";
-        assert_del(cl->execute(sql), "Problem creating table t3");
-        assert_del(cl->plain_execute(
+        assert_res(cl->execute(sql), "Problem creating table t3");
+        assert_res(cl->plain_execute(
                      "SELECT * FROM table4"), "t3 not created properly");
 
-        assert_del(cl->execute("DROP TABLE t3"), "testCreateDrop won't drop t3");
+        assert_res(cl->execute("DROP TABLE t3"), "testCreateDrop won't drop t3");
     }
 }
 
@@ -200,12 +176,10 @@ testCreateDrop(const TestConfig &tc, EDBClient * cl)
 static void
 testInsert(const TestConfig &tc, EDBClient * cl)
 {
-    ResType *r = cl->plain_execute(
+    cl->plain_execute(
         "DROP TABLE IF EXISTS table0, table1, table2, table3, table4, table5, t1");
-    if (r)
-        delete r;
 
-    assert_del(myCreate(cl,"CREATE TABLE t1 (id integer, age enc integer, salary enc integer, address enc text, name text)",
+    assert_res(myCreate(cl,"CREATE TABLE t1 (id integer, age enc integer, salary enc integer, address enc text, name text)",
 		      "CREATE TABLE t1 (id integer, age integer, salary integer, address text, name text)"),
              "testInsert could not create table");
 
@@ -228,13 +202,13 @@ testInsert(const TestConfig &tc, EDBClient * cl)
 
     vector<string>::iterator it;
     for (it = tests.begin(); it != tests.end(); it++) {
-        assert_del(myExecute(cl, *it), "sql problem with InsertTest");
+        assert_res(myExecute(cl, *it), "sql problem with InsertTest");
     }
 
     if (!PLAIN) {
-        assert_del(cl->execute("DROP TABLE t1"), "testInsert can't drop t1");
+        assert_res(cl->execute("DROP TABLE t1"), "testInsert can't drop t1");
     } else {
-        assert_del(myExecute(cl,
+        assert_res(myExecute(cl,
                            "DELETE FROM t1"),
                  "testInsert can't delete from t1");
     }
@@ -244,27 +218,25 @@ testInsert(const TestConfig &tc, EDBClient * cl)
 static void
 testSelect(const TestConfig &tc, EDBClient * cl)
 {
-    ResType *r = cl->plain_execute(
+    cl->plain_execute(
         "DROP TABLE IF EXISTS table0, table1, table2, table3, table4, table5, table6, t1");
-    if (r)
-        delete r;
 
-    assert_del(myCreate(cl,"CREATE TABLE t1 (id integer, age enc integer, salary enc integer, address enc text, name enc text)",
+    assert_res(myCreate(cl,"CREATE TABLE t1 (id integer, age enc integer, salary enc integer, address enc text, name enc text)",
 		      "CREATE TABLE t1 (id integer, age integer, salary integer, address text, name text)"),
 	     "testSelect couldn't create table");
-    assert_del(myExecute(cl,
+    assert_res(myExecute(cl,
                        "INSERT INTO t1 VALUES (1, 10, 0, 'first star to the right and straight on till morning', 'Peter Pan')"),
              "testSelect couldn't insert (1)");
-    assert_del(myExecute(cl,
+    assert_res(myExecute(cl,
                        "INSERT INTO t1 VALUES (2, 16, 1000, 'Green Gables', 'Anne Shirley')"),
              "testSelect couldn't insert (2)");
-    assert_del(myExecute(cl,
+    assert_res(myExecute(cl,
                        "INSERT INTO t1 VALUES (3, 8, 0, 'London', 'Lucy')"),
              "testSelect couldn't insert (3)");
-    assert_del(myExecute(cl,
+    assert_res(myExecute(cl,
                        "INSERT INTO t1 VALUES (4, 10, 0, 'London', 'Edmund')"),
              "testSelect couldn't insert (4)");
-    assert_del(myExecute(cl,
+    assert_res(myExecute(cl,
                        "INSERT INTO t1 VALUES (5, 30, 100000, '221B Baker Street', 'Sherlock Holmes')"),
              "testSelect couldn't insert (5)");
 
@@ -356,9 +328,7 @@ testSelect(const TestConfig &tc, EDBClient * cl)
     reply.push_back(convert(rows11,2));
 
     query.push_back("SELECT * FROM t1 WHERE salary = 15");
-    ResType res;
-    res.clear();
-    reply.push_back(res);
+    reply.push_back(ResType());
 
     query.push_back("SELECT * FROM t1 WHERE age > 10");
     string rows12[3][5] = { {"id", "age", "salary", "address", "name"},
@@ -563,9 +533,9 @@ testSelect(const TestConfig &tc, EDBClient * cl)
     CheckSelectResults(tc, cl, query, reply);
 
     if (!PLAIN) {
-        assert_del(cl->execute("DROP TABLE t1"), "testInsert can't drop t1");
+        assert_res(cl->execute("DROP TABLE t1"), "testInsert can't drop t1");
     } else {
-        assert_del(myExecute(cl,
+        assert_res(myExecute(cl,
                            "DELETE FROM t1"),
                  "testInsert can't delete from t1");
     }
@@ -574,43 +544,41 @@ testSelect(const TestConfig &tc, EDBClient * cl)
 static void
 testJoin(const TestConfig &tc, EDBClient * cl)
 {
-    ResType *r = cl->plain_execute(
+    cl->plain_execute(
         "DROP TABLE IF EXISTS table0, table1, table2, table3, table4, table5, table6, table7, table8, t1, t2");
-    if (r)
-        delete r;
 
-    assert_del(myCreate(cl,"CREATE TABLE t1 (id integer, age enc integer, salary enc integer, address enc text, name enc text)",
+    assert_res(myCreate(cl,"CREATE TABLE t1 (id integer, age enc integer, salary enc integer, address enc text, name enc text)",
 		      "CREATE TABLE t1 (id integer, age integer, salary integer, address text, name text)"),
                  "testJoin couldn't create table");
 
-    assert_del(myExecute(cl,
+    assert_res(myExecute(cl,
                        "INSERT INTO t1 VALUES (1, 10, 0, 'first star to the right and straight on till morning', 'Peter Pan')"),
              "testJoin couldn't insert (1)");
-    assert_del(myExecute(cl,
+    assert_res(myExecute(cl,
                        "INSERT INTO t1 VALUES (2, 16, 1000, 'Green Gables', 'Anne Shirley')"),
              "testJoin couldn't insert (2)");
-    assert_del(myExecute(cl,
+    assert_res(myExecute(cl,
                        "INSERT INTO t1 VALUES (3, 8, 0, 'London', 'Lucy')"),
              "testJoin couldn't insert (3)");
-    assert_del(myExecute(cl,
+    assert_res(myExecute(cl,
                        "INSERT INTO t1 VALUES (4, 10, 0, 'London', 'Edmund')"),
              "testJoin couldn't insert (4)");
-    assert_del(myExecute(cl,
+    assert_res(myExecute(cl,
                        "INSERT INTO t1 VALUES (5, 30, 100000, '221B Baker Street', 'Sherlock Holmes')"),
              "testJoin couldn't insert (5)");
 
-    assert_del(myCreate(cl,"CREATE TABLE t2 (id integer, books enc integer, name enc text)",
+    assert_res(myCreate(cl,"CREATE TABLE t2 (id integer, books enc integer, name enc text)",
 		      "CREATE TABLE t2 (id integer, books integer, name text)"),
                  "testJoin couldn't create table");
-    assert_del(myExecute(cl, "INSERT INTO t2 VALUES (1, 6, 'Peter Pan')"),
+    assert_res(myExecute(cl, "INSERT INTO t2 VALUES (1, 6, 'Peter Pan')"),
              "testJoin couldn't insert (1)");
-    assert_del(myExecute(cl, "INSERT INTO t2 VALUES (2, 8, 'Anne Shirley')"),
+    assert_res(myExecute(cl, "INSERT INTO t2 VALUES (2, 8, 'Anne Shirley')"),
              "testJoin couldn't insert (2)");
-    assert_del(myExecute(cl, "INSERT INTO t2 VALUES (3, 7, 'Lucy')"),
+    assert_res(myExecute(cl, "INSERT INTO t2 VALUES (3, 7, 'Lucy')"),
              "testJoin couldn't insert (3)");
-    assert_del(myExecute(cl, "INSERT INTO t2 VALUES (4, 7, 'Edmund')"),
+    assert_res(myExecute(cl, "INSERT INTO t2 VALUES (4, 7, 'Edmund')"),
              "testJoin couldn't insert (4)");
-    assert_del(myExecute(cl,
+    assert_res(myExecute(cl,
                        "INSERT INTO t2 VALUES (10, 4, '221B Baker Street')"),
              "testJoin couldn't insert (5)");
 
@@ -683,12 +651,12 @@ testJoin(const TestConfig &tc, EDBClient * cl)
     CheckSelectResults(tc, cl, query, reply);
 
     if (!PLAIN) {
-        assert_del(cl->execute("DROP TABLE t1, t2"), "testInsert can't drop t1");
+        assert_res(cl->execute("DROP TABLE t1, t2"), "testInsert can't drop t1");
     } else {
-        assert_del(myExecute(cl,
+        assert_res(myExecute(cl,
                            "DELETE FROM t1"),
                  "testInsert can't delete from t1");
-        assert_del(myExecute(cl,
+        assert_res(myExecute(cl,
                            "DELETE FROM t2"),
                  "testInsert can't delete from t2");
     }
@@ -699,38 +667,36 @@ testJoin(const TestConfig &tc, EDBClient * cl)
 static void
 testUpdate(const TestConfig &tc, EDBClient * cl)
 {
-    ResType *r = cl->plain_execute(
+    cl->plain_execute(
         "DROP TABLE IF EXISTS table0, table1, table2, table3, table4, table5, table6, table7, table8, table9, table10, t1");
-    if (r)
-        delete r;
 
-    assert_del(myCreate(cl,"CREATE TABLE t1 (id integer, age enc integer, salary enc integer, address enc text, name enc text)",
+    assert_res(myCreate(cl,"CREATE TABLE t1 (id integer, age enc integer, salary enc integer, address enc text, name enc text)",
 		      "CREATE TABLE t1 (id integer, age integer, salary integer, address text, name text)"),
                  "testUpdate couldn't create table");
-    assert_del(myExecute(cl,
+    assert_res(myExecute(cl,
                        "INSERT INTO t1 VALUES (1, 10, 0, 'first star to the right and straight on till morning', 'Peter Pan')"),
              "testUpdate couldn't insert (1)");
 
-    assert_del(myExecute(cl,
+    assert_res(myExecute(cl,
                        "INSERT INTO t1 VALUES (2, 16, 1000, 'Green Gables', 'Anne Shirley')"),
              "testUpdate couldn't insert (2)");
-    assert_del(myExecute(cl,
+    assert_res(myExecute(cl,
                        "INSERT INTO t1 VALUES (3, 8, 0, 'London', 'Lucy')"),
              "testUpdate couldn't insert (3)");
-    assert_del(myExecute(cl,
+    assert_res(myExecute(cl,
                        "INSERT INTO t1 VALUES (4, 10, 0, 'London', 'Edmund')"),
              "testUpdate couldn't insert (4)");
-    assert_del(myExecute(cl,
+    assert_res(myExecute(cl,
                        "INSERT INTO t1 VALUES (5, 30, 100000, '221B Baker Street', 'Sherlock Holmes')"),
              "testUpdate couldn't insert (5)");
-    assert_del(myExecute(cl,
+    assert_res(myExecute(cl,
                        "INSERT INTO t1 VALUES (6, 11, 0, 'hi', 'noone')"),
              "testUpdate couldn't insert (6)");
 
     qUpdateSelect(tc, cl, "UPDATE t1 SET salary=0",
                   "SELECT * FROM t1",
-                  { {"id", "age", "salary", "address", "name"},
-                    {"1", "10", "0",
+                  {"id", "age", "salary", "address", "name"},
+                  { {"1", "10", "0",
                      "first star to the right and straight on till morning",
                      "Peter Pan"},
                     {"2", "16", "0", "Green Gables", "Anne Shirley"},
@@ -742,8 +708,8 @@ testUpdate(const TestConfig &tc, EDBClient * cl)
 
     qUpdateSelect(tc, cl, "UPDATE t1 SET age=21 WHERE id = 6",
                   "SELECT * FROM t1",
-                  { {"id", "age", "salary", "address", "name"},
-                    {"1", "10", "0",
+                  {"id", "age", "salary", "address", "name"},
+                  { {"1", "10", "0",
                      "first star to the right and straight on till morning",
                      "Peter Pan"},
                     {"2", "16", "0", "Green Gables", "Anne Shirley"},
@@ -757,8 +723,8 @@ testUpdate(const TestConfig &tc, EDBClient * cl)
         tc, cl,
         "UPDATE t1 SET address='Pemberly', name='Elizabeth Darcy' WHERE id=6",
         "SELECT * FROM t1",
-        { {"id", "age", "salary", "address", "name"},
-          {"1", "10", "0",
+        {"id", "age", "salary", "address", "name"},
+        { {"1", "10", "0",
            "first star to the right and straight on till morning",
            "Peter Pan"},
           {"2", "16", "0", "Green Gables", "Anne Shirley"},
@@ -770,8 +736,8 @@ testUpdate(const TestConfig &tc, EDBClient * cl)
 
     qUpdateSelect(tc, cl, "UPDATE t1 SET salary=55000 WHERE age=30",
                   "SELECT * FROM t1",
-                  { {"id", "age", "salary", "address", "name"},
-                    {"1", "10", "0",
+                  {"id", "age", "salary", "address", "name"},
+                  { {"1", "10", "0",
                      "first star to the right and straight on till morning",
                      "Peter Pan"},
                     {"2", "16", "0", "Green Gables", "Anne Shirley"},
@@ -783,8 +749,8 @@ testUpdate(const TestConfig &tc, EDBClient * cl)
 
     qUpdateSelect(tc, cl, "UPDATE t1 SET salary=20000 WHERE address='Pemberly'",
                   "SELECT * FROM t1",
-                  { { "id", "age", "salary", "address", "name" },
-                    { "1", "10", "0",
+                  { "id", "age", "salary", "address", "name" },
+                  { { "1", "10", "0",
                       "first star to the right and straight on till morning",
                       "Peter Pan"},
                     { "2", "16", "0", "Green Gables", "Anne Shirley" },
@@ -797,30 +763,30 @@ testUpdate(const TestConfig &tc, EDBClient * cl)
 
     qUpdateSelect(tc, cl,"SELECT * FROM t1",
                   "SELECT age FROM t1 WHERE age > 20",
-                  { {"age"},
-                    {"30"},
+                  {"age"},
+                  { {"30"},
                     {"21"} });
 
     qUpdateSelect(tc, cl, "SELECT id FROM t1",
                   "SELECT sum(age) FROM t1",
-                  { {"sum(age)"},
-                    {"95"} });
+                  {"sum(age)"},
+                  { {"95"} });
 
     qUpdateSelect(tc, cl, "UPDATE t1 SET age = 20 WHERE name='Elizabeth Darcy'",
                   "SELECT * FROM t1 WHERE age > 20",
-                  { {"id","age","salary","address","name"},
-                    { "5", "30", "55000", "221B Baker Street",
+                  {"id","age","salary","address","name"},
+                  { { "5", "30", "55000", "221B Baker Street",
 			"Sherlock Holmes" } });
 
     qUpdateSelect(tc, cl, "SELECT id FROM t1",
                   "SELECT sum(age) FROM t1",
-                  { {"sum(age)"},
-                    {"94"} });
+                  {"sum(age)"},
+                  { {"94"} });
 
     qUpdateSelect(tc, cl, "UPDATE t1 SET age = age + 2",
                   "SELECT age FROM t1",
-                  { {"age"},
-                    {"12"},
+                  {"age"},
+                  { {"12"},
                     {"18"},
                     {"10"},
                     {"12"},
@@ -831,8 +797,8 @@ testUpdate(const TestConfig &tc, EDBClient * cl)
         tc, cl,
         "UPDATE t1 SET id = id + 10, salary = salary + 19, name = 'xxx', address = 'foo' WHERE address = 'London'",
         "SELECT * FROM t1",
-        { {"id","age","salary","address","name"},
-          { "1", "12", "0",
+        {"id","age","salary","address","name"},
+        { { "1", "12", "0",
             "first star to the right and straight on till morning",
             "Peter Pan"},
           { "2", "18", "0", "Green Gables", "Anne Shirley" },
@@ -844,18 +810,18 @@ testUpdate(const TestConfig &tc, EDBClient * cl)
             "Elizabeth Darcy" } });
 
     qUpdateSelect(tc, cl, "SELECT * FROM t1", "SELECT * FROM t1 WHERE address < 'fml'",
-		  { {"id","age","salary","address","name"},
-		      {"1","12","0","first star to the right and straight on till morning", "Peter Pan"},
+		  {"id","age","salary","address","name"},
+		  { {"1","12","0","first star to the right and straight on till morning", "Peter Pan"},
 		    {"5","32","55000","221B Baker Street","Sherlock Holmes"} });
 
     qUpdateSelect(tc, cl, "UPDATE t1 SET address = 'Neverland' WHERE id = 1", "SELECT * FROM t1 WHERE address < 'fml'",
-		  { {"id", "age", "salary", "address", "name"},
-		    {"5", "32", "55000", "221B Baker Street", "Sherlock Holmes"} });
+		  {"id", "age", "salary", "address", "name"},
+		  { {"5", "32", "55000", "221B Baker Street", "Sherlock Holmes"} });
     
     if (!PLAIN) {
-        assert_del(cl->execute("DROP TABLE t1"), "testUpdate can't drop t1");
+        assert_res(cl->execute("DROP TABLE t1"), "testUpdate can't drop t1");
     } else {
-        assert_del(myExecute(cl,
+        assert_res(myExecute(cl,
                            "DELETE FROM t1"),
                  "testUpdate can't delete from t1");
     }
@@ -864,42 +830,40 @@ testUpdate(const TestConfig &tc, EDBClient * cl)
 static void
 testDelete(const TestConfig &tc, EDBClient * cl)
 {
-    ResType *r = cl->plain_execute(
+    cl->plain_execute(
         "DROP TABLE IF EXISTS table0, table1, table2, table3, table4, table5, table6, table7, table8, table9, table10, table11, t1");
-    if (r)
-        delete r;
 
-    assert_del(myCreate(cl,"CREATE TABLE t1 (id integer, age enc integer, salary enc integer, address enc text, name enc text)",
+    assert_res(myCreate(cl,"CREATE TABLE t1 (id integer, age enc integer, salary enc integer, address enc text, name enc text)",
 		      "CREATE TABLE t1 (id integer, age integer, salary integer, address text, name text)"),
                  "testDelete couldn't create table");
-    assert_del(myExecute(cl,
+    assert_res(myExecute(cl,
                        "INSERT INTO t1 VALUES (1, 10, 0, 'first star to the right and straight on till morning', 'Peter Pan')"),
              "testUpdate couldn't insert (1)");
-    assert_del(myExecute(cl,
+    assert_res(myExecute(cl,
                        "INSERT INTO t1 VALUES (2, 16, 1000, 'Green Gables', 'Anne Shirley')"),
              "testUpdate couldn't insert (2)");
-    assert_del(myExecute(cl,
+    assert_res(myExecute(cl,
                        "INSERT INTO t1 VALUES (3, 8, 0, 'London', 'Lucy')"),
              "testUpdate couldn't insert (3)");
-    assert_del(myExecute(cl,
+    assert_res(myExecute(cl,
                        "INSERT INTO t1 VALUES (4, 10, 0, 'London', 'Edmund')"),
              "testUpdate couldn't insert (4)");
-    assert_del(myExecute(cl,
+    assert_res(myExecute(cl,
                        "INSERT INTO t1 VALUES (5, 30, 100000, '221B Baker Street', 'Sherlock Holmes')"),
              "testUpdate couldn't insert (5)");
-    assert_del(myExecute(cl,
+    assert_res(myExecute(cl,
                        "INSERT INTO t1 VALUES (6, 21, 20000, 'Pemberly', 'Elizabeth Darcy')"),
              "testUpdate couldn't insert (6)");
-    assert_del(myExecute(cl,
+    assert_res(myExecute(cl,
                        "INSERT INTO t1 VALUES (7, 10000, 1, 'Mordor', 'Sauron')"),
              "testUpdate couldn't insert (7)");
-    assert_del(myExecute(cl,
+    assert_res(myExecute(cl,
                        "INSERT INTO t1 VALUES (8, 25, 100, 'The Heath', 'Eustacia Vye')"),
              "testUpdate couldn't insert (8)");
 
     qUpdateSelect(tc, cl, "DELETE FROM t1 WHERE id=1", "SELECT * FROM t1",
-                  { {"id", "age", "salary", "address", "name"},
-                    {"2", "16", "1000", "Green Gables", "Anne Shirley"},
+                  {"id", "age", "salary", "address", "name"},
+                  { {"2", "16", "1000", "Green Gables", "Anne Shirley"},
                     {"3", "8", "0", "London", "Lucy"},
                     {"4", "10", "0", "London", "Edmund"},
                     {"5", "30", "100000", "221B Baker Street",
@@ -909,8 +873,8 @@ testDelete(const TestConfig &tc, EDBClient * cl)
                     {"8", "25", "100", "The Heath", "Eustacia Vye"} });
 
     qUpdateSelect(tc, cl, "DELETE FROM t1 WHERE age=30", "SELECT * FROM t1",
-                  { {"id", "age", "salary", "address", "name"},
-                    {"2", "16", "1000", "Green Gables", "Anne Shirley"},
+                  {"id", "age", "salary", "address", "name"},
+                  { {"2", "16", "1000", "Green Gables", "Anne Shirley"},
                     {"3", "8", "0", "London", "Lucy"},
                     {"4", "10", "0", "London", "Edmund"},
                     {"6", "21", "20000", "Pemberly", "Elizabeth Darcy"},
@@ -919,8 +883,8 @@ testDelete(const TestConfig &tc, EDBClient * cl)
 
     qUpdateSelect(tc, cl, "DELETE FROM t1 WHERE name='Eustacia Vye'",
                   "SELECT * FROM t1",
-                  { {"id", "age", "salary", "address", "name"},
-                    {"2", "16", "1000", "Green Gables", "Anne Shirley"},
+                  {"id", "age", "salary", "address", "name"},
+                  { {"2", "16", "1000", "Green Gables", "Anne Shirley"},
                     {"3", "8", "0", "London", "Lucy"},
                     {"4", "10", "0", "London", "Edmund"},
                     {"6", "21", "20000", "Pemberly", "Elizabeth Darcy"},
@@ -929,34 +893,34 @@ testDelete(const TestConfig &tc, EDBClient * cl)
 
     qUpdateSelect(tc, cl, "DELETE FROM t1 WHERE address='London'",
                   "SELECT * FROM t1",
-                  { {"id", "age", "salary", "address", "name"},
-                    {"2", "16", "1000", "Green Gables", "Anne Shirley"},
+                  {"id", "age", "salary", "address", "name"},
+                  { {"2", "16", "1000", "Green Gables", "Anne Shirley"},
                     {"6", "21", "20000", "Pemberly", "Elizabeth Darcy"},
                     {"7", "10000", "1", "Mordor",
                      "Sauron"} });
 
     qUpdateSelect(tc, cl, "DELETE FROM t1 WHERE salary=1", "SELECT * FROM t1",
-                  { {"id", "age", "salary", "address", "name"},
-                    {"2", "16", "1000", "Green Gables", "Anne Shirley"},
+                  {"id", "age", "salary", "address", "name"},
+                  { {"2", "16", "1000", "Green Gables", "Anne Shirley"},
                     {"6", "21", "20000", "Pemberly", "Elizabeth Darcy"} });
 
-    qUpdateSelect(tc, cl, "DELETE FROM t1", "SELECT * FROM t1", {});
+    qUpdateSelect(tc, cl, "DELETE FROM t1", "SELECT * FROM t1", {}, {});
 
     qUpdateSelect(
         tc, cl,
         "INSERT INTO t1 VALUES (1, 10, 0, 'first star to the right and straight on till morning', 'Peter Pan')",
         "SELECT * FROM t1",
-        { {"id", "age", "salary", "address", "name"},
-          {"1", "10", "0",
+        {"id", "age", "salary", "address", "name"},
+        { {"1", "10", "0",
            "first star to the right and straight on till morning",
            "Peter Pan"} });
 
-    qUpdateSelect(tc, cl, "DELETE  FROM t1", "SELECT * FROM t1", {});
+    qUpdateSelect(tc, cl, "DELETE  FROM t1", "SELECT * FROM t1", {}, {});
 
     if (!PLAIN) {
-        assert_del(cl->execute("DROP TABLE t1"), "testDelete can't drop t1");
+        assert_res(cl->execute("DROP TABLE t1"), "testDelete can't drop t1");
     } else {
-        assert_del(myExecute(cl,
+        assert_res(myExecute(cl,
                            "DELETE FROM t1"),
                  "testDelete can't delete from t1");
     }
@@ -965,24 +929,22 @@ testDelete(const TestConfig &tc, EDBClient * cl)
 static void
 testSearch(const TestConfig &tc, EDBClient * cl)
 {
-    ResType *r = cl->plain_execute(
+    cl->plain_execute(
         "DROP TABLE IF EXISTS table0, table1, table2, table3, table4, table5, table6, table7, table8, table9, table10, table11, table12");
-    if (r)
-        delete r;
 
     if (!PLAIN) {
-        assert_del(cl->execute(
+        assert_res(cl->execute(
                      "CREATE TABLE t3 (id integer, searchable enc search text)"),
                  "testSearch couldn't create table");
     }
-    assert_del(myExecute(cl, "INSERT INTO t3 VALUES (1, 'short text')"),
+    assert_res(myExecute(cl, "INSERT INTO t3 VALUES (1, 'short text')"),
              "testSearch couldn't insert (1)");
-    assert_del(myExecute(cl,
+    assert_res(myExecute(cl,
                        "INSERT INTO t3 VALUES (2, 'Text with CAPITALIZATION')"),
              "testSearch couldn't insert (2)");
-    assert_del(myExecute(cl, "INSERT INTO t3 VALUES (3, '')"),
+    assert_res(myExecute(cl, "INSERT INTO t3 VALUES (3, '')"),
              "testSearch couldn't insert (3)");
-    assert_del(myExecute(cl,
+    assert_res(myExecute(cl,
                        "INSERT INTO t3 VALUES (4, 'When I have fears that I may cease to be, before my pen has gleaned my teaming brain; before high-piled books in charactery hold like rich garners the full-ripened grain.  When I behold upon the nights starred face Huge cloudy symbols of high romance And think that I may never live to trace Their shadows with the magic hand of chance.  And when I feel, fair creature of the hour That I shall never look upon thee more, Never have relish of the faerie power Of unreflecting love, I stand alone of the edge of the wide world and think, to love and fame to nothingness do sink')"),
              "testSearch couldn't insert (4)");
 
@@ -1011,9 +973,7 @@ testSearch(const TestConfig &tc, EDBClient * cl)
     reply.push_back(convert(rows4,2));
 
     query.push_back("SELECT * FROM t3 WHERE searchable LIKE 'noword'");
-    ResType empty;
-    empty.clear();
-    reply.push_back(empty);
+    reply.push_back(ResType());
 
     query.push_back("SELECT * FROM t3 WHERE searchable LIKE 'when'");
     string rows5[2][2] = { {"id", "searchable"},
@@ -1031,13 +991,13 @@ testSearch(const TestConfig &tc, EDBClient * cl)
 
     qUpdateSelect(tc, cl,"UPDATE t3 SET searchable='text that is new' WHERE id=1",
 		  "SELECT * FROM t3 WHERE searchable < 'slow'",
-		  { {"id","searchable"},
-		    {"3",""} } );
+		  {"id","searchable"},
+		  { {"3",""} } );
 
     if (!PLAIN) {
-        assert_del(cl->execute("DROP TABLE t3"), "testSearch can't drop t3");
+        assert_res(cl->execute("DROP TABLE t3"), "testSearch can't drop t3");
     } else {
-        assert_del(myExecute(cl,
+        assert_res(myExecute(cl,
                            "DELETE FROM t3"),
                  "testSearch can't delete from t3");
     }

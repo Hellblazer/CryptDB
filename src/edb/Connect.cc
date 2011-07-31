@@ -135,40 +135,33 @@ DBResult::~DBResult()
 
 // returns the data in the last server response
 // TODO: to optimize return pointer to avoid overcopying large result sets?
-ResType *
+ResType
 DBResult::unpack()
 {
 #if MYSQL_S
-
     if (n == NULL)
-        return new ResType();
+        return ResType();
 
     size_t rows = (size_t)mysql_num_rows(n);
     int cols  = -1;
     if (rows > 0) {
         cols = mysql_num_fields(n);
     } else {
-        return new ResType();
+        return ResType();
     }
 
-    ResType *res = new vector<vector<string> >();
-
-    // first row contains names and second row contains types
-    res->push_back(vector<string>(cols));
-    res->push_back(vector<string>(cols));
-
+    ResType res;
     bool binFlags[cols];
+
     for (int j = 0;; j++) {
         MYSQL_FIELD *field = mysql_fetch_field(n);
         if (!field)
             break;
 
         binFlags[j] = mysql_isBinary(field->type, field->charsetnr);
-        (*res)[0][j] = string(field->name);
-        (*res)[1][j] = StringFromVal(field->type);
+        res.names.push_back(field->name);
+        res.types.push_back(field->type);
     }
-
-    unsigned int offset = 2;
 
     for (int index = 0;; index++) {
         MYSQL_ROW row = mysql_fetch_row(n);
@@ -176,22 +169,24 @@ DBResult::unpack()
             break;
         unsigned long *lengths = mysql_fetch_lengths(n);
 
-        res->push_back(vector<string>(cols));
+        vector<string> resrow;
 
         for (int j = 0; j < cols; j++) {
             if (binFlags[j] && !DECRYPTFIRST) {
-                (*res)[index+offset][j] = marshallBinary(string(row[j], lengths[j]));
+                resrow.push_back(marshallBinary(string(row[j], lengths[j])));
             } else {
                 if (row[j] == NULL) {
                     /*
                      * XXX why are we losing NULLs?
                      */
-                    (*res)[index+offset][j] = "";
+                    resrow.push_back("");
                 } else {
-                    (*res)[index+offset][j] = string(row[j], lengths[j]);
+                    resrow.push_back(string(row[j], lengths[j]));
                 }
             }
         }
+
+        res.rows.push_back(resrow);
     }
 
     return res;

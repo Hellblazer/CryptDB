@@ -207,16 +207,17 @@ void
 ResultSet::decrypt()
 {
     //PrettyPrint();
-    vector <vector< string> > *cresultset = &set;
-    cresultset->insert(cresultset->begin(),field_names);
+    ResType cresultset;
+    cresultset.rows = set;
+    cresultset.names = field_names;
+
     //todo: is returning an empty vector
     cerr << "------>to decryptResults" << endl;
     cerr << query << endl;
     cresultset = cl->decryptResults(query, cresultset);
-    if (cresultset->size() != 0) {
-        field_names = *(cresultset->begin());
-        cresultset->erase(cresultset->begin());
-        set = (*cresultset);
+    if (cresultset.rows.size() > 0) {
+        field_names = cresultset.names;
+        set = cresultset.rows;
     }
     else {
         cout << "empty result set" << endl;

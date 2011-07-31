@@ -530,15 +530,13 @@ MultiPrinc::checkPredicate(string hasaccess, map<string, string> & vals)
         assert_s(conn->execute(
                      query.c_str(),
                      dbres), "failure while executing query " + query);
-        ResType * result = dbres->unpack();
+        ResType result = dbres->unpack();
         delete dbres;
-        if (result->at(1).at(0).compare("1") == 0) {
+        if (result.rows[0][0].compare("1") == 0) {
             if (VERBOSE_G) { LOG(mp) << "pred OK\n"; }
-            delete result;
             return true;
         } else {
             if (VERBOSE_G) { LOG(mp) << "pred NO\n"; }
-            delete result;
             return false;
         }
     }

@@ -319,7 +319,7 @@ class KeyAccess {
 
     //returns result if prin in table_name
     //requires: prin.gen to exist
-    vector<vector<string> > * Select(std::set<Prin> &prin_set,
+    ResType Select(std::set<Prin> &prin_set,
                                      string table_name,
                                      string column);
     int SelectCount(std::set<Prin> &prin_set, string table_name);
