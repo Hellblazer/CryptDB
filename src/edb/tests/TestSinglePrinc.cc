@@ -91,9 +91,9 @@ static void
 qUpdateSelect(const TestConfig &tc, EDBClient *cl, const string &update,
               const string &select, const ResType &expect)
 {
-    assert_s(myExecute(cl,
-                       update),
-             "Query failed, Update or Delete test failed\n");
+    ResType *rx = myExecute(cl, update);
+    assert_s(rx, "Query failed, Update or Delete test failed\n");
+    delete rx;
 
     ntest++;
     ResType * test_res = myExecute(cl, select);

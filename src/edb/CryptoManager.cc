@@ -476,6 +476,7 @@ CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft,
                 fromlevel = increaseLevel(fromlevel, ft, oDET);
                 AES_KEY * key = get_key_DET(getKey(mkey, "join", fromlevel));
                 val = encrypt_DET(val, key);
+                delete key;
                 if (fromlevel == tolevel) {
                     return marshallVal(val);
                 }
@@ -486,6 +487,7 @@ CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft,
                 AES_KEY * key =
                     get_key_DET(getKey(mkey, fullfieldname, fromlevel));
                 val = encrypt_DET(val, key);
+                delete key;
                 if (fromlevel == tolevel) {
                     return marshallVal(val);
                 }
@@ -496,6 +498,7 @@ CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft,
                 AES_KEY * key =
                     get_key_SEM(getKey(mkey, fullfieldname, fromlevel));
                 val = encrypt_SEM(val, key, salt);
+                delete key;
                 if (fromlevel == tolevel) {
                     return marshallVal(val);
                 }
@@ -519,6 +522,7 @@ CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft,
                 fromlevel = increaseLevel(fromlevel, ft, oOPE);
                 OPE * key = get_key_OPE(getKey(mkey, fullfieldname, fromlevel));
                 val = encrypt_OPE((uint32_t)val, key);
+                delete key;
                 if (fromlevel == tolevel) {
                     return marshallVal(val);
                 }
@@ -530,6 +534,7 @@ CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft,
                 AES_KEY * key =
                     get_key_SEM(getKey(mkey, fullfieldname, fromlevel));
                 val = encrypt_SEM(val, key, salt);
+                delete key;
                 if (fromlevel == tolevel) {
                     return marshallVal(val);
                 }
@@ -575,13 +580,10 @@ CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft,
                 data = removeApostrophe(data);
 
                 fromlevel  = increaseLevel(fromlevel, ft, oDET);
-
                 AES_KEY * key =
                     get_key_DET(getKey(mkey, "join", fromlevel));
-
                 data = encrypt_DET(data, key);
-                //cerr << "crypting " << data << " at SECLEVEL::DET is " <<
-                // marshallBinary(uval) << "  ";
+                delete key;
                 if (fromlevel == tolevel) {
                     //cerr << "result is " << marshallBinary(uval, newlen);
                     return marshallBinary(data);
@@ -598,6 +600,7 @@ CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft,
                 AES_KEY * key =
                     get_key_DET(getKey(mkey, fullfieldname, fromlevel));
                 data = encrypt_DET(data, key);
+                delete key;
                 if (fromlevel == tolevel) {
                     return marshallBinary(data);
                 }
@@ -611,6 +614,7 @@ CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft,
                 AES_KEY * key =
                     get_key_SEM(getKey(mkey, fullfieldname, fromlevel));
                 data = encrypt_SEM(data, key, salt);
+                delete key;
                 if (fromlevel == tolevel) {
                     LOG(crypto) << "at sem " << marshallBinary(data);
                     return marshallBinary(data);
@@ -629,6 +633,7 @@ CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft,
                 fromlevel = increaseLevel(fromlevel, ft, oOPE);
                 OPE * key = get_key_OPE(getKey(mkey, fullfieldname, fromlevel));
                 val = encrypt_OPE_text_wrapper(data, key);
+                delete key;
                 if (fromlevel == tolevel) {
                     return marshallVal(val);
                 }
@@ -641,6 +646,7 @@ CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft,
                 AES_KEY * key =
                     get_key_SEM(getKey(mkey, fullfieldname, fromlevel));
                 val = encrypt_SEM(val, key, salt);
+                delete key;
                 if (fromlevel == tolevel) {
                     return marshallVal(val);
                 }

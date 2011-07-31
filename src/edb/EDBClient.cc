@@ -3280,15 +3280,10 @@ EDBClient::exit()
     }
 }
 
-static void
-cleanup(map<string, TableMetadata *> & tableMetaMap)
-{
-    //todo
-}
-
 EDBClient::~EDBClient()
 {
-    cleanup(tableMetaMap);
+    for (auto i = tableMetaMap.begin(); i != tableMetaMap.end(); i++)
+        delete i->second;
     delete cm;
     delete mp;
     delete conn;

@@ -36,9 +36,7 @@ class Binary {
     //constructs a Binary as a concatenation of more binaries
     Binary(const list<Binary> & ciphs);
 
-    //does not free "this" deeply, use Free for this purpose
     ~Binary();
-    void Free();     //deallocates any memory taken by this
 
     unsigned int len;
     unsigned char * content;

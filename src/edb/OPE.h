@@ -24,6 +24,7 @@ class OPE {
      */
     OPE(const string &key, unsigned int OPEPlaintextSize,
         unsigned int OPECiphertextSize);
+    ~OPE();
 
     string encrypt(const string &plaintext);
     string decrypt(const string &ciphertext);

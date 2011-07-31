@@ -11,7 +11,7 @@
 
 Binary::Binary()
 {
-
+    content = 0;
 }
 
 Binary::Binary(const Binary & b)
@@ -23,12 +23,8 @@ Binary::Binary(const Binary & b)
 
 Binary::~Binary()
 {
-}
-
-void
-Binary::Free()
-{
-    free(content);
+    if (content)
+        free(content);
 }
 
 Binary::Binary(const string & s)
