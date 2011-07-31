@@ -250,7 +250,26 @@ typedef struct ResMeta {
                               // in result -- considering aliases -- for
                               // aggregates, use field inside
 
-    void cleanup();
+    void cleanup() {
+        if (isSalt)
+            delete[] isSalt;
+        if (table)
+            delete[] table;
+        if (field)
+            delete[] field;
+        if (o)
+            delete[] o;
+        if (namesForRes)
+            delete[] namesForRes;
+    }
+
+    ResMeta() {
+        isSalt = 0;
+        table = 0;
+        field = 0;
+        o = 0;
+        namesForRes = 0;
+    }
 
 } ResMeta;
 

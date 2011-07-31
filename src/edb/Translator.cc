@@ -995,16 +995,3 @@ QueryMeta::cleanup()
     tabToAlias.clear();
     tables.clear();
 }
-
-void
-ResMeta::cleanup()
-{
-    free(isSalt);
-    //TODO: don't know how to free table & field & namesForRes without seg
-    // fault
-    //free(table);
-    //free(field);
-    free(o);
-    //free(namesForRes);
-
-}
