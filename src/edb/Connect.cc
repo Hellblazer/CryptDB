@@ -153,7 +153,7 @@ DBResult::unpack()
 
     ResType *res = new vector<vector<string> >();
 
-    // first row contains names
+    // first row contains names and second row contains types
     res->push_back(vector<string>(cols));
     res->push_back(vector<string>(cols));
 
