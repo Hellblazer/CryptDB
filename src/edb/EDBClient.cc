@@ -2065,9 +2065,8 @@ EDBClient::rewriteDecryptSelect(const string &query, ResType * dbAnswer)
 
     //prepare the result
 
-    ResType * rets = new ResType;
     unsigned int offset = 2;
-    rets = new vector<vector<string> >(rm.nTuples+offset);
+    ResType * rets = new vector<vector<string> >(rm.nTuples+offset);
 
     size_t nFields = rm.nFields;
     size_t nTrueFields = rm.nTrueFields;
@@ -3204,10 +3203,10 @@ EDBClient::execute(const string &query)
     //secure
 
     list<string> queries;
-    AutoInc * ai = new AutoInc();
+    AutoInc ai;
 
     try {
-        queries = rewriteEncryptQuery(query, ai);
+        queries = rewriteEncryptQuery(query, &ai);
     } catch (CryptDBError se) {
         LOG(warn) << "problem with query " << query << ": " << se.msg;
         return NULL;

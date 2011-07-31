@@ -15,6 +15,13 @@
 static int ntest = 0;
 static int npass = 0;
 
+static void
+assert_del(ResType *r, const char *blah)
+{
+    assert_s(r, blah);
+    delete r;
+}
+
 TestSinglePrinc::TestSinglePrinc()
 {
 
@@ -91,6 +98,9 @@ CheckSelectResults(const TestConfig &tc, EDBClient * cl, vector<string> in, vect
 			passed = false;
 		}
 
+        if (test_res)
+            delete test_res;
+
 		if (passed) {
 			npass++;
 		}
@@ -104,9 +114,7 @@ static void
 qUpdateSelect(const TestConfig &tc, EDBClient *cl, const string &update,
               const string &select, const ResType &expect)
 {
-    ResType *rx = myExecute(cl, update);
-    assert_s(rx, "Query failed, Update or Delete test failed\n");
-    delete rx;
+    assert_del(myExecute(cl, update), "Query failed, Update or Delete test failed\n");
 
     ntest++;
     ResType * test_res = myExecute(cl, select);
@@ -137,52 +145,54 @@ qUpdateSelect(const TestConfig &tc, EDBClient *cl, const string &update,
 static void
 testCreateDrop(const TestConfig &tc, EDBClient * cl)
 {
-    cl->plain_execute(
+    ResType *r = cl->plain_execute(
         "DROP TABLE IF EXISTS table0, table1, table2, table3, table4");
+    if (r)
+        delete r;
 
     string sql = "CREATE TABLE t1 (id integer, words text)";
-    assert_s(cl->execute(sql), "Problem creating table t1 (first time)");
-    assert_s(cl->plain_execute(
+    assert_del(cl->execute(sql), "Problem creating table t1 (first time)");
+    assert_del(cl->plain_execute(
                  "SELECT * FROM table0"),
              "t1 (first time) was not created properly");
 
     sql = "CREATE TABLE t2 (id enc integer, other_id integer, words enc text, other_words text)";
-    assert_s(cl->execute(sql), "Problem creating table t2 (first time)");
-    assert_s(cl->plain_execute(
+    assert_del(cl->execute(sql), "Problem creating table t2 (first time)");
+    assert_del(cl->plain_execute(
                  "SELECT * FROM table1"),
              "t2 (first time) was not created properly");
 
     sql = "DROP TABLE t1";
-    assert_s(cl->execute(sql), "Problem dropping t1");
+    assert_del(cl->execute(sql), "Problem dropping t1");
     assert_s(!cl->plain_execute("SELECT * FROM table0"), "t1 not dropped");
     sql = "DROP TABLE t2";
-    assert_s(cl->execute(sql), "Problem dropping t2");
+    assert_del(cl->execute(sql), "Problem dropping t2");
     assert_s(!cl->plain_execute("SELECT * FROM table1"), "t2 not dropped");
 
     sql = "CREATE TABLE t1 (id integer, words text)";
-    assert_s(cl->execute(sql), "Problem creating table t1 (second time)");
-    assert_s(cl->plain_execute(
+    assert_del(cl->execute(sql), "Problem creating table t1 (second time)");
+    assert_del(cl->plain_execute(
                  "SELECT * FROM table2"),
              "t1 (second time) was not created properly");
 
     sql =
         "CREATE TABLE t2 (id enc integer, other_id integer, words enc text, other_words text)";
-    assert_s(cl->execute(sql), "Problem creating table t2 (second time)");
-    assert_s(cl->plain_execute(
+    assert_del(cl->execute(sql), "Problem creating table t2 (second time)");
+    assert_del(cl->plain_execute(
                  "SELECT * FROM table3"),
              "t2 (second time) was not created properly");
 
-    assert_s(cl->execute("DROP TABLE t1"), "testCreateDrop won't drop t1");
-    assert_s(cl->execute("DROP TABLE t2"), "testCreateDrop won't drop t2");
+    assert_del(cl->execute("DROP TABLE t1"), "testCreateDrop won't drop t1");
+    assert_del(cl->execute("DROP TABLE t2"), "testCreateDrop won't drop t2");
 
     if (!PLAIN) {
         sql =
             "CREATE TABLE t3 (id bigint, dec enc decimal(4,5), nnull enc integer NOT NULL, words enc varchar(200), line enc blob NOT NULL)";
-        assert_s(cl->execute(sql), "Problem creating table t3");
-        assert_s(cl->plain_execute(
+        assert_del(cl->execute(sql), "Problem creating table t3");
+        assert_del(cl->plain_execute(
                      "SELECT * FROM table4"), "t3 not created properly");
 
-        assert_s(cl->execute("DROP TABLE t3"), "testCreateDrop won't drop t3");
+        assert_del(cl->execute("DROP TABLE t3"), "testCreateDrop won't drop t3");
     }
 }
 
@@ -190,9 +200,12 @@ testCreateDrop(const TestConfig &tc, EDBClient * cl)
 static void
 testInsert(const TestConfig &tc, EDBClient * cl)
 {
-    cl->plain_execute(
+    ResType *r = cl->plain_execute(
         "DROP TABLE IF EXISTS table0, table1, table2, table3, table4, table5, t1");
-    assert_s(myCreate(cl,"CREATE TABLE t1 (id integer, age enc integer, salary enc integer, address enc text, name text)",
+    if (r)
+        delete r;
+
+    assert_del(myCreate(cl,"CREATE TABLE t1 (id integer, age enc integer, salary enc integer, address enc text, name text)",
 		      "CREATE TABLE t1 (id integer, age integer, salary integer, address text, name text)"),
              "testInsert could not create table");
 
@@ -215,13 +228,13 @@ testInsert(const TestConfig &tc, EDBClient * cl)
 
     vector<string>::iterator it;
     for (it = tests.begin(); it != tests.end(); it++) {
-        assert_s(myExecute(cl, *it), "sql problem with InsertTest");
+        assert_del(myExecute(cl, *it), "sql problem with InsertTest");
     }
 
     if (!PLAIN) {
-        assert_s(cl->execute("DROP TABLE t1"), "testInsert can't drop t1");
+        assert_del(cl->execute("DROP TABLE t1"), "testInsert can't drop t1");
     } else {
-        assert_s(myExecute(cl,
+        assert_del(myExecute(cl,
                            "DELETE FROM t1"),
                  "testInsert can't delete from t1");
     }
@@ -231,24 +244,27 @@ testInsert(const TestConfig &tc, EDBClient * cl)
 static void
 testSelect(const TestConfig &tc, EDBClient * cl)
 {
-    cl->plain_execute(
+    ResType *r = cl->plain_execute(
         "DROP TABLE IF EXISTS table0, table1, table2, table3, table4, table5, table6, t1");
-    assert_s(myCreate(cl,"CREATE TABLE t1 (id integer, age enc integer, salary enc integer, address enc text, name enc text)",
+    if (r)
+        delete r;
+
+    assert_del(myCreate(cl,"CREATE TABLE t1 (id integer, age enc integer, salary enc integer, address enc text, name enc text)",
 		      "CREATE TABLE t1 (id integer, age integer, salary integer, address text, name text)"),
 	     "testSelect couldn't create table");
-    assert_s(myExecute(cl,
+    assert_del(myExecute(cl,
                        "INSERT INTO t1 VALUES (1, 10, 0, 'first star to the right and straight on till morning', 'Peter Pan')"),
              "testSelect couldn't insert (1)");
-    assert_s(myExecute(cl,
+    assert_del(myExecute(cl,
                        "INSERT INTO t1 VALUES (2, 16, 1000, 'Green Gables', 'Anne Shirley')"),
              "testSelect couldn't insert (2)");
-    assert_s(myExecute(cl,
+    assert_del(myExecute(cl,
                        "INSERT INTO t1 VALUES (3, 8, 0, 'London', 'Lucy')"),
              "testSelect couldn't insert (3)");
-    assert_s(myExecute(cl,
+    assert_del(myExecute(cl,
                        "INSERT INTO t1 VALUES (4, 10, 0, 'London', 'Edmund')"),
              "testSelect couldn't insert (4)");
-    assert_s(myExecute(cl,
+    assert_del(myExecute(cl,
                        "INSERT INTO t1 VALUES (5, 30, 100000, '221B Baker Street', 'Sherlock Holmes')"),
              "testSelect couldn't insert (5)");
 
@@ -547,9 +563,9 @@ testSelect(const TestConfig &tc, EDBClient * cl)
     CheckSelectResults(tc, cl, query, reply);
 
     if (!PLAIN) {
-        assert_s(cl->execute("DROP TABLE t1"), "testInsert can't drop t1");
+        assert_del(cl->execute("DROP TABLE t1"), "testInsert can't drop t1");
     } else {
-        assert_s(myExecute(cl,
+        assert_del(myExecute(cl,
                            "DELETE FROM t1"),
                  "testInsert can't delete from t1");
     }
@@ -558,40 +574,43 @@ testSelect(const TestConfig &tc, EDBClient * cl)
 static void
 testJoin(const TestConfig &tc, EDBClient * cl)
 {
-    cl->plain_execute(
+    ResType *r = cl->plain_execute(
         "DROP TABLE IF EXISTS table0, table1, table2, table3, table4, table5, table6, table7, table8, t1, t2");
-    assert_s(myCreate(cl,"CREATE TABLE t1 (id integer, age enc integer, salary enc integer, address enc text, name enc text)",
+    if (r)
+        delete r;
+
+    assert_del(myCreate(cl,"CREATE TABLE t1 (id integer, age enc integer, salary enc integer, address enc text, name enc text)",
 		      "CREATE TABLE t1 (id integer, age integer, salary integer, address text, name text)"),
                  "testJoin couldn't create table");
 
-    assert_s(myExecute(cl,
+    assert_del(myExecute(cl,
                        "INSERT INTO t1 VALUES (1, 10, 0, 'first star to the right and straight on till morning', 'Peter Pan')"),
              "testJoin couldn't insert (1)");
-    assert_s(myExecute(cl,
+    assert_del(myExecute(cl,
                        "INSERT INTO t1 VALUES (2, 16, 1000, 'Green Gables', 'Anne Shirley')"),
              "testJoin couldn't insert (2)");
-    assert_s(myExecute(cl,
+    assert_del(myExecute(cl,
                        "INSERT INTO t1 VALUES (3, 8, 0, 'London', 'Lucy')"),
              "testJoin couldn't insert (3)");
-    assert_s(myExecute(cl,
+    assert_del(myExecute(cl,
                        "INSERT INTO t1 VALUES (4, 10, 0, 'London', 'Edmund')"),
              "testJoin couldn't insert (4)");
-    assert_s(myExecute(cl,
+    assert_del(myExecute(cl,
                        "INSERT INTO t1 VALUES (5, 30, 100000, '221B Baker Street', 'Sherlock Holmes')"),
              "testJoin couldn't insert (5)");
 
-    assert_s(myCreate(cl,"CREATE TABLE t2 (id integer, books enc integer, name enc text)",
+    assert_del(myCreate(cl,"CREATE TABLE t2 (id integer, books enc integer, name enc text)",
 		      "CREATE TABLE t2 (id integer, books integer, name text)"),
                  "testJoin couldn't create table");
-    assert_s(myExecute(cl, "INSERT INTO t2 VALUES (1, 6, 'Peter Pan')"),
+    assert_del(myExecute(cl, "INSERT INTO t2 VALUES (1, 6, 'Peter Pan')"),
              "testJoin couldn't insert (1)");
-    assert_s(myExecute(cl, "INSERT INTO t2 VALUES (2, 8, 'Anne Shirley')"),
+    assert_del(myExecute(cl, "INSERT INTO t2 VALUES (2, 8, 'Anne Shirley')"),
              "testJoin couldn't insert (2)");
-    assert_s(myExecute(cl, "INSERT INTO t2 VALUES (3, 7, 'Lucy')"),
+    assert_del(myExecute(cl, "INSERT INTO t2 VALUES (3, 7, 'Lucy')"),
              "testJoin couldn't insert (3)");
-    assert_s(myExecute(cl, "INSERT INTO t2 VALUES (4, 7, 'Edmund')"),
+    assert_del(myExecute(cl, "INSERT INTO t2 VALUES (4, 7, 'Edmund')"),
              "testJoin couldn't insert (4)");
-    assert_s(myExecute(cl,
+    assert_del(myExecute(cl,
                        "INSERT INTO t2 VALUES (10, 4, '221B Baker Street')"),
              "testJoin couldn't insert (5)");
 
@@ -664,12 +683,12 @@ testJoin(const TestConfig &tc, EDBClient * cl)
     CheckSelectResults(tc, cl, query, reply);
 
     if (!PLAIN) {
-        assert_s(cl->execute("DROP TABLE t1, t2"), "testInsert can't drop t1");
+        assert_del(cl->execute("DROP TABLE t1, t2"), "testInsert can't drop t1");
     } else {
-        assert_s(myExecute(cl,
+        assert_del(myExecute(cl,
                            "DELETE FROM t1"),
                  "testInsert can't delete from t1");
-        assert_s(myExecute(cl,
+        assert_del(myExecute(cl,
                            "DELETE FROM t2"),
                  "testInsert can't delete from t2");
     }
@@ -680,28 +699,31 @@ testJoin(const TestConfig &tc, EDBClient * cl)
 static void
 testUpdate(const TestConfig &tc, EDBClient * cl)
 {
-    cl->plain_execute(
+    ResType *r = cl->plain_execute(
         "DROP TABLE IF EXISTS table0, table1, table2, table3, table4, table5, table6, table7, table8, table9, table10, t1");
-    assert_s(myCreate(cl,"CREATE TABLE t1 (id integer, age enc integer, salary enc integer, address enc text, name enc text)",
+    if (r)
+        delete r;
+
+    assert_del(myCreate(cl,"CREATE TABLE t1 (id integer, age enc integer, salary enc integer, address enc text, name enc text)",
 		      "CREATE TABLE t1 (id integer, age integer, salary integer, address text, name text)"),
                  "testUpdate couldn't create table");
-    assert_s(myExecute(cl,
+    assert_del(myExecute(cl,
                        "INSERT INTO t1 VALUES (1, 10, 0, 'first star to the right and straight on till morning', 'Peter Pan')"),
              "testUpdate couldn't insert (1)");
 
-    assert_s(myExecute(cl,
+    assert_del(myExecute(cl,
                        "INSERT INTO t1 VALUES (2, 16, 1000, 'Green Gables', 'Anne Shirley')"),
              "testUpdate couldn't insert (2)");
-    assert_s(myExecute(cl,
+    assert_del(myExecute(cl,
                        "INSERT INTO t1 VALUES (3, 8, 0, 'London', 'Lucy')"),
              "testUpdate couldn't insert (3)");
-    assert_s(myExecute(cl,
+    assert_del(myExecute(cl,
                        "INSERT INTO t1 VALUES (4, 10, 0, 'London', 'Edmund')"),
              "testUpdate couldn't insert (4)");
-    assert_s(myExecute(cl,
+    assert_del(myExecute(cl,
                        "INSERT INTO t1 VALUES (5, 30, 100000, '221B Baker Street', 'Sherlock Holmes')"),
              "testUpdate couldn't insert (5)");
-    assert_s(myExecute(cl,
+    assert_del(myExecute(cl,
                        "INSERT INTO t1 VALUES (6, 11, 0, 'hi', 'noone')"),
              "testUpdate couldn't insert (6)");
 
@@ -831,9 +853,9 @@ testUpdate(const TestConfig &tc, EDBClient * cl)
 		    {"5", "32", "55000", "221B Baker Street", "Sherlock Holmes"} });
     
     if (!PLAIN) {
-        assert_s(cl->execute("DROP TABLE t1"), "testUpdate can't drop t1");
+        assert_del(cl->execute("DROP TABLE t1"), "testUpdate can't drop t1");
     } else {
-        assert_s(myExecute(cl,
+        assert_del(myExecute(cl,
                            "DELETE FROM t1"),
                  "testUpdate can't delete from t1");
     }
@@ -842,33 +864,36 @@ testUpdate(const TestConfig &tc, EDBClient * cl)
 static void
 testDelete(const TestConfig &tc, EDBClient * cl)
 {
-    cl->plain_execute(
+    ResType *r = cl->plain_execute(
         "DROP TABLE IF EXISTS table0, table1, table2, table3, table4, table5, table6, table7, table8, table9, table10, table11, t1");
-    assert_s(myCreate(cl,"CREATE TABLE t1 (id integer, age enc integer, salary enc integer, address enc text, name enc text)",
+    if (r)
+        delete r;
+
+    assert_del(myCreate(cl,"CREATE TABLE t1 (id integer, age enc integer, salary enc integer, address enc text, name enc text)",
 		      "CREATE TABLE t1 (id integer, age integer, salary integer, address text, name text)"),
                  "testDelete couldn't create table");
-    assert_s(myExecute(cl,
+    assert_del(myExecute(cl,
                        "INSERT INTO t1 VALUES (1, 10, 0, 'first star to the right and straight on till morning', 'Peter Pan')"),
              "testUpdate couldn't insert (1)");
-    assert_s(myExecute(cl,
+    assert_del(myExecute(cl,
                        "INSERT INTO t1 VALUES (2, 16, 1000, 'Green Gables', 'Anne Shirley')"),
              "testUpdate couldn't insert (2)");
-    assert_s(myExecute(cl,
+    assert_del(myExecute(cl,
                        "INSERT INTO t1 VALUES (3, 8, 0, 'London', 'Lucy')"),
              "testUpdate couldn't insert (3)");
-    assert_s(myExecute(cl,
+    assert_del(myExecute(cl,
                        "INSERT INTO t1 VALUES (4, 10, 0, 'London', 'Edmund')"),
              "testUpdate couldn't insert (4)");
-    assert_s(myExecute(cl,
+    assert_del(myExecute(cl,
                        "INSERT INTO t1 VALUES (5, 30, 100000, '221B Baker Street', 'Sherlock Holmes')"),
              "testUpdate couldn't insert (5)");
-    assert_s(myExecute(cl,
+    assert_del(myExecute(cl,
                        "INSERT INTO t1 VALUES (6, 21, 20000, 'Pemberly', 'Elizabeth Darcy')"),
              "testUpdate couldn't insert (6)");
-    assert_s(myExecute(cl,
+    assert_del(myExecute(cl,
                        "INSERT INTO t1 VALUES (7, 10000, 1, 'Mordor', 'Sauron')"),
              "testUpdate couldn't insert (7)");
-    assert_s(myExecute(cl,
+    assert_del(myExecute(cl,
                        "INSERT INTO t1 VALUES (8, 25, 100, 'The Heath', 'Eustacia Vye')"),
              "testUpdate couldn't insert (8)");
 
@@ -929,9 +954,9 @@ testDelete(const TestConfig &tc, EDBClient * cl)
     qUpdateSelect(tc, cl, "DELETE  FROM t1", "SELECT * FROM t1", {});
 
     if (!PLAIN) {
-        assert_s(cl->execute("DROP TABLE t1"), "testDelete can't drop t1");
+        assert_del(cl->execute("DROP TABLE t1"), "testDelete can't drop t1");
     } else {
-        assert_s(myExecute(cl,
+        assert_del(myExecute(cl,
                            "DELETE FROM t1"),
                  "testDelete can't delete from t1");
     }
@@ -940,21 +965,24 @@ testDelete(const TestConfig &tc, EDBClient * cl)
 static void
 testSearch(const TestConfig &tc, EDBClient * cl)
 {
-    cl->plain_execute(
+    ResType *r = cl->plain_execute(
         "DROP TABLE IF EXISTS table0, table1, table2, table3, table4, table5, table6, table7, table8, table9, table10, table11, table12");
+    if (r)
+        delete r;
+
     if (!PLAIN) {
-        assert_s(cl->execute(
+        assert_del(cl->execute(
                      "CREATE TABLE t3 (id integer, searchable enc search text)"),
                  "testSearch couldn't create table");
     }
-    assert_s(myExecute(cl, "INSERT INTO t3 VALUES (1, 'short text')"),
+    assert_del(myExecute(cl, "INSERT INTO t3 VALUES (1, 'short text')"),
              "testSearch couldn't insert (1)");
-    assert_s(myExecute(cl,
+    assert_del(myExecute(cl,
                        "INSERT INTO t3 VALUES (2, 'Text with CAPITALIZATION')"),
              "testSearch couldn't insert (2)");
-    assert_s(myExecute(cl, "INSERT INTO t3 VALUES (3, '')"),
+    assert_del(myExecute(cl, "INSERT INTO t3 VALUES (3, '')"),
              "testSearch couldn't insert (3)");
-    assert_s(myExecute(cl,
+    assert_del(myExecute(cl,
                        "INSERT INTO t3 VALUES (4, 'When I have fears that I may cease to be, before my pen has gleaned my teaming brain; before high-piled books in charactery hold like rich garners the full-ripened grain.  When I behold upon the nights starred face Huge cloudy symbols of high romance And think that I may never live to trace Their shadows with the magic hand of chance.  And when I feel, fair creature of the hour That I shall never look upon thee more, Never have relish of the faerie power Of unreflecting love, I stand alone of the edge of the wide world and think, to love and fame to nothingness do sink')"),
              "testSearch couldn't insert (4)");
 
@@ -1007,9 +1035,9 @@ testSearch(const TestConfig &tc, EDBClient * cl)
 		    {"3",""} } );
 
     if (!PLAIN) {
-        assert_s(cl->execute("DROP TABLE t3"), "testSearch can't drop t3");
+        assert_del(cl->execute("DROP TABLE t3"), "testSearch can't drop t3");
     } else {
-        assert_s(myExecute(cl,
+        assert_del(myExecute(cl,
                            "DELETE FROM t3"),
                  "testSearch can't delete from t3");
     }
