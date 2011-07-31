@@ -76,9 +76,11 @@ CheckSelectResults(const TestConfig &tc, EDBClient * cl, vector<string> in, vect
 	    passed = false;
         }
 
-	if (passed) {
+        if (test_res)
+            delete test_res;
+
+	if (passed)
 	  npass++;
-	}
 
         query_it++;
         res_it++;
@@ -111,9 +113,11 @@ qUpdateSelect(const TestConfig &tc, EDBClient *cl, const string &update,
         if (tc.stop_if_fail) {
             assert_s(false, update+"; "+select+" generated the wrong result");
         }
+        delete test_res;
         return;
     }
 
+    delete test_res;
     npass++;
 }
 

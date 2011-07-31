@@ -2148,6 +2148,7 @@ EDBClient::rewriteDecryptSelect(const string &query, ResType * dbAnswer)
     tmkm.cleanup();
     qm.cleanup();
     rm.cleanup();
+    delete dbAnswer;
     return rets;
 }
 
@@ -3252,12 +3253,6 @@ EDBClient::execute(const string &query)
             LOG(edb) << "onto decrypt results";
             ResType * rets;
             try {
-
-                //remove
-                //cerr << "dec\n";
-                //rets = new vector<vector<string> >(1);
-                //rets->at(0)=vector<string>(1);
-                //rets->at(0).at(0) = "1";
                 rets = decryptResultsWrapper(query, reply);
             } catch (CryptDBError e) {
                 LOG(warn) << e.msg;
@@ -3308,6 +3303,7 @@ EDBClient::~EDBClient()
     cleanup(tableMetaMap);
     delete cm;
     delete mp;
+    delete conn;
 }
 
 static string
