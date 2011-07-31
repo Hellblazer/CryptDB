@@ -13,6 +13,7 @@
     m(edb)                  \
     m(edb_v)                \
     m(edb_query)            \
+    m(edb_query_plain)      \
     m(test)                 \
     m(am)                   \
     m(am_v)                 \

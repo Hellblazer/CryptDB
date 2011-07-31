@@ -3176,7 +3176,7 @@ EDBClient::execute(const string &query)
 {
     DBResult * res = 0;
 
-    LOG(edb) << "Query: " << query;
+    LOG(edb_query_plain) << "Query: " << query;
 
     if (!isSecure) {
 
