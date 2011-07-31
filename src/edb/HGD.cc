@@ -147,7 +147,7 @@ AFC(RR I)
      6.579251212, 8.525161361};
 
     if (I <= 7) {
-        return to_RR(AL[to_int(to_ZZ(I))+1]);
+        return to_RR(AL[to_int(to_ZZ(I))]);
     } else {
         RR LL = log(I);
         return (I+0.5) * LL - I + 0.399089934;
