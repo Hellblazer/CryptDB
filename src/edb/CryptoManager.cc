@@ -35,15 +35,8 @@ CryptoManager::getmkey()
 CryptoManager::CryptoManager(const string &masterKeyArg)
 {
     VERBOSE = VERBOSE_G;
-    masterKey = new AES_KEY();
-
-    AES_set_encrypt_key((const uint8_t*) masterKeyArg.c_str(),
-                        AES_KEY_SIZE, masterKey);
-
-    RAND_seed((const uint8_t*) masterKeyArg.c_str(), MASTER_KEY_SIZE);
-
-    SetSeed(ZZFromBytes((const uint8_t *) masterKeyArg.c_str(),
-                        MASTER_KEY_SIZE));
+    masterKey = 0;
+    setMasterKey(masterKeyArg);
 
     useEncTables = false;
 
@@ -289,6 +282,7 @@ CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft,
                     AES_KEY * key =
                         get_key_SEM(getKey(mkey, fullfieldname, fromlevel));
                     val = decrypt_SEM(val, key, salt);
+                    delete key;
                     fromlevel  = decreaseLevel(fromlevel, ft, oDET);
                     if (fromlevel == tolevel) {
                         return marshallVal(val);
@@ -299,6 +293,7 @@ CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft,
                     AES_KEY * key =
                         get_key_DET(getKey(mkey, fullfieldname, fromlevel));
                     val = decrypt_DET(val, key);
+                    delete key;
                     fromlevel = decreaseLevel(fromlevel, ft, oDET);
                     if (fromlevel == tolevel) {
                         return marshallVal(val);
@@ -309,6 +304,7 @@ CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft,
                     AES_KEY * key =
                         get_key_DET(getKey(mkey, "join", fromlevel));
                     val = decrypt_DET(val, key);
+                    delete key;
                     fromlevel = decreaseLevel(fromlevel, ft, oDET);
                     if (fromlevel == tolevel) {
                         return marshallVal(val);
@@ -325,6 +321,7 @@ CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft,
                     AES_KEY * key =
                         get_key_SEM(getKey(mkey, fullfieldname, fromlevel));
                     val = decrypt_SEM(val, key, salt);
+                    delete key;
                     fromlevel  = decreaseLevel(fromlevel, ft, oOPE);
                     if (fromlevel == tolevel) {
                         return marshallVal(val);
@@ -335,6 +332,7 @@ CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft,
                     OPE * key =
                         get_key_OPE(getKey(mkey, fullfieldname, fromlevel));
                     val = decrypt_OPE(val, key);
+                    delete key;
                     fromlevel = decreaseLevel(fromlevel, ft, oOPE);
                     if (fromlevel == tolevel) {
                         return marshallVal(val);
@@ -386,6 +384,7 @@ CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft,
                     AES_KEY * key =
                         get_key_SEM(getKey(mkey, fullfieldname, fromlevel));
                     val = decrypt_SEM(val, key, salt);
+                    delete key;
                     fromlevel  = decreaseLevel(fromlevel, ft, oDET);
                     if (fromlevel == tolevel) {
                         return marshallBinary(val);
@@ -398,6 +397,7 @@ CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft,
                     AES_KEY * key =
                         get_key_DET(getKey(mkey, fullfieldname, fromlevel));
                     val = decrypt_DET(val, key);
+                    delete key;
                     fromlevel = decreaseLevel(fromlevel, ft, oDET);
                     if (fromlevel == tolevel) {
                         return marshallBinary(val);
@@ -410,6 +410,7 @@ CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft,
                     AES_KEY * key =
                         get_key_DET(getKey(mkey, "join", fromlevel));
                     val = decrypt_DET(val, key);
+                    delete key;
                     fromlevel = decreaseLevel(fromlevel, ft, oDET);
                     if (fromlevel == tolevel) {
                         LOG(crypto) << "at plain " << val;
@@ -427,6 +428,7 @@ CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft,
                     AES_KEY * key =
                         get_key_SEM(getKey(mkey, fullfieldname, fromlevel));
                     val = decrypt_SEM(val, key, salt);
+                    delete key;
                     fromlevel  = decreaseLevel(fromlevel, ft, oOPE);
                     if (fromlevel == tolevel) {
                         return marshallVal(val);
@@ -894,15 +896,19 @@ CryptoManager::decrypt_DET(const string & ctext, AES_KEY * key)
 void
 CryptoManager::setMasterKey(const string &masterKeyArg)
 {
+    if (masterKey)
+        delete masterKey;
+
     masterKey = new AES_KEY();
 
     AES_set_encrypt_key(
         (const uint8_t *) masterKeyArg.c_str(), AES_KEY_SIZE, masterKey);
 
-    RAND_seed((const uint8_t *) masterKeyArg.c_str(), MASTER_KEY_SIZE);
+    RAND_seed((const uint8_t *) masterKeyArg.c_str(),
+              (int) masterKeyArg.size());
 
     SetSeed(ZZFromBytes((const uint8_t *) masterKeyArg.c_str(),
-                        MASTER_KEY_SIZE));
+                        (int) masterKeyArg.size()));
 }
 
 /*
@@ -1486,7 +1492,8 @@ CryptoManager::freeKey(PKCS * key)
 
 CryptoManager::~CryptoManager()
 {
-    free(masterKey);
+    if (masterKey)
+        delete masterKey;
 
     map<string, map<int, uint64_t> >::iterator it = OPEEncTable.begin();
 
@@ -1508,13 +1515,19 @@ CryptoManager::~CryptoManager()
 Binary
 CryptoManager::encryptSWP(const Binary & key, const list<Binary> & words)
 {
-    return Binary(*SWP::encrypt(key, words));
+    auto l = SWP::encrypt(key, words);
+    Binary r(*l);
+    delete l;
+    return r;
 }
 
 list<Binary> *
 CryptoManager::decryptSWP(const Binary & key, const Binary & overall_ciph)
 {
-    return SWP::decrypt(key, *(overall_ciph.split(SWPCiphSize)));
+    auto l = overall_ciph.split(SWPCiphSize);
+    auto r = SWP::decrypt(key, *l);
+    delete l;
+    return r;
 }
 
 Token
@@ -1526,7 +1539,10 @@ CryptoManager::token(const Binary & key, const Binary & word)
 bool
 CryptoManager::searchExists(const Token & token, const Binary & overall_ciph)
 {
-    return SWP::searchExists(token, *(overall_ciph.split(SWPCiphSize)));
+    auto l = overall_ciph.split(SWPCiphSize);
+    bool r = SWP::searchExists(token, *l);
+    delete l;
+    return r;
 }
 
 list<unsigned int> *

@@ -423,11 +423,11 @@ consolidateComparisons(list<string> & words)
 
     while (it!=words.end()) {
         //consolidates comparisons
-        if (contains(*it, comparisons, noComps)) {
+        if (contains(*it, comparisons)) {
             string res = "";
             //consolidates comparisons
             while ((it != words.end()) &&
-                   (contains(*it, comparisons, noComps))) {
+                   (contains(*it, comparisons))) {
                 res += *it;
                 oldit = it;
                 it++;
@@ -701,9 +701,7 @@ string
 processAlias(list<string>::iterator & it, list<string> & words)
 {
     string res = "";
-
-    const string terms[] = {",",")"};
-    unsigned int noTerms = 2;
+    const vector<string> terms = {",",")"};
 
     if (it == words.end()) {
         return res;
@@ -719,8 +717,8 @@ processAlias(list<string>::iterator & it, list<string> & words)
             return res;
         }
 
-        if (contains(*it, terms, noTerms)) {
-            while ((it!=words.end()) && contains(*it, terms, noTerms)) {
+        if (contains(*it, terms)) {
+            while ((it!=words.end()) && contains(*it, terms)) {
                 res = res + *it;
                 it++;
             }
@@ -732,8 +730,8 @@ processAlias(list<string>::iterator & it, list<string> & words)
         assert_s(false, "incorrect syntax after as expression ");
         return res;
     }
-    if (contains(*it, terms, noTerms)) {
-        while ((it!=words.end()) && contains(*it, terms, noTerms)) {
+    if (contains(*it, terms)) {
+        while ((it!=words.end()) && contains(*it, terms)) {
             res = res + *it;
             it++;
         }
@@ -750,8 +748,8 @@ processAlias(list<string>::iterator & it, list<string> & words)
     if (it == words.end()) {
         return res;
     }
-    if (contains(*it, terms, noTerms)) {
-        while ((it!=words.end()) && contains(*it, terms, noTerms)) {
+    if (contains(*it, terms)) {
+        while ((it!=words.end()) && contains(*it, terms)) {
             res = res + *it;
             it++;
         }
@@ -768,7 +766,7 @@ processAlias(list<string>::iterator & it, list<string> & words)
 }
 
 string
-processParen(list<string>::iterator & it, list<string> & words)
+processParen(list<string>::iterator & it, const list<string> & words)
 {
     if (!it->compare("(") == 0) {
         return "";
@@ -792,41 +790,12 @@ processParen(list<string>::iterator & it, list<string> & words)
 }
 
 string
-mirrorUntilTerm(list<string>::iterator & it, list<string> & words,
-                const string *terms, unsigned int noTerms, bool stopAfterTerm,
-                bool skipParenBlock)
-{
-    string res = "";
-    while ((it!=words.end()) && (!contains(*it, terms, noTerms)) ) {
-        if (skipParenBlock) {
-            string paren = processParen(it, words);
-            if (paren.length() > 0) {
-                res = res + paren;
-                continue;
-            }
-        }
-        res = res + *it + " ";
-        it++;
-    }
-
-    if (it!=words.end()) {
-        if (stopAfterTerm) {
-            res = res + *it + " ";
-            it++;
-        }
-    }
-
-    return res;
-}
-
-string
-mirrorUntilTerm(list<string>::iterator & it, list<string> & words,
+mirrorUntilTerm(list<string>::iterator & it, const list<string> & words,
                 const std::set<string> & terms, bool stopAfterTerm,
                 bool skipParenBlock)
 {
-    string res = " ";
-    while ((it!=words.end()) &&
-           (terms.find(toLowerCase(*it)) == terms.end()))  {
+    string res = "";
+    while ((it!=words.end()) && !contains(*it, terms)) {
         if (skipParenBlock) {
             string paren = processParen(it, words);
             if (paren.length() > 0) {
@@ -834,6 +803,7 @@ mirrorUntilTerm(list<string>::iterator & it, list<string> & words,
                 continue;
             }
         }
+
         res = res + *it + " ";
         it++;
     }
@@ -883,28 +853,9 @@ isQuerySeparator(const string &st)
 bool
 isAgg(const string &value)
 {
-    return contains(value, aggregates, noAggregates);
+    return contains(value, aggregates);
 }
 
-bool
-contains(const string &token, const string * values, unsigned int noValues)
-{
-    for (unsigned int i = 0; i < noValues; i++) {
-        if (equalsIgnoreCase(token, values[i])) {
-            return true;
-        }
-    }
-    return false;
-}
-bool
-contains(const string &token, list<string> & values)
-{
-    for (auto it = values.begin(); it != values.end(); it++)
-        if (equalsIgnoreCase(*it, token))
-            return true;
-
-    return false;
-}
 bool
 isOnly(const string &token, const string * values, unsigned int noValues)
 {
@@ -1013,40 +964,28 @@ equalsIgnoreCase(const string &s1, const string &s2)
 bool
 Operation::isDET(const string &op)
 {
-
-    string dets[] = {"=", "<>", "in", "!="};
-    unsigned int noDets = 4;
-
-    return contains(op, dets, noDets);
+    vector<string> dets = {"=", "<>", "in", "!="};
+    return contains(op, dets);
 }
 
 bool
 Operation::isIN(const string &op)
 {
-
-    if (equalsIgnoreCase(op,"in")) {
-        return true;
-    }
-    return false;
-
+    return equalsIgnoreCase(op,"in");
 }
 
 bool
 Operation::isOPE(const string &op)
 {
-
-    string opes[] = {"<", ">", "<=", ">="};
-    unsigned int noOpes = 4;
-
-    return contains(op, opes, noOpes);
+    vector<string> opes = {"<", ">", "<=", ">="};
+    return contains(op, opes);
 }
 
 bool
 Operation::isILIKE(const string &op)
 {
-    string ilikes[] = {"ilike", "like"};
-
-    return contains(op, ilikes, 2);
+    vector<string> ilikes = {"ilike", "like"};
+    return contains(op, ilikes);
 }
 
 bool

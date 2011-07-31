@@ -467,7 +467,7 @@ isNested(const string &query)
 bool
 isCommand(string str)
 {
-    return contains(str, commands, noCommands);
+    return contains(str, commands);
 }
 
 string
@@ -561,9 +561,7 @@ processSensitive(list<string>::iterator & it, list<string> & words,
                  map<string,
                      TableMetadata *> & tm)
 {
-
-    string keys[] = {"AND", "OR", "NOT"};
-    unsigned int noKeys = 3;
+    vector<string> keys = {"AND", "OR", "NOT"};
 
     bool foundSensitive = false;
     bool foundInsensitive = false;
@@ -574,7 +572,7 @@ processSensitive(list<string>::iterator & it, list<string> & words,
 
     int openParen = 0;
 
-    while ((newit != words.end()) && (!contains(*newit, keys, noKeys))
+    while ((newit != words.end()) && (!contains(*newit, keys))
            && (!isQuerySeparator(*newit))  &&
            (!((openParen == 0) && (newit->compare(")") == 0))) ) {
 
@@ -631,30 +629,38 @@ throw (CryptDBError)
 {
     LOG(edb_v) << "in getquery meta";
 
-    string * delims = NULL;
-    unsigned int noDelims = 0;
+    std::set<string> delims;
 
     switch(c) {
-    case cmd::SELECT: {noDelims = 2; delims = new string[2]; delims[0] = "from";
-                  delims[1] = "left"; break; }
-    case cmd::DELETE: {noDelims = 2; delims = new string[2]; delims[0] = "from";
-                  delims[1] = "left"; break; }
-    case cmd::INSERT: {noDelims = 1; delims = new string[1]; delims[0] = "into";
-                  break; }
-    case cmd::UPDATE: {noDelims = 1; delims = new string[1]; delims[0] = "update";
-                  break; }
-    default: {assert_s(false, "given unexpected command in getQueryMeta"); }
+    case cmd::SELECT:
+        delims = { "from", "left" };
+        break;
+
+    case cmd::DELETE:
+        delims = { "from", "left" };
+        break;
+
+    case cmd::INSERT:
+        delims = { "into" };
+        break;
+
+    case cmd::UPDATE:
+        delims = { "update" };
+        break;
+
+    default:
+        assert_s(false, "given unexpected command in getQueryMeta");
     }
 
     auto qit = query.begin();
 
     QueryMeta qm = QueryMeta();
 
-    mirrorUntilTerm(qit, query, delims, noDelims, 0);
+    mirrorUntilTerm(qit, query, delims, 0);
 
     assert_s(qit != query.end(), "query does not have delims in getQueryMeta");
 
-    while (qit!=query.end() && (contains(*qit, delims, noDelims))) {
+    while (qit!=query.end() && (contains(*qit, delims))) {
         if (equalsIgnoreCase(*qit, "left")) {
             roll<string>(qit, 2);
         } else {
@@ -677,7 +683,7 @@ throw (CryptDBError)
             }
             processAlias(qit, query);
         }
-        mirrorUntilTerm(qit, query, delims, noDelims, 0);
+        mirrorUntilTerm(qit, query, delims, 0);
         if (qit != query.end())
             LOG(edb_v) << "after mirror, qit is " << *qit;
     }
@@ -780,10 +786,7 @@ closingparen:
     wordsIt++;
 
     //there may be other stuff before first parent
-    string termin[] = {")"};
-    int noTermin = 1;
-
-    res += mirrorUntilTerm(wordsIt, words, termin, noTermin, 0, 0);
+    res += mirrorUntilTerm(wordsIt, words, {")"}, 0, 0);
 
     for (int i = 0; i < noParen; i++) {
         assert_s(wordsIt->compare(")") == 0, "expected ) but got " + *wordsIt);

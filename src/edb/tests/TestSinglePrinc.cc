@@ -126,9 +126,11 @@ qUpdateSelect(const TestConfig &tc, EDBClient *cl, const string &update,
         if (tc.stop_if_fail) {
             assert_s(false, update+"; "+select+" generated the wrong result");
         }
+        delete test_res;
         return;
     }
 
+    delete test_res;
     npass++;
 }
 
