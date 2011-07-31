@@ -333,7 +333,7 @@ decrypt_text_sem_deinit(UDF_INIT *initid)
      * initializes initid.ptr=0 for us.
      */
     if (initid->ptr)
-        delete initid->ptr;
+        delete[] initid->ptr;
 }
 
 char *
@@ -392,7 +392,7 @@ decrypt_text_det_deinit(UDF_INIT *initid)
      * initializes initid.ptr=0 for us.
      */
     if (initid->ptr)
-        delete initid->ptr;
+        delete[] initid->ptr;
 }
 
 char *
