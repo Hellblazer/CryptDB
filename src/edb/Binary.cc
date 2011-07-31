@@ -50,6 +50,18 @@ Binary::Binary(unsigned int leng, unsigned char * val)
     memcpy(content, val, leng);
 }
 
+Binary &
+Binary::operator=(const Binary &other)
+{
+    if (content)
+        delete[] content;
+
+    len = other.len;
+    content = new unsigned char[len];
+    memcpy(content, other.content, len);
+    return *this;
+}
+
 Binary
 Binary::operator+(const Binary & b) const
 {

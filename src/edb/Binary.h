@@ -36,6 +36,8 @@ class Binary {
     //constructs a Binary as a concatenation of more binaries
     Binary(const list<Binary> & ciphs);
 
+    Binary &operator=(const Binary &other);
+
     ~Binary();
 
     unsigned int len;
