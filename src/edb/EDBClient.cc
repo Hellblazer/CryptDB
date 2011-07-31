@@ -1929,6 +1929,7 @@ getResMeta(list<string> words, vector<vector<string> > & vals, QueryMeta & qm,
 
         //case : fields we added to help with multi princ enc
         if (ignore) {
+            rm.isSalt[i] = false;
             ignore = false;
             continue;
         }
