@@ -24,7 +24,7 @@ Binary::Binary(const Binary & b)
 Binary::~Binary()
 {
     if (content)
-        free(content);
+        delete[] content;
 }
 
 Binary::Binary(const string & s)
