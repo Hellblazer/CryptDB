@@ -1515,13 +1515,19 @@ CryptoManager::~CryptoManager()
 Binary
 CryptoManager::encryptSWP(const Binary & key, const list<Binary> & words)
 {
-    return Binary(*SWP::encrypt(key, words));
+    auto l = SWP::encrypt(key, words);
+    Binary r(*l);
+    delete l;
+    return r;
 }
 
 list<Binary> *
 CryptoManager::decryptSWP(const Binary & key, const Binary & overall_ciph)
 {
-    return SWP::decrypt(key, *(overall_ciph.split(SWPCiphSize)));
+    auto l = overall_ciph.split(SWPCiphSize);
+    auto r = SWP::decrypt(key, *l);
+    delete l;
+    return r;
 }
 
 Token
@@ -1533,7 +1539,10 @@ CryptoManager::token(const Binary & key, const Binary & word)
 bool
 CryptoManager::searchExists(const Token & token, const Binary & overall_ciph)
 {
-    return SWP::searchExists(token, *(overall_ciph.split(SWPCiphSize)));
+    auto l = overall_ciph.split(SWPCiphSize);
+    bool r = SWP::searchExists(token, *l);
+    delete l;
+    return r;
 }
 
 list<unsigned int> *
