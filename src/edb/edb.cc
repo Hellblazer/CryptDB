@@ -67,7 +67,7 @@ char *   func_add_set(UDF_INIT *initid, UDF_ARGS *args, char *result,
 
 my_bool searchSWP_init(UDF_INIT *initid, UDF_ARGS *args, char *message);
 void searchSWP_deinit(UDF_INIT *initid);
-longlong searchSWP(UDF_INIT *initid, UDF_ARGS *args, char *is_null,
+my_bool searchSWP(UDF_INIT *initid, UDF_ARGS *args, char *is_null,
                   char *error);
 
 #else /* Postgres */
@@ -534,7 +534,7 @@ searchSWP_deinit(UDF_INIT *initid)
 
 }
 
-longlong
+my_bool
 searchSWP(UDF_INIT *initid, UDF_ARGS *args, char *is_null, char *error)
 {
 
