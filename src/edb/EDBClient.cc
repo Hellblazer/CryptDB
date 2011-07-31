@@ -1742,14 +1742,14 @@ throw (CryptDBError)
             TableMetadata * tm = tableMetaMap[table2];
             FieldMetadata * fm = tm->fieldMetaMap[field2];
 
-            assert_s(fm->type != TYPE_TEXT,
-                     "min, max not fully implemented for text");
-
             string anonName =
                 getOnionName(fm,oOPE);
 
             if (fm->isEncrypted) {
-                if (DECRYPTFIRST) {
+            	assert_s((fm->type != TYPE_TEXT),
+            	                     "min, max not fully implemented for text");
+
+            	if (DECRYPTFIRST) {
                     resultQuery = resultQuery + fieldNameForQuery(
                         tm->anonTableName, table2, field2, fm->type, qm);
                 } else {
