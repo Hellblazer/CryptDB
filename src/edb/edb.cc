@@ -65,10 +65,10 @@ void     func_add_set_deinit(UDF_INIT *initid);
 char *   func_add_set(UDF_INIT *initid, UDF_ARGS *args, char *result,
                       unsigned long *length, char *is_null, char *error);
 
-my_bool searchSWP_init(UDF_INIT *initid, UDF_ARGS *args, char *message);
-void searchSWP_deinit(UDF_INIT *initid);
-my_bool searchSWP(UDF_INIT *initid, UDF_ARGS *args, char *is_null,
-                  char *error);
+my_bool  searchSWP_init(UDF_INIT *initid, UDF_ARGS *args, char *message);
+void     searchSWP_deinit(UDF_INIT *initid);
+longlong searchSWP(UDF_INIT *initid, UDF_ARGS *args, char *is_null,
+                   char *error);
 
 #else /* Postgres */
 
@@ -529,24 +529,20 @@ searchSWP_init(UDF_INIT *initid, UDF_ARGS *args, char *message)
 void
 searchSWP_deinit(UDF_INIT *initid)
 {
-	Token *t = (Token *) initid->ptr;
+    Token *t = (Token *) initid->ptr;
     delete t;
-
 }
 
-my_bool
+longlong
 searchSWP(UDF_INIT *initid, UDF_ARGS *args, char *is_null, char *error)
 {
-
-
-	uint64_t allciphLen;
+    uint64_t allciphLen;
     unsigned char * allciph = getba(ARGS, 2, allciphLen);
     Binary overallciph = Binary((unsigned int)allciphLen, allciph);
 
     Token * t = (Token *) initid->ptr;
 
     return search(*t, overallciph);
-
 }
 
 #endif

@@ -94,7 +94,7 @@ CheckSelectResults(const TestConfig &tc, EDBClient * cl, vector<string> in, vect
             PrintRes(*res_it);
             cerr << "Got result:" << endl;
             PrintRes(*test_res);
-            cerr << "Select or Join test failed";
+            cerr << "Select or Join test failed\n";
             if (tc.stop_if_fail) {
                 assert_s(false, "above query generated the wrong result");
             }
@@ -1032,22 +1032,25 @@ TestSinglePrinc::run(const TestConfig &tc, int argc, char ** argv)
     cl = new EDBClient(tc.host, tc.user, tc.pass, tc.db, 0, false);
     cl->setMasterKey(masterKey);
 
-    cerr << "Testing create and drop..." << endl;
-    testCreateDrop(tc, cl);
-    cerr << "Testing insert..." << endl;
-    testInsert(tc, cl);
-    cerr << "Testing select..." << endl;
-    testSelect(tc, cl);
-    cerr << "Testing join..." << endl;
-    testJoin(tc, cl);
-    cerr << "Testing update..." << endl;
-    testUpdate(tc, cl);
-    cerr << "Testing delete..." << endl;
-    testDelete(tc, cl);
-    cerr << "Testing search..." << endl;
-    testSearch(tc, cl);
+    struct {
+        const char *name;
+        void (*f)(const TestConfig &, EDBClient *);
+    } tests[] = {
+#define E(x) { #x, &x }
+        E(testCreateDrop),
+        E(testInsert),
+        E(testSelect),
+        E(testJoin),
+        E(testUpdate),
+        E(testDelete),
+        E(testSearch),
+    };
+
+    for (uint i = 0; i < NELEM(tests); i++) {
+        cerr << "running " << tests[i].name << endl;
+        tests[i].f(tc, cl);
+    }
 
     cerr << "RESULT: " << npass << "/" << ntest << " passed" << endl;
-
     delete cl;
 }
