@@ -404,21 +404,18 @@ tester::testClientParser()
 
     list<string> queries = list<string>();
     //queries.push_back(string("CREATE TABLE people (id integer, age integer,
-    // name integer);") + '\0');
+    // name integer);"));
     queries.push_back(string(
-                          "CREATE TABLE city (name integer, citizen integer);")
-                      + '\0');
+                          "CREATE TABLE city (name integer, citizen integer);"));
     queries.push_back(string(
-                          "CREATE TABLE emp (id integer, name text, age integer, job text);")
-                      +'\0');
+                          "CREATE TABLE emp (id integer, name text, age integer, job text);"));
     //queries.push_back(string("SELECT city.citizen FROM people, city WHERE
-    // city.citizen = people.name ; ") + '\0');
-    //queries.push_back(string("INSERT INTO people VALUES (5, 23, 34);") +
-    // '\0');
-    //queries.push_back(string("INSERT INTO city VALUES (34, 24);") + '\0');
+    // city.citizen = people.name ; "));
+    //queries.push_back(string("INSERT INTO people VALUES (5, 23, 34);"));
+    //queries.push_back(string("INSERT INTO city VALUES (34, 24);"));
     //queries.push_back(string("SELECT people.id FROM people WHERE people.id =
-    // 5 AND people.id = people.age ;") + '\0');
-    //queries.push_back(string("DROP TABLE people;")+'\0');
+    // 5 AND people.id = people.age ;"));
+    //queries.push_back(string("DROP TABLE people;"));
 
     list<int> expectedCount = list<int>();
     expectedCount.push_back(1);
@@ -430,39 +427,19 @@ tester::testClientParser()
 
     list<string> expected = list<string>();
 
-    expected.push_back(string(
-                           "CREATE TABLE table0 (  field0DET integer, field0OPE bigint, field1DET integer, field1OPE bigint, field2DET integer, field2OPE bigint );")
-                       + '\0');
-    expected.push_back(string(
-                           "CREATE TABLE table1 (  field0DET integer, field0OPE bigint, field1DET integer, field1OPE bigint );")
-                       + '\0');
-    expected.push_back(string(
-                           "UPDATE table1 SET field1DET = DECRYPT(0);") +
-                       '\0');
-    expected.push_back(string(
-                           "UPDATE table0 SET field2DET = DECRYPT(0);") +
-                       '\0');
-    expected.push_back(string(
-                           "UPDATE table1 SET field1DET = EQUALIZE(0);") +
-                       '\0');
-    expected.push_back(string(
-                           "SELECT  table1.field1DET FROM  table0, table1 WHERE  table1.field1DET  =  table0.field2DET ;")
-                       + '\0');
-    expected.push_back(string("UPDATE table1 SET field1DET = 5;") + '\0');
-    expected.push_back(string("UPDATE table1 SET field1OPE = 5;") + '\0');
-    expected.push_back(string(
-                           "UPDATE table0 SET field0DET = DECRYPT(0);") +
-                       '\0');
-    expected.push_back(string(
-                           "UPDATE table0 SET field1DET = DECRYPT(0);") +
-                       '\0');
-    expected.push_back(string(
-                           "UPDATE table0 SET field0DET = EQUALIZE(0);") +
-                       '\0');
-    expected.push_back(string(
-                           "SELECT  table0.field0DET FROM  table0 WHERE  table0.field0DET  = 5 AND  table0.field0DET  =  table0.field1DET ;")
-                       + '\0');
-    expected.push_back(string("DROP TABLE table0;") + '\0');
+    expected.push_back("CREATE TABLE table0 (  field0DET integer, field0OPE bigint, field1DET integer, field1OPE bigint, field2DET integer, field2OPE bigint );");
+    expected.push_back("CREATE TABLE table1 (  field0DET integer, field0OPE bigint, field1DET integer, field1OPE bigint );");
+    expected.push_back("UPDATE table1 SET field1DET = DECRYPT(0);");
+    expected.push_back("UPDATE table0 SET field2DET = DECRYPT(0);");
+    expected.push_back("UPDATE table1 SET field1DET = EQUALIZE(0);");
+    expected.push_back("SELECT  table1.field1DET FROM  table0, table1 WHERE  table1.field1DET  =  table0.field2DET ;");
+    expected.push_back("UPDATE table1 SET field1DET = 5;");
+    expected.push_back("UPDATE table1 SET field1OPE = 5;");
+    expected.push_back("UPDATE table0 SET field0DET = DECRYPT(0);");
+    expected.push_back("UPDATE table0 SET field1DET = DECRYPT(0);");
+    expected.push_back("UPDATE table0 SET field0DET = EQUALIZE(0);");
+    expected.push_back("SELECT  table0.field0DET FROM  table0 WHERE  table0.field0DET  = 5 AND  table0.field0DET  =  table0.field1DET ;");
+    expected.push_back("DROP TABLE table0;");
 
     list<string>::iterator it = queries.begin();
 
@@ -647,7 +624,7 @@ interactiveTest(const TestConfig &tc, int ac, char **av)
             string uname = getVal(wordsIt);
             string p = getVal(wordsIt);
             string query = "INSERT INTO activeusers VALUES ('" + uname +
-                           "' , '" + p + "' );" + '\0';
+                           "' , '" + p + "' );";
             cl->execute(query);
         } else if (commandS.find("logout") == 0) {
             list<string> words = parse(commandS, delimsStay, delimsGo,
@@ -656,7 +633,7 @@ interactiveTest(const TestConfig &tc, int ac, char **av)
             wordsIt++;
             string uname = getVal(wordsIt);
             string query = "DELETE FROM activeusers WHERE uname = '" +
-                           uname + "';" + '\0';
+                           uname + "';";
             cl->execute(query);
         } else if (commandS.compare("debug;") == 0) {
             //assert_s(cl->execute(), "failed");

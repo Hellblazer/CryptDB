@@ -547,7 +547,7 @@ throw (CryptDBError)
 
     //mirror query until the end, it may have formatting commands
     resultQuery = resultQuery + mirrorUntilTerm(wordsIt, words, terms, 0);
-    resultQuery = resultQuery + ";" + '\0';
+    resultQuery = resultQuery + ";";
 
     return list<string>(1, resultQuery);
 }
@@ -1031,7 +1031,6 @@ ascdesc:
     }
 
     resultQuery = resultQuery + ";";
-    resultQuery = resultQuery + '\0';
 
     if (wordsIt != words.end()) {cerr << "we have " << *wordsIt << "\n"; }
     assert_s(
@@ -1071,7 +1070,7 @@ throw (CryptDBError)
                      "there should be no adjustment in multi-key mode\n");
         }
 
-        string whereClause = ";" + '\0';
+        string whereClause = ";";
         string fname = fullName(field, table);
 
         /*if (mp) {
@@ -1140,7 +1139,7 @@ throw (CryptDBError)
             assert_s(false,
                      "there should be no adjustment in multi-key mode\n");
         }
-        string whereClause = ";" + '\0';
+        string whereClause = ";";
         string fname = fullName(field, table);
 
         /*if (mp) {
@@ -1215,7 +1214,7 @@ throw (CryptDBError)
         decryptS = decryptS + "(" + anonfieldName + "," +
                    cm->marshallKey(cm->getKey(fullName(anonfieldName,
                                                        anonTableName),
-                                              SECLEVEL::DET)) + ");"+'\0';
+                                              SECLEVEL::DET)) + ");";
 
         string resultQ = string("UPDATE ") +
                          tableMetaMap[table]->anonTableName +
@@ -1236,7 +1235,7 @@ throw (CryptDBError)
         //result.push_back(getCStr(string("UPDATE ") +
         // tableMetaMap[table]->anonTableName +
         //" SET " + tableMetaMap[table]->fieldMetaMap[field]->anonFieldNameDET
-        //+ " = DECRYPT(0);"+'\0')); //TODO: link in the right key here
+        //+ " = DECRYPT(0);")); //TODO: link in the right key here
 
         tableMetaMap[table]->fieldMetaMap[field]->secLevelOPE = SECLEVEL::OPEJOIN;
 
@@ -2839,7 +2838,7 @@ throw (CryptDBError)
 
     assert_s(wordsIt == words.end(), "invalid text after )");
 
-    resultQuery = resultQuery + ";" + '\0';
+    resultQuery = resultQuery + ";";
 
     tmkm.cleanup();
 
@@ -3177,7 +3176,7 @@ EDBClient::execute(const string &query)
 {
     DBResult * res = 0;
 
-    LOG(edb_v) << "Query: " << query;
+    LOG(edb) << "Query: " << query;
 
     if (!isSecure) {
 

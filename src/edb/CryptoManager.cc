@@ -763,7 +763,7 @@ CryptoManager::marshallKey(const string &key)
 string
 CryptoManager::unmarshallKey(const string &key)
 {
-    list<string> words = parse((key + '\0').c_str(),"", ", );", "");
+    list<string> words = parse((key).c_str(),"", ", );", "");
 
     myassert(
         words.size() == AES_KEY_BYTES, "the given key string " + key +
