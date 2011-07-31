@@ -9,3 +9,6 @@
 
 - RND wrapper around SWP for completeness.
 
+- fix MySQL UDFs so that invalid invocations do not crash the server,
+  e.g. "select searchSWP();"
+
