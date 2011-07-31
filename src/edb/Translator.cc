@@ -60,6 +60,9 @@ FieldMetadata::exists(const string &val)
 
 FieldMetadata::FieldMetadata()
 {
+    isEncrypted = false;
+    type = TYPE_TEXT;
+
     secLevelOPE = SECLEVEL::SEMANTIC_OPE;
     secLevelDET = SECLEVEL::SEMANTIC_DET;
 
