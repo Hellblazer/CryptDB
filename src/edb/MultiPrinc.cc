@@ -67,15 +67,14 @@ MultiPrinc::processAnnotation(list<string>::iterator & wordsIt,
         encryptfield = true;
 
         //check if there is any annotation for security level
-        string secAnns[] =
+        std::set<string> secAnns =
             { levelnames[(int) SECLEVEL::DET],
               levelnames[(int) SECLEVEL::DETJOIN],
               levelnames[(int) SECLEVEL::OPE],
               levelnames[(int) SECLEVEL::SEMANTIC_AGG]
             };
-        unsigned int noSecAnns = 4;
         while ((wordsIt != words.end()) &&
-               contains(*wordsIt, secAnns, noSecAnns)) {
+               contains(*wordsIt, secAnns)) {
             FieldMetadata * fm = tm[tablename]->fieldMetaMap[currentField];
 
             if (equalsIgnoreCase(levelnames[(int) SECLEVEL::DET], *wordsIt)) {
@@ -243,8 +242,7 @@ getEqualityExpr(list<string>::iterator & it, list<string> & query,
 {
 
     //LOG(mp) << "eq expr \n";
-    string lst[] = {"and", "or"};
-    unsigned int lstno = 2;
+    std::set<string> lst = {"and", "or"};
 
     list<equalOp> * res = new list<equalOp>();
     string a, op, b;
@@ -261,7 +259,7 @@ getEqualityExpr(list<string>::iterator & it, list<string> & query,
         if (validate(a, op,
                      b) &&
             ((it == query.end()) || (isQuerySeparator(*it)) ||
-             contains(*it, lst, lstno))) {
+             contains(*it, lst))) {
             //it's a good one, add it to the list
             string table, field;
             getTableField(a, table, field, qm, tableMetaMap);
@@ -277,14 +275,14 @@ getEqualityExpr(list<string>::iterator & it, list<string> & query,
             // we might be inside a longer expression, e.g., a = 5+b, proceed
             // outside of it
             while (it != query.end() && !isQuerySeparator(*it) &&
-                   !contains(*it, lst, lstno)) {
+                   !contains(*it, lst)) {
                 it++;
             }
 
         }
 
         // skip any and/or
-        if ((it !=  query.end()) && contains(*it, lst, lstno)) {
+        if ((it !=  query.end()) && contains(*it, lst)) {
             it++;
         }
 

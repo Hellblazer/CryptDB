@@ -347,21 +347,14 @@ const char delimsGo[] = {';', ' ', '\t', '\n', '\0'};
 const char keepIntact[] ={'\'', '\0'};
 
 bool isKeyword(const string &token);
-
-#define NELEM(array) (sizeof((array)) / sizeof((array)[0]))
-const string commands[] =
-{"select", "create", "insert", "update", "delete", "drop", "alter"};
-const unsigned int noCommands = NELEM(commands);
-
-const string aggregates[] = {"max", "min", "sum", "count"};
-const unsigned int noAggregates = NELEM(aggregates);
 bool isAgg(const string &token);
 
-const string createMetaKeywords[] = {"primary", "key", "unique"};
-const unsigned int noCreateMeta = NELEM(createMetaKeywords);
-
-const string comparisons[] ={">", "<", "="};
-const unsigned int noComps = NELEM(comparisons);
+#define NELEM(array) (sizeof((array)) / sizeof((array)[0]))
+const std::set<string> commands =
+    { "select", "create", "insert", "update", "delete", "drop", "alter" };
+const std::set<string> aggregates = { "max", "min", "sum", "count" };
+const std::set<string> createMetaKeywords = { "primary", "key", "unique" };
+const std::set<string> comparisons = { ">", "<", "=" };
 
 const string math[]=
 {"+","-","(",")","*","/",".","0","1","2","3","4","5","6","7","8","9"};
@@ -479,7 +472,7 @@ string checkStr(list<string>::iterator & it, list<string> & lst,
 
 //acts only if the first field is "(";
 //returns position after matching ")" mirroring all contents
-string processParen(list<string>::iterator & it, list<string> & words);
+string processParen(list<string>::iterator & it, const list<string> & words);
 
 bool isQuerySeparator(const string &st);
 
@@ -502,12 +495,8 @@ string processAlias(list<string>::iterator & it, list<string> & words);
 // else it points to terminator
 //if skipParentBlock, it looks for terminators only outside of any nested
 // parenthesis block
-string mirrorUntilTerm(list<string>::iterator & it, list<string> &words,
-                       const string *terminator,  unsigned int noTerms,
-                       bool stopAfterTerm = 1,
-                       bool skipParenBlock = 0);
-string mirrorUntilTerm(list<string>::iterator & it, list<string> & words,
-                       const std::set<string> & terms,
+string mirrorUntilTerm(list<string>::iterator & it, const list<string> & words,
+                       const std::set<string> &terms,
                        bool stopAfterTerm = 1,
                        bool skipParenBlock = 0);
 
@@ -518,10 +507,15 @@ list<string>::iterator itAtKeyword(list<string> & lst, const string &keyword);
 //returns the contents of str before the first encounter with c
 string getBeforeChar(const string &str, char c);
 
-bool contains(const string &token, list<string> & values);
 //performs a case insensitive search
-bool contains(const string &token, const string *  values,
-              unsigned int noValues);
+template<class T>
+bool contains(const string &token, const T &values)
+{
+    for (auto i = values.begin(); i != values.end(); i++)
+        if (equalsIgnoreCase(token, *i))
+            return true;
+    return false;
+}
 
 //performs a case insensitive search
 bool isOnly(const string &token, const string * values, unsigned int noValues);

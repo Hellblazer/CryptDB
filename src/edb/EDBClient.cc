@@ -236,9 +236,7 @@ EDBClient::replenishEncryptionTables()
 static fieldType
 getType(list<string>::iterator & it, list<string> & words)
 {
-
-    unsigned int noTerms = 2;
-    string terms[] = {",", ")"};
+    std::set<string> terms = { ",", ")" };
     string token = *it;
     bool isint = false;
     if (it->find("int") != string::npos) {
@@ -250,7 +248,7 @@ getType(list<string>::iterator & it, list<string> & words)
 
     it++;
 
-    mirrorUntilTerm(it, words, terms, noTerms, 0, 1);
+    mirrorUntilTerm(it, words, terms, 0, 1);
 
     if (isint) {
         return TYPE_INTEGER;
@@ -479,8 +477,7 @@ throw (CryptDBError)
     roll<string>(wordsIt, 2);
     unsigned int i = 0;
 
-    unsigned int noTerms = 2;
-    string terms[] = {",", ")"};
+    std::set<string> terms = { ",", ")" };
 
     string fieldSeq = "";
 
@@ -488,10 +485,10 @@ throw (CryptDBError)
         string fieldName = *wordsIt;
 
         //primary key, index, other metadata about data layout
-        if (contains(fieldName, createMetaKeywords, noCreateMeta)) {
+        if (contains(fieldName, createMetaKeywords)) {
             if (VERBOSE) { cerr << fieldName << " is meta \n"; }
             //mirrorUntilTerm should stop at the comma
-            fieldSeq +=  mirrorUntilTerm(wordsIt, words, terms, 1, 1, 1);
+            fieldSeq +=  mirrorUntilTerm(wordsIt, words, {","}, 1, 1);
             continue;
         }
 
@@ -522,8 +519,7 @@ throw (CryptDBError)
         } else {
             LOG(edb_v) << "not enc " << fieldName;
             fieldSeq +=  fieldName + " " +
-                        mirrorUntilTerm(wordsIt, words, terms, 1, 1,
-                                        1);
+                        mirrorUntilTerm(wordsIt, words, {","}, 1, 1);
             continue;
         }
 
@@ -532,7 +528,7 @@ throw (CryptDBError)
         fieldSeq += processCreate(fm->type, fieldName, i, tm,
                                   fm, !!mp) + " ";
 
-        fieldSeq +=  mirrorUntilTerm(wordsIt, words, terms, noTerms);
+        fieldSeq +=  mirrorUntilTerm(wordsIt, words, terms);
 
         i++;
     }
@@ -546,7 +542,7 @@ throw (CryptDBError)
     resultQuery += fieldSeq;
 
     //mirror query until the end, it may have formatting commands
-    resultQuery = resultQuery + mirrorUntilTerm(wordsIt, words, terms, 0);
+    resultQuery = resultQuery + mirrorUntilTerm(wordsIt, words, {});
     resultQuery = resultQuery + ";";
 
     return list<string>(1, resultQuery);
@@ -598,14 +594,12 @@ throw (CryptDBError)
 
         wordsIt++;
 
-        string term[] = {",", "where"};
-        unsigned int noTerms = 2;
-
+        std::set<string> term = {",", "where"};
         FieldMetadata * fm1 = tableMetaMap[table]->fieldMetaMap[field];
 
         if (!fm1->isEncrypted) {
             resultQuery = resultQuery + " " + field +  mirrorUntilTerm(
-                wordsIt, words, term, noTerms, 0, 1);
+                wordsIt, words, term, 0, 1);
             if (wordsIt == words.end()) {
                 continue;
             }
@@ -850,8 +844,7 @@ EDBClient::processFilters(list<string>::iterator &  wordsIt,
                           list<string> subqueries)
 throw (CryptDBError)
 {
-    string keys[] = {"AND", "OR", "NOT", "(", ")"};
-    unsigned int noKeys = 5;
+    std::set<string> keys = {"AND", "OR", "NOT", "(", ")"};
 
     if (wordsIt == words.end()) {     //no WHERE clause
         resultQuery = resultQuery + ";";
@@ -895,7 +888,7 @@ throw (CryptDBError)
 
         //cerr << "in loop " << *wordsIt << "\n";
         //case: keyword
-        if (contains(*wordsIt, keys, noKeys)) {
+        if (contains(*wordsIt, keys)) {
             resultQuery += " " + *wordsIt;
             wordsIt++;
             continue;
@@ -1589,11 +1582,7 @@ throw (CryptDBError)
             string fieldToAgg = *wordsIt;
             wordsIt++;
             //there may be other stuff before first parent
-            string termin[] = {")"};
-            int noTermin = 1;
-
-            string res = mirrorUntilTerm(wordsIt, words, termin, noTermin, 0,
-                                         0);
+            string res = mirrorUntilTerm(wordsIt, words, {")"}, 0, 0);
 
             assert_s(wordsIt->compare(
                          ")") == 0, ") needed to close sum expression\n  ");
@@ -2070,8 +2059,7 @@ EDBClient::rewriteDecryptSelect(const string &query, ResType * dbAnswer)
     LOG(edb) << "done with res meta";
 
     //prepare the result
-    ResType * rets = new ResType;
-    rets = new vector<vector<string> >(rm.nTuples+1);
+    ResType * rets = new vector<vector<string> >(rm.nTuples+1);
 
     size_t nFields = rm.nFields;
     size_t nTrueFields = rm.nTrueFields;
