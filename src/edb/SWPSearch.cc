@@ -327,13 +327,13 @@ bool
 SWP::searchExists(const Token & token, const list<Binary> & ciphs)
 {
 
-	for (list<Binary>::const_iterator cit = ciphs.begin(); cit != ciphs.end();
-			cit++) {
-		if (SWPsearch(token, *cit)) {
-			return true;
-		}
-	}
+    for (list<Binary>::const_iterator cit = ciphs.begin(); cit != ciphs.end();
+            cit++) {
+        if (SWPsearch(token, *cit)) {
+            return true;
+        }
+    }
 
-	return false;
+    return false;
 }
 

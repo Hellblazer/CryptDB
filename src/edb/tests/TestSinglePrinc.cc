@@ -44,47 +44,47 @@ convert(string rows[][N], int num_rows)
 static void
 CheckSelectResults(const TestConfig &tc, EDBClient * cl, vector<string> in, vector<ResType> out)
 {
-	assert_s(
-			in.size() == out.size(),
-			"different numbers of test queries and expected results");
+    assert_s(
+            in.size() == out.size(),
+            "different numbers of test queries and expected results");
 
-	vector<string>::iterator query_it = in.begin();
-	vector<ResType>::iterator res_it = out.begin();
+    vector<string>::iterator query_it = in.begin();
+    vector<ResType>::iterator res_it = out.begin();
 
-	LOG(test) << in.size() << "  " << out.size();
+    LOG(test) << in.size() << "  " << out.size();
 
-	while(query_it != in.end()) {
-		ntest++;
-		bool passed = true;
-		ResType test_res = myExecute(cl, *query_it);
-		if (!test_res.ok) {
-			LOG(test) << "Query: " << *query_it;
-			if (tc.stop_if_fail) {
-				assert_s(false, "above query failed");
-			}
-			passed = false;
-		}
+    while(query_it != in.end()) {
+        ntest++;
+        bool passed = true;
+        ResType test_res = myExecute(cl, *query_it);
+        if (!test_res.ok) {
+            LOG(test) << "Query: " << *query_it;
+            if (tc.stop_if_fail) {
+                assert_s(false, "above query failed");
+            }
+            passed = false;
+        }
 
-		if (passed && !match(test_res, *res_it)) {
-			LOG(test) << "From query: " << *query_it;
-			cerr << "-----------------------\nExpected result:" << endl;
-			PrintRes(*res_it);
-			cerr << "Got result:" << endl;
-			PrintRes(test_res);
-			cerr << "Select or Join test failed\n";
-			if (tc.stop_if_fail) {
-				assert_s(false, "above query generated the wrong result");
-			}
-			passed = false;
-		}
+        if (passed && !match(test_res, *res_it)) {
+            LOG(test) << "From query: " << *query_it;
+            cerr << "-----------------------\nExpected result:" << endl;
+            PrintRes(*res_it);
+            cerr << "Got result:" << endl;
+            PrintRes(test_res);
+            cerr << "Select or Join test failed\n";
+            if (tc.stop_if_fail) {
+                assert_s(false, "above query generated the wrong result");
+            }
+            passed = false;
+        }
 
-		if (passed) {
-			npass++;
-		}
+        if (passed) {
+            npass++;
+        }
 
-		query_it++;
-		res_it++;
-	}
+        query_it++;
+        res_it++;
+    }
 }
 
 static void
@@ -180,7 +180,7 @@ testInsert(const TestConfig &tc, EDBClient * cl)
         "DROP TABLE IF EXISTS table0, table1, table2, table3, table4, table5, t1");
 
     assert_res(myCreate(cl,"CREATE TABLE t1 (id integer, age enc integer, salary enc integer, address enc text, name text)",
-		      "CREATE TABLE t1 (id integer, age integer, salary integer, address text, name text)"),
+              "CREATE TABLE t1 (id integer, age integer, salary integer, address text, name text)"),
              "testInsert could not create table");
 
     vector<string> tests;
@@ -222,8 +222,8 @@ testSelect(const TestConfig &tc, EDBClient * cl)
         "DROP TABLE IF EXISTS table0, table1, table2, table3, table4, table5, table6, t1");
 
     assert_res(myCreate(cl,"CREATE TABLE t1 (id integer, age enc integer, salary enc integer, address enc text, name enc text)",
-		      "CREATE TABLE t1 (id integer, age integer, salary integer, address text, name text)"),
-	     "testSelect couldn't create table");
+              "CREATE TABLE t1 (id integer, age integer, salary integer, address text, name text)"),
+         "testSelect couldn't create table");
     assert_res(myExecute(cl,
                        "INSERT INTO t1 VALUES (1, 10, 0, 'first star to the right and straight on till morning', 'Peter Pan')"),
              "testSelect couldn't insert (1)");
@@ -548,7 +548,7 @@ testJoin(const TestConfig &tc, EDBClient * cl)
         "DROP TABLE IF EXISTS table0, table1, table2, table3, table4, table5, table6, table7, table8, t1, t2");
 
     assert_res(myCreate(cl,"CREATE TABLE t1 (id integer, age enc integer, salary enc integer, address enc text, name enc text)",
-		      "CREATE TABLE t1 (id integer, age integer, salary integer, address text, name text)"),
+              "CREATE TABLE t1 (id integer, age integer, salary integer, address text, name text)"),
                  "testJoin couldn't create table");
 
     assert_res(myExecute(cl,
@@ -568,7 +568,7 @@ testJoin(const TestConfig &tc, EDBClient * cl)
              "testJoin couldn't insert (5)");
 
     assert_res(myCreate(cl,"CREATE TABLE t2 (id integer, books enc integer, name enc text)",
-		      "CREATE TABLE t2 (id integer, books integer, name text)"),
+              "CREATE TABLE t2 (id integer, books integer, name text)"),
                  "testJoin couldn't create table");
     assert_res(myExecute(cl, "INSERT INTO t2 VALUES (1, 6, 'Peter Pan')"),
              "testJoin couldn't insert (1)");
@@ -671,7 +671,7 @@ testUpdate(const TestConfig &tc, EDBClient * cl)
         "DROP TABLE IF EXISTS table0, table1, table2, table3, table4, table5, table6, table7, table8, table9, table10, t1");
 
     assert_res(myCreate(cl,"CREATE TABLE t1 (id integer, age enc integer, salary enc integer, address enc text, name enc text)",
-		      "CREATE TABLE t1 (id integer, age integer, salary integer, address text, name text)"),
+              "CREATE TABLE t1 (id integer, age integer, salary integer, address text, name text)"),
                  "testUpdate couldn't create table");
     assert_res(myExecute(cl,
                        "INSERT INTO t1 VALUES (1, 10, 0, 'first star to the right and straight on till morning', 'Peter Pan')"),
@@ -776,7 +776,7 @@ testUpdate(const TestConfig &tc, EDBClient * cl)
                   "SELECT * FROM t1 WHERE age > 20",
                   {"id","age","salary","address","name"},
                   { { "5", "30", "55000", "221B Baker Street",
-			"Sherlock Holmes" } });
+            "Sherlock Holmes" } });
 
     qUpdateSelect(tc, cl, "SELECT id FROM t1",
                   "SELECT sum(age) FROM t1",
@@ -810,13 +810,13 @@ testUpdate(const TestConfig &tc, EDBClient * cl)
             "Elizabeth Darcy" } });
 
     qUpdateSelect(tc, cl, "SELECT * FROM t1", "SELECT * FROM t1 WHERE address < 'fml'",
-		  {"id","age","salary","address","name"},
-		  { {"1","12","0","first star to the right and straight on till morning", "Peter Pan"},
-		    {"5","32","55000","221B Baker Street","Sherlock Holmes"} });
+          {"id","age","salary","address","name"},
+          { {"1","12","0","first star to the right and straight on till morning", "Peter Pan"},
+            {"5","32","55000","221B Baker Street","Sherlock Holmes"} });
 
     qUpdateSelect(tc, cl, "UPDATE t1 SET address = 'Neverland' WHERE id = 1", "SELECT * FROM t1 WHERE address < 'fml'",
-		  {"id", "age", "salary", "address", "name"},
-		  { {"5", "32", "55000", "221B Baker Street", "Sherlock Holmes"} });
+          {"id", "age", "salary", "address", "name"},
+          { {"5", "32", "55000", "221B Baker Street", "Sherlock Holmes"} });
     
     if (!PLAIN) {
         assert_res(cl->execute("DROP TABLE t1"), "testUpdate can't drop t1");
@@ -834,7 +834,7 @@ testDelete(const TestConfig &tc, EDBClient * cl)
         "DROP TABLE IF EXISTS table0, table1, table2, table3, table4, table5, table6, table7, table8, table9, table10, table11, t1");
 
     assert_res(myCreate(cl,"CREATE TABLE t1 (id integer, age enc integer, salary enc integer, address enc text, name enc text)",
-		      "CREATE TABLE t1 (id integer, age integer, salary integer, address text, name text)"),
+              "CREATE TABLE t1 (id integer, age integer, salary integer, address text, name text)"),
                  "testDelete couldn't create table");
     assert_res(myExecute(cl,
                        "INSERT INTO t1 VALUES (1, 10, 0, 'first star to the right and straight on till morning', 'Peter Pan')"),
@@ -983,16 +983,16 @@ testSearch(const TestConfig &tc, EDBClient * cl)
 
     query.push_back("SELECT * FROM t3 WHERE searchable < 'slow'");
     string rows6[3][2] = { {"id","searchable"},
-			  {"1", "short text"},
-			  {"3",""} };
+              {"1", "short text"},
+              {"3",""} };
     reply.push_back(convert(rows6,3));
 
     CheckSelectResults(tc, cl, query, reply);
 
     qUpdateSelect(tc, cl,"UPDATE t3 SET searchable='text that is new' WHERE id=1",
-		  "SELECT * FROM t3 WHERE searchable < 'slow'",
-		  {"id","searchable"},
-		  { {"3",""} } );
+          "SELECT * FROM t3 WHERE searchable < 'slow'",
+          {"id","searchable"},
+          { {"3",""} } );
 
     if (!PLAIN) {
         assert_res(cl->execute("DROP TABLE t3"), "testSearch can't drop t3");

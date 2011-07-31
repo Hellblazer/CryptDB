@@ -174,8 +174,8 @@ decreaseLevel(SECLEVEL l, fieldType ft,  onion o)
         }
     }
     case oSWP: {
-        	assert_s(l == SECLEVEL::SWP, "cannot decrease level for other than level SWP on the SWP onion");
-        	return SECLEVEL::PLAIN_SWP;
+            assert_s(l == SECLEVEL::SWP, "cannot decrease level for other than level SWP on the SWP onion");
+            return SECLEVEL::PLAIN_SWP;
     }
     default: {
         assert_s(false, "cannot decrease level");
@@ -228,8 +228,8 @@ increaseLevel(SECLEVEL l, fieldType ft, onion o)
         }
     }
     case oSWP: {
-    	assert_s(l == SECLEVEL::PLAIN_SWP,  "cannot increase beyond SWP");
-    	return SECLEVEL::SWP;
+        assert_s(l == SECLEVEL::PLAIN_SWP,  "cannot increase beyond SWP");
+        return SECLEVEL::SWP;
     }
     default: {
         assert_s(false, "cannot increase level");

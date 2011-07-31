@@ -682,12 +682,12 @@ interactiveTest(const TestConfig &tc, int ac, char **av)
             //cl->plain_execute("DROP TABLE IF EXISTS hi;");
             //assert_res(cl->execute("CREATE TABLE hi (id enc integer, name
             // text);"), "failed");
-            //	assert_res(cl->execute("INSERT INTO hi VALUES (3, '5');"),
+            //    assert_res(cl->execute("INSERT INTO hi VALUES (3, '5');"),
             // "failed");
-            //	assert_res(cl->execute("SELECT * FROM hi;"), "failed");
-            //	assert_res(cl->execute("SELECT id, name AS n FROM hi WHERE id =
+            //    assert_res(cl->execute("SELECT * FROM hi;"), "failed");
+            //    assert_res(cl->execute("SELECT id, name AS n FROM hi WHERE id =
             // 3;"), "failed");
-            //	assert_res(cl->execute("SELECT * FROM hi WHERE id > 2;"),
+            //    assert_res(cl->execute("SELECT * FROM hi WHERE id > 2;"),
             // "failed");
             //assert_res(cl->execute("SELECT * FROM hi;"), "failed");
 
@@ -731,7 +731,7 @@ interactiveTest(const TestConfig &tc, int ac, char **av)
              */
 
             //PRIVATE MESSAGES EXAMPLE
-            /*	cl->plain_execute("DROP TABLE IF EXISTS users, msgs,
+            /*    cl->plain_execute("DROP TABLE IF EXISTS users, msgs,
                privmsg;");
                     assert_res(cl->execute("CREATE TABLE msgs (msgid equals
                        privmsg.msgid integer, msgtext encfor msgid text);"),
@@ -802,95 +802,95 @@ interactiveTest(const TestConfig &tc, int ac, char **av)
              */
 
             //USERID, GROUP, FORUM, SQL PRED EXAMPLE
-            //	cl->plain_execute("DROP TABLE IF EXISTS users, usergroup,
+            //    cl->plain_execute("DROP TABLE IF EXISTS users, usergroup,
             // groupforum, forum;");
-            //	assert_res(cl->execute("CREATE TABLE users (userid integer,
+            //    assert_res(cl->execute("CREATE TABLE users (userid integer,
             // username givespsswd userid text);"), "failed");
-            //	assert_res(cl->execute("CREATE TABLE usergroup (userid equals
+            //    assert_res(cl->execute("CREATE TABLE usergroup (userid equals
             // users.userid hasaccessto groupid integer, groupid integer);"),
             // "failed");
-            //	assert_res(cl->execute("CREATE TABLE groupforum (forumid equals
+            //    assert_res(cl->execute("CREATE TABLE groupforum (forumid equals
             // forum.forumid integer, groupid equals usergroup.groupid
             // hasaccessto forumid if test(optionid) integer, optionid
             // integer);"), "failed");
-            //	assert_res(cl->execute("CREATE TABLE forum (forumid integer,
+            //    assert_res(cl->execute("CREATE TABLE forum (forumid integer,
             // forumtext encfor forumid text);"), "failed");
-            //	assert_s(cl->plain_execute("DROP FUNCTION IF EXISTS test;"),
+            //    assert_s(cl->plain_execute("DROP FUNCTION IF EXISTS test;"),
             // "failed");
-            //	assert_s(cl->plain_execute("CREATE FUNCTION test (optionid
+            //    assert_s(cl->plain_execute("CREATE FUNCTION test (optionid
             // integer) RETURNS bool RETURN optionid=20;"), "failed");
             //
-            //	//Alice is in group 1, Bob in group 2 and Chris is in group 1
+            //    //Alice is in group 1, Bob in group 2 and Chris is in group 1
             // and group 2
-            //	//group 1 can see the forum text, group 2 cannot
-            //	assert_res(cl->execute("INSERT INTO "psswdtable" VALUES
+            //    //group 1 can see the forum text, group 2 cannot
+            //    assert_res(cl->execute("INSERT INTO "psswdtable" VALUES
             // ('alice', 'secretalice');"), "failed to log in user");
-            //	assert_res(cl->execute("INSERT INTO "psswdtable" VALUES ('bob',
+            //    assert_res(cl->execute("INSERT INTO "psswdtable" VALUES ('bob',
             // 'secretbob');"), "failed to log in user");
-            //	assert_res(cl->execute("INSERT INTO "psswdtable" VALUES
+            //    assert_res(cl->execute("INSERT INTO "psswdtable" VALUES
             // ('chris', 'secretbob');"), "failed to log in user");
             //
-            //	assert_res(cl->execute("INSERT INTO users (username) VALUES
+            //    assert_res(cl->execute("INSERT INTO users (username) VALUES
             // ('alice');"), "failed");
-            //	assert_res(cl->execute("INSERT INTO users (username) VALUES
+            //    assert_res(cl->execute("INSERT INTO users (username) VALUES
             // ('bob');"), "failed");
-            //	assert_res(cl->execute("INSERT INTO users (username) VALUES
+            //    assert_res(cl->execute("INSERT INTO users (username) VALUES
             // ('chris');"), "failed");
             //
-            //	assert_res(cl->execute("INSERT INTO usergroup VALUES (1, 1);"),
+            //    assert_res(cl->execute("INSERT INTO usergroup VALUES (1, 1);"),
             // "failed");
-            //	assert_res(cl->execute("INSERT INTO usergroup VALUES (2, 2);"),
+            //    assert_res(cl->execute("INSERT INTO usergroup VALUES (2, 2);"),
             // "failed");
-            //	assert_res(cl->execute("INSERT INTO usergroup VALUES (3, 1);"),
+            //    assert_res(cl->execute("INSERT INTO usergroup VALUES (3, 1);"),
             // "failed");
-            //	assert_res(cl->execute("INSERT INTO usergroup VALUES (3, 2);"),
+            //    assert_res(cl->execute("INSERT INTO usergroup VALUES (3, 2);"),
             // "failed");
             //
             //
-            //	assert_res(cl->execute("INSERT INTO groupforum VALUES (1, 1,
+            //    assert_res(cl->execute("INSERT INTO groupforum VALUES (1, 1,
             // 14);"), "failed");
-            //	assert_res(cl->execute("INSERT INTO groupforum VALUES (1, 1,
+            //    assert_res(cl->execute("INSERT INTO groupforum VALUES (1, 1,
             // 20);"), "failed");
-            //	assert_res(cl->execute("INSERT INTO groupforum VALUES (1, 2,
+            //    assert_res(cl->execute("INSERT INTO groupforum VALUES (1, 2,
             // 2);"), "failed");
-            //	assert_res(cl->execute("INSERT INTO groupforum VALUES (1, 2,
+            //    assert_res(cl->execute("INSERT INTO groupforum VALUES (1, 2,
             // 0);"), "failed");
             //
-            //	assert_res(cl->execute("INSERT INTO forum (forumtext) VALUES
+            //    assert_res(cl->execute("INSERT INTO forum (forumtext) VALUES
             // ('success--you can see forum text');"), "failed");
             //
-            //	//all users log out, then each log in to have their
+            //    //all users log out, then each log in to have their
             // permissions tested
-            //	assert_res(cl->execute("DELETE FROM "psswdtable" WHERE  username
+            //    assert_res(cl->execute("DELETE FROM "psswdtable" WHERE  username
             // = 'alice';"), "failed");
-            //	assert_res(cl->execute("DELETE FROM "psswdtable" WHERE  username
+            //    assert_res(cl->execute("DELETE FROM "psswdtable" WHERE  username
             // = 'bob';"), "failed");
-            //	assert_res(cl->execute("DELETE FROM "psswdtable" WHERE  username
+            //    assert_res(cl->execute("DELETE FROM "psswdtable" WHERE  username
             // = 'chris';"), "failed");
             //
             //
-            //	assert_res(cl->execute("INSERT INTO "psswdtable" VALUES
+            //    assert_res(cl->execute("INSERT INTO "psswdtable" VALUES
             // ('alice', 'secretalice');"), "failed to log in user");
             //
-            //	assert_res(cl->execute("SELECT forumtext from forum  WHERE
+            //    assert_res(cl->execute("SELECT forumtext from forum  WHERE
             // forumid  = 1;"), "Alice should succeed");
             //
-            //	assert_res(cl->execute("DELETE FROM "psswdtable" WHERE  username
+            //    assert_res(cl->execute("DELETE FROM "psswdtable" WHERE  username
             // = 'alice';"), "failed");
-            //	assert_res(cl->execute("INSERT INTO "psswdtable" VALUES ('bob',
+            //    assert_res(cl->execute("INSERT INTO "psswdtable" VALUES ('bob',
             // 'secretbob');"), "failed to log in user");
             //
-            //	assert_res(cl->execute("DELETE FROM "psswdtable" WHERE  username
+            //    assert_res(cl->execute("DELETE FROM "psswdtable" WHERE  username
             // = 'bob';"), "failed");
-            //	assert_res(cl->execute("INSERT INTO "psswdtable" VALUES
+            //    assert_res(cl->execute("INSERT INTO "psswdtable" VALUES
             // ('chris', 'secretchris');"), "failed to log in user");
             //
-            //	assert_res(cl->execute("SELECT forumtext from forum  WHERE
+            //    assert_res(cl->execute("SELECT forumtext from forum  WHERE
             // forumid  = 1;"), "chris should succeed");
 
             //multi-key debugging
 
-            /*	cl->plain_execute("DROP TABLE IF EXISTS hi, try, bye;");
+            /*    cl->plain_execute("DROP TABLE IF EXISTS hi, try, bye;");
                //some single key debugging
                assert_res(cl->execute("CREATE TABLE hi (id integer, age enc
                   integer, name enc text);"), "q failed");
@@ -1605,7 +1605,7 @@ suffix(int no)
                 }
 
                 index++;
-                if (index % logFreq	 == 0) {cerr << workload << " " <<
+                if (index % logFreq     == 0) {cerr << workload << " " <<
                    index << "\n";}
 
                 if (!hasTransac) {
@@ -1701,7 +1701,7 @@ suffix(int no)
       totalLines, string dfile, bool isSecure, bool hasTransac) {
         cerr << "throughput benchmark \n";
  */
-//	int res = system("rm eval/pieces/*");
+//    int res = system("rm eval/pieces/*");
 /*
         ifstream infile(dfile);
 
@@ -1972,7 +1972,7 @@ suffix(int no)
 
         int res = system("mkdir eval/pieces;");
  */
-//	res = system("rm eval/pieces/*");
+//    res = system("rm eval/pieces/*");
 /*
         string splitComm = "split  -l " +
            marshallVal((uint32_t)(totalLines/noWorkers)) + " -a 2 " + dfile +
@@ -2075,7 +2075,7 @@ suffix(int no)
 
         int res = system("mkdir eval/queries;");
  */
-//	res = system("rm eval/queries/*");
+//    res = system("rm eval/queries/*");
 /*
         string splitComm = "split  -l " +
            marshallVal((uint32_t)(totalLines/noClients)) + " -a 1 " +
@@ -2196,7 +2196,7 @@ suffix(int no)
         cl->train("queries");
         cl->train_finish();
 
-   //	cl->create_trained_instance();
+   //    cl->create_trained_instance();
 
         ifstream f("insertslast");
 
@@ -2238,7 +2238,7 @@ suffix(int no)
                 exit(1);
         }
  */
-/*	cerr << "starting \n";
+/*    cerr << "starting \n";
         struct timeval tvstart;
         struct timeval tvend;
 
@@ -2299,7 +2299,7 @@ suffix(int no)
                 if (query.size() == 0) {
                         continue;
                 }
- */	/*	try {
+ */    /*    try {
                         PGresult * res =
    (*cl)->plain_execute(query);//DO
                         ExecStatusType est = PQresultStatus(res);
@@ -2310,7 +2310,7 @@ suffix(int no)
                                 cl->plain_execute("abort;");
                         }
  */
-/*			cl->rewriteEncryptQuery(query);
+/*            cl->rewriteEncryptQuery(query);
 
                         //cerr << query << "\n";
                         //cerr << resQuery.front() << "\n";
@@ -3977,11 +3977,11 @@ main(int argc, char ** argv)
     help(tc, argc, argv);
 }
 
-/*	if (strcmp(argv[1], "train") == 0) {
+/*    if (strcmp(argv[1], "train") == 0) {
                 test_train();
                 return 0;
         }*/
-/*		if (strcmp(argv[1], "trace") == 0) {
+/*        if (strcmp(argv[1], "trace") == 0) {
                         if (argc != 4) { cerr << "usage ./test trace file
                            noqueries isSecure ";}
                         runTrace(argv[2], atoi(argv[3]), atoi(argv[4]));
@@ -4003,7 +4003,7 @@ main(int argc, char ** argv)
                         return 0;
                 }
  */
-/*	if (strcmp(argv[1], "load") == 0) {
+/*    if (strcmp(argv[1], "load") == 0) {
                 if (argc != 8) {
                         cerr << "usage: test load noWorkers totalLines logFreq
                            file workeri1 workeri2\n";
@@ -4041,7 +4041,7 @@ main(int argc, char ** argv)
                         latency(string(argv[2]), atoi(argv[3]), atoi(argv[4]),
                            atoi(argv[5]), atoi(argv[6]));
         }
- */	/*
+ */    /*
         if (strcmp(argv[1], "integration") == 0){
                 testEDBClient();
                 return 0;

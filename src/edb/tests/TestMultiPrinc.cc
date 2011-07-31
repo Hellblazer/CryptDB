@@ -258,101 +258,101 @@ UserGroupForum(const TestConfig &tc, EDBClient * cl) {
     return;
 
     checkQuery(tc, cl,"SELECT * FROM groupforum",
-	       {"forumid","groupid","optionid"},
-	       { {"1","1","14"},
-		 {"1","1","20"} } );
+           {"forumid","groupid","optionid"},
+           { {"1","1","14"},
+         {"1","1","20"} } );
 
     checkQuery(tc, cl,"INSERT INTO forum VALUES (1,'success-- you can see forum text')",{}, {});
 
     myCreate(cl,"DELETE FROM "+ PWD_TABLE_PREFIX + "users WHERE username='alice';",
-	     "DELETE FROM plain_users WHERE username='alice'");
+         "DELETE FROM plain_users WHERE username='alice'");
     myCreate(cl,"DELETE FROM "+ PWD_TABLE_PREFIX + "users WHERE username='bob';",
-	     "DELETE FROM plain_users WHERE username='bob'");
+         "DELETE FROM plain_users WHERE username='bob'");
     myCreate(cl,"DELETE FROM "+ PWD_TABLE_PREFIX + "users WHERE username='chris';",
-	     "DELETE FROM plain_users WHERE username='chris'");
+         "DELETE FROM plain_users WHERE username='chris'");
 
     //alice
     myCreate(cl,"INSERT INTO "+ PWD_TABLE_PREFIX + "users (username, psswd) VALUES ('alice','secretalice');",
-	     "INSERT INTO plain_users (username, psswd) VALUES ('alice','secretalice');");
+         "INSERT INTO plain_users (username, psswd) VALUES ('alice','secretalice');");
     checkQuery(tc, cl,"SELECT forumtext from forum WHERE forumid=1",
-	       {"forumtext"},
-	       { {"success-- you can see forum text"} } );
+           {"forumtext"},
+           { {"success-- you can see forum text"} } );
     myCreate(cl,"DELETE FROM "+ PWD_TABLE_PREFIX + "users WHERE username='alice';",
-	     "DELETE FROM plain_users WHERE username='alice'");
+         "DELETE FROM plain_users WHERE username='alice'");
     
     //bob
     myCreate(cl,"INSERT INTO "+ PWD_TABLE_PREFIX + "users (username, psswd) VALUES ('bob','secretbob');",
-	     "INSERT INTO plain_users (username, psswd) VALUES ('bob','secretbob');");
+         "INSERT INTO plain_users (username, psswd) VALUES ('bob','secretbob');");
     testNULL(tc, cl,"SELECT forumtext from forum WHERE forumid=1","");
     myCreate(cl,"DELETE FROM "+ PWD_TABLE_PREFIX + "users WHERE username='bob';",
-	     "DELETE FROM plain_users WHERE username='bob'");    
+         "DELETE FROM plain_users WHERE username='bob'");    
 
     //chris
     myCreate(cl,"INSERT INTO "+ PWD_TABLE_PREFIX + "users (username, psswd) VALUES ('chris','secretchris');",
-	     "INSERT INTO plain_users (username, psswd) VALUES ('chris','secretchris');");
+         "INSERT INTO plain_users (username, psswd) VALUES ('chris','secretchris');");
     checkQuery(tc, cl,"SELECT forumtext from forum WHERE forumid=1",
-	       {"forumtext"},
-	       { {"success-- you can see forum text"} } );
+           {"forumtext"},
+           { {"success-- you can see forum text"} } );
     checkQuery(tc, cl,"UPDATE forum SET forumtext='you win!' WHERE forumid=1",{}, {});
     checkQuery(tc, cl,"SELECT forumtext from forum WHERE forumid=1",
-	       {"forumtext"},
-	       { {"you win!"} } );
+           {"forumtext"},
+           { {"you win!"} } );
     myCreate(cl,"DELETE FROM "+ PWD_TABLE_PREFIX + "users WHERE username='chris';",
-	     "DELETE FROM plain_users WHERE username='chris'");    
+         "DELETE FROM plain_users WHERE username='chris'");    
 
     //alice
     myCreate(cl,"INSERT INTO "+ PWD_TABLE_PREFIX + "users (username, psswd) VALUES ('alice','secretalice');",
-	     "INSERT INTO plain_users (username, psswd) VALUES ('alice','secretalice');");
+         "INSERT INTO plain_users (username, psswd) VALUES ('alice','secretalice');");
     checkQuery(tc, cl,"SELECT forumtext from forum WHERE forumid=1",
-	       {"forumtext"},
-	       { {"you win!"} } );
+           {"forumtext"},
+           { {"you win!"} } );
     checkQuery(tc, cl,"INSERT INTO forum VALUES (2, 'orphaned text!  everyone should be able to reach')",{}, {});
     checkQuery(tc, cl,"SELECT forumtext from forum WHERE forumid=2",
-	       {"forumtext"},
-	       { {"orphaned text!  everyone should be able to reach"} } );
+           {"forumtext"},
+           { {"orphaned text!  everyone should be able to reach"} } );
     myCreate(cl,"DELETE FROM "+ PWD_TABLE_PREFIX + "users WHERE username='alice';",
-	     "DELETE FROM plain_users WHERE username='alice'");
+         "DELETE FROM plain_users WHERE username='alice'");
 
     //bob
     myCreate(cl,"INSERT INTO "+ PWD_TABLE_PREFIX + "users (username, psswd) VALUES ('bob','secretbob');",
-	     "INSERT INTO plain_users (username, psswd) VALUES ('bob','secretbob');");
+         "INSERT INTO plain_users (username, psswd) VALUES ('bob','secretbob');");
     checkQuery(tc, cl,"SELECT forumtext from forum WHERE forumid=2",
-	       {"forumtext"},
-	       { {"orphaned text!  everyone should be able to reach"} } );
+           {"forumtext"},
+           { {"orphaned text!  everyone should be able to reach"} } );
     myCreate(cl,"DELETE FROM "+ PWD_TABLE_PREFIX + "users WHERE username='bob';",
-	     "DELETE FROM plain_users WHERE username='bob  '");
+         "DELETE FROM plain_users WHERE username='bob  '");
 
     //chris
     myCreate(cl,"INSERT INTO "+ PWD_TABLE_PREFIX + "users (username, psswd) VALUES ('chris','secretchris');",
-	     "INSERT INTO plain_users (username, psswd) VALUES ('chris','secretchris');");
+         "INSERT INTO plain_users (username, psswd) VALUES ('chris','secretchris');");
     checkQuery(tc, cl,"SELECT forumtext from forum WHERE forumid=2",
-	       {"forumtext"},
-	       { {"orphaned text!  everyone should be able to reach"} } );
+           {"forumtext"},
+           { {"orphaned text!  everyone should be able to reach"} } );
     checkQuery(tc, cl,"INSERT INTO groupforum VALUES (2, 2, 20)",{}, {});
     checkQuery(tc, cl,"SELECT forumtext FROM forum, groupforum, usergroup, u WHERE forum.forumid=groupforum.forumid AND groupforum.groupid=usergroup.groupid AND usergroup.userid=u.userid AND u.username='chris' AND groupforum.optionid=20",
-	       {"forumtext"},
-	       { {"you win!"},
-		 {"orphaned text!  everyone should be able to reach"} } );
+           {"forumtext"},
+           { {"you win!"},
+         {"orphaned text!  everyone should be able to reach"} } );
     myCreate(cl,"DELETE FROM "+ PWD_TABLE_PREFIX + "users WHERE username='chris';",
-	     "DELETE FROM plain_users WHERE username='chris'");
+         "DELETE FROM plain_users WHERE username='chris'");
 
     //bob
     myCreate(cl,"INSERT INTO "+ PWD_TABLE_PREFIX + "users (username, psswd) VALUES ('bob','secretbob');",
-	     "INSERT INTO plain_users (username, psswd) VALUES ('bob','secretbob');");
+         "INSERT INTO plain_users (username, psswd) VALUES ('bob','secretbob');");
     checkQuery(tc, cl,"SELECT forumtext FROM forum, groupforum, usergroup, u WHERE forum.forumid=groupforum.forumid AND groupforum.groupid=usergroup.groupid AND usergroup.userid=u.userid AND u.username='bob' AND groupforum.optionid=20",
-	       {"forumtext"},
-	       { {"orphaned text!  everyone should be able to reach"} } );
+           {"forumtext"},
+           { {"orphaned text!  everyone should be able to reach"} } );
     myCreate(cl,"DELETE FROM "+ PWD_TABLE_PREFIX + "users WHERE username='bob';",
-	     "DELETE FROM plain_users WHERE username='bob  '");
+         "DELETE FROM plain_users WHERE username='bob  '");
 
     //alice
     myCreate(cl,"INSERT INTO "+ PWD_TABLE_PREFIX + "users (username, psswd) VALUES ('alice','secretalice');",
-	     "INSERT INTO plain_users (username, psswd) VALUES ('alice','secretalice');");
+         "INSERT INTO plain_users (username, psswd) VALUES ('alice','secretalice');");
     checkQuery(tc, cl,"SELECT forumtext FROM forum, groupforum, usergroup, u WHERE forum.forumid=groupforum.forumid AND groupforum.groupid=usergroup.groupid AND usergroup.userid=u.userid AND u.username='alice' AND groupforum.optionid=20",
-	       {"forumtext"},
-	       { {"you win!"} } );
+           {"forumtext"},
+           { {"you win!"} } );
     myCreate(cl,"DELETE FROM "+ PWD_TABLE_PREFIX + "users WHERE username='alice';",
-	     "DELETE FROM plain_users WHERE username='alice'");
+         "DELETE FROM plain_users WHERE username='alice'");
 
 }
 
@@ -402,48 +402,48 @@ UserGroupForum_incFunction(const TestConfig &tc, EDBClient * cl) {
     checkQuery(tc, cl,"INSERT INTO groupforum VALUES (1,2,0)",{}, {});
 
     checkQuery(tc, cl,"SELECT * FROM groupforum",
-	       {"forumid","groupid","optionid"},
-	       { {"1","1","14"},
-		 {"1","1","20"},
-		 {"1","2","2"},
-		 {"1","2","0"} });
+           {"forumid","groupid","optionid"},
+           { {"1","1","14"},
+         {"1","1","20"},
+         {"1","2","2"},
+         {"1","2","0"} });
 
     checkQuery(tc, cl,"INSERT INTO forum VALUES (1,'success-- you can see forum text')", {}, {});
 
     myCreate(cl,"DELETE FROM "+ PWD_TABLE_PREFIX + "users WHERE username='alice';",
-	     "DELETE FROM plain_users WHERE username='alice'");
+         "DELETE FROM plain_users WHERE username='alice'");
     myCreate(cl,"DELETE FROM "+ PWD_TABLE_PREFIX + "users WHERE username='bob';",
-	     "DELETE FROM plain_users WHERE username='bob'");
+         "DELETE FROM plain_users WHERE username='bob'");
     myCreate(cl,"DELETE FROM "+ PWD_TABLE_PREFIX + "users WHERE username='chris';",
-	     "DELETE FROM plain_users WHERE username='chris'");
+         "DELETE FROM plain_users WHERE username='chris'");
 
     //alice
     myCreate(cl,"INSERT INTO "+ PWD_TABLE_PREFIX + "users (username, psswd) VALUES ('alice','secretalice');",
-	     "INSERT INTO plain_users (username, psswd) VALUES ('alice','secretalice');");
+         "INSERT INTO plain_users (username, psswd) VALUES ('alice','secretalice');");
     checkQuery(tc, cl,"SELECT forumtext from forum WHERE forumid=1",
-	       {"forumtext"},
-	       { {"success-- you can see forum text"} } );
+           {"forumtext"},
+           { {"success-- you can see forum text"} } );
     myCreate(cl,"DELETE FROM "+ PWD_TABLE_PREFIX + "users WHERE username='alice';",
-	     "DELETE FROM plain_users WHERE username='alice'");
+         "DELETE FROM plain_users WHERE username='alice'");
     
     //bob
     myCreate(cl,"INSERT INTO "+ PWD_TABLE_PREFIX + "users (username, psswd) VALUES ('bob','secretbob');",
-	     "INSERT INTO plain_users (username, psswd) VALUES ('bob','secretbob');");
+         "INSERT INTO plain_users (username, psswd) VALUES ('bob','secretbob');");
     if (tc.stop_if_fail) {
       cerr << "\n\nIn FUNCTION-BASED!!! version of groupsusersforums tests\n\n" << endl;
     }
     testNULL(tc, cl,"SELECT forumtext from forum WHERE forumid=1","");
     myCreate(cl,"DELETE FROM "+ PWD_TABLE_PREFIX + "users WHERE username='bob';",
-	     "DELETE FROM plain_users WHERE username='bob'");    
+         "DELETE FROM plain_users WHERE username='bob'");    
 
     //chris
     myCreate(cl,"INSERT INTO "+ PWD_TABLE_PREFIX + "users (username, psswd) VALUES ('chris','secretchris');",
-	     "INSERT INTO plain_users (username, psswd) VALUES ('chris','secretchris');");
+         "INSERT INTO plain_users (username, psswd) VALUES ('chris','secretchris');");
     checkQuery(tc, cl,"SELECT forumtext from forum WHERE forumid=1",
-	       {"forumtext"},
-	       { {"success-- you can see forum text"} } );
+           {"forumtext"},
+           { {"success-- you can see forum text"} } );
     myCreate(cl,"DELETE FROM "+ PWD_TABLE_PREFIX + "users WHERE username='chris';",
-	     "DELETE FROM plain_users WHERE username='chris'");
+         "DELETE FROM plain_users WHERE username='chris'");
 
 
 

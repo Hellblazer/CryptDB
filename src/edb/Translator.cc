@@ -340,23 +340,23 @@ throw (CryptDBError)
 
         //must bring both to joinable level
         if (fmfirst->secLevelOPE == SECLEVEL::SEMANTIC_OPE) {
-        	addIfNotContained(fullName(firstToken,
-        			firstTable), fieldsDec.OPEFields);
+            addIfNotContained(fullName(firstToken,
+                    firstTable), fieldsDec.OPEFields);
         }
         if (fmsecond->secLevelOPE == SECLEVEL::SEMANTIC_OPE) {
-        	addIfNotContained(fullName(secondToken,
-        			secondTable), fieldsDec.OPEFields);
+            addIfNotContained(fullName(secondToken,
+                    secondTable), fieldsDec.OPEFields);
         }
         if (fmfirst->secLevelOPE == SECLEVEL::OPE) {
-        	addIfNotContained(fullName(firstToken,
-        			firstTable),
-        			fieldsDec.OPEJoinFields);
+            addIfNotContained(fullName(firstToken,
+                    firstTable),
+                    fieldsDec.OPEJoinFields);
         }
 
         if (fmsecond->secLevelOPE == SECLEVEL::OPE) {
-        	addIfNotContained(fullName(secondToken,
-        			secondTable),
-        			fieldsDec.OPEJoinFields);
+            addIfNotContained(fullName(secondToken,
+                    secondTable),
+                    fieldsDec.OPEJoinFields);
         }
 
         return;
@@ -366,7 +366,7 @@ throw (CryptDBError)
     // It is not join
 
     if (Operation::isILIKE(operation)) {
-    	return;
+        return;
     }
 
     if (Operation::isIN(operation) && (isField(firstToken))) {

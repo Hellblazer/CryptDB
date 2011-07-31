@@ -48,7 +48,7 @@ static void
 testHGD()
 {
 
-	/* This test is outdated.
+    /* This test is outdated.
     unsigned int len = 16;   //bytes
     unsigned int bitsPrecision = len * bitsPerByte + 10;
     ZZ K = ZZFromString(randomBytes(len));
@@ -216,7 +216,7 @@ testSWPSearch()
     Binary emptytext = Binary::toBinary("");
     Binary exacttext = Binary::toBinary("123456789012345");
 
-    LOG(test) << "		+ test encrypt/decrypt";
+    LOG(test) << "        + test encrypt/decrypt";
 
     list<Binary> lst = {mediumtext, smalltext, emptytext, exacttext};
 
@@ -240,7 +240,7 @@ testSWPSearch()
 
     //test searchability
 
-    LOG(test) << "		+ test searchability";
+    LOG(test) << "        + test searchability";
 
     Binary word1 = Binary::toBinary("ana");
     Binary word2 = Binary::toBinary("dana");
@@ -282,7 +282,7 @@ testSWPSearch()
 
     //test encrypt/decrypt wrappers
 
-    LOG(test) << "		+ test wrappers";
+    LOG(test) << "        + test wrappers";
 
     list<Binary> lstw = {mediumtext, smalltext, emptytext,  exacttext};
 

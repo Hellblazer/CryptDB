@@ -1115,12 +1115,9 @@ KeyAccess::getPrinKey(Prin prin)
                  "newly created orphan in getKey is not recognized as an orphan");
     }
     else {
-        if (VERBOSE) {
-            cerr <<
-            "     *asking for a key that exists but is not accessible" <<
-            endl;
-	    cerr << prinkey.key.length() << endl;
-        }
+        if (VERBOSE)
+            cerr << "asking for a key that exists but is not accessible: "
+                 << prinkey.key.length() << endl;
     }
     return prinkey;
 }

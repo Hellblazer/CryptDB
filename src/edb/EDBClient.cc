@@ -557,7 +557,7 @@ EDBClient::rewriteEncryptUpdate(const string &query)
 throw (CryptDBError)
 {
 
-    //	UPDATE folders SET mitgeec = 'DOC', mitgeecs_app_term = '9/2007' WHERE
+    //    UPDATE folders SET mitgeec = 'DOC', mitgeecs_app_term = '9/2007' WHERE
     // id = '99e89298fa'
 
     FieldsToDecrypt fieldsDec;
@@ -1525,14 +1525,14 @@ throw (CryptDBError)
     //gettimeofday(&starttime, NULL);
     QueryMeta qm  = getQueryMeta(cmd::SELECT, words, tableMetaMap);
     LOG(edb_v) << "after get query meta";
-//	gettimeofday(&endtime, NULL);
-//	cout << "get query meta" << timeInMSec(starttime, endtime) << "\n";
+//    gettimeofday(&endtime, NULL);
+//    cout << "get query meta" << timeInMSec(starttime, endtime) << "\n";
     //expand * in SELECT *
 
-//	gettimeofday(&starttime, NULL);
+//    gettimeofday(&starttime, NULL);
     expandWildCard(words, qm, tableMetaMap);
-//	gettimeofday(&endtime, NULL);
-//	cout << "expand wild card " << timeInMSec(starttime, endtime) << "\n";
+//    gettimeofday(&endtime, NULL);
+//    cout << "expand wild card " << timeInMSec(starttime, endtime) << "\n";
     //=========================================================
 
     LOG(edb_v) << "new query is: " << toString(words, angleBrackets);
@@ -1547,8 +1547,8 @@ throw (CryptDBError)
         if (VERBOSE) { LOG(edb_v) << "done with prepare select"; }
     }
 
-//	gettimeofday(&endtime, NULL);
-//		cout << "MULTIPRINC prepare select" << timeInMSec(starttime,
+//    gettimeofday(&endtime, NULL);
+//        cout << "MULTIPRINC prepare select" << timeInMSec(starttime,
 // endtime) << "\n";
 
     FieldsToDecrypt fieldsDec;
@@ -1736,10 +1736,10 @@ throw (CryptDBError)
                 getOnionName(fm,oOPE);
 
             if (fm->isEncrypted) {
-            	assert_s((fm->type != TYPE_TEXT),
-            	                     "min, max not fully implemented for text");
+                assert_s((fm->type != TYPE_TEXT),
+                                     "min, max not fully implemented for text");
 
-            	if (DECRYPTFIRST) {
+                if (DECRYPTFIRST) {
                     resultQuery = resultQuery + fieldNameForQuery(
                         tm->anonTableName, table2, field2, fm->type, qm);
                 } else {
@@ -1951,7 +1951,7 @@ getResMeta(list<string> words, const ResType &vals, QueryMeta & qm,
                                          tmkm, ignore);
             }
 
-//			cerr << "field, " << rm.field[i] << " table  " <<
+//            cerr << "field, " << rm.field[i] << " table  " <<
 // rm.table[i] << " onion " << rm.o[i] << " nameForRes " << rm.namesForRes[i]
 // << "\n";
             continue;
@@ -2073,9 +2073,9 @@ EDBClient::rewriteDecryptSelect(const string &query, const ResType &dbAnswer)
         if ((!rm.isSalt[i]) && (!mp || tmkm.returnBitMap[i])) {
             rets.names[index0] = rm.namesForRes[i];
             if (rm.o[i] == oNONE) { // val not encrypted
-            	rets.types[index0] = dbAnswer.types[i]; //return the type from the mysql server
+                rets.types[index0] = dbAnswer.types[i]; //return the type from the mysql server
             } else {
-            	rets.types[index0] = tableMetaMap[rm.table[i]]->fieldMetaMap[rm.field[i]]->mysql_type;
+                rets.types[index0] = tableMetaMap[rm.table[i]]->fieldMetaMap[rm.field[i]]->mysql_type;
             }
             index0++;
         }
@@ -2148,18 +2148,18 @@ EDBClient::rewriteDecryptSelect(const string &query, const ResType &dbAnswer)
 static string
 getLIKEToken(const string &s)
 {
-	string res = removeApostrophe(s);
-	unsigned int len = (uint) res.length();
+    string res = removeApostrophe(s);
+    unsigned int len = (uint) res.length();
 
-	if (res[0]=='%') {
-		res = res.substr(1, --len);
-	}
-	if (res[len-1] == '%') {
-		res = res.substr(0, --len);
-	}
+    if (res[0]=='%') {
+        res = res.substr(1, --len);
+    }
+    if (res[len-1] == '%') {
+        res = res.substr(0, --len);
+    }
 
-	LOG(edb_v) << "search token is <" << res << ">\n";
-	return toLowerCase(res);
+    LOG(edb_v) << "search token is <" << res << ">\n";
+    return toLowerCase(res);
 }
 
 string
@@ -2271,7 +2271,7 @@ throw (CryptDBError)
     if (Operation::isILIKE(operation)) {     //DET
 
         /* Method 2 search: SWP */
-    	 LOG(edb_v) << "IS LIKE/ILIKE";
+         LOG(edb_v) << "IS LIKE/ILIKE";
 
         anonField1 = fm1->anonFieldNameSWP;
         string anonfull = fullName(anonField1,
@@ -2279,20 +2279,20 @@ throw (CryptDBError)
 
         if (removeApostrophe(op2).length() == 0) {
 
-        	res += anonField1 + " LIKE '' ";
+            res += anonField1 + " LIKE '' ";
 
         } else {
-        	res += SEARCHSWP"(";
+            res += SEARCHSWP"(";
 
-        	Binary key = Binary(cm->getKey(cm->getmkey(), anonfull, SECLEVEL::SWP));
+            Binary key = Binary(cm->getKey(cm->getmkey(), anonfull, SECLEVEL::SWP));
 
-        	Token t = CryptoManager::token(key, Binary(getLIKEToken(op2)));
+            Token t = CryptoManager::token(key, Binary(getLIKEToken(op2)));
 
-        	res +=
-        			marshallBinary(string((char *)t.ciph.content,
-        					t.ciph.len)) + ", " +
-        					marshallBinary(string((char *)t.wordKey.content,
-        							t.wordKey.len)) +  ", " +  anonField1 + ") = 1; ";
+            res +=
+                    marshallBinary(string((char *)t.ciph.content,
+                            t.ciph.len)) + ", " +
+                            marshallBinary(string((char *)t.wordKey.content,
+                                    t.wordKey.len)) +  ", " +  anonField1 + ") = 1; ";
         }
 
         return res;

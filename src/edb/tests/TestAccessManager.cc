@@ -15,7 +15,7 @@ record(const TestConfig &tc, bool result, string test) {
     ntest++;
     if (!result) {
       if (tc.stop_if_fail) {
-	assert_s(false,test);
+    assert_s(false,test);
       }
       return;
     }
@@ -151,40 +151,40 @@ testMeta(const TestConfig &tc, KeyAccess * am) {
     record(tc, gid_hasAccessTo.find("x.mailing_list") != gid_hasAccessTo.end(),test+"g.gid does not have access to x.mailing_list");
     record(tc, gid_hasAccessTo.find("g.uid") == gid_hasAccessTo.end(),test+"g.gid does have access to g.uid");
     record(tc, gid_hasAccessTo.find(
-				"f.gid") == gid_hasAccessTo.end(),
-	   test+"getTypesHasAccessTo(g.gid) includes f.gid");
+                "f.gid") == gid_hasAccessTo.end(),
+       test+"getTypesHasAccessTo(g.gid) includes f.gid");
     record(tc, gid_hasAccessTo.find(
-				"g.gid") == gid_hasAccessTo.end(),
-	 test+"getTypesHasAccessTo(g.gid) includes g.gid");
+                "g.gid") == gid_hasAccessTo.end(),
+     test+"getTypesHasAccessTo(g.gid) includes g.gid");
     
     std::set<string> mess_accessibleFrom = am->getTypesAccessibleFrom("m.mess");
     record(tc, mess_accessibleFrom.find(
-				    "m.uid") != mess_accessibleFrom.end(),
-	   test+"m.mess is not accessible from m.uid");
+                    "m.uid") != mess_accessibleFrom.end(),
+       test+"m.mess is not accessible from m.uid");
     record(tc, mess_accessibleFrom.find(
-				    "u.uid") != mess_accessibleFrom.end(),
-	   test+"m.mess is not accessible from u.uid");
+                    "u.uid") != mess_accessibleFrom.end(),
+       test+"m.mess is not accessible from u.uid");
     record(tc, mess_accessibleFrom.find(
-				    "g.uid") != mess_accessibleFrom.end(),
-	 test+"m.mess is not accessible from g.uid");
+                    "g.uid") != mess_accessibleFrom.end(),
+     test+"m.mess is not accessible from g.uid");
     record(tc, mess_accessibleFrom.find(
-				    "g.gid") == mess_accessibleFrom.end(),
-	   test+"m.mess is accessible from g.gid");
+                    "g.gid") == mess_accessibleFrom.end(),
+       test+"m.mess is accessible from g.gid");
     record(tc, mess_accessibleFrom.find(
-				    "u.uname") == mess_accessibleFrom.end(),
-	   test+"m.mess is accessible from u.uname in one link");
+                    "u.uname") == mess_accessibleFrom.end(),
+       test+"m.mess is accessible from u.uname in one link");
     
     std::set<string> acc_accessibleFrom = am->getGenAccessibleFrom(
-								   am->getGeneric("u.acc"));
+                                   am->getGeneric("u.acc"));
     record(tc, acc_accessibleFrom.find(am->getGeneric(
-						  "u.uid")) != acc_accessibleFrom.end(),
-	   test+"gen acc is not accessible from gen uid");
+                          "u.uid")) != acc_accessibleFrom.end(),
+       test+"gen acc is not accessible from gen uid");
     record(tc, acc_accessibleFrom.find(am->getGeneric(
-						  "g.gid")) != acc_accessibleFrom.end(),
-	   test+"gen acc is not accessible from gen gid");
+                          "g.gid")) != acc_accessibleFrom.end(),
+       test+"gen acc is not accessible from gen gid");
     record(tc, acc_accessibleFrom.find(am->getGeneric(
-						  "f.fid")) == acc_accessibleFrom.end(),
-	   test+"gen acc is accessible from gen fid");
+                          "f.fid")) == acc_accessibleFrom.end(),
+       test+"gen acc is accessible from gen fid");
     
     list<string> bfs = am->BFS_hasAccess(alice);
     list<string> dfs = am->DFS_hasAccess(alice);
@@ -228,53 +228,53 @@ testMultiBasic(const TestConfig &tc, KeyAccess * am) {
     am->insert(u2,g5);
 
     record(tc, am->getKey(f2).length() > 0,
-	   test+"forum 2 key not accessible with both alice and bob logged on");
+       test+"forum 2 key not accessible with both alice and bob logged on");
     am->removePsswd(alice);
     string f2_key2 = marshallBinary(am->getKey(f2));
     record(tc, f2_key2.length() > 0,
-	   test+"forum 2 key not accessible with bob logged on");
+       test+"forum 2 key not accessible with bob logged on");
     record(tc, f2_key2.compare(f2_key1) == 0,
-	   test+"forum 2 key is not the same for bob as it was for alice");
+       test+"forum 2 key is not the same for bob as it was for alice");
     am->insert(g5,f3);
     string f3_key1 = marshallBinary(am->getKey(f3));
     record(tc, f3_key1.length() > 0,
-	   test+"forum 3 key not acessible with bob logged on");
+       test+"forum 3 key not acessible with bob logged on");
     am->removePsswd(bob);
     record(tc, am->getKey(alice).length() == 0,
-	   test+"can access alice's key with no one logged in");
+       test+"can access alice's key with no one logged in");
     record(tc, am->getKey(bob).length() == 0,
-	   test+"can access bob's key with no one logged in");
+       test+"can access bob's key with no one logged in");
     record(tc, am->getKey(u1).length() == 0,
-	   test+"can access user 1 key with no one logged in");
+       test+"can access user 1 key with no one logged in");
     record(tc, am->getKey(u2).length() == 0,
-	   test+"can access user 2 key with no one logged in");
+       test+"can access user 2 key with no one logged in");
     record(tc, am->getKey(g5).length() == 0,
-	   test+"can access group 5 key with no one logged in");
+       test+"can access group 5 key with no one logged in");
     record(tc, am->getKey(f2).length() == 0,
-	   test+"can access forum 2 key with no one logged in");
+       test+"can access forum 2 key with no one logged in");
     record(tc, am->getKey(f3).length() == 0,
-	   test+"can access forum 3 key with no one logged in");
+       test+"can access forum 3 key with no one logged in");
     am->insertPsswd(alice, secretA);
     string f3_key2 = marshallBinary(am->getKey(f3));
     record(tc, f3_key2.length() > 0,
-	   test+"forum 3 key not accessible with alice logged on");
+       test+"forum 3 key not accessible with alice logged on");
     record(tc, f3_key1.compare(f3_key2) == 0,
-	   test+"forum 3 key is not the same for alice as it was for bob");
+       test+"forum 3 key is not the same for alice as it was for bob");
     am->removePsswd(alice);
     am->insert(g5,mlwork);
     record(tc, am->getKey(mlwork).length() == 0,
-	   test+"can access mailing list work key with no one logged in");
+       test+"can access mailing list work key with no one logged in");
     record(tc, am->insertPsswd(alice, secretA) == 0, "insert alice failed (4)");
     string work_key1 = marshallBinary(am->getKey(mlwork));
     record(tc, work_key1.length() > 0,
-	   test+"mailing list work key inaccessible when alice is logged on");
+       test+"mailing list work key inaccessible when alice is logged on");
     am->removePsswd(alice);
     am->insertPsswd(bob, secretB);
     string work_key2 = marshallBinary(am->getKey(mlwork));
     record(tc, work_key2.length() > 0,
-	   test+"mailing list work key inaccessible when bob is logged on");
+       test+"mailing list work key inaccessible when bob is logged on");
     record(tc, work_key1.compare(work_key2) == 0,
-	   test+"mailing list work key is not the same for bob as it was for alice");
+       test+"mailing list work key is not the same for bob as it was for alice");
 }
 
 static void
@@ -284,18 +284,18 @@ testNonTree(const TestConfig &tc, KeyAccess * am) {
 
     am->insert(g5,a5);
     record(tc, am->getKey(a5).length() == 0,
-	   test+"can access a5's key with no one logged in");
+       test+"can access a5's key with no one logged in");
     am->insertPsswd(alice,secretA);
     string a5_key1 = marshallBinary(am->getKey(a5));
     record(tc, a5_key1.length() > 0,
-	   test+"cannot access a5's key with alice logged on");
+       test+"cannot access a5's key with alice logged on");
     am->removePsswd(alice);
     am->insertPsswd(bob,secretB);
     string a5_key2 = marshallBinary(am->getKey(a5));\
     record(tc, a5_key2.length() > 0,
-	   test+"cannot access a5's key with bob logged on");
+       test+"cannot access a5's key with bob logged on");
     record(tc, a5_key1.compare(a5_key2) == 0,
-	   test+"alice and bob have different a5 keys");
+       test+"alice and bob have different a5 keys");
 
 }
 
@@ -309,23 +309,23 @@ testOrphans(const TestConfig &tc, KeyAccess * am) {
 
     am->insert(m2,s6);
     record(tc, (am->getKey(s6)).length() > 0,
-	   test+"s6 key does not exist as an orphan");
+       test+"s6 key does not exist as an orphan");
     record(tc, (am->getKey(m2)).length() > 0,
-	   test+"m2 key does not exist as an orphan");
+       test+"m2 key does not exist as an orphan");
     string s6_key1 = marshallBinary(am->getKey(s6));
     string m2_key1 = marshallBinary(am->getKey(m2));
 
     am->insert(u2,m2);
     record(tc, (am->getKey(m2)).length() == 0,
-	   test+"m2 key is available when bob is logged off");
+       test+"m2 key is available when bob is logged off");
     record(tc, (am->getKey(s6)).length() == 0,
-	   test+"s6 key is available when bob is logged off");
+       test+"s6 key is available when bob is logged off");
     
     am->insertPsswd(bob,secretB);
     record(tc, (am->getKey(s6)).length() > 0,
-	   test+"s6 key is not available when bob is logged on");
+       test+"s6 key is not available when bob is logged on");
     record(tc, (am->getKey(m2)).length() > 0,
-	   test+"m2 key is not available when bob is logged on");
+       test+"m2 key is not available when bob is logged on");
     string s6_key3 = marshallBinary(am->getKey(s6));
     string m2_key3 = marshallBinary(am->getKey(m2));
     record(tc, s6_key1.compare(s6_key3) == 0, test+"s6 key does not match");
@@ -333,9 +333,9 @@ testOrphans(const TestConfig &tc, KeyAccess * am) {
 
     am->insert(m3,s4);
     record(tc, (am->getKey(s4)).length() > 0,
-	   test+"s4 key does not exist as an orphan");
+       test+"s4 key does not exist as an orphan");
     record(tc, (am->getKey(m3)).length() > 0,
-	   test+"m3 key does not exist as an orphan");
+       test+"m3 key does not exist as an orphan");
     string s4_key1 = marshallBinary(am->getKey(s4));
     string m3_key1 = marshallBinary(am->getKey(m3));
     am->insert(u2,m3);
