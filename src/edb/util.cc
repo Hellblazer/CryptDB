@@ -823,7 +823,7 @@ mirrorUntilTerm(list<string>::iterator & it, list<string> & words,
                 const std::set<string> & terms, bool stopAfterTerm,
                 bool skipParenBlock)
 {
-    string res = " ";
+    string res = "";
     while ((it!=words.end()) &&
            (terms.find(toLowerCase(*it)) == terms.end()))  {
         if (skipParenBlock) {
