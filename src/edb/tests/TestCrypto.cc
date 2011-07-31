@@ -24,12 +24,10 @@ testOPE()
     const unsigned int OPEPlaintextSize = 32;
     const unsigned int OPECiphertextSize = 128;
 
-    unsigned char key[AES_KEY_SIZE/
-                      bitsPerByte] =
-    {158, 242, 169, 240, 255, 166, 39, 177, 149, 166, 190, 237, 178, 254, 187,
-     40};
+    unsigned char key[AES_KEY_BYTES] = 
+        {158, 242, 169, 240, 255, 166, 39, 177, 149, 166, 190, 237, 178, 254, 187, 40};
 
-    OPE * ope = new OPE((const char *) key, OPEPlaintextSize,
+    OPE * ope = new OPE(string((char *) key, AES_KEY_BYTES), OPEPlaintextSize,
                         OPECiphertextSize);
 
     unsigned char plaintext[OPEPlaintextSize/bitsPerByte] = {74, 95, 221, 84};
@@ -47,7 +45,7 @@ testOPE()
 }
 
 static void
-testHDG()
+testHGD()
 {
 
 	/* This test is outdated.
@@ -373,8 +371,8 @@ TestCrypto::run(const TestConfig &tc, int argc, char ** argv)
     cerr << "TESTING CRYPTO" << endl;
     cerr << "Testing OPE..." << endl;
     testOPE();
-    cerr << "Testing HDG..." << endl;
-    testHDG();
+    cerr << "Testing HGD..." << endl;
+    testHGD();
     cerr << "Testing PKCS..." << endl;
     testPKCS();
     cerr << "Testing SWP Search ... " << endl;
