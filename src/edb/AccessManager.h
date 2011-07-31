@@ -159,9 +159,6 @@ class MetaAccess {
 
     string publicTableName();
 
-    void finish();
-
-    virtual
     ~MetaAccess();
 
  private:
@@ -276,9 +273,6 @@ class KeyAccess {
     // givesPsswd value has access to, the keys are dropped from keys
     int removePsswd(Prin prin);
 
-    void finish();
-
-    virtual
     ~KeyAccess();
 
  private:

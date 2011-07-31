@@ -306,8 +306,10 @@ typedef struct MultiKeyMeta {
     map<string, Predicate *> condAccess;     //maps a field having accessto to
                                              // any conditional predicate it
                                              // may have
-
-    void cleanup();
+    ~MultiKeyMeta() {
+        for (auto i = condAccess.begin(); i != condAccess.end(); i++)
+            delete i->second;
+    }
 } MKM;
 
 //temporary metadata for multi-key CryptDB that belongs to the query or result
@@ -335,8 +337,6 @@ typedef struct TempMKM {
     // maps position in raw DBMS response to whether it should be returned to
     // user or not
     map<unsigned int, bool> returnBitMap;
-
-    void cleanup();
 } TMKM;
 
 //=============  Useful functions =========================//

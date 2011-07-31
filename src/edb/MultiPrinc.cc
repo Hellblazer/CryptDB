@@ -14,8 +14,7 @@ MultiPrinc::MultiPrinc(Connect * connarg)
 
 MultiPrinc::~MultiPrinc()
 {
-    mkm.cleanup();
-    accMan->finish();
+    delete accMan;
 }
 
 string
@@ -335,6 +334,8 @@ MultiPrinc::getEncForFromFilter(command comm, list<string> query, TMKM & tmkm,
                 }
             }
         }
+
+        delete eos;
 
         if (VERBOSE) {
             LOG(mp) << "here is what that encforval contains: ";
@@ -721,21 +722,3 @@ MultiPrinc::get_key(string fieldName, TMKM & tmkm,
     assert_s(false, "cryptdb does not have keys to decrypt query result \n");
     return NULL;
 }
-
-void
-MKM::cleanup()
-{
-    encForMap.clear();
-    reverseEncFor.clear();
-    condAccess.clear();
-}
-
-void
-TempMKM::cleanup()
-{
-    encForVal.clear();
-    encForReturned.clear();
-    principalsSeen.clear();
-    returnBitMap.clear();
-}
-

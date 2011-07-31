@@ -573,8 +573,7 @@ MetaAccess::DeleteTables()
     return 0;
 }
 
-void
-MetaAccess::finish()
+MetaAccess::~MetaAccess()
 {
     DeleteTables();
     prinToGen.clear();
@@ -583,11 +582,6 @@ MetaAccess::finish()
     genAccessibleByList.clear();
     givesPsswd.clear();
     genHasAccessToGenTable.clear();
-}
-
-MetaAccess::~MetaAccess()
-{
-    finish();
 }
 
 void
@@ -1788,8 +1782,7 @@ KeyAccess::getUncached(Prin prin)
     return empty;
 }
 
-void
-KeyAccess::finish()
+KeyAccess::~KeyAccess()
 {
     map<Prin, PrinKey>::iterator it;
     for(it = keys.begin(); it != keys.end(); it++) {
@@ -1797,9 +1790,5 @@ KeyAccess::finish()
     }
     keys.clear();
     delete meta;
-}
-
-KeyAccess::~KeyAccess()
-{
-    finish();
+    delete crypt_man;
 }

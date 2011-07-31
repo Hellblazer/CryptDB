@@ -833,9 +833,7 @@ throw (CryptDBError)
         processFilters(wordsIt, words, qm,  resultQuery, fieldsDec,
                        tmkm);
 
-    tmkm.cleanup();
     qm.cleanup();
-
     return res;
 }
 
@@ -1882,9 +1880,7 @@ throw (CryptDBError)
         processFilters(wordsIt, words, qm, resultQuery, fieldsDec, tmkm,
                        subqueries);
 
-    tmkm.cleanup();
     qm.cleanup();
-
     return res;
 }
 
@@ -2141,7 +2137,6 @@ EDBClient::rewriteDecryptSelect(const string &query, const ResType &dbAnswer)
         }
     }
 
-    tmkm.cleanup();
     qm.cleanup();
     rm.cleanup();
     return rets;
@@ -2457,9 +2452,7 @@ throw (CryptDBError)
         processFilters(wordsIt, words, qm, resultQuery, ftd,
                        tmkm);
 
-    tmkm.cleanup();
     qm.cleanup();
-
     return res;
 }
 
@@ -2837,8 +2830,6 @@ throw (CryptDBError)
     assert_s(wordsIt == words.end(), "invalid text after )");
 
     resultQuery = resultQuery + ";";
-
-    tmkm.cleanup();
 
     return list<string>(1, resultQuery);
 }
