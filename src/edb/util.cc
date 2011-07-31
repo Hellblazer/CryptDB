@@ -26,6 +26,7 @@ throw (CryptDBError)
 {
     if (ASSERTS_ON) {
         if (!value) {
+        	LOG(warn) << "ERROR: " << msg;
             throw CryptDBError(msg);
         }
     }

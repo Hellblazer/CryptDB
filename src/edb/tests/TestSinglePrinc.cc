@@ -39,52 +39,65 @@ convert(string rows[][N], int num_rows)
     return res;
 }
 
+static vector<vector<string> > removeType(const vector<vector<string> > & a) {
+	unsigned int len = a.size();
+
+	if (len < 2) {
+		return a;
+	}
+
+	vector<vector<string> > b =  vector<vector<string> >();
+	b.push_back(a[0]);
+	for (unsigned int i = 2; i < len; i++) {
+		b.push_back(a[i]);
+	}
+
+	return b;
+}
 static void
 CheckSelectResults(const TestConfig &tc, EDBClient * cl, vector<string> in, vector<ResType> out)
 {
-    assert_s(
-        in.size() == out.size(),
-        "different numbers of test queries and expected results");
+	assert_s(
+			in.size() == out.size(),
+			"different numbers of test queries and expected results");
 
-    vector<string>::iterator query_it = in.begin();
-    vector<ResType>::iterator res_it = out.begin();
+	vector<string>::iterator query_it = in.begin();
+	vector<ResType>::iterator res_it = out.begin();
 
-    LOG(test) << in.size() << "  " << out.size();
+	LOG(test) << in.size() << "  " << out.size();
 
-    while(query_it != in.end()) {
-        ntest++;
-	bool passed = true;
-        ResType * test_res = myExecute(cl, *query_it);
-        if(!test_res) {
-            LOG(test) << "Query: " << *query_it;
-            if (tc.stop_if_fail) {
-                assert_s(false, "above query failed");
-            }
-	    passed = false;
-        }
+	while(query_it != in.end()) {
+		ntest++;
+		bool passed = true;
+		ResType * test_res = myExecute(cl, *query_it);
+		if(!test_res) {
+			LOG(test) << "Query: " << *query_it;
+			if (tc.stop_if_fail) {
+				assert_s(false, "above query failed");
+			}
+			passed = false;
+		}
 
-        if(passed && *test_res != *res_it) {
-            LOG(test) << "From query: " << *query_it;
-            cerr << "-----------------------\nExpected result:" << endl;
-            PrintRes(*res_it);
-            cerr << "Got result:" << endl;
-            PrintRes(*test_res);
-            cerr << "Select or Join test failed\n";
-            if (tc.stop_if_fail) {
-                assert_s(false, "above query generated the wrong result");
-            }
-	    passed = false;
-        }
+		if(passed && removeType(*test_res) != *res_it) {
+			LOG(test) << "From query: " << *query_it;
+			cerr << "-----------------------\nExpected result:" << endl;
+			PrintRes(*res_it);
+			cerr << "Got result:" << endl;
+			PrintRes(removeType(*test_res));
+			cerr << "Select or Join test failed\n";
+			if (tc.stop_if_fail) {
+				assert_s(false, "above query generated the wrong result");
+			}
+			passed = false;
+		}
 
-        if (test_res)
-            delete test_res;
+		if (passed) {
+			npass++;
+		}
 
-	if (passed)
-	  npass++;
-
-        query_it++;
-        res_it++;
-    }
+		query_it++;
+		res_it++;
+	}
 }
 
 static void
@@ -105,7 +118,7 @@ qUpdateSelect(const TestConfig &tc, EDBClient *cl, const string &update,
         return;
     }
 
-    if (*test_res != expect) {
+    if (removeType(*test_res) != expect) {
         cerr << "Expected result:" << endl;
         PrintRes(expect);
         cerr << "Got result:" << endl;
