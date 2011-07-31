@@ -35,16 +35,8 @@ CryptoManager::getmkey()
 CryptoManager::CryptoManager(const string &masterKeyArg)
 {
     VERBOSE = VERBOSE_G;
-    masterKey = new AES_KEY();
-
-    AES_set_encrypt_key((const uint8_t*) masterKeyArg.c_str(),
-                        AES_KEY_SIZE, masterKey);
-
-    RAND_seed((const uint8_t*) masterKeyArg.c_str(),
-              (int) masterKeyArg.size());
-
-    SetSeed(ZZFromBytes((const uint8_t *) masterKeyArg.c_str(),
-                        (int) masterKeyArg.size()));
+    masterKey = 0;
+    setMasterKey(masterKeyArg);
 
     useEncTables = false;
 
@@ -895,6 +887,9 @@ CryptoManager::decrypt_DET(const string & ctext, AES_KEY * key)
 void
 CryptoManager::setMasterKey(const string &masterKeyArg)
 {
+    if (masterKey)
+        delete masterKey;
+
     masterKey = new AES_KEY();
 
     AES_set_encrypt_key(
@@ -1488,7 +1483,8 @@ CryptoManager::freeKey(PKCS * key)
 
 CryptoManager::~CryptoManager()
 {
-    free(masterKey);
+    if (masterKey)
+        delete masterKey;
 
     map<string, map<int, uint64_t> >::iterator it = OPEEncTable.begin();
 
