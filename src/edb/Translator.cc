@@ -73,6 +73,14 @@ FieldMetadata::FieldMetadata()
     has_search = false;
 }
 
+TableMetadata::~TableMetadata()
+{
+    for (auto i = fieldMetaMap.begin(); i != fieldMetaMap.end(); i++)
+        delete i->second;
+    for (auto i = indexes.begin(); i != indexes.end(); i++)
+        delete *i;
+}
+
 string
 processInsert(string field, string table, TableMetadata * tm)
 {

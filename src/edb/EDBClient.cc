@@ -2393,6 +2393,7 @@ throw (CryptDBError)
 
     //cout << result << "\n\n";
     //delete associated data from internal data structures
+    delete tableMetaMap[tableName];
     tableMetaMap.erase(tableName);
     tableNameMap.erase(anonTableName);
 

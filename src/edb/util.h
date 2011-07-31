@@ -207,6 +207,7 @@ typedef struct TableMetadata { //each anonymized field
     list<IndexMetadata *> indexes;
     bool hasEncrypted;     //true if the table contains an encrypted field
 
+    ~TableMetadata();
 } TableMetadata;
 
 typedef struct FieldsToDecrypt {
