@@ -18,6 +18,7 @@
     m(am)                   \
     m(am_v)                 \
     m(mp)                   \
+    m(wrapper)              \
     m(all)
 
 enum class log_group {
