@@ -27,22 +27,25 @@ connect(lua_State *L)
 {
     string client = luaL_checkstring(L, 1);
     string server = luaL_checkstring(L, 2);
-    string user = luaL_checkstring(L, 3);
-    string psswd = luaL_checkstring(L, 4);
-    string dbname = luaL_checkstring(L, 5);
+    uint port = luaL_checkint(L, 3);
+    string user = luaL_checkstring(L, 4);
+    string psswd = luaL_checkstring(L, 5);
+    string dbname = luaL_checkstring(L, 6);
 
     LOG(wrapper) << "connect " << client << "; "
-                 << "server = " << server << "; "
+                 << "server = " << server << ":" << port << "; "
                  << "user = " << user << "; "
                  << "password = " << psswd << "; "
                  << "database = " << dbname;
 
     WrapperState *ws = new WrapperState();
-    ws->cl = new EDBClient(server, user, psswd, dbname);
+    ws->cl = new EDBClient(server, user, psswd, dbname, port);
 
     uint64_t mkey = 113341234;  // XXX
     ws->cl->setMasterKey(BytesFromInt(mkey, AES_KEY_BYTES));
 
+    if (clients.find(client) != clients.end())
+        LOG(warn) << "duplicate client entry";
     clients[client] = ws;
     return 0;
 }
@@ -51,6 +54,8 @@ static int
 disconnect(lua_State *L)
 {
     string client = luaL_checkstring(L, 1);
+    if (clients.find(client) == clients.end())
+        return 0;
 
     LOG(wrapper) << "disconnect " << client;
     delete clients[client];
@@ -63,6 +68,9 @@ static int
 rewrite(lua_State *L)
 {
     string client = luaL_checkstring(L, 1);
+    if (clients.find(client) == clients.end())
+        return 0;
+
     string query = luaL_checkstring(L, 2);
 
     AutoInc ai;
@@ -105,6 +113,8 @@ static int
 decrypt(lua_State *L)
 {
     string client = luaL_checkstring(L, 1);
+    if (clients.find(client) == clients.end())
+        return 0;
 
     ResType r;
 

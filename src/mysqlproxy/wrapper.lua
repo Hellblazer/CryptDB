@@ -1,13 +1,17 @@
-assert(package.loadlib(os.getenv("EDBDIR").."/libexecute.so", "lua_cryptdb_init"))()
+assert(package.loadlib(os.getenv("EDBDIR").."/libexecute.so",
+                       "lua_cryptdb_init"))()
 
 --
 -- Interception points provided by mysqlproxy
 --
 
-function connect_server()
+function read_auth()
+    -- Use this instead of connect_server(), to get server name
     dprint("Connected " .. proxy.connection.client.src.name)
     CryptDB.connect(proxy.connection.client.src.name,
-                    "localhost", "root", "letmein", "cryptdbtest")
+                    proxy.connection.server.dst.address,
+                    proxy.connection.server.dst.port,
+                    "root", "letmein", "cryptdbtest")
 end
 
 function disconnect_client()
