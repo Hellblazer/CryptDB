@@ -1,4 +1,5 @@
 assert(package.loadlib(os.getenv("EDBDIR").."/libexecute.so", "lua_cryptdb_init"))()
+CryptDB.init("localhost", "root", "letmein", "cryptdbtest")
 
 --
 -- Interception points provided by mysqlproxy
@@ -6,7 +7,6 @@ assert(package.loadlib(os.getenv("EDBDIR").."/libexecute.so", "lua_cryptdb_init"
 
 function connect_server()
     dprint("New connection")
-    CryptDB.init("localhost", "root", "letmein", "cryptdbtest")
 end
 
 function read_query(packet)
@@ -48,6 +48,7 @@ function read_query_real(packet)
         new_queries = CryptDB.rewrite(query)
         if #new_queries > 0 then
             for i, v in pairs(new_queries) do
+                local result_key
                 if i == #new_queries then
                     result_key = RES_DECRYPT
                 else
@@ -96,13 +97,13 @@ function read_query_result_real(inj)
 
         dfields, drows = CryptDB.decrypt(fields, rows)
 
-        if #drows == 0 and #dfields == 0 then
-            -- make mysqlproxy happy: it wants #fields>0 even with #rows==0
-            table.insert(dfields, { type = proxy.MYSQL_TYPE_LONG, name = 'xx' })
+        if #dfields > 0 then
+            proxy.response.resultset = { fields = dfields, rows = drows }
         end
 
+        proxy.response.affected_rows = inj.resultset.affected_rows
+        proxy.response.insert_id = inj.resultset.insert_id
         proxy.response.type = proxy.MYSQLD_PACKET_OK
-        proxy.response.resultset = { fields = dfields, rows = drows }
         return proxy.PROXY_SEND_RESULT
     else
         print("unexpected inj.id " .. inj.id)

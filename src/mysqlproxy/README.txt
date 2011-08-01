@@ -1,6 +1,8 @@
 How to Run Mysql Proxy
 ----------------------
 
+Use mysql-proxy version 0.9.0 or above.  Earlier versions are buggy.
+
 to start proxy:
   % export EDBDIR=<...>/cryptdb/src/edb
   % mysql-proxy --plugins=proxy \
