@@ -1,20 +1,18 @@
 #include <sstream>
-#include "EDBClient.h"
-#include "cryptdb_log.h"
+#include <assert.h>
 #include <lua5.1/lua.hpp>
 
+#include "EDBClient.h"
+#include "cryptdb_log.h"
+
 static EDBClient *lua_cl;
-static bool initialized = false;
 static string last_query;   // XXX
 
 static int
 init(lua_State *L)
 {
-    if (initialized) {
-        if (VERBOSE_G) {
-            cerr << "already have connection" << endl;
-        }
-    }
+    if (lua_cl)
+        return 0;
 
     string server = luaL_checkstring(L,1);
     string user = luaL_checkstring(L,2);
@@ -29,10 +27,8 @@ init(lua_State *L)
     lua_cl = new EDBClient(server, user, psswd, dbname);
     lua_cl->setMasterKey(BytesFromInt(mkey, AES_KEY_BYTES));
     lua_cl->VERBOSE = VERBOSE_G;
-    initialized = true;
 
     cryptdb_logger::enable(log_group::log_wrapper);
-
     return 0;
 }
 
