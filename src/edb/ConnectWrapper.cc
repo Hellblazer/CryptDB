@@ -87,6 +87,20 @@ printRes(const ResType &r)
     }
 }
 
+static string
+xlua_tolstring(lua_State *l, int index)
+{
+    size_t len;
+    const char *s = lua_tolstring(l, index, &len);
+    return string(s, len);
+}
+
+static void
+xlua_pushlstring(lua_State *l, const string &s)
+{
+    lua_pushlstring(l, s.data(), s.length());
+}
+
 static int
 decrypt(lua_State *L)
 {
@@ -100,9 +114,9 @@ decrypt(lua_State *L)
 
         lua_pushnil(L);
         while (lua_next(L, -2)) {
-            string k = luaL_checkstring(L, -2);
+            string k = xlua_tolstring(L, -2);
             if (k == "name")
-                r.names.push_back(luaL_checkstring(L, -1));
+                r.names.push_back(xlua_tolstring(L, -1));
             else if (k == "type")
                 r.types.push_back((enum_field_types) luaL_checkint(L, -1));
             else
@@ -122,7 +136,7 @@ decrypt(lua_State *L)
         vector<string> row;
         lua_pushnil(L);
         while (lua_next(L, -2)) {
-            row.push_back(lua_tostring(L, -1));
+            row.push_back(xlua_tolstring(L, -1));
             lua_pop(L, 1);
         }
 
@@ -144,12 +158,12 @@ decrypt(lua_State *L)
         int t_field = lua_gettop(L);
 
         /* set name for field */
-        lua_pushstring(L, "name");
-        lua_pushstring(L, rd.names[i].c_str());
+        xlua_pushlstring(L, "name");
+        xlua_pushlstring(L, rd.names[i]);
         lua_settable(L, t_field);
 
         /* set type for field */
-        lua_pushstring(L, "type");
+        xlua_pushlstring(L, "type");
         lua_pushinteger(L, rd.types[i]);
         lua_settable(L, t_field);
 
@@ -167,7 +181,7 @@ decrypt(lua_State *L)
 
         for (uint j = 0; j < rd.rows[i].size(); j++) {
             lua_pushinteger(L, j+1);
-            lua_pushstring(L, rd.rows[i][j].c_str());
+            xlua_pushlstring(L, rd.rows[i][j]);
             lua_settable(L, t_row);
         }
 
