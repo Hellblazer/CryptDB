@@ -1,12 +1,18 @@
 assert(package.loadlib(os.getenv("EDBDIR").."/libexecute.so", "lua_cryptdb_init"))()
-CryptDB.init("localhost", "root", "letmein", "cryptdbtest")
 
 --
 -- Interception points provided by mysqlproxy
 --
 
 function connect_server()
-    dprint("New connection")
+    dprint("Connected " .. proxy.connection.client.src.name)
+    CryptDB.connect(proxy.connection.client.src.name,
+                    "localhost", "root", "letmein", "cryptdbtest")
+end
+
+function disconnect_client()
+    dprint("Disconnected " .. proxy.connection.client.src.name)
+    CryptDB.disconnect(proxy.connection.client.src.name)
 end
 
 function read_query(packet)
@@ -45,7 +51,7 @@ function read_query_real(packet)
         local query = string.sub(packet, 2)
         dprint("read_query: " .. query)
 
-        new_queries = CryptDB.rewrite(query)
+        new_queries = CryptDB.rewrite(proxy.connection.client.src.name, query)
         if #new_queries > 0 then
             for i, v in pairs(new_queries) do
                 local result_key
@@ -95,7 +101,8 @@ function read_query_result_real(inj)
             end
         end
 
-        dfields, drows = CryptDB.decrypt(fields, rows)
+        dfields, drows = CryptDB.decrypt(proxy.connection.client.src.name,
+                                         fields, rows)
 
         if #dfields > 0 then
             proxy.response.resultset = { fields = dfields, rows = drows }

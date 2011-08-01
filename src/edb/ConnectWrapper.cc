@@ -5,43 +5,73 @@
 #include "EDBClient.h"
 #include "cryptdb_log.h"
 
-static EDBClient *lua_cl;
-static string last_query;   // XXX
+class WrapperState {
+ public:
+    EDBClient *cl;
+    string last_query;
 
-static int
-init(lua_State *L)
-{
-    if (lua_cl)
-        return 0;
-
-    string server = luaL_checkstring(L,1);
-    string user = luaL_checkstring(L,2);
-    string psswd = luaL_checkstring(L,3);
-    string dbname = luaL_checkstring(L,4);
-    if (VERBOSE_G) {
-        cerr << "server = " << server << "; user = " << user <<
-        "; password = " << psswd << "; database name = " << dbname << endl;
+    WrapperState() {
+        cl = 0;
     }
 
-    uint64_t mkey = 113341234;
-    lua_cl = new EDBClient(server, user, psswd, dbname);
-    lua_cl->setMasterKey(BytesFromInt(mkey, AES_KEY_BYTES));
-    lua_cl->VERBOSE = VERBOSE_G;
+    ~WrapperState() {
+        if (cl)
+            delete cl;
+    }
+};
 
+static map<string, WrapperState*> clients;
+
+static int
+connect(lua_State *L)
+{
     cryptdb_logger::enable(log_group::log_wrapper);
+
+    string client = luaL_checkstring(L, 1);
+    string server = luaL_checkstring(L, 2);
+    string user = luaL_checkstring(L, 3);
+    string psswd = luaL_checkstring(L, 4);
+    string dbname = luaL_checkstring(L, 5);
+
+    LOG(wrapper) << "connect " << client << "; "
+                 << "server = " << server << "; "
+                 << "user = " << user << "; "
+                 << "password = " << psswd << "; "
+                 << "database = " << dbname;
+
+    WrapperState *ws = new WrapperState();
+    ws->cl = new EDBClient(server, user, psswd, dbname);
+
+    uint64_t mkey = 113341234;  // XXX
+    ws->cl->setMasterKey(BytesFromInt(mkey, AES_KEY_BYTES));
+
+    clients[client] = ws;
+    return 0;
+}
+
+static int
+disconnect(lua_State *L)
+{
+    string client = luaL_checkstring(L, 1);
+
+    LOG(wrapper) << "disconnect " << client;
+    delete clients[client];
+    clients.erase(client);
+
     return 0;
 }
 
 static int
 rewrite(lua_State *L)
 {
-    string query = luaL_checkstring(L,1);
+    string client = luaL_checkstring(L, 1);
+    string query = luaL_checkstring(L, 2);
 
     AutoInc ai;
     ai.incvalue = 999;  // XXX?!
     list<string> new_queries;
     try {
-        new_queries = lua_cl->rewriteEncryptQuery(query, &ai);
+        new_queries = clients[client]->cl->rewriteEncryptQuery(query, &ai);
     } catch (CryptDBError &e) {
         LOG(wrapper) << "cannot rewrite " << query << ": " << e.msg;
     }
@@ -55,8 +85,7 @@ rewrite(lua_State *L)
         index++;
     }
 
-    last_query = query;
-
+    clients[client]->last_query = query;
     return 1;
 }
 
@@ -77,11 +106,13 @@ xlua_pushlstring(lua_State *l, const string &s)
 static int
 decrypt(lua_State *L)
 {
+    string client = luaL_checkstring(L, 1);
+
     ResType r;
 
     /* iterate over the fields argument */
     lua_pushnil(L);
-    while (lua_next(L, 1)) {
+    while (lua_next(L, 2)) {
         if (!lua_istable(L, -1))
             LOG(warn) << "mismatch";
 
@@ -102,7 +133,7 @@ decrypt(lua_State *L)
 
     /* iterate over the rows argument */
     lua_pushnil(L);
-    while (lua_next(L, 2)) {
+    while (lua_next(L, 3)) {
         if (!lua_istable(L, -1))
             LOG(warn) << "mismatch";
 
@@ -130,7 +161,7 @@ decrypt(lua_State *L)
             r.rows[j][i] = marshallBinary(r.rows[j][i]);
     }
 
-    ResType rd = lua_cl->decryptResults(last_query, r);
+    ResType rd = clients[client]->cl->decryptResults(clients[client]->last_query, r);
 
     /* return decrypted result set */
     lua_newtable(L);
@@ -178,7 +209,8 @@ decrypt(lua_State *L)
 static const struct luaL_reg
 cryptdb_lib[] = {
 #define F(n) { #n, n }
-    F(init),
+    F(connect),
+    F(disconnect),
     F(rewrite),
     F(decrypt),
     { 0, 0 },
