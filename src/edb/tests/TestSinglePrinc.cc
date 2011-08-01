@@ -100,7 +100,7 @@ qUpdateSelect(const TestConfig &tc, EDBClient *cl, const string &update,
     ntest++;
     ResType test_res = myExecute(cl, select);
     if (!test_res.ok) {
-        cerr << "Update or Delete query " << select << " won't execute";
+        cerr << "Update or Delete query " << select << " won't execute\n";
         if (tc.stop_if_fail) {
             assert_s(false, "above query could not execute");
         }
@@ -179,31 +179,67 @@ testInsert(const TestConfig &tc, EDBClient * cl)
     cl->plain_execute(
         "DROP TABLE IF EXISTS table0, table1, table2, table3, table4, table5, t1");
 
-    assert_res(myCreate(cl,"CREATE TABLE t1 (id integer, age enc integer, salary enc integer, address enc text, name text)",
+    assert_res(myCreate(cl,"CREATE TABLE t1 (id integer primary key auto_increment, age enc integer, salary enc integer, address enc text, name text)",
               "CREATE TABLE t1 (id integer, age integer, salary integer, address text, name text)"),
              "testInsert could not create table");
 
-    vector<string> tests;
-    vector<string> results;
-
-    tests.push_back(
-        "INSERT INTO t1 VALUES (1, 21, 100, '24 Rosedale, Toronto, ONT', 'Pat Carlson')");
-    tests.push_back(
-        "INSERT INTO t1 (id, age, salary, address, name) VALUES (1, 21, 100, '24 Rosedale, Toronto, ONT', 'Pat Carlson')");
-    tests.push_back(
-        "INSERT INTO t1 (age, address, salary, name, id) VALUES (21, '24 Rosedale, Toronto, ONT', 100, 'Pat Carlson', 1)");
-    tests.push_back("INSERT INTO t1 (id) VALUES (5)");
-    tests.push_back("INSERT INTO t1 (age) VALUES (40)");
-    tests.push_back(
-        "INSERT INTO t1 (address) VALUES ('right star to the right')");
-    tests.push_back("INSERT INTO t1 (name) VALUES ('Wendy')");
-    tests.push_back(
-        "INSERT INTO t1 (name, address, id, age) VALUES ('Peter Pan', 'second star to the right and straight on till morning', 42, 10)");
-
-    vector<string>::iterator it;
-    for (it = tests.begin(); it != tests.end(); it++) {
-        assert_res(myExecute(cl, *it), "sql problem with InsertTest");
-    }
+    qUpdateSelect(tc, cl,
+        "INSERT INTO t1 VALUES (1, 21, 100, '24 Rosedale, Toronto, ONT', 'Pat Carlson')",
+        "SELECT * FROM t1",
+        { "id", "age", "salary", "address", "name" },
+        { { "1", "21", "100", "24 Rosedale, Toronto, ONT", "Pat Carlson" } });
+    qUpdateSelect(tc, cl,
+        "INSERT INTO t1 (id, age, salary, address, name) VALUES (2, 23, 101, '25 Rosedale, Toronto, ONT', 'Pat Carlson2')",
+        "SELECT * from t1",
+        { "id", "age", "salary", "address", "name" },
+        { { "1", "21", "100", "24 Rosedale, Toronto, ONT", "Pat Carlson" },
+          { "2", "23", "101", "25 Rosedale, Toronto, ONT", "Pat Carlson2" } });
+    qUpdateSelect(tc, cl,
+        "INSERT INTO t1 (age, address, salary, name, id) VALUES (25, '26 Rosedale, Toronto, ONT', 102, 'Pat2 Carlson', 3)",
+        "SELECT * from t1",
+        { "id", "age", "salary", "address", "name" },
+        { { "1", "21", "100", "24 Rosedale, Toronto, ONT", "Pat Carlson" },
+          { "2", "23", "101", "25 Rosedale, Toronto, ONT", "Pat Carlson2" },
+          { "3", "25", "102", "26 Rosedale, Toronto, ONT", "Pat2 Carlson" } });
+    qUpdateSelect(tc, cl,
+        "INSERT INTO t1 (age, address, salary, name) values (26, 'test address', 30, 'test name')",
+        "select * from t1",
+        { "id", "age", "salary", "address", "name" },
+        { { "1", "21", "100", "24 Rosedale, Toronto, ONT", "Pat Carlson" },
+          { "2", "23", "101", "25 Rosedale, Toronto, ONT", "Pat Carlson2" },
+          { "3", "25", "102", "26 Rosedale, Toronto, ONT", "Pat2 Carlson" },
+          { "4", "26", "30", "test address", "test name" } });
+    qUpdateSelect(tc, cl,
+        "INSERT INTO t1 (age, address, salary, name) values (27, 'test address2', 31, 'test name')",
+        "select last_insert_id()",
+        { "last_insert_id()" },
+        { { "5" } });
+    qUpdateSelect(tc, cl,
+        "INSERT INTO t1 (id) VALUES (7)",
+        "select sum(id) from t1",
+        { "sum(id)" },
+        { { "22" } });
+    qUpdateSelect(tc, cl,
+        "INSERT INTO t1 (age) VALUES (40)",
+        "select age from t1",
+        { "age" },
+        { { "21" }, { "23" }, { "25" }, { "26" }, { "27" },
+          { "0" /* XXX should be NULL */ }, { "40" } });
+    qUpdateSelect(tc, cl,
+        "INSERT INTO t1 (address) VALUES ('right star to the right')",
+        "select address from t1 where id=9",
+        { "address" },
+        { { "right star to the right" } });
+    qUpdateSelect(tc, cl,
+        "INSERT INTO t1 (name) VALUES ('Wendy')",
+        "select name from t1 where id=10",
+        { "name" },
+        { { "Wendy" } });
+    qUpdateSelect(tc, cl,
+        "INSERT INTO t1 (name, address, id, age) VALUES ('Peter Pan', 'second star to the right and straight on till morning', 42, 10)",
+        "select name, address, age from t1 where id=42",
+        { "name", "address", "age" },
+        { { "Peter Pan", "second star to the right and straight on till morning", "10" } });
 
     if (!PLAIN) {
         assert_res(cl->execute("DROP TABLE t1"), "testInsert can't drop t1");
