@@ -12,6 +12,9 @@ function read_auth()
                     proxy.connection.server.dst.address,
                     proxy.connection.server.dst.port,
                     "root", "letmein", "cryptdbtest")
+    -- EDBClient uses its own connection to the SQL server to set up UDFs
+    -- and to manipulate multi-principal state.  (And, in the future, to
+    -- store its schema state for single- and multi-principal operation.)
 end
 
 function disconnect_client()
