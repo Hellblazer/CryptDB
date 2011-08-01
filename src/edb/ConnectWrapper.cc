@@ -25,8 +25,6 @@ static map<string, WrapperState*> clients;
 static int
 connect(lua_State *L)
 {
-    cryptdb_logger::enable(log_group::log_wrapper);
-
     string client = luaL_checkstring(L, 1);
     string server = luaL_checkstring(L, 2);
     string user = luaL_checkstring(L, 3);
