@@ -64,29 +64,6 @@ rewrite(lua_State *L)
     return 1;
 }
 
-static void
-printRes(const ResType &r)
-{
-    stringstream ssn;
-    for (unsigned int i = 0; i < r.names.size(); i++) {
-        char buf[256];
-        snprintf(buf, sizeof(buf), "%-20s", r.names[i].c_str());
-        ssn << buf;
-    }
-    LOG(wrapper) << ssn.str();
-
-    /* next, print out the rows */
-    for (unsigned int i = 0; i < r.rows.size(); i++) {
-        stringstream ss;
-        for (unsigned int j = 0; j < r.rows[i].size(); j++) {
-            char buf[256];
-            snprintf(buf, sizeof(buf), "%-20s", r.rows[i][j].c_str());
-            ss << buf;
-        }
-        LOG(wrapper) << ss.str();
-    }
-}
-
 static string
 xlua_tolstring(lua_State *l, int index)
 {
@@ -158,9 +135,7 @@ decrypt(lua_State *L)
             r.rows[j][i] = marshallBinary(r.rows[j][i]);
     }
 
-    printRes(r);
     ResType rd = lua_cl->decryptResults(last_query, r);
-    printRes(rd);
 
     /* return decrypted result set */
     lua_newtable(L);
