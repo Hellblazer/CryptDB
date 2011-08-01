@@ -130,7 +130,6 @@ decrypt(lua_State *L)
             r.types[i] != MYSQL_TYPE_BLOB)
             continue;
 
-        LOG(warn) << "found a binary col " << r.names[i];
         for (uint j = 0; j < r.rows.size(); j++)
             r.rows[j][i] = marshallBinary(r.rows[j][i]);
     }
