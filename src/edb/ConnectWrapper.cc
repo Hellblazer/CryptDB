@@ -144,6 +144,20 @@ decrypt(lua_State *L)
         lua_pop(L, 1);
     }
 
+    /*
+     * the marshalling plan is a mess, but let's try to
+     * write adapters here for it anyway..
+     */
+    for (uint i = 0; i < r.types.size(); i++) {
+        if (r.types[i] != MYSQL_TYPE_VAR_STRING &&
+            r.types[i] != MYSQL_TYPE_BLOB)
+            continue;
+
+        LOG(warn) << "found a binary col " << r.names[i];
+        for (uint j = 0; j < r.rows.size(); j++)
+            r.rows[j][i] = marshallBinary(r.rows[j][i]);
+    }
+
     printRes(r);
     ResType rd = lua_cl->decryptResults(last_query, r);
     printRes(rd);
