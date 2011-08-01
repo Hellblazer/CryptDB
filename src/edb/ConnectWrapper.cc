@@ -1,12 +1,11 @@
+#include <sstream>
 #include "EDBClient.h"
+#include "cryptdb_log.h"
 #include <lua5.1/lua.hpp>
 
-EDBClient * cl;
-bool initialized = false;
-map<string, vector<string> > sensitive;
-size_t sensitive_size = 0;
-map<string, int> auto_inc;
-size_t auto_inc_size = 0;
+static EDBClient *lua_cl;
+static bool initialized = false;
+static string last_query;   // XXX
 
 static int
 init(lua_State *L)
@@ -16,6 +15,7 @@ init(lua_State *L)
             cerr << "already have connection" << endl;
         }
     }
+
     string server = luaL_checkstring(L,1);
     string user = luaL_checkstring(L,2);
     string psswd = luaL_checkstring(L,3);
@@ -24,357 +24,173 @@ init(lua_State *L)
         cerr << "server = " << server << "; user = " << user <<
         "; password = " << psswd << "; database name = " << dbname << endl;
     }
+
     uint64_t mkey = 113341234;
-    cl = new EDBClient(server, user, psswd, dbname);
-    cl->setMasterKey(BytesFromInt(mkey, AES_KEY_BYTES));
-    cl->VERBOSE = VERBOSE_G;
+    lua_cl = new EDBClient(server, user, psswd, dbname);
+    lua_cl->setMasterKey(BytesFromInt(mkey, AES_KEY_BYTES));
+    lua_cl->VERBOSE = VERBOSE_G;
     initialized = true;
+
+    cryptdb_logger::enable(log_group::log_wrapper);
+
     return 0;
 }
 
 static int
-pass_queries(lua_State *L)
+rewrite(lua_State *L)
 {
     string query = luaL_checkstring(L,1);
-    int insert_id = (int) luaL_checknumber(L,2);
-    //rb may contain a new autoinc id
+
     AutoInc ai;
-    ai.incvalue = insert_id;
-    cerr << insert_id << endl;
+    ai.incvalue = 999;  // XXX?!
     list<string> new_queries;
-    new_queries = cl->rewriteEncryptQuery(query, &ai);
-    //cerr << "got queries" << endl;
-    //todo: fix rewriteEncryptQuery so that this is unnecessary
-    if(new_queries.size() > 0) {
-        cerr << "in wrapper: got first query " << new_queries.front() << "\n";
-    } else {
-        cerr << "in wrapper: no queries back" << endl;
+    try {
+        new_queries = lua_cl->rewriteEncryptQuery(query, &ai);
+    } catch (CryptDBError &e) {
+        LOG(wrapper) << "cannot rewrite " << query << ": " << e.msg;
     }
+
     lua_createtable(L, (int) new_queries.size(), 0);
     int top = lua_gettop(L);
     int index = 1;
-    auto it = new_queries.begin();
-    while(it != new_queries.end()) {
+    for (auto it = new_queries.begin(); it != new_queries.end(); it++) {
         lua_pushstring(L, it->c_str());
-        lua_rawseti(L,top,index);
-        it++;
+        lua_rawseti(L, top, index);
         index++;
     }
+
+    last_query = query;
+
     return 1;
 }
 
-static int
-edit_auto(lua_State* L)
+static void
+printRes(const ResType &r)
 {
-    string table_name = luaL_checkstring(L,1);
-    int new_value = (int) luaL_checknumber(L,2);
-    auto_inc[table_name] = new_value;
-    auto_inc_size = 2*auto_inc.size();
-    return 0;
-}
+    stringstream ssn;
+    for (unsigned int i = 0; i < r.names.size(); i++) {
+        char buf[256];
+        snprintf(buf, sizeof(buf), "%-20s", r.names[i].c_str());
+        ssn << buf;
+    }
+    LOG(wrapper) << ssn.str();
 
-static int
-add_to_map(lua_State* L)
-{
-    string table = luaL_checkstring(L,1);
-    vector<string> fields;
-    lua_pushnil(L);
-    while(lua_next(L,-2) != 0) {
-        fields.push_back(luaL_checkstring(L,-1));
-        if (VERBOSE_G) {
-            cerr << luaL_checkstring(L,-1) << endl;
+    /* next, print out the rows */
+    for (unsigned int i = 0; i < r.rows.size(); i++) {
+        stringstream ss;
+        for (unsigned int j = 0; j < r.rows[i].size(); j++) {
+            char buf[256];
+            snprintf(buf, sizeof(buf), "%-20s", r.rows[i][j].c_str());
+            ss << buf;
         }
-        lua_pop(L,1);
+        LOG(wrapper) << ss.str();
     }
-    sensitive_size += fields.size() + 1;
-    sensitive[table] = fields;
-    return 0;
-}
-
-static int
-get_map_tables(lua_State *L)
-{
-    if (sensitive.size() == 0) {
-        if (VERBOSE_G) {
-            cerr << "got nothing in sensitive" << endl;
-        }
-        return 0;
-    }
-    if (!lua_checkstack(L, (int) sensitive_size)) {
-        assert_s(false, "lua cannot grow stack");
-    }
-    for (auto outer = sensitive.begin(); outer != sensitive.end(); outer++) {
-        lua_pushstring(L, outer->first.c_str());
-    }
-    return (int) sensitive.size();
-}
-
-static int
-get_auto_names(lua_State *L)
-{
-    if (auto_inc.size() == 0) {
-        if (VERBOSE_G) {
-            cerr << "got nothing in auto_inc" << endl;
-        }
-        return 0;
-    }
-    if (!lua_checkstack(L, (int) auto_inc_size)) {
-        assert_s(false, "lua cannot grow stack");
-    }
-    for (auto it = auto_inc.begin(); it != auto_inc.end(); it++) {
-        lua_pushstring(L, it->first.c_str());
-    }
-    return (int) auto_inc.size();
-}
-
-static int
-get_auto_numbers(lua_State *L)
-{
-    if (auto_inc.size() == 0) {
-        if (VERBOSE_G) {
-            cerr << "got nothing in auto_inc" << endl;
-        }
-        return 0;
-    }
-    if (!lua_checkstack(L, (int) auto_inc_size)) {
-        assert_s(false, "lua cannot grow stack");
-    }
-    for (auto it = auto_inc.begin(); it != auto_inc.end(); it++) {
-        lua_pushnumber(L, it->second);
-    }
-    return (int) auto_inc.size();
-}
-
-static int
-get_map_fields(lua_State *L)
-{
-    int top, index;
-    if (sensitive.size() == 0) {
-        if (VERBOSE_G) {
-            cerr << "got nothing in sensitive" << endl;
-        }
-        return 0;
-    }
-    if (!lua_checkstack(L, (int) sensitive_size)) {
-        assert_s(false, "lua cannot grow stack");
-    }
-    for (auto outer = sensitive.begin(); outer != sensitive.end(); outer++) {
-        lua_createtable(L, (int) outer->second.size(), 0);
-        top = lua_gettop(L);
-        index = 1;
-        auto inner = outer->second.begin();
-        while(inner != outer->second.end()) {
-            lua_pushstring(L, inner->c_str());
-            lua_rawseti(L,top,index);
-            ++inner;
-            ++index;
-        }
-    }
-    return (int) sensitive.size();
-}
-
-class ResultSet {
- public:
-    string query;
-    bool decrypted;
-    std::vector< std::vector<std::string> > set;
-    std::vector<std::string> field_names;
-    std::vector<std::string> working_row;
-    ResultSet(string q);
-    void append_field(std::string field);
-    void append_working(std::string placeholder);
-    void end_row();
-    void decrypt();
-    void PrettyPrint();
-};
-ResultSet::ResultSet(string q)
-{
-    decrypted = false;
-    query = q;
-}
-void
-ResultSet::append_field(std::string field)
-{
-    field_names.push_back(field);
-}
-void
-ResultSet::append_working(std::string placeholder)
-{
-    cerr << "appending " << placeholder << " to working" << endl;
-    working_row.push_back(placeholder);
-}
-void
-ResultSet::decrypt()
-{
-    //PrettyPrint();
-    ResType cresultset;
-    cresultset.rows = set;
-    cresultset.names = field_names;
-
-    //todo: is returning an empty vector
-    cerr << "------>to decryptResults" << endl;
-    cerr << query << endl;
-    cresultset = cl->decryptResults(query, cresultset);
-    if (cresultset.rows.size() > 0) {
-        field_names = cresultset.names;
-        set = cresultset.rows;
-    }
-    else {
-        cout << "empty result set" << endl;
-    }
-}
-void
-ResultSet::end_row()
-{
-    if (!working_row.empty()) {
-        cerr << "finishing row" << endl;
-        set.push_back(working_row);
-    }
-    working_row.clear();
-}
-void
-ResultSet::PrettyPrint()
-{
-    for(auto f = field_names.begin(); f != field_names.end(); f++) {
-        std::cout << *f << " ";
-    }
-    printf("\n--------\n");
-    for(auto outer = set.begin(); outer != set.end(); outer++) {
-        for(auto inner = (*outer).begin(); inner != (*outer).end();
-            inner++) {
-            std::cout << *inner << " ";
-        }
-        std::cout << std::endl;
-    }
-}
-
-ResultSet *R;
-
-static int
-new_res(lua_State *L)
-{
-    string query = luaL_checkstring(L,1);
-    R = new ResultSet(query);
-    return 0;
-}
-
-static int
-populate_fields(lua_State *L)
-{
-    lua_pushnil(L);
-    while(lua_next(L, -2) != 0)
-    {
-        if(lua_isstring(L,-1) && lua_isstring(L,-2)) {
-            std::string temp = lua_tostring(L,-2);
-            if(!temp.compare("name")) {
-                R->append_field(lua_tostring(L,-1));
-            }
-        }
-        else if(lua_istable(L,-1)) {
-            populate_fields(L);
-        }
-        lua_pop(L, 1);
-    }
-    return 0;
-}
-
-static int
-populate_rows(lua_State *L)
-{
-    cerr << "in c, populating rows" << endl;
-    lua_pushnil(L);
-    while(lua_next(L, -2) != 0)
-    {
-        if(lua_isstring(L,-1)) {
-            R->append_working(lua_tostring(L,-1));
-        }
-        else if(lua_istable(L,-1)) {
-            populate_rows(L);
-            R->end_row();
-        }
-        lua_pop(L, 1);
-    }
-    R->end_row();
-    return 0;
 }
 
 static int
 decrypt(lua_State *L)
 {
-    R->decrypt();
-    cerr << "decrypted" << endl;
-    return 0;
-}
+    ResType r;
 
-static int
-print_res(lua_State *L)
-{
-    R->PrettyPrint();
-    return 0;
-}
+    /* iterate over the fields argument */
+    lua_pushnil(L);
+    while (lua_next(L, 1)) {
+        if (!lua_istable(L, -1))
+            LOG(warn) << "mismatch";
 
-static int
-get_fields(lua_State *L)
-{
-    lua_createtable(L, (int) R->field_names.size(), 0);
-    int top = lua_gettop(L);
-    int index = 1;
-    auto it = R->field_names.begin();
-    while(it != R->field_names.end()) {
-        lua_pushstring(L, (*it).c_str());
-        lua_rawseti(L,top,index);
-        ++it;
-        ++index;
-    }
-    return 1;
-}
-static int
-get_rows(lua_State *L)
-{
-    int top, index;
-    for(auto outer = R->set.begin(); outer != R->set.end(); outer++) {
-        lua_createtable(L, (int) (*outer).size(), 0);
-        top = lua_gettop(L);
-        index = 1;
-        auto inner = (*outer).begin();
-        while(inner != (*outer).end()) {
-            lua_pushstring(L, (*inner).c_str());
-            lua_rawseti(L,top,index);
-            ++inner;
-            ++index;
+        lua_pushnil(L);
+        while (lua_next(L, -2)) {
+            string k = luaL_checkstring(L, -2);
+            if (k == "name")
+                r.names.push_back(luaL_checkstring(L, -1));
+            else if (k == "type")
+                r.types.push_back((enum_field_types) luaL_checkint(L, -1));
+            else
+                LOG(warn) << "unknown key " << k;
+            lua_pop(L, 1);
         }
+
+        lua_pop(L, 1);
     }
-    //R->decrypted = false;
-    //cerr << R->set.size() << endl;
-    //R->PrettyPrint();
-    return (int) R->set.size();
+
+    /* iterate over the rows argument */
+    lua_pushnil(L);
+    while (lua_next(L, 2)) {
+        if (!lua_istable(L, -1))
+            LOG(warn) << "mismatch";
+
+        vector<string> row;
+        lua_pushnil(L);
+        while (lua_next(L, -2)) {
+            row.push_back(lua_tostring(L, -1));
+            lua_pop(L, 1);
+        }
+
+        r.rows.push_back(row);
+        lua_pop(L, 1);
+    }
+
+    printRes(r);
+    ResType rd = lua_cl->decryptResults(last_query, r);
+    printRes(rd);
+
+    /* return decrypted result set */
+    lua_newtable(L);
+    int t_fields = lua_gettop(L);
+    for (uint i = 0; i < rd.names.size(); i++) {
+        /* pre-configure stack for inserting field into fields table at i+1 */
+        lua_pushinteger(L, i+1);
+        lua_newtable(L);
+        int t_field = lua_gettop(L);
+
+        /* set name for field */
+        lua_pushstring(L, "name");
+        lua_pushstring(L, rd.names[i].c_str());
+        lua_settable(L, t_field);
+
+        /* set type for field */
+        lua_pushstring(L, "type");
+        lua_pushinteger(L, rd.types[i]);
+        lua_settable(L, t_field);
+
+        /* insert field element into fields table */
+        lua_settable(L, t_fields);
+    }
+
+    lua_newtable(L);
+    int t_rows = lua_gettop(L);
+    for (uint i = 0; i < rd.rows.size(); i++) {
+        /* pre-configure stack for inserting row table */
+        lua_pushinteger(L, i+1);
+        lua_newtable(L);
+        int t_row = lua_gettop(L);
+
+        for (uint j = 0; j < rd.rows[i].size(); j++) {
+            lua_pushinteger(L, j+1);
+            lua_pushstring(L, rd.rows[i][j].c_str());
+            lua_settable(L, t_row);
+        }
+
+        lua_settable(L, t_rows);
+    }
+
+    return 2;
 }
 
-static const struct luaL_reg resultsetlib[] =
-{
-    {"init",init},
-    {"pass_query",pass_queries},
-    {"edit_auto",edit_auto},
-    {"add_to_map",add_to_map},
-    {"get_auto_names",get_auto_names},
-    {"get_auto_numbers",get_auto_numbers},
-    {"get_map_names",get_map_tables},
-    {"get_map_fields",get_map_fields},
-    {"new_res",new_res},
-    {"fields",populate_fields},
-    {"rows",populate_rows},
-    {"print",print_res},
-    {"get_fields",get_fields},
-    {"get_rows",get_rows},
-    {"decrypt",decrypt},
-    {NULL,NULL}
+static const struct luaL_reg
+cryptdb_lib[] = {
+#define F(n) { #n, n }
+    F(init),
+    F(rewrite),
+    F(decrypt),
+    { 0, 0 },
 };
 
-extern "C" int luaopen_resultset (lua_State *L);
+extern "C" int lua_cryptdb_init(lua_State *L);
 
 int
-luaopen_resultset (lua_State *L)
+lua_cryptdb_init(lua_State *L)
 {
-    luaL_openlib(L,"CryptDB",resultsetlib,0);
+    luaL_openlib(L, "CryptDB", cryptdb_lib, 0);
     return 1;
 }
