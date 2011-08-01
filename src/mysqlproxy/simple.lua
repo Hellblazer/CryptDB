@@ -5,7 +5,7 @@ assert(package.loadlib(os.getenv("EDBDIR").."/libexecute.so", "lua_cryptdb_init"
 --
 
 function connect_server()
-    print("New connection")
+    dprint("New connection")
     CryptDB.init("localhost", "root", "letmein", "cryptdbtest")
 end
 
@@ -36,10 +36,14 @@ end
 RES_IGNORE  = 1
 RES_DECRYPT = 2
 
+function dprint(x)
+    -- print(x)
+end
+
 function read_query_real(packet)
     if string.byte(packet) == proxy.COM_QUERY then
         local query = string.sub(packet, 2)
-        print("read_query: " .. query)
+        dprint("read_query: " .. query)
 
         new_queries = CryptDB.rewrite(query)
         if #new_queries > 0 then
