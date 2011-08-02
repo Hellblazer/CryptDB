@@ -1,7 +1,20 @@
-How to Run Mysql Proxy
+Installing mysql-proxy
 ----------------------
 
 Use mysql-proxy version 0.9.0 or above.  Earlier versions are buggy.
+To get the development version of mysql-proxy (since 0.9.0 does not
+appear to be released yet):
+
+  % bzr branch lp:mysql-proxy
+  % cd mysql-proxy
+  % sh ./autogen.sh
+  % ./configure --enable-maintainer-mode --with-lua=lua5.1
+  % make
+  % make install
+  % 
+
+How to Run Mysql Proxy
+----------------------
 
 to start proxy:
   % export EDBDIR=<...>/cryptdb/src/edb
