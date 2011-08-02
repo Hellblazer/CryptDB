@@ -160,10 +160,7 @@ AFC(RR I)
 static RR
 randomValue(ZZ & seed, unsigned int seedLen)
 {
-
-    SetSeed(seed);
     ZZ prBits = RandomBits_ZZ(2*seedLen);
-    seed = prBits % (to_ZZ(1) << seedLen);
     RR result = to_RR(prBits >> seedLen)/to_RR((to_ZZ(1) << seedLen));
     //if (DEBUG) {cerr << "rand bits are " << result << "\n";}
     return result;
@@ -173,7 +170,7 @@ ZZ
 HGD(ZZ KK, ZZ NN1, ZZ NN2, ZZ SEED, unsigned int seedLen,
     unsigned int RRPrecision)
 {
-
+    SetSeed(SEED);
     RR::SetPrecision(RRPrecision);
 
     RR JX;   //the result
