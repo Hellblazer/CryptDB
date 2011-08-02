@@ -23,7 +23,7 @@ class DBResult {
     DBResult_native *n;
 
     // returns the data in the last server response
-    ResType *unpack();
+    ResType unpack();
 
     static DBResult *wrap(DBResult_native *);
 };

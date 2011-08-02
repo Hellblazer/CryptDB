@@ -11,7 +11,7 @@
 
 Binary::Binary()
 {
-
+    content = 0;
 }
 
 Binary::Binary(const Binary & b)
@@ -23,12 +23,8 @@ Binary::Binary(const Binary & b)
 
 Binary::~Binary()
 {
-}
-
-void
-Binary::Free()
-{
-    free(content);
+    if (content)
+        delete[] content;
 }
 
 Binary::Binary(const string & s)
@@ -52,6 +48,18 @@ Binary::Binary(unsigned int leng, unsigned char * val)
     content = new unsigned char[leng];
 
     memcpy(content, val, leng);
+}
+
+Binary &
+Binary::operator=(const Binary &other)
+{
+    if (content)
+        delete[] content;
+
+    len = other.len;
+    content = new unsigned char[len];
+    memcpy(content, other.content, len);
+    return *this;
 }
 
 Binary

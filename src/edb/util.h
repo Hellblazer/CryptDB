@@ -28,19 +28,20 @@ using namespace std;
 // ==== CONSTANTS ============== //
 
 #define PAILLIER_LEN_BYTES 256
-#define PAILLIER_LEN_BYTES_C "256"
+#define SVAL2(s) #s
+#define SVAL(s) SVAL2(s)
 
 #if MYSQL_S
 #define TN_I32 "integer"
 #define TN_I64 "bigint"
 #define TN_TEXT "blob"
-#define TN_HOM "varbinary(" PAILLIER_LEN_BYTES_C ")"
+#define TN_HOM "varbinary(" SVAL(PAILLIER_LEN_BYTES) ")"
 #define TN_PTEXT "text"
 #else
 #define TN_I32 "integer"
 #define TN_I64 "bigint"
 #define TN_TEXT "BYTEA"
-#define TN_HOM "BYTEA(" PAILLIER_LEN_BYTES_C ")"
+#define TN_HOM "BYTEA(" SVAL(PAILLIER_LEN_BYTES) ")"
 #define TN_PTEXT "text"
 #endif
 
@@ -87,8 +88,6 @@ const std::set<string> annotations =
 
 // ============= DATA STRUCTURES ===================================//
 
-typedef vector<vector<string> > ResType;
-
 #if MYSQL_S
 #include "mysql.h"
 typedef MYSQL_RES DBResult_native;
@@ -96,6 +95,16 @@ typedef MYSQL_RES DBResult_native;
 #include "libpq-fe.h"
 typedef PGresult DBResult_native;
 #endif
+
+class ResType {
+ public:
+    explicit ResType(bool okflag = true) : ok(okflag) {}
+
+    bool ok;  // query executed successfully
+    vector<string> names;
+    vector<enum_field_types> types;
+    vector<vector<string> > rows;
+};
 
 typedef struct CryptDBError {
  public:
@@ -120,17 +129,41 @@ typedef struct ParserMeta {
     ParserMeta();
 } ParserMeta;
 
-typedef enum SECLEVEL {INVALID,   PLAIN,  PLAIN_DET,  DETJOIN,  DET,
-                       SEMANTIC_DET, PLAIN_OPE, OPEJOIN, OPESELF,
-                       SEMANTIC_OPE, PLAIN_AGG,
-                       SEMANTIC_AGG, PLAIN_SWP, SWP, SEMANTIC_VAL} SECLEVEL;
+#define SECLEVELS(m)    \
+    m(INVALID)          \
+    m(PLAIN)            \
+    m(PLAIN_DET)        \
+    m(DETJOIN)          \
+    m(DET)              \
+    m(SEMANTIC_DET)     \
+    m(PLAIN_OPE)        \
+    m(OPEJOIN)          \
+    m(OPE)              \
+    m(SEMANTIC_OPE)     \
+    m(PLAIN_AGG)        \
+    m(SEMANTIC_AGG)     \
+    m(PLAIN_SWP)        \
+    m(SWP)              \
+    m(SEMANTIC_VAL)
 
-const string levelnames[] =
-{"invalid","plain","plaindet", "detjoin","det","semanticdet", "plainope",
- "opejoin","ope", "semope", "plainagg", "semmagg", "semval"};
+typedef enum class SECLEVEL {
+#define __temp_m(n) n,
+SECLEVELS(__temp_m)
+#undef __temp_m
+    SECLEVEL_LAST
+} SECLEVEL;
 
-typedef enum command {CREATE, UPDATE, INSERT, SELECT, DROP, DELETE, BEGIN,
-                      COMMIT, ALTER, OTHER} command;
+const string levelnames[] = {
+#define __temp_m(n) #n,
+SECLEVELS(__temp_m)
+#undef __temp_m
+    "SECLEVEL_LAST"
+};
+
+typedef enum class cmd {
+    CREATE, UPDATE, INSERT, SELECT, DROP, DELETE, BEGIN,
+    COMMIT, ALTER, OTHER
+} command;
 
 typedef struct FieldMetadata {
 
@@ -138,6 +171,8 @@ typedef struct FieldMetadata {
 
     fieldType type;
     string fieldName;
+
+    enum_field_types mysql_type;
 
     string anonFieldNameDET;
     string anonFieldNameOPE;
@@ -180,6 +215,7 @@ typedef struct TableMetadata { //each anonymized field
     list<IndexMetadata *> indexes;
     bool hasEncrypted;     //true if the table contains an encrypted field
 
+    ~TableMetadata();
 } TableMetadata;
 
 typedef struct FieldsToDecrypt {
@@ -225,7 +261,26 @@ typedef struct ResMeta {
                               // in result -- considering aliases -- for
                               // aggregates, use field inside
 
-    void cleanup();
+    void cleanup() {
+        if (isSalt)
+            delete[] isSalt;
+        if (table)
+            delete[] table;
+        if (field)
+            delete[] field;
+        if (o)
+            delete[] o;
+        if (namesForRes)
+            delete[] namesForRes;
+    }
+
+    ResMeta() {
+        isSalt = 0;
+        table = 0;
+        field = 0;
+        o = 0;
+        namesForRes = 0;
+    }
 
 } ResMeta;
 
@@ -251,8 +306,10 @@ typedef struct MultiKeyMeta {
     map<string, Predicate *> condAccess;     //maps a field having accessto to
                                              // any conditional predicate it
                                              // may have
-
-    void cleanup();
+    ~MultiKeyMeta() {
+        for (auto i = condAccess.begin(); i != condAccess.end(); i++)
+            delete i->second;
+    }
 } MKM;
 
 //temporary metadata for multi-key CryptDB that belongs to the query or result
@@ -280,8 +337,6 @@ typedef struct TempMKM {
     // maps position in raw DBMS response to whether it should be returned to
     // user or not
     map<unsigned int, bool> returnBitMap;
-
-    void cleanup();
 } TMKM;
 
 //=============  Useful functions =========================//
@@ -298,26 +353,19 @@ void myassert(bool value, const string &mess = "assertion failed");
 double timeInSec(struct timeval tvstart, struct timeval tvend);
 
 //parsing
-const char delimsStay[5] = {'(', ')', '=', ',', '\0'};
-const char delimsGo[5] = {';', ' ', '\t', '\n', '\0'};
-const char keepIntact[2] ={'\'', '\0'};
+const char delimsStay[] = {'(', ')', '=', ',', '>', '<', '\0'};
+const char delimsGo[] = {';', ' ', '\t', '\n', '\0'};
+const char keepIntact[] ={'\'', '\0'};
 
 bool isKeyword(const string &token);
-
-#define NELEM(array) (sizeof((array)) / sizeof((array)[0]))
-const string commands[] =
-{"select", "create", "insert", "update", "delete", "drop", "alter"};
-const unsigned int noCommands = NELEM(commands);
-
-const string aggregates[] = {"max", "min", "sum", "count"};
-const unsigned int noAggregates = NELEM(aggregates);
 bool isAgg(const string &token);
 
-const string createMetaKeywords[] = {"primary", "key", "unique"};
-const unsigned int noCreateMeta = NELEM(createMetaKeywords);
-
-const string comparisons[] ={">", "<", "="};
-const unsigned int noComps = NELEM(comparisons);
+#define NELEM(array) (sizeof((array)) / sizeof((array)[0]))
+const std::set<string> commands =
+    { "select", "create", "insert", "update", "delete", "drop", "alter" };
+const std::set<string> aggregates = { "max", "min", "sum", "count" };
+const std::set<string> createMetaKeywords = { "primary", "key", "unique" };
+const std::set<string> comparisons = { ">", "<", "=" };
 
 const string math[]=
 {"+","-","(",")","*","/",".","0","1","2","3","4","5","6","7","8","9"};
@@ -328,21 +376,31 @@ const ParserMeta parserMeta = ParserMeta();
 string randomBytes(unsigned int len);
 uint64_t randomValue();
 
-void myPrint(const unsigned char * a, unsigned int aLen);
-void myPrint(const char * a);
-void myPrint(const list<string> & lst);
-void myPrint(list<const char *> & lst);
-void myPrint(const vector<string> & vec);
-void myPrint(const vector<vector<string> > & d);
-void myPrint(vector<bool> & bitmap);
-void myPrint(const unsigned int * a, unsigned int aLen);
-void myPrint(const string &s);
+string stringToByteInts(const string &s);
+string angleBrackets(const string &s);
+static inline string id_op(const string &x) { return x; }
 
-string toString(const list<string> & lst);
-string toString(const vector<bool> & vec);
-string toString(const std::set<string> & lst);
-string toString(const ResType & rt);
-string toString(unsigned char * key, unsigned int len);
+/*
+ * Turn a list (of type C) into a string, applying op to each element.
+ * Handy ops are id_op, angleBrackets, and stringToByteInts.
+ */
+template<class C, class T>
+string
+toString(const C &l, T op)
+{
+    stringstream ss;
+    bool first = true;
+    for (auto i = l.begin(); i != l.end(); i++) {
+        if (first)
+            ss << "(";
+        else
+            ss << ", ";
+        ss << op(*i);
+        first = false;
+    }
+    ss << ")";
+    return ss.str();
+}
 
 // tries to represent value in minimum no of bytes, avoiding the \0 character
 string StringFromVal(uint64_t value, unsigned int padLen = 0);
@@ -425,7 +483,7 @@ string checkStr(list<string>::iterator & it, list<string> & lst,
 
 //acts only if the first field is "(";
 //returns position after matching ")" mirroring all contents
-string processParen(list<string>::iterator & it, list<string> & words);
+string processParen(list<string>::iterator & it, const list<string> & words);
 
 bool isQuerySeparator(const string &st);
 
@@ -448,12 +506,8 @@ string processAlias(list<string>::iterator & it, list<string> & words);
 // else it points to terminator
 //if skipParentBlock, it looks for terminators only outside of any nested
 // parenthesis block
-string mirrorUntilTerm(list<string>::iterator & it, list<string> &words,
-                       const string *terminator,  unsigned int noTerms,
-                       bool stopAfterTerm = 1,
-                       bool skipParenBlock = 0);
-string mirrorUntilTerm(list<string>::iterator & it, list<string> & words,
-                       const std::set<string> & terms,
+string mirrorUntilTerm(list<string>::iterator & it, const list<string> & words,
+                       const std::set<string> &terms,
                        bool stopAfterTerm = 1,
                        bool skipParenBlock = 0);
 
@@ -464,10 +518,15 @@ list<string>::iterator itAtKeyword(list<string> & lst, const string &keyword);
 //returns the contents of str before the first encounter with c
 string getBeforeChar(const string &str, char c);
 
-bool contains(const string &token, list<string> & values);
 //performs a case insensitive search
-bool contains(const string &token, const string *  values,
-              unsigned int noValues);
+template<class T>
+bool contains(const string &token, const T &values)
+{
+    for (auto i = values.begin(); i != values.end(); i++)
+        if (equalsIgnoreCase(token, *i))
+            return true;
+    return false;
+}
 
 //performs a case insensitive search
 bool isOnly(const string &token, const string * values, unsigned int noValues);

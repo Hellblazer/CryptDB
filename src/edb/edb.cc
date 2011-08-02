@@ -65,10 +65,10 @@ void     func_add_set_deinit(UDF_INIT *initid);
 char *   func_add_set(UDF_INIT *initid, UDF_ARGS *args, char *result,
                       unsigned long *length, char *is_null, char *error);
 
-my_bool searchSWP_init(UDF_INIT *initid, UDF_ARGS *args, char *message);
-void searchSWP_deinit(UDF_INIT *initid);
-my_bool searchSWP(UDF_INIT *initid, UDF_ARGS *args, char *is_null,
-                  char *error);
+my_bool  searchSWP_init(UDF_INIT *initid, UDF_ARGS *args, char *message);
+void     searchSWP_deinit(UDF_INIT *initid);
+longlong searchSWP(UDF_INIT *initid, UDF_ARGS *args, char *is_null,
+                   char *error);
 
 #else /* Postgres */
 
@@ -154,7 +154,9 @@ decrypt_DET(unsigned char *eValueBytes, uint64_t eValueLen, AES_KEY * key)
 static bool
 search(const Token & token, const Binary & overall_ciph)
 {
-    return CryptoManager::searchExists(token, overall_ciph);
+
+   return CryptoManager::searchExists(token, overall_ciph);
+
 }
 
 #if MYSQL_S
@@ -331,7 +333,7 @@ decrypt_text_sem_deinit(UDF_INIT *initid)
      * initializes initid.ptr=0 for us.
      */
     if (initid->ptr)
-        delete initid->ptr;
+        delete[] initid->ptr;
 }
 
 char *
@@ -350,8 +352,9 @@ decrypt_text_sem(PG_FUNCTION_ARGS)
     key.resize(AES_KEY_BYTES);
     int offset = 1;
 
-    for (unsigned int i = 0; i < AES_KEY_BYTES; i++)
+    for (unsigned int i = 0; i < AES_KEY_BYTES; i++) {
         key[i] = getb(ARGS,offset+i);
+    }
 
     uint64_t salt = getui(ARGS, offset + AES_KEY_BYTES);
 
@@ -360,8 +363,10 @@ decrypt_text_sem(PG_FUNCTION_ARGS)
     delete aesKey;
 
 #if MYSQL_S
-    initid->ptr = strdup(value.c_str());
-    *length = value.length();
+    unsigned char * res = new unsigned char[value.length()];
+    initid->ptr = (char *) res;
+    memcpy(res, value.c_str(), value.length());
+    *length =  value.length();
     return (char*) initid->ptr;
 #else
     bytea * res = (bytea *) palloc(eValueLen+VARHDRSZ);
@@ -387,7 +392,7 @@ decrypt_text_det_deinit(UDF_INIT *initid)
      * initializes initid.ptr=0 for us.
      */
     if (initid->ptr)
-        delete initid->ptr;
+        delete[] initid->ptr;
 }
 
 char *
@@ -415,8 +420,10 @@ decrypt_text_det(PG_FUNCTION_ARGS)
     delete aesKey;
 
 #if MYSQL_S
-    initid->ptr = strdup(value.c_str());
-    *length = value.length();
+    unsigned char * res = new unsigned char[value.length()];
+    initid->ptr = (char *) res;
+    memcpy(res, value.c_str(), value.length());
+    *length =  value.length();
     return (char*) initid->ptr;
 #else
     bytea * res = (bytea *) palloc(eValueLen+VARHDRSZ);
@@ -437,6 +444,7 @@ decrypt_text_det(PG_FUNCTION_ARGS)
 my_bool
 search_init(UDF_INIT *initid, UDF_ARGS *args, char *message)
 {
+
     return 0;
 }
 
@@ -501,16 +509,17 @@ search(PG_FUNCTION_ARGS)
 my_bool
 searchSWP_init(UDF_INIT *initid, UDF_ARGS *args, char *message)
 {
+
     Token * t = new Token();
 
     uint64_t ciphLen;
-    char *ciph = (char *) getba(args, 1, ciphLen);
+    unsigned char *ciph = getba(args, 0, ciphLen);
 
     uint64_t wordKeyLen;
-    char *wordKey = (char *) getba(args, 1, wordKeyLen);
+    unsigned char *wordKey = getba(args, 1, wordKeyLen);
 
-    t->ciph = Binary((unsigned int) ciphLen, (unsigned char *)ciph);
-    t->wordKey = Binary((unsigned int)wordKeyLen, (unsigned char *)wordKey);
+    t->ciph = Binary((unsigned int) ciphLen, ciph);
+    t->wordKey = Binary((unsigned int)wordKeyLen, wordKey);
 
     initid->ptr = (char *) t;
 
@@ -522,19 +531,18 @@ searchSWP_deinit(UDF_INIT *initid)
 {
     Token *t = (Token *) initid->ptr;
     delete t;
-
 }
 
-my_bool
+longlong
 searchSWP(UDF_INIT *initid, UDF_ARGS *args, char *is_null, char *error)
-
 {
-    uint64_t wordLen;
-    char * word = (char *)getba(ARGS, 0, wordLen);
-    Binary w = Binary((unsigned int)wordLen, (unsigned char *)word);
+    uint64_t allciphLen;
+    unsigned char * allciph = getba(ARGS, 2, allciphLen);
+    Binary overallciph = Binary((unsigned int)allciphLen, allciph);
 
-    return search(*((Token *)(initid->ptr)), w);
+    Token * t = (Token *) initid->ptr;
 
+    return search(*t, overallciph);
 }
 
 #endif
@@ -629,7 +637,7 @@ func_add(PG_FUNCTION_ARGS)
         PG_RETURN_BYTEA_P(NULL);
     }
 
-    if (DEBUG) {myPrint(bytesA, lenN2); }
+    if (DEBUG) { cerr << stringToByteInts(string(bytesA, lenN2)) << "\n"; }
 
     unsigned char * bytesRes = homomorphicAdd(bytesA, bytesB, bytesN2, lenN2);
     //cerr << "product "; myPrint(bytesRes, lenN2); cerr << " ";

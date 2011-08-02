@@ -17,7 +17,7 @@ class TestSinglePrinc {
     virtual
     ~TestSinglePrinc();
 
-    static void run(int argc, char ** argv);
+    static void run(const TestConfig &tc, int argc, char ** argv);
 };
 
 #endif /* TESTSINGLEPRINC_H_ */

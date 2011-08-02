@@ -110,7 +110,7 @@ using namespace std;
    C
    C   THE FOLLOWING VARIABLES ARE TEMPORARY VARIABLES USED IN
    C   COMPUTING THE UPPER AND LOWER BOUNDS OF THE NATURAL LOGARITHM
-   C   OF THE SCALED DENSITY.  THE DETAILED DESCRIPTION IS GIVEN IN
+   C   OF THE SCALED DENSITY.  THE SECLEVEL::DETAILED DESCRIPTION IS GIVEN IN
    C   PROPOSITIONS 2 AND 3 OF THE APPENDIX IN THE REFERENCE.
    C              Y, Y1, YM, YN, YK, NK, R, S, T, E, G, DG, GU, GL, XM,
    C              XN, XK, NM
@@ -147,7 +147,7 @@ AFC(RR I)
      6.579251212, 8.525161361};
 
     if (I <= 7) {
-        return to_RR(AL[to_int(to_ZZ(I))+1]);
+        return to_RR(AL[to_int(round(I))]);
     } else {
         RR LL = log(I);
         return (I+0.5) * LL - I + 0.399089934;
@@ -160,10 +160,7 @@ AFC(RR I)
 static RR
 randomValue(ZZ & seed, unsigned int seedLen)
 {
-
-    SetSeed(seed);
     ZZ prBits = RandomBits_ZZ(2*seedLen);
-    seed = prBits % (to_ZZ(1) << seedLen);
     RR result = to_RR(prBits >> seedLen)/to_RR((to_ZZ(1) << seedLen));
     //if (DEBUG) {cerr << "rand bits are " << result << "\n";}
     return result;
@@ -173,7 +170,7 @@ ZZ
 HGD(ZZ KK, ZZ NN1, ZZ NN2, ZZ SEED, unsigned int seedLen,
     unsigned int RRPrecision)
 {
-
+    SetSeed(SEED);
     RR::SetPrecision(RRPrecision);
 
     RR JX;   //the result

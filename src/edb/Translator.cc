@@ -6,7 +6,7 @@
  */
 
 #include "Translator.h"
-#include "log.h"
+#include "cryptdb_log.h"
 
 string
 anonymizeTableName(unsigned int tableNo, string tableName, bool multiPrinc)
@@ -60,13 +60,25 @@ FieldMetadata::exists(const string &val)
 
 FieldMetadata::FieldMetadata()
 {
-    secLevelOPE = SEMANTIC_OPE;
-    secLevelDET = SEMANTIC_DET;
+    isEncrypted = false;
+    type = TYPE_TEXT;
+
+    secLevelOPE = SECLEVEL::SEMANTIC_OPE;
+    secLevelDET = SECLEVEL::SEMANTIC_DET;
 
     INCREMENT_HAPPENED = false;
 
     ope_used = false;
     agg_used = false;
+    has_search = false;
+}
+
+TableMetadata::~TableMetadata()
+{
+    for (auto i = fieldMetaMap.begin(); i != fieldMetaMap.end(); i++)
+        delete i->second;
+    for (auto i = indexes.begin(); i != indexes.end(); i++)
+        delete *i;
 }
 
 string
@@ -146,7 +158,7 @@ throw (CryptDBError)
     case TYPE_INTEGER: {
 
         if (fm->isEncrypted) {
-            // create field for DET encryption
+            // create field for SECLEVEL::DET encryption
             string anonFieldNameDET = anonymizeFieldName(index, oDET,
                                                          fieldName, multiPrinc);
 
@@ -184,7 +196,7 @@ throw (CryptDBError)
             break;
         }
         else {
-            // create field for DET encryption
+            // create field for SECLEVEL::DET encryption
             fm->fieldName = fieldName;
 
             tm->fieldNameMap[fieldName] = fieldName;
@@ -293,62 +305,68 @@ throw (CryptDBError)
             //join by equality
 
             //if any of the fields are in the semantic state must decrypt
-            if (fmfirst->secLevelDET == SEMANTIC_DET) {
+            if (fmfirst->secLevelDET == SECLEVEL::SEMANTIC_DET) {
                 addIfNotContained(fullName(firstToken,
                                            firstTable), fieldsDec.DETFields);
                 addIfNotContained(fullName(firstToken,
                                            firstTable),
                                   fieldsDec.DETJoinFields);
             }
-            if (fmsecond->secLevelDET == SEMANTIC_DET) {
+            if (fmsecond->secLevelDET == SECLEVEL::SEMANTIC_DET) {
                 addIfNotContained(fullName(secondToken,
                                            secondTable), fieldsDec.DETFields);
                 addIfNotContained(fullName(secondToken,
                                            secondTable),
                                   fieldsDec.DETJoinFields);
             }
-            if (fmfirst->secLevelDET == DET) {
+            if (fmfirst->secLevelDET == SECLEVEL::DET) {
                 addIfNotContained(fullName(firstToken,
                                            firstTable),
                                   fieldsDec.DETJoinFields);
             }
-            if (fmsecond->secLevelDET == DET) {
+            if (fmsecond->secLevelDET == SECLEVEL::DET) {
                 addIfNotContained(fullName(secondToken,
                                            secondTable),
                                   fieldsDec.DETJoinFields);
-            }
-
-            return;
-        } else {
-            //join by inequality
-
-            assert_s(false, "join not supported for inequality");
-            assert_s(Operation::isOPE(operation), "unexpected operation ");
-
-            //must bring both to joinable level
-            if (fmfirst->secLevelOPE == SEMANTIC_OPE) {
-                addIfNotContained(fullName(firstToken,
-                                           firstTable), fieldsDec.OPEFields);
-            }
-            if (fmsecond->secLevelOPE == SEMANTIC_OPE) {
-                addIfNotContained(fullName(secondToken,
-                                           secondTable), fieldsDec.OPEFields);
-            }
-            if (fmfirst->secLevelOPE == OPESELF) {
-                addIfNotContained(fullName(firstToken,
-                                           firstTable),
-                                  fieldsDec.OPEJoinFields);
-            }
-
-            if (fmsecond->secLevelOPE == OPESELF) {
-                addIfNotContained(fullName(secondToken,
-                                           secondTable),
-                                  fieldsDec.OPEJoinFields);
             }
 
             return;
         }
 
+        //join by inequality
+
+        assert_s(false, "join not supported for inequality");
+        assert_s(Operation::isOPE(operation), "unexpected operation ");
+
+        //must bring both to joinable level
+        if (fmfirst->secLevelOPE == SECLEVEL::SEMANTIC_OPE) {
+            addIfNotContained(fullName(firstToken,
+                    firstTable), fieldsDec.OPEFields);
+        }
+        if (fmsecond->secLevelOPE == SECLEVEL::SEMANTIC_OPE) {
+            addIfNotContained(fullName(secondToken,
+                    secondTable), fieldsDec.OPEFields);
+        }
+        if (fmfirst->secLevelOPE == SECLEVEL::OPE) {
+            addIfNotContained(fullName(firstToken,
+                    firstTable),
+                    fieldsDec.OPEJoinFields);
+        }
+
+        if (fmsecond->secLevelOPE == SECLEVEL::OPE) {
+            addIfNotContained(fullName(secondToken,
+                    secondTable),
+                    fieldsDec.OPEJoinFields);
+        }
+
+        return;
+
+    }
+
+    // It is not join
+
+    if (Operation::isILIKE(operation)) {
+        return;
     }
 
     if (Operation::isIN(operation) && (isField(firstToken))) {
@@ -359,14 +377,14 @@ throw (CryptDBError)
         }
 
         if (tableMetaMap[firstTable]->fieldMetaMap[firstToken]->secLevelDET
-            == SEMANTIC_DET) {
+            == SECLEVEL::SEMANTIC_DET) {
             addIfNotContained(fullName(firstToken,
                                        firstTable), fieldsDec.DETFields);
             addIfNotContained(fullName(firstToken,
                                        firstTable), fieldsDec.DETJoinFields);
         }
         if (tableMetaMap[firstTable]->fieldMetaMap[firstToken]->secLevelDET
-            == DET) {
+            == SECLEVEL::DET) {
             addIfNotContained(fullName(firstToken,
                                        firstTable), fieldsDec.DETFields);
         }
@@ -402,7 +420,7 @@ throw (CryptDBError)
         assert_s(fmField->INCREMENT_HAPPENED == false,
                  "cannot perform comparison on field that was incremented \n");
         //filter with equality
-        if (fmField->secLevelDET == SEMANTIC_DET) {
+        if (fmField->secLevelDET == SECLEVEL::SEMANTIC_DET) {
             addIfNotContained(tableField, fieldsDec.DETFields);
         }
 
@@ -413,7 +431,7 @@ throw (CryptDBError)
 
     fmField->ope_used = true;
 
-    if (fmField->secLevelOPE == SEMANTIC_OPE) {
+    if (fmField->secLevelOPE == SECLEVEL::SEMANTIC_OPE) {
         addIfNotContained(tableField, fieldsDec.OPEFields);
     }
 
@@ -457,7 +475,7 @@ isNested(const string &query)
 bool
 isCommand(string str)
 {
-    return contains(str, commands, noCommands);
+    return contains(str, commands);
 }
 
 string
@@ -483,27 +501,27 @@ SECLEVEL
 getLevelForOnion(FieldMetadata * fm, onion o)
 {
     switch (o) {
-    case oAGG: {return SEMANTIC_AGG; }
+    case oAGG: {return SECLEVEL::SEMANTIC_AGG; }
     case oDET: { return fm->secLevelDET; }
     case oOPE: { return fm->secLevelOPE; }
-    case oNONE: {return PLAIN; }
+    case oNONE: {return SECLEVEL::PLAIN; }
     default: {assert_s(false, "invalid onion type in getLevelForOnion"); }
     }
 
-    return INVALID;
+    return SECLEVEL::INVALID;
 }
 SECLEVEL
 getLevelPlain(onion o)
 {
     switch (o) {
-    case oAGG: {return PLAIN_AGG; }
-    case oDET: { return PLAIN_DET; }
-    case oOPE: { return PLAIN_OPE; }
-    case oNONE: {return PLAIN; }
+    case oAGG: {return SECLEVEL::PLAIN_AGG; }
+    case oDET: { return SECLEVEL::PLAIN_DET; }
+    case oOPE: { return SECLEVEL::PLAIN_OPE; }
+    case oNONE: {return SECLEVEL::PLAIN; }
     default: {assert_s(false, "invalid onion type in getLevelForOnion"); }
     }
 
-    return INVALID;
+    return SECLEVEL::INVALID;
 }
 
 bool
@@ -551,9 +569,7 @@ processSensitive(list<string>::iterator & it, list<string> & words,
                  map<string,
                      TableMetadata *> & tm)
 {
-
-    string keys[] = {"AND", "OR", "NOT"};
-    unsigned int noKeys = 3;
+    vector<string> keys = {"AND", "OR", "NOT"};
 
     bool foundSensitive = false;
     bool foundInsensitive = false;
@@ -564,7 +580,7 @@ processSensitive(list<string>::iterator & it, list<string> & words,
 
     int openParen = 0;
 
-    while ((newit != words.end()) && (!contains(*newit, keys, noKeys))
+    while ((newit != words.end()) && (!contains(*newit, keys))
            && (!isQuerySeparator(*newit))  &&
            (!((openParen == 0) && (newit->compare(")") == 0))) ) {
 
@@ -621,30 +637,38 @@ throw (CryptDBError)
 {
     LOG(edb_v) << "in getquery meta";
 
-    string * delims = NULL;
-    unsigned int noDelims = 0;
+    std::set<string> delims;
 
     switch(c) {
-    case SELECT: {noDelims = 2; delims = new string[2]; delims[0] = "from";
-                  delims[1] = "left"; break; }
-    case DELETE: {noDelims = 2; delims = new string[2]; delims[0] = "from";
-                  delims[1] = "left"; break; }
-    case INSERT: {noDelims = 1; delims = new string[1]; delims[0] = "into";
-                  break; }
-    case UPDATE: {noDelims = 1; delims = new string[1]; delims[0] = "update";
-                  break; }
-    default: {assert_s(false, "given unexpected command in getQueryMeta"); }
+    case cmd::SELECT:
+        delims = { "from", "left" };
+        break;
+
+    case cmd::DELETE:
+        delims = { "from", "left" };
+        break;
+
+    case cmd::INSERT:
+        delims = { "into" };
+        break;
+
+    case cmd::UPDATE:
+        delims = { "update" };
+        break;
+
+    default:
+        assert_s(false, "given unexpected command in getQueryMeta");
     }
 
     auto qit = query.begin();
 
     QueryMeta qm = QueryMeta();
 
-    mirrorUntilTerm(qit, query, delims, noDelims, 0);
+    mirrorUntilTerm(qit, query, delims, 0);
 
     assert_s(qit != query.end(), "query does not have delims in getQueryMeta");
 
-    while (qit!=query.end() && (contains(*qit, delims, noDelims))) {
+    while (qit!=query.end() && (contains(*qit, delims))) {
         if (equalsIgnoreCase(*qit, "left")) {
             roll<string>(qit, 2);
         } else {
@@ -667,12 +691,12 @@ throw (CryptDBError)
             }
             processAlias(qit, query);
         }
-        mirrorUntilTerm(qit, query, delims, noDelims, 0);
+        mirrorUntilTerm(qit, query, delims, 0);
         if (qit != query.end())
             LOG(edb_v) << "after mirror, qit is " << *qit;
     }
 
-    if (c == SELECT) {
+    if (c == cmd::SELECT) {
 
         //we are now building field aliases
         list<string>::iterator it;
@@ -770,10 +794,7 @@ closingparen:
     wordsIt++;
 
     //there may be other stuff before first parent
-    string termin[] = {")"};
-    int noTermin = 1;
-
-    res += mirrorUntilTerm(wordsIt, words, termin, noTermin, 0, 0);
+    res += mirrorUntilTerm(wordsIt, words, {")"}, 0, 0);
 
     for (int i = 0; i < noParen; i++) {
         assert_s(wordsIt->compare(")") == 0, "expected ) but got " + *wordsIt);
@@ -987,17 +1008,4 @@ QueryMeta::cleanup()
     aliasToTab.clear();
     tabToAlias.clear();
     tables.clear();
-}
-
-void
-ResMeta::cleanup()
-{
-    free(isSalt);
-    //TODO: don't know how to free table & field & namesForRes without seg
-    // fault
-    //free(table);
-    //free(field);
-    free(o);
-    //free(namesForRes);
-
 }

@@ -16,7 +16,7 @@ class TestMultiPrinc {
     virtual
     ~TestMultiPrinc();
 
-    static void run(int argc, char ** argv);
+    static void run(const TestConfig &tc, int argc, char ** argv);
 };
 
 #endif /* TESTMULTIPRINC_H_ */

@@ -6,6 +6,7 @@
  */
 
 #include "Connect.h"
+#include "cryptdb_log.h"
 
 Connect::Connect(string server, string user, string passwd,
                  string dbname, uint port)
@@ -16,7 +17,7 @@ Connect::Connect(string server, string user, string passwd,
     /* Connect to database */
     if (!mysql_real_connect(conn, server.c_str(), user.c_str(),
                             passwd.c_str(), dbname.c_str(), port, 0, 0)) {
-        fprintf(stderr, "%s\n", mysql_error(conn));
+        LOG(warn) << "mysql_real_connect: " << mysql_error(conn);
         exit(1);
     }
 
@@ -40,7 +41,7 @@ Connect::execute(const string &query, DBResult * & res)
 {
 #if MYSQL_S
     if (mysql_query(conn, query.c_str())) {
-        fprintf(stderr, "mysql error: %s\n", mysql_error(conn));
+        LOG(warn) << "mysql_query: " << mysql_error(conn);
         res = 0;
         return false;
     } else {
@@ -134,35 +135,32 @@ DBResult::~DBResult()
 
 // returns the data in the last server response
 // TODO: to optimize return pointer to avoid overcopying large result sets?
-ResType *
+ResType
 DBResult::unpack()
 {
 #if MYSQL_S
-
     if (n == NULL)
-        return new ResType();
+        return ResType();
 
     size_t rows = (size_t)mysql_num_rows(n);
     int cols  = -1;
     if (rows > 0) {
         cols = mysql_num_fields(n);
     } else {
-        return new ResType();
+        return ResType();
     }
 
-    ResType *res = new vector<vector<string> >();
-
-    // first row contains names
-    res->push_back(vector<string>(cols));
-
+    ResType res;
     bool binFlags[cols];
+
     for (int j = 0;; j++) {
         MYSQL_FIELD *field = mysql_fetch_field(n);
         if (!field)
             break;
 
         binFlags[j] = mysql_isBinary(field->type, field->charsetnr);
-        (*res)[0][j] = string(field->name);
+        res.names.push_back(field->name);
+        res.types.push_back(field->type);
     }
 
     for (int index = 0;; index++) {
@@ -171,22 +169,24 @@ DBResult::unpack()
             break;
         unsigned long *lengths = mysql_fetch_lengths(n);
 
-        res->push_back(vector<string>(cols));
+        vector<string> resrow;
 
         for (int j = 0; j < cols; j++) {
             if (binFlags[j] && !DECRYPTFIRST) {
-                (*res)[index+1][j] = marshallBinary(string(row[j], lengths[j]));
+                resrow.push_back(marshallBinary(string(row[j], lengths[j])));
             } else {
                 if (row[j] == NULL) {
                     /*
                      * XXX why are we losing NULLs?
                      */
-                    (*res)[index+1][j] = "";
+                    resrow.push_back("");
                 } else {
-                    (*res)[index+1][j] = string(row[j], lengths[j]);
+                    resrow.push_back(string(row[j], lengths[j]));
                 }
             }
         }
+
+        res.rows.push_back(resrow);
     }
 
     return res;

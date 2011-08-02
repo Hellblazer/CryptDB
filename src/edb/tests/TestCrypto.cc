@@ -7,7 +7,7 @@
 
 #include "TestCrypto.h"
 #include "pbkdf2.h"
-#include "log.h"
+#include "cryptdb_log.h"
 
 TestCrypto::TestCrypto()
 {
@@ -24,12 +24,10 @@ testOPE()
     const unsigned int OPEPlaintextSize = 32;
     const unsigned int OPECiphertextSize = 128;
 
-    unsigned char key[AES_KEY_SIZE/
-                      bitsPerByte] =
-    {158, 242, 169, 240, 255, 166, 39, 177, 149, 166, 190, 237, 178, 254, 187,
-     40};
+    unsigned char key[AES_KEY_BYTES] = 
+        {158, 242, 169, 240, 255, 166, 39, 177, 149, 166, 190, 237, 178, 254, 187, 40};
 
-    OPE * ope = new OPE((const char *) key, OPEPlaintextSize,
+    OPE * ope = new OPE(string((char *) key, AES_KEY_BYTES), OPEPlaintextSize,
                         OPECiphertextSize);
 
     unsigned char plaintext[OPEPlaintextSize/bitsPerByte] = {74, 95, 221, 84};
@@ -47,8 +45,10 @@ testOPE()
 }
 
 static void
-testHDG()
+testHGD()
 {
+
+    /* This test is outdated.
     unsigned int len = 16;   //bytes
     unsigned int bitsPrecision = len * bitsPerByte + 10;
     ZZ K = ZZFromString(randomBytes(len));
@@ -58,11 +58,11 @@ testHDG()
 
     ZZ sample = HGD(K, N1, N2, SEED, len*bitsPerByte, bitsPrecision);
 
-    cerr << "N1 is "; myPrint(StringFromZZ(N1)); cerr << "\n";
-    cerr << "N2 is "; myPrint(StringFromZZ(N2)); cerr << "\n";
-    cerr << "K is "; myPrint(StringFromZZ(K)); cerr << "\n";
-    cerr << "HGD sample is ";
-    myPrint(StringFromZZ(sample)); cerr << "\n";
+    LOG(test) << "N1 is " << myPrint(StringFromZZ(N1));
+    LOG(test) << "N2 is " << myPrint(StringFromZZ(N2));
+    LOG(test) << "K is " << myPrint(StringFromZZ(K));
+    LOG(test) << "HGD sample is " << myPrint(StringFromZZ(sample));
+    */
 }
 
 static void
@@ -173,7 +173,7 @@ testPBKDF2(void)
     for (uint i = 0; i < sizeof(test_vectors) / sizeof(test_vectors[0]);
          i++) {
         struct test_vector *vec = &test_vectors[i];
-        printf("vector %u\n", i);
+        LOG(test) << "vector " << i;
         for (uint j = 1; j < 32; j += 3) {
             string k = pbkdf2(string(vec->pass),
                               string(vec->salt),
@@ -209,14 +209,14 @@ to_vec(const list<unsigned int> & lst)
 static void
 testSWPSearch()
 {
-    cout << "   -- test Song-Wagner-Perrig crypto ... \n";
+    LOG(test) << "   -- test Song-Wagner-Perrig crypto ...";
 
     Binary mediumtext = Binary::toBinary("hello world!");
     Binary smalltext = Binary::toBinary("hi");
     Binary emptytext = Binary::toBinary("");
     Binary exacttext = Binary::toBinary("123456789012345");
 
-    cout << "		+ test encrypt/decrypt \n";
+    LOG(test) << "        + test encrypt/decrypt";
 
     list<Binary> lst = {mediumtext, smalltext, emptytext, exacttext};
 
@@ -240,7 +240,7 @@ testSWPSearch()
 
     //test searchability
 
-    cout << "		+ test searchability \n";
+    LOG(test) << "        + test searchability";
 
     Binary word1 = Binary::toBinary("ana");
     Binary word2 = Binary::toBinary("dana");
@@ -282,7 +282,7 @@ testSWPSearch()
 
     //test encrypt/decrypt wrappers
 
-    cout << "		+ test wrappers \n";
+    LOG(test) << "        + test wrappers";
 
     list<Binary> lstw = {mediumtext, smalltext, emptytext,  exacttext};
 
@@ -343,7 +343,7 @@ testSWPSearch()
                                                                word1),
                                           CryptoManager::encryptSWP(key,
                                                                     vec3)),
-             "incorrect found flad in vec3");
+             "incorrect found flag in vec3");
 
     indexes = CryptoManager::searchSWP(CryptoManager::token(key,
                                                             word1),
@@ -359,17 +359,20 @@ testSWPSearch()
                                                                    vec4)),
              "incorrect found flag in vec4");
 
-    cout << "   -- OK \n";
+    LOG(test) << "   -- OK";
+
+
+
 }
 
 void
-TestCrypto::run(int argc, char ** argv)
+TestCrypto::run(const TestConfig &tc, int argc, char ** argv)
 {
     cerr << "TESTING CRYPTO" << endl;
     cerr << "Testing OPE..." << endl;
     testOPE();
-    cerr << "Testing HDG..." << endl;
-    testHDG();
+    cerr << "Testing HGD..." << endl;
+    testHGD();
     cerr << "Testing PKCS..." << endl;
     testPKCS();
     cerr << "Testing SWP Search ... " << endl;

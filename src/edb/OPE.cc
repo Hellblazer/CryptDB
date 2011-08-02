@@ -243,6 +243,11 @@ OPE::OPE(const string &key, unsigned int OPEPlaintextSize,
     }
 }
 
+OPE::~OPE()
+{
+    delete iOPE;
+}
+
 // TODO: should these be ZZ to avoid the conversion once again == decrease nr
 // of conversions!
 /**

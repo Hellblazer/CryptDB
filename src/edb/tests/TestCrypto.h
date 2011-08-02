@@ -5,12 +5,11 @@
  *      Author: cat_red
  */
 
+#pragma once
 #include "CryptoManager.h"
 #include "HGD.h"
 #include "OPE.h"
-
-#ifndef TESTCRYPTO_H_
-#define TESTCRYPTO_H_
+#include "test_utils.h"
 
 class TestCrypto {
  public:
@@ -18,7 +17,5 @@ class TestCrypto {
     virtual
     ~TestCrypto();
 
-    static void run(int argc, char ** argv);
+    static void run(const TestConfig &tc, int argc, char ** argv);
 };
-
-#endif /* TESTCRYPTO_H_ */

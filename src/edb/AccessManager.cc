@@ -8,7 +8,7 @@
 #include <iomanip>
 
 #include "AccessManager.h"
-#include "log.h"
+#include "cryptdb_log.h"
 
 #define PRINCTYPE "varchar(255)"
 #define NODIGITS 4
@@ -45,7 +45,7 @@ MetaAccess::MetaAccess(Connect * c, bool verb)
 {
     this->VERBOSE = verb;
     this->table_name = "cryptdb_";
-    this->public_table = "cryptdb_initalized_principles";
+    this->public_table = "cryptdb_initalized_principals";
     this->table_num = 0;
     this->conn = c;
 }
@@ -206,7 +206,7 @@ MetaAccess::addAccess(string princHasAccess, string princAccessible)
         princAccessible << ")";
     }
 
-    //get the generic principles these princs are part of
+    //get the generic principals these princs are part of
     string genHasAccess = getGeneric(princHasAccess);
     string genAccessible = getGeneric(princAccessible);
 
@@ -238,7 +238,7 @@ MetaAccess::addGives(string princ)
     if (VERBOSE) {
         LOG(am_v) << "addGives(" << princ << ")";
     }
-    //get the generic principle princ is part of
+    //get the generic principal princ is part of
     string gen_gives = getGeneric(princ);
     //add the generic to the set of generics that give passwords
     givesPsswd.insert(gen_gives);
@@ -250,12 +250,12 @@ MetaAccess::getTypesAccessibleFrom(string princ)
     assert_s(prinToGen.find(sanitize(
                                 princ)) != prinToGen.end(), "input " +
              princ +
-             " to getAccessibleFrom is not a known principle");
+             " to getAccessibleFrom is not a known principal");
     string gen_accessed = getGeneric(princ);
     std::set<string> accessible_from;
     std::set<string>::iterator it;
     std::set<string>::iterator it2;
-    //things accessible from this principle
+    //things accessible from this principal
     if(genAccessibleByList.find(gen_accessed) != genAccessibleByList.end()) {
         for(it = genAccessibleByList[gen_accessed].begin();
             it != genAccessibleByList[gen_accessed].end(); it++) {
@@ -268,7 +268,7 @@ MetaAccess::getTypesAccessibleFrom(string princ)
             }
         }
     }
-    //things equal to this principle
+    //things equal to this principal
     assert_s(genToPrin.find(
                  gen_accessed) != genToPrin.end(),
              "getAccessibleFrom: input not known");
@@ -291,7 +291,7 @@ MetaAccess::getGenAccessibleFrom(string gen)
     string gen_accessed = gen;
     std::set<string> accessible_from;
     std::set<string>::iterator it;
-    //things accessible from this principle
+    //things accessible from this principal
     accessible_from.insert(gen_accessed);
     if(genAccessibleByList.find(gen_accessed) != genAccessibleByList.end()) {
         for(it = genAccessibleByList[gen_accessed].begin();
@@ -308,12 +308,12 @@ MetaAccess::getTypesHasAccessTo(string princ)
 {
     assert_s(prinToGen.find(sanitize(
                                 princ)) != prinToGen.end(),
-             "input to getHasAccessTo is not a known principle");
+             "input to getHasAccessTo is not a known principal");
     string gen_accessing = getGeneric(princ);
     std::set<string> can_access;
     std::set<string>::iterator it;
     std::set<string>::iterator it2;
-    //things accessible from this principle
+    //things accessible from this principal
     if(genHasAccessToList.find(gen_accessing) != genHasAccessToList.end()) {
         for(it = genHasAccessToList[gen_accessing].begin();
             it != genHasAccessToList[gen_accessing].end(); it++) {
@@ -326,7 +326,7 @@ MetaAccess::getTypesHasAccessTo(string princ)
             }
         }
     }
-    //things equal to this principle
+    //things equal to this principal
     assert_s(genToPrin.find(
                  gen_accessing) != genToPrin.end(),
              "getHasAccessTo: input not known");
@@ -345,12 +345,12 @@ MetaAccess::getGenHasAccessTo(string gen)
 {
     assert_s(genToPrin.find(
                  gen) != genToPrin.end(),
-             "input to getHasAccessTo is not a known principle");
+             "input to getHasAccessTo is not a known principal");
     string gen_accessing = gen;
     std::set<string> can_access;
     std::set<string>::iterator it;
     can_access.insert(gen_accessing);
-    //things accessible from this principle
+    //things accessible from this principal
     if(genHasAccessToList.find(gen_accessing) != genHasAccessToList.end()) {
         for(it = genHasAccessToList[gen_accessing].begin();
             it != genHasAccessToList[gen_accessing].end(); it++) {
@@ -366,7 +366,7 @@ MetaAccess::getEquals(string princ)
 {
     assert_s(prinToGen.find(sanitize(
                                 princ)) != prinToGen.end(),
-             "input to getEquals is not a known principle");
+             "input to getEquals is not a known principal");
     string gen = getGeneric(princ);
     return unsanitizeSet(genToPrin[gen]);
 }
@@ -376,7 +376,7 @@ MetaAccess::isGives(string princ)
 {
     assert_s(prinToGen.find(sanitize(
                                 princ)) != prinToGen.end(),
-             "input to isGives is not a known principle");
+             "input to isGives is not a known principal");
     string gen = getGeneric(princ);
     if (givesPsswd.find(gen) != givesPsswd.end()) {
         return true;
@@ -412,7 +412,7 @@ MetaAccess::getGeneric(string princ)
 {
     //remove any illegal characters (generally, just '.')
     princ = sanitize(princ);
-    //if this principle has no generic, create one with the name gen_princ
+    //if this principal has no generic, create one with the name gen_princ
     if (prinToGen.find(princ) == prinToGen.end()) {
         createGeneric(princ);
     }
@@ -502,7 +502,7 @@ MetaAccess::CreateTables()
 {
     assert_s(
         CheckAccess(),
-        "ERROR: there is an access chain that does not terminate at a givesPsswd principle");
+        "ERROR: there is an access chain that does not terminate at a givesPsswd principal");
     string sql, num;
     map<string, std::set<string> >::iterator it;
     std::set<string>::iterator it_s;
@@ -520,7 +520,7 @@ MetaAccess::CreateTables()
         LOG(am) << "error with sql query " << sql;
         return -1;
     }
-    //Tables for each principle access link
+    //Tables for each principal access link
     for(it = genHasAccessToList.begin(); it != genHasAccessToList.end();
         it++) {
         for(it_s = it->second.begin(); it_s != it->second.end(); it_s++) {
@@ -559,7 +559,7 @@ MetaAccess::DeleteTables()
         LOG(am) << "error with sql query " << sql;
         return -1;
     }
-    //Tables for each principle access link
+    //Tables for each principal access link
     for(unsigned int i = 0; i < table_num; i++) {
         unsigned int n = i;
         num = marshallVal(n);
@@ -573,8 +573,7 @@ MetaAccess::DeleteTables()
     return 0;
 }
 
-void
-MetaAccess::finish()
+MetaAccess::~MetaAccess()
 {
     DeleteTables();
     prinToGen.clear();
@@ -583,11 +582,6 @@ MetaAccess::finish()
     genAccessibleByList.clear();
     givesPsswd.clear();
     genHasAccessToGenTable.clear();
-}
-
-MetaAccess::~MetaAccess()
-{
-    finish();
 }
 
 void
@@ -767,7 +761,7 @@ KeyAccess::insert(Prin hasAccess, Prin accessTo)
     prins.insert(hasAccess);
     prins.insert(accessTo);
 
-    if (Select(prins,table,"*")->size() > 1) {
+    if (Select(prins,table,"*").rows.size() > 0) {
         if (VERBOSE) {
             LOG(am_v) << "relation " + hasAccess.gen + "=" +
             hasAccess.value +
@@ -786,7 +780,7 @@ KeyAccess::insert(Prin hasAccess, Prin accessTo)
             LOG(am_v) << "key for " + accessTo.gen + "=" + accessTo.value +
             " is already held";
         }
-        keys[accessTo].principles_with_access.insert(hasAccess);
+        keys[accessTo].principals_with_access.insert(hasAccess);
         accessToKey = keys[accessTo].key;
         already_in_keys = true;
     }
@@ -794,13 +788,11 @@ KeyAccess::insert(Prin hasAccess, Prin accessTo)
     //see if there are any entries with the same second field
     prins.clear();
     prins.insert(accessTo);
-    vector<vector<string> > * resultset = Select(prins,table,"*");
-    vector<vector<string> >::iterator it;
+    ResType resultset = Select(prins,table,"*");
     //keys for this link exist; decrypt them
-    if(resultset->size() > 1) {
-        it = resultset->begin();
-        it++;
-        for(; it != resultset->end(); it++) {
+    if(resultset.rows.size() > 0) {
+        auto it = resultset.rows.begin();
+        for(; it != resultset.rows.end(); it++) {
             Prin this_row;
             this_row.type = hasAccess.type;
             this_row.gen = hasAccess.gen;
@@ -868,7 +860,7 @@ KeyAccess::insert(Prin hasAccess, Prin accessTo)
 
     //store key locally if either user is logged on
     PrinKey accessToPrinKey = buildKey(hasAccess, accessToKey);
-    accessToPrinKey.principles_with_access.insert(accessTo);
+    accessToPrinKey.principals_with_access.insert(accessTo);
     if (!already_in_keys &&
         (getKey(hasAccess).length() > 0 || getKey(accessTo).length() > 0)) {
         addToKeys(accessTo, accessToPrinKey);
@@ -882,12 +874,11 @@ KeyAccess::insert(Prin hasAccess, Prin accessTo)
         if (!conn->execute(sql, dbres)) {
             LOG(am) << "Problem with sql statement: " << sql;
         } else {
-            ResType *res = dbres->unpack();
+            ResType res = dbres->unpack();
             delete dbres;
 
-            if (res->size() < 2)
+            if (res.rows.size() == 0)
                 GenerateAsymKeys(accessTo,accessToPrinKey);
-            delete res;
         }
     }
 
@@ -914,19 +905,18 @@ KeyAccess::insert(Prin hasAccess, Prin accessTo)
             assert_s(0, "x");
         }
 
-        ResType *res = dbres->unpack();
+        ResType res = dbres->unpack();
         delete dbres;
 
         assert_s(
             hasAccessPrinKey.key.length() > 0, "created hasAccess has no key");
-        if (res->size() < 2)
+        if (res.rows.size() == 0)
             GenerateAsymKeys(hasAccess,hasAccessPrinKey);
-        delete res;
 
         addToKeys(accessTo, accessToPrinKey);
         addToKeys(hasAccess, hasAccessPrinKey);
         assert_s(isOrphan(
-                     hasAccess), "orphan principle is not checking as orphan");
+                     hasAccess), "orphan principal is not checking as orphan");
         assert_s(isInstance(
                      hasAccess),
                  "orphan hasAccess thinks it doesn't exist >_<");
@@ -984,15 +974,15 @@ KeyAccess::remove(Prin hasAccess, Prin accessTo)
     assert_s(isInstance(
                  accessTo), "accessTo in remove is has not been inserted");
 
-    //remove hasAccess from accessTo's principles_with_access if local key is
+    //remove hasAccess from accessTo's principals_with_access if local key is
     // stored
     if (getKey(accessTo).length() > 0) {
         PrinKey accessTo_key = keys[accessTo];
-        accessTo_key.principles_with_access.erase(hasAccess);
+        accessTo_key.principals_with_access.erase(hasAccess);
         keys[accessTo] = accessTo_key;
         //if this was the only link keeping accessTo's key accessible, delete
         // the entire subtree
-        if (accessTo_key.principles_with_access.size() <= 1) {
+        if (accessTo_key.principals_with_access.size() <= 1) {
             return removePsswd(accessTo);
         }
     }
@@ -1048,8 +1038,8 @@ KeyAccess::removeFromOrphans(Prin orphan)
 
     //check to see if orphans' keys should be accessible
     std::set<Prin>::iterator princ_access;
-    for (princ_access = keys[orphan].principles_with_access.begin();
-         princ_access != keys[orphan].principles_with_access.end();
+    for (princ_access = keys[orphan].principals_with_access.begin();
+         princ_access != keys[orphan].principals_with_access.end();
          princ_access++) {
         if (keys.find(*princ_access) != keys.end() && *princ_access !=
             orphan) {
@@ -1071,12 +1061,12 @@ KeyAccess::getKey(Prin prin)
     }
     PrinKey prinkey = getPrinKey(prin);
     if(VERBOSE) {
-        cerr << "     " << prin.gen  << "=" << prin.value <<
-        " has principles with access: " << endl;
+        LOG(am_v) << "     " << prin.gen  << "=" << prin.value
+                  << " has principals with access: ";
         std::set<Prin>::iterator it;
-        for(it = prinkey.principles_with_access.begin();
-            it != prinkey.principles_with_access.end(); it++) {
-            cerr << "\t" << it->gen << "=" << it->value << endl;
+        for(it = prinkey.principals_with_access.begin();
+            it != prinkey.principals_with_access.end(); it++) {
+            LOG(am_v) << "\t" << it->gen << "=" << it->value;
         }
     }
     //cerr << "returning null? " << (prinkey.key.length() == 0) << "\n";
@@ -1125,12 +1115,9 @@ KeyAccess::getPrinKey(Prin prin)
                  "newly created orphan in getKey is not recognized as an orphan");
     }
     else {
-        if (VERBOSE) {
-            cerr <<
-            "     *asking for a key that exists but is not accessible" <<
-            endl;
-	    cerr << prinkey.key.length() << endl;
-        }
+        if (VERBOSE)
+            cerr << "asking for a key that exists but is not accessible: "
+                 << prinkey.key.length() << endl;
     }
     return prinkey;
 }
@@ -1156,18 +1143,15 @@ KeyAccess::getPublicKey(Prin prin)
         return NULL;
     }
 
-    ResType *res = dbres->unpack();
+    ResType res = dbres->unpack();
     delete dbres;
 
-    if(res->size() < 2) {
+    if(res.rows.size() == 0) {
         cerr << "No public key for input to getPublicKey" << endl;
-        delete res;
         return NULL;
     }
 
-    string key = unmarshallBinary((*res)[1][2]);
-    delete res;
-
+    string key = unmarshallBinary(res.rows[0][2]);
     return crypt_man->unmarshallKey(key, true);
 }
 
@@ -1192,31 +1176,25 @@ KeyAccess::getSecretKey(Prin prin)
         return error;
     }
 
-    ResType *res = dbres->unpack();
+    ResType res = dbres->unpack();
     delete dbres;
 
-    if(res->size() < 2) {
+    if(res.rows.size() == 0) {
         cerr << "No public key for input to getSecretKey" << endl;
-        delete res;
         return error;
     }
 
-    string string_key = res->at(1).at(3);
-    PrinKey x = decryptSym(res->at(1).at(3), getKey(prin), res->at(1).at(4));
-    delete res;
-    return x;
+    string string_key = res.rows[0][3];
+    return decryptSym(res.rows[0][3], getKey(prin), res.rows[0][4]);
 }
 
 int
 KeyAccess::insertPsswd(Prin gives, const string &psswd)
 {
     if(VERBOSE) {
-        cerr << "-->" << gives.type << " " << gives.value <<
-        " is logging in with ";
-        myPrint(psswd);
-        cerr << endl;
-        LOG(am_v) << "insertPsswd(" << gives.type << "=" << gives.value <<
-        ",...)";
+        LOG(am_v) << gives.type << " " << gives.value
+                  << " is logging in with " << stringToByteInts(psswd);
+        LOG(am_v) << "insertPsswd(" << gives.type << "=" << gives.value << ",...)";
     }
 
     int ret = 0;
@@ -1288,16 +1266,13 @@ KeyAccess::insertPsswd(Prin gives, const string &psswd)
                     }
                     continue;
                 }
-                vector<vector<string> > * res = Select(
-                    prin_set, meta->getTable(*hasAccess,*accessTo), "*");
-                if (res->size() > 1) {
-                    vector<vector<string> >::iterator row = res->begin();
-                    //first row is field names
-                    row++;
-                    while (row != res->end()) {
+                ResType res = Select(prin_set, meta->getTable(*hasAccess,*accessTo), "*");
+                if (res.rows.size() > 0) {
+                    auto row = res.rows.begin();
+                    while (row != res.rows.end()) {
                         //remember to check this Prin on the next level
                         Prin new_prin;
-                        new_prin.gen = res->at(0).at(1);
+                        new_prin.gen = res.names[1];
                         new_prin.value = row->at(1);
                         accessible_values.insert(new_prin);
                         string new_key = getKey(new_prin);
@@ -1323,8 +1298,8 @@ KeyAccess::insertPsswd(Prin gives, const string &psswd)
                         else {
                             new_prin_key = buildKey(new_prin, new_key);
                         }
-                        new_prin_key.principles_with_access.insert(new_prin);
-                        new_prin_key.principles_with_access.insert(
+                        new_prin_key.principals_with_access.insert(new_prin);
+                        new_prin_key.principals_with_access.insert(
                             hasAccess_prin);
                         if (addToKeys(new_prin, new_prin_key) < 0) {
                             ret--;
@@ -1367,10 +1342,10 @@ KeyAccess::removePsswd(Prin prin)
             if (key_it->first.gen == *hasAccessTo_gen) {
                 for (set_it = remove_set.begin(); set_it != remove_set.end();
                      set_it++) {
-                    if (key_it->second.principles_with_access.find(*set_it)
-                        != key_it->second.principles_with_access.end()) {
-                        key_it->second.principles_with_access.erase(*set_it);
-                        if (key_it->second.principles_with_access.size() <=
+                    if (key_it->second.principals_with_access.find(*set_it)
+                        != key_it->second.principals_with_access.end()) {
+                        key_it->second.principals_with_access.erase(*set_it);
+                        if (key_it->second.principals_with_access.size() <=
                             1) {
                             remove_set.insert(key_it->first);
                         }
@@ -1398,7 +1373,7 @@ KeyAccess::buildKey(Prin hasAccess, const string &sym_key)
     new_key.key = sym_key;
     std::set<Prin> prinHasAccess;
     prinHasAccess.insert(hasAccess);
-    new_key.principles_with_access = prinHasAccess;
+    new_key.principals_with_access = prinHasAccess;
     return new_key;
 }
 
@@ -1408,21 +1383,20 @@ KeyAccess::addToKeys(Prin prin, PrinKey key)
     if (prin.gen == "") {
         prin.gen = meta->getGenericPublic(prin.type);
     }
-    assert_s(key.principles_with_access.find(
-                 prin) != key.principles_with_access.end(),
-             "addToKeys hasAccess prin is not in key's principles_with_access");
+    assert_s(key.principals_with_access.find(
+                 prin) != key.principals_with_access.end(),
+             "addToKeys hasAccess prin is not in key's principals_with_access");
     if(VERBOSE) {
-        cerr << "   adding key ";
-        myPrint(key.key);
-        cerr << " for " << prin.gen << " " << prin.value << endl;
+        LOG(am_v) << "adding key " << stringToByteInts(key.key)
+                  << " for " << prin.gen << " " << prin.value;
     }
 
     if (keys.find(prin) != keys.end()) {
         if (keys[prin] == key) {
             std::set<Prin>::iterator it;
-            for(it = key.principles_with_access.begin();
-                it != key.principles_with_access.end(); it++) {
-                keys[prin].principles_with_access.insert(*it);
+            for(it = key.principals_with_access.begin();
+                it != key.principals_with_access.end(); it++) {
+                keys[prin].principals_with_access.insert(*it);
             }
             return 1;
         }
@@ -1440,8 +1414,8 @@ KeyAccess::addToKeys(Prin prin, PrinKey key)
     int count = 0;
     int users = 0;
     for (key_it = keys.begin(); key_it != keys.end(); key_it++) {
-        for (set_it = key.principles_with_access.begin();
-             set_it != key.principles_with_access.end(); set_it++) {
+        for (set_it = key.principals_with_access.begin();
+             set_it != key.principals_with_access.end(); set_it++) {
             if (key_it->first.gen.compare(set_it->gen) == 0) {
                 count++;
             }
@@ -1590,7 +1564,7 @@ KeyAccess::DFS_hasAccess(Prin start)
     return results;
 }
 
-vector<vector<string> > *
+ResType
 KeyAccess::Select(std::set<Prin> & prin_set, string table_name, string column)
 {
     std::set<Prin>::iterator prin;
@@ -1608,7 +1582,7 @@ KeyAccess::Select(std::set<Prin> & prin_set, string table_name, string column)
     DBResult * dbres;
     if(!conn->execute(sql.c_str(), dbres)) {
         cerr << "SQL error with query: " << sql << endl;
-        return NULL;
+        return ResType(false);
     }
     auto res = dbres->unpack();
     delete dbres;
@@ -1639,9 +1613,7 @@ KeyAccess::SelectCount(std::set<Prin> & prin_set, string table_name)
     auto res = dbres->unpack();
     delete dbres;
 
-    int size = (int) unmarshallVal(res->at(1).at(0));
-    delete res;
-    return size;
+    return (int) unmarshallVal(res.rows[0][0]);
 }
 
 int
@@ -1773,7 +1745,7 @@ KeyAccess::getUncached(Prin prin)
     }
 
     if (VERBOSE) {
-        cerr << "   checking for uncached keys" << endl;
+        LOG(am_v) << "checking for uncached keys";
     }
 
     PrinKey empty;
@@ -1790,16 +1762,16 @@ KeyAccess::getUncached(Prin prin)
         std::set<Prin> prin_set;
         prin_set.insert(*set_it);
         prin_set.insert(prin);
-        vector<vector<string> > * res =
+        ResType res =
             Select(prin_set, meta->getTable(set_it->gen, prin.gen), "*");
-        if (res->size() > 1) {
+        if (res.rows.size() > 0) {
             PrinKey new_prin_key;
-            if (res->at(1).at(4) == "X''") {             //symmetric key okay
-                new_prin_key = decryptSym(res->at(1).at(2), getKey(
-                                              *set_it), res->at(1).at(3));
+            if (res.rows[0][4] == "X''") {             //symmetric key okay
+                new_prin_key = decryptSym(res.rows[0][2],
+                                          getKey(*set_it), res.rows[0][3]);
             } else {             //use asymmetric
                 PrinKey sec_key = getSecretKey(*set_it);
-                new_prin_key = decryptAsym(res->at(1).at(4), sec_key.key);
+                new_prin_key = decryptAsym(res.rows[0][4], sec_key.key);
             }
             return new_prin_key;
         }
@@ -1807,8 +1779,7 @@ KeyAccess::getUncached(Prin prin)
     return empty;
 }
 
-void
-KeyAccess::finish()
+KeyAccess::~KeyAccess()
 {
     map<Prin, PrinKey>::iterator it;
     for(it = keys.begin(); it != keys.end(); it++) {
@@ -1816,9 +1787,5 @@ KeyAccess::finish()
     }
     keys.clear();
     delete meta;
-}
-
-KeyAccess::~KeyAccess()
-{
-    finish();
+    delete crypt_man;
 }

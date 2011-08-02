@@ -1,5 +1,10 @@
+#include <iostream>
+
 #include <stdio.h>
 #include <bsd/string.h>
+
+#include "mysql_glue.h"
+#include "stringify.h"
 
 #include "sql_priv.h"
 #include "unireg.h"
@@ -12,7 +17,7 @@
 #include "sql_plugin.h"
 #include "derror.h"
 
-#include "mysql_glue.h"
+using namespace std;
 
 static void
 parse(const char *q)
@@ -35,7 +40,8 @@ parse(const char *q)
         lex_start(t);
         mysql_reset_thd_for_next_command(t);
 
-        t->set_db("", 0);
+        string db = "current_db";
+        t->set_db(db.data(), db.length());
 
         printf("q=%s\n", buf);
         bool error = parse_sql(t, &ps, 0);
@@ -45,12 +51,14 @@ parse(const char *q)
             printf("parse error: h %p\n", t->get_internal_handler());
             printf("parse error: %d %s\n", t->is_error(), t->stmt_da->message());
         } else {
-            printf("command %d\n", lex.sql_command);
+            cout << "reconstructed query: " << lex << endl;
 
-            String s;
-            lex.select_lex.print(t, &s, QT_ORDINARY);
-            //lex.unit.print(&s, QT_ORDINARY);
-            printf("reconstructed query: %s\n", s.c_ptr());
+            // for lex.sql_command SQLCOM_UPDATE
+            cout << "value_list: " << lex.value_list << endl;
+
+            // for lex.sql_command SQLCOM_INSERT
+            cout << "field_list: " << lex.field_list << endl;
+            cout << "many_values: " << lex.many_values << endl;
         }
 
         t->end_statement();

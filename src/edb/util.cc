@@ -1,9 +1,11 @@
 #include <algorithm>
 #include <string>
 #include <iomanip>
+#include <stdexcept>
 
 #include "openssl/rand.h"
 #include "util.h"
+#include "cryptdb_log.h"
 
 using namespace std;
 
@@ -12,8 +14,8 @@ myassert(bool value, const string &mess)
 {
     if (ASSERTS_ON) {
         if (!value) {
-            fprintf(stderr, "ERROR: %s\n", mess.c_str());
-            throw mess.c_str();
+            LOG(warn) << "ERROR: " << mess;
+            throw std::runtime_error(mess);
         }
     }
 }
@@ -24,9 +26,8 @@ throw (CryptDBError)
 {
     if (ASSERTS_ON) {
         if (!value) {
-            CryptDBError se(msg);
-            cerr << se.msg << "\n";
-            throw se;
+            LOG(warn) << "ERROR: " << msg;
+            throw CryptDBError(msg);
         }
     }
 }
@@ -80,43 +81,24 @@ randomValue()
     return IntFromBytes((const uint8_t*) randomBytes(8).c_str(), 8);
 }
 
-void
-myPrint(const unsigned char * a, unsigned int aLen)
+string
+stringToByteInts(const string &s)
 {
-    for (unsigned int i = 0; i < aLen; i++) {
-        fprintf(stderr, "%d ", (int)(a[i]-0));
+    stringstream ss;
+    bool first = true;
+    for (size_t i = 0; i < s.length(); i++) {
+        if (!first)
+            ss << " ";
+        ss << (uint) (uint8_t) s[i];
+        first = false;
     }
+    return ss.str();
 }
 
-void
-myPrint(const string &s)
+string
+angleBrackets(const string &s)
 {
-    myPrint((const uint8_t *) s.c_str(), (uint) s.length());
-}
-
-void
-myPrint(vector<bool> & bitmap)
-{
-    for (auto it = bitmap.begin(); it != bitmap.end(); it++)
-        cout << *it << " ";
-    cout << "\n";
-}
-
-void
-myPrint(const unsigned int * a, unsigned int aLen)
-{
-    for (unsigned int i = 0; i < aLen; i++) {
-        fprintf(stderr, "%d ", a[i]);
-    }
-}
-
-void
-myPrint(const char * a)
-{
-    for (unsigned int i = 0; i<strlen(a); i++) {
-        fprintf(stderr, "%d ", a[i]);
-
-    }
+    return "<" + s + ">";
 }
 
 string
@@ -140,118 +122,6 @@ checkStr(list<string>::iterator & it, list<string> & words, const string &s1,
 
     assert_s(false, string("expected ") + s1 + " or " + s2 + " given " + *it );
     return "";
-}
-
-void
-myPrint(const list<string> & lst)
-{
-    for (list<string>::const_iterator it = lst.begin(); it!=lst.end();
-         it++) {
-        fprintf(stderr, " %s,", it->c_str());
-    }
-
-    fprintf(stderr, "\n");
-}
-
-string
-toString(const list<string> & lst)
-{
-    list<string>::const_iterator it;
-
-    string res = "";
-
-    for (it = lst.begin(); it!=lst.end(); it++) {
-        res = res + "<" + *it + "> ";
-    }
-
-    return res;
-}
-
-string
-toString(const vector<bool> & vec)
-{
-    vector<bool>::const_iterator it;
-
-    string res = "";
-
-    for (it = vec.begin(); it!=vec.end(); it++) {
-        res = res + StringFromVal(*it) + " ";
-    }
-
-    return res;
-}
-
-string
-toString(const std::set<string> & lst)
-{
-    std::set<string>::const_iterator it;
-
-    string res = "";
-
-    for (it = lst.begin(); it != lst.end(); it++) {
-        res = res + *it + " ";
-    }
-
-    return res;
-}
-
-string
-toString(unsigned char * key, unsigned int len)
-{
-    string res;
-    for (unsigned int i = 0; i < len; i++) {
-        res += StringFromVal(key[i]) + " ";
-    }
-    return res;
-}
-
-void
-myPrint(const vector<vector<string> > & d)
-{
-    size_t rows = d.size();
-    if (d.size() == 0)
-        return;
-
-    size_t cols = d[0].size();
-    for (size_t i = 0; i < rows; i++) {
-        for (size_t j = 0; j < cols; j++) {
-            fprintf(stderr, " %s15", d[i][j].c_str());
-        }
-        cerr << "\n";
-    }
-    cerr << "\n";
-}
-
-string
-toString(const ResType & rt)
-{
-    size_t n = rt.size();
-
-    string res = "";
-
-    for (size_t i = 0; i < n; i++) {
-        size_t m = rt[i].size();
-        for (size_t j = 0; j < m; j++) {
-            res = res + " " + rt[i][j].c_str();
-        }
-        res += "\n";
-    }
-
-    return res;
-}
-
-void
-myPrint(list<const char *> & lst)
-{
-    for (auto it = lst.begin(); it!=lst.end(); it++)
-        fprintf(stderr, " %s \n", *it);
-}
-
-void
-myPrint(const vector<string> & lst)
-{
-    for (auto it = lst.begin(); it!=lst.end(); it++)
-        fprintf(stderr, " %s \n", it->c_str());
 }
 
 string
@@ -553,11 +423,11 @@ consolidateComparisons(list<string> & words)
 
     while (it!=words.end()) {
         //consolidates comparisons
-        if (contains(*it, comparisons, noComps)) {
+        if (contains(*it, comparisons)) {
             string res = "";
             //consolidates comparisons
             while ((it != words.end()) &&
-                   (contains(*it, comparisons, noComps))) {
+                   (contains(*it, comparisons))) {
                 res += *it;
                 oldit = it;
                 it++;
@@ -630,35 +500,35 @@ consolidateMath(list<string> & words)
 {
     command com = getCommand(*words.begin());
     switch (com) {
-    case CREATE:
+    case cmd::CREATE:
         cerr << "consolidateMath doesn't deal with CREATE" << endl;
         return;
-    case UPDATE:
+    case cmd::UPDATE:
         //consolidateMathUpdate(words);
         return;
-    case SELECT:
+    case cmd::SELECT:
         //consolidateMathSelect(words);
         return;
-    case INSERT:
+    case cmd::INSERT:
         //consolidateMathInsert(words);
         return;
-    case DROP:
+    case cmd::DROP:
         cerr << "consolidateMath doesn't deal with DROP" << endl;
         return;
-    case DELETE:
+    case cmd::DELETE:
         cerr << "consolidateMath doesn't deal with DELETE" << endl;
         return;
-    case BEGIN:
+    case cmd::BEGIN:
         cerr << "consolidateMath doesn't deal with BEGIN" << endl;
         return;
-    case COMMIT:
+    case cmd::COMMIT:
         cerr << "consolidateMath doesn't deal with COMMIT" << endl;
         return;
-    case ALTER:
+    case cmd::ALTER:
         cerr << "consolidateMath doesn't deal with ALTER" << endl;
         return;
     default:
-    case OTHER:
+    case cmd::OTHER:
         cerr << "consolidateMath doesn't deal with OTHER (what is this?)" <<
         endl;
         return;
@@ -764,11 +634,7 @@ consolidateMath(list<string> & words)
 void
 consolidate(list<string> & words)
 {
-
     consolidateComparisons(words);
-    //cerr << "after comparisons we have " << toString(words) << "\n";
-    //consolidateMath(words);
-    //err << "after math we have " << toString(words) << "\n";
 }
 
 //query to parse
@@ -792,23 +658,23 @@ getCommand(const string &query)
 throw (CryptDBError)
 {
     static struct { const char *s; command c; } s2c[] =
-    { { "create", CREATE },
-      { "update", UPDATE },
-      { "insert", INSERT },
-      { "select", SELECT },
-      { "drop",   DROP   },
-      { "delete", DELETE },
-      { "commit", COMMIT },
-      { "begin",  BEGIN  },
-      { "alter",  ALTER  },
-      { 0,        OTHER  } };
+    { { "create", cmd::CREATE },
+      { "update", cmd::UPDATE },
+      { "insert", cmd::INSERT },
+      { "select", cmd::SELECT },
+      { "drop",   cmd::DROP   },
+      { "delete", cmd::DELETE },
+      { "commit", cmd::COMMIT },
+      { "begin",  cmd::BEGIN  },
+      { "alter",  cmd::ALTER  },
+      { 0,        cmd::OTHER  } };
 
-    string cmd = query.substr(0, query.find_first_of(" ,;()"));
-    transform(cmd.begin(), cmd.end(), cmd.begin(), ::tolower);
+    string cmds = query.substr(0, query.find_first_of(" ,;()"));
+    transform(cmds.begin(), cmds.end(), cmds.begin(), ::tolower);
     for (uint i = 0; s2c[i].s != 0; i++)
-        if (cmd == s2c[i].s)
+        if (cmds == s2c[i].s)
             return s2c[i].c;
-    return OTHER;
+    return cmd::OTHER;
 }
 
 string
@@ -835,9 +701,7 @@ string
 processAlias(list<string>::iterator & it, list<string> & words)
 {
     string res = "";
-
-    const string terms[] = {",",")"};
-    unsigned int noTerms = 2;
+    const vector<string> terms = {",",")"};
 
     if (it == words.end()) {
         return res;
@@ -853,8 +717,8 @@ processAlias(list<string>::iterator & it, list<string> & words)
             return res;
         }
 
-        if (contains(*it, terms, noTerms)) {
-            while ((it!=words.end()) && contains(*it, terms, noTerms)) {
+        if (contains(*it, terms)) {
+            while ((it!=words.end()) && contains(*it, terms)) {
                 res = res + *it;
                 it++;
             }
@@ -866,8 +730,8 @@ processAlias(list<string>::iterator & it, list<string> & words)
         assert_s(false, "incorrect syntax after as expression ");
         return res;
     }
-    if (contains(*it, terms, noTerms)) {
-        while ((it!=words.end()) && contains(*it, terms, noTerms)) {
+    if (contains(*it, terms)) {
+        while ((it!=words.end()) && contains(*it, terms)) {
             res = res + *it;
             it++;
         }
@@ -884,8 +748,8 @@ processAlias(list<string>::iterator & it, list<string> & words)
     if (it == words.end()) {
         return res;
     }
-    if (contains(*it, terms, noTerms)) {
-        while ((it!=words.end()) && contains(*it, terms, noTerms)) {
+    if (contains(*it, terms)) {
+        while ((it!=words.end()) && contains(*it, terms)) {
             res = res + *it;
             it++;
         }
@@ -902,7 +766,7 @@ processAlias(list<string>::iterator & it, list<string> & words)
 }
 
 string
-processParen(list<string>::iterator & it, list<string> & words)
+processParen(list<string>::iterator & it, const list<string> & words)
 {
     if (!it->compare("(") == 0) {
         return "";
@@ -926,41 +790,12 @@ processParen(list<string>::iterator & it, list<string> & words)
 }
 
 string
-mirrorUntilTerm(list<string>::iterator & it, list<string> & words,
-                const string *terms, unsigned int noTerms, bool stopAfterTerm,
-                bool skipParenBlock)
-{
-    string res = "";
-    while ((it!=words.end()) && (!contains(*it, terms, noTerms)) ) {
-        if (skipParenBlock) {
-            string paren = processParen(it, words);
-            if (paren.length() > 0) {
-                res = res + paren;
-                continue;
-            }
-        }
-        res = res + *it + " ";
-        it++;
-    }
-
-    if (it!=words.end()) {
-        if (stopAfterTerm) {
-            res = res + *it + " ";
-            it++;
-        }
-    }
-
-    return res;
-}
-
-string
-mirrorUntilTerm(list<string>::iterator & it, list<string> & words,
+mirrorUntilTerm(list<string>::iterator & it, const list<string> & words,
                 const std::set<string> & terms, bool stopAfterTerm,
                 bool skipParenBlock)
 {
-    string res = " ";
-    while ((it!=words.end()) &&
-           (terms.find(toLowerCase(*it)) == terms.end()))  {
+    string res = "";
+    while ((it!=words.end()) && !contains(*it, terms)) {
         if (skipParenBlock) {
             string paren = processParen(it, words);
             if (paren.length() > 0) {
@@ -968,6 +803,7 @@ mirrorUntilTerm(list<string>::iterator & it, list<string> & words,
                 continue;
             }
         }
+
         res = res + *it + " ";
         it++;
     }
@@ -1017,28 +853,9 @@ isQuerySeparator(const string &st)
 bool
 isAgg(const string &value)
 {
-    return contains(value, aggregates, noAggregates);
+    return contains(value, aggregates);
 }
 
-bool
-contains(const string &token, const string * values, unsigned int noValues)
-{
-    for (unsigned int i = 0; i < noValues; i++) {
-        if (equalsIgnoreCase(token, values[i])) {
-            return true;
-        }
-    }
-    return false;
-}
-bool
-contains(const string &token, list<string> & values)
-{
-    for (auto it = values.begin(); it != values.end(); it++)
-        if (equalsIgnoreCase(*it, token))
-            return true;
-
-    return false;
-}
 bool
 isOnly(const string &token, const string * values, unsigned int noValues)
 {
@@ -1147,40 +964,28 @@ equalsIgnoreCase(const string &s1, const string &s2)
 bool
 Operation::isDET(const string &op)
 {
-
-    string dets[] = {"=", "<>", "in", "!="};
-    unsigned int noDets = 4;
-
-    return contains(op, dets, noDets);
+    vector<string> dets = {"=", "<>", "in", "!="};
+    return contains(op, dets);
 }
 
 bool
 Operation::isIN(const string &op)
 {
-
-    if (equalsIgnoreCase(op,"in")) {
-        return true;
-    }
-    return false;
-
+    return equalsIgnoreCase(op,"in");
 }
 
 bool
 Operation::isOPE(const string &op)
 {
-
-    string opes[] = {"<", ">", "<=", ">="};
-    unsigned int noOpes = 4;
-
-    return contains(op, opes, noOpes);
+    vector<string> opes = {"<", ">", "<=", ">="};
+    return contains(op, opes);
 }
 
 bool
 Operation::isILIKE(const string &op)
 {
-    string ilikes[] = {"ilike", "like"};
-
-    return contains(op, ilikes, 2);
+    vector<string> ilikes = {"ilike", "like"};
+    return contains(op, ilikes);
 }
 
 bool

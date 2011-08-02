@@ -36,17 +36,19 @@ class EDBClient {
 
     //Mode 1: Translation of query, execution of query, and translation of
     // results
-    ResType * execute(const string &query);
+    ResType execute(const string &query);
+
     //no security:
-    ResType * plain_execute(const string &query);
+    ResType plain_execute(const string &query);
 
     //Mode 2: Only translations
     //query must be \0 terminated
     list<string> rewriteEncryptQuery(const string &query,
                                      AutoInc * ai = NULL)
         throw (CryptDBError);
+
     //query should be the original, untranslated query
-    ResType  * decryptResults(const string &query, ResType * dbAnswer);
+    ResType decryptResults(const string &query, const ResType &dbAnswer);
 
     //==== EXIT =================//
 
@@ -140,8 +142,8 @@ class EDBClient {
     //SELECT
     list<string> rewriteEncryptSelect(const string &query)
         throw (CryptDBError);
-    ResType * rewriteDecryptSelect(const string &query, ResType * dbAnswer);
-    ResType * decryptResultsWrapper(const string &query, DBResult * dbres);
+    ResType rewriteDecryptSelect(const string &query, const ResType &dbAnswer);
+    ResType decryptResultsWrapper(const string &query, DBResult * dbres);
     //prepared decryptions
     list<string>  processDecryptions(FieldsToDecrypt fieldsDec,
                                      TMKM & tmkm)

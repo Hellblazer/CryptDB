@@ -1,5 +1,5 @@
 #include "EDBClient.h"
-#include "log.h"
+#include "cryptdb_log.h"
 
 #include <iostream>
 #include <fstream>
@@ -13,10 +13,11 @@
 #define DECRYPT_text_sem "decrypt_text_sem"
 #define DECRYPT_text_det "decrypt_text_det"
 #define SEARCH "search"
+#define SEARCHSWP "searchSWP"
 #define FUNC_ADD_FINAL "agg"
 #define SUM_AGG "agg"
 #define FUNC_ADD_SET "func_add_set"
-#define SEARCHSWP "searchSWP"
+
 
 #else
 
@@ -59,15 +60,14 @@ dropAll(Connect * conn)
                  "DROP FUNCTION IF EXISTS " SEARCH "; "),
              "cannot drop " SEARCH);
     myassert(conn->execute(
+                    "DROP FUNCTION IF EXISTS " SEARCHSWP "; "),
+                "cannot drop " SEARCHSWP);
+    myassert(conn->execute(
                  "DROP FUNCTION IF EXISTS " FUNC_ADD_FINAL "; "),
              "cannot drop " FUNC_ADD_FINAL);
     myassert(conn->execute(
                  "DROP FUNCTION IF EXISTS " FUNC_ADD_SET "; "),
              "cannot drop " FUNC_ADD_SET);
-
-    myassert(conn->execute(
-                 "DROP FUNCTION IF EXISTS " SEARCHSWP "; "),
-             "cannot drop " SEARCHSWP);
 
 #if MYSQL_S
 #else
@@ -85,22 +85,22 @@ static void
 createAll(Connect * conn)
 {
     myassert(conn->execute(
-                 "CREATE FUNCTION decrypt_int_sem RETURNS INTEGER SONAME 'edb.so'; "),
+                 "CREATE FUNCTION "DECRYPT_int_sem" RETURNS INTEGER SONAME 'edb.so'; "),
              "failed to create udf decrypt_int_sem ");
     myassert(conn->execute(
-                 "CREATE FUNCTION decrypt_int_det RETURNS INTEGER SONAME 'edb.so'; "),
+                 "CREATE FUNCTION "DECRYPT_int_det" RETURNS INTEGER SONAME 'edb.so'; "),
              "failed to create udf decrypt_int_det");
     myassert(conn->execute(
-                 "CREATE FUNCTION encrypt_int_det RETURNS INTEGER SONAME 'edb.so'; "),
+                 "CREATE FUNCTION "ENCRYPT_int_det" RETURNS INTEGER SONAME 'edb.so'; "),
              "failed to create udf encrypt_int_det");
     myassert(conn->execute(
-                 "CREATE FUNCTION decrypt_text_sem RETURNS STRING SONAME 'edb.so'; "),
+                 "CREATE FUNCTION "DECRYPT_text_sem" RETURNS STRING SONAME 'edb.so'; "),
              "failed to create udf decrypt_text_sem");
     myassert(conn->execute(
-                 "CREATE FUNCTION decrypt_text_det RETURNS STRING SONAME 'edb.so'; "),
+                 "CREATE FUNCTION "DECRYPT_text_det" RETURNS STRING SONAME 'edb.so'; "),
              "failed to create udf decrypt_text_det");
     myassert(conn->execute(
-                 "CREATE FUNCTION search RETURNS INTEGER SONAME 'edb.so'; "),
+                 "CREATE FUNCTION "SEARCH" RETURNS INTEGER SONAME 'edb.so'; "),
              "failed to create udf search");
     myassert(conn->execute(
                  "CREATE AGGREGATE FUNCTION agg RETURNS STRING SONAME 'edb.so'; "),
@@ -109,7 +109,7 @@ createAll(Connect * conn)
                  "CREATE FUNCTION func_add_set RETURNS STRING SONAME 'edb.so'; "),
              "failed to create udf func_add_set");
     myassert(conn->execute(
-                 "CREATE FUNCTION searchSWP RETURNS STRING SONAME 'edb.so'; "),
+                 "CREATE FUNCTION "SEARCHSWP" RETURNS INTEGER SONAME 'edb.so'; "),
              "failed to create udf searchSWP");
 
     /* old Postgres statements: */
@@ -184,17 +184,17 @@ EDBClient::setMasterKey(const string &mkey)
     cm = new CryptoManager(mkey);
 }
 
-ResType *
+ResType
 EDBClient::plain_execute(const string &query)
 {
     LOG(edb) << "in plain execute";
     DBResult * reply;
     if (!conn->execute(query, reply)) {
-        cerr << "failed to execute " << query << "\n";
-        return NULL;
+        LOG(edb) << "failed to execute: " << query;
+        return ResType(false);
     }
 
-    ResType *r = reply->unpack();
+    ResType r = reply->unpack();
     delete reply;
     return r;
 }
@@ -233,12 +233,10 @@ EDBClient::replenishEncryptionTables()
     cm->replenishEncryptionTables();
 }
 
-static fieldType
-getType(list<string>::iterator & it, list<string> & words)
+static void
+setType(list<string>::iterator & it, list<string> & words, FieldMetadata * fm)
 {
-
-    unsigned int noTerms = 2;
-    string terms[] = {",", ")"};
+    std::set<string> terms = { ",", ")" };
     string token = *it;
     bool isint = false;
     if (it->find("int") != string::npos) {
@@ -250,13 +248,16 @@ getType(list<string>::iterator & it, list<string> & words)
 
     it++;
 
-    mirrorUntilTerm(it, words, terms, noTerms, 0, 1);
+    mirrorUntilTerm(it, words, terms, 0, 1);
 
     if (isint) {
-        return TYPE_INTEGER;
+        fm->type = TYPE_INTEGER;
+        fm->mysql_type = MYSQL_TYPE_LONG;
     } else {
-        return TYPE_TEXT;
+        fm->type = TYPE_TEXT;
+        fm->mysql_type = MYSQL_TYPE_STRING;
     }
+
 
 }
 
@@ -353,7 +354,7 @@ getNameForFilter(FieldMetadata * fm, onion o)
     if (o == oDET) {
         //for equality type operations use OPE if you can
         if (fm->exists(fm->anonFieldNameOPE) &&
-            (fm->secLevelOPE != SEMANTIC_OPE)) {
+            (fm->secLevelOPE != SECLEVEL::SEMANTIC_OPE)) {
             return fm->anonFieldNameOPE;
         } else {
             return fm->anonFieldNameDET;
@@ -375,10 +376,10 @@ processAnnotation(MultiPrinc * mp, list<string>::iterator & wordsIt,
                   FieldMetadata * fm, map<string, TableMetadata *> & tm)
 {
     if (DECRYPTFIRST) {
-        tm[tableName]->fieldMetaMap[fieldName]->secLevelDET = DETJOIN;
+        tm[tableName]->fieldMetaMap[fieldName]->secLevelDET = SECLEVEL::DETJOIN;
         //make ope onion uncovered to avoid adjustment --- though this onion
         // does not exist in this mode
-        tm[tableName]->fieldMetaMap[fieldName]->secLevelOPE = OPESELF;
+        tm[tableName]->fieldMetaMap[fieldName]->secLevelOPE = SECLEVEL::OPE;
         return;
     }
 
@@ -479,8 +480,7 @@ throw (CryptDBError)
     roll<string>(wordsIt, 2);
     unsigned int i = 0;
 
-    unsigned int noTerms = 2;
-    string terms[] = {",", ")"};
+    std::set<string> terms = { ",", ")" };
 
     string fieldSeq = "";
 
@@ -488,10 +488,10 @@ throw (CryptDBError)
         string fieldName = *wordsIt;
 
         //primary key, index, other metadata about data layout
-        if (contains(fieldName, createMetaKeywords, noCreateMeta)) {
+        if (contains(fieldName, createMetaKeywords)) {
             if (VERBOSE) { cerr << fieldName << " is meta \n"; }
             //mirrorUntilTerm should stop at the comma
-            fieldSeq +=  mirrorUntilTerm(wordsIt, words, terms, 1, 1, 1);
+            fieldSeq +=  mirrorUntilTerm(wordsIt, words, {","}, 1, 1);
             continue;
         }
 
@@ -522,17 +522,16 @@ throw (CryptDBError)
         } else {
             LOG(edb_v) << "not enc " << fieldName;
             fieldSeq +=  fieldName + " " +
-                        mirrorUntilTerm(wordsIt, words, terms, 1, 1,
-                                        1);
+                        mirrorUntilTerm(wordsIt, words, {","}, 1, 1);
             continue;
         }
 
-        fm->type = getType(wordsIt, words);
+        setType(wordsIt, words, fm);
 
         fieldSeq += processCreate(fm->type, fieldName, i, tm,
                                   fm, !!mp) + " ";
 
-        fieldSeq +=  mirrorUntilTerm(wordsIt, words, terms, noTerms);
+        fieldSeq +=  mirrorUntilTerm(wordsIt, words, terms);
 
         i++;
     }
@@ -546,8 +545,8 @@ throw (CryptDBError)
     resultQuery += fieldSeq;
 
     //mirror query until the end, it may have formatting commands
-    resultQuery = resultQuery + mirrorUntilTerm(wordsIt, words, terms, 0);
-    resultQuery = resultQuery + ";" + '\0';
+    resultQuery = resultQuery + mirrorUntilTerm(wordsIt, words, {});
+    resultQuery = resultQuery + ";";
 
     return list<string>(1, resultQuery);
 }
@@ -558,18 +557,18 @@ EDBClient::rewriteEncryptUpdate(const string &query)
 throw (CryptDBError)
 {
 
-    //	UPDATE folders SET mitgeec = 'DOC', mitgeecs_app_term = '9/2007' WHERE
+    //    UPDATE folders SET mitgeec = 'DOC', mitgeecs_app_term = '9/2007' WHERE
     // id = '99e89298fa'
 
     FieldsToDecrypt fieldsDec;
 
     list<string> words = getSQLWords(query);
-    QueryMeta qm = getQueryMeta(UPDATE, words, tableMetaMap);
+    QueryMeta qm = getQueryMeta(cmd::UPDATE, words, tableMetaMap);
 
     TMKM tmkm;
     if (mp) {
         tmkm.processingQuery = true;
-        mp->getEncForFromFilter(UPDATE, words, tmkm, qm, tableMetaMap);
+        mp->getEncForFromFilter(cmd::UPDATE, words, tmkm, qm, tableMetaMap);
     }
 
     list<string>::iterator wordsIt = words.begin();
@@ -598,14 +597,12 @@ throw (CryptDBError)
 
         wordsIt++;
 
-        string term[] = {",", "where"};
-        unsigned int noTerms = 2;
-
+        std::set<string> term = {",", "where"};
         FieldMetadata * fm1 = tableMetaMap[table]->fieldMetaMap[field];
 
         if (!fm1->isEncrypted) {
             resultQuery = resultQuery + " " + field +  mirrorUntilTerm(
-                wordsIt, words, term, noTerms, 0, 1);
+                wordsIt, words, term, 0, 1);
             if (wordsIt == words.end()) {
                 continue;
             }
@@ -623,7 +620,7 @@ throw (CryptDBError)
         //detect if it is an increment
         if (isField(*wordsIt)) {         //this is an increment
 
-            if (VERBOSE) { cerr << "increment for " << field << "\n"; }
+            if (VERBOSE) { LOG(edb_v) << "increment for " << field; }
 
             fm1->INCREMENT_HAPPENED = true;
             string anonFieldName = getOnionName(
@@ -672,7 +669,7 @@ throw (CryptDBError)
                                            fullName(anonFieldName,
                                                     tableMetaMap[table]->
                                                     anonTableName),
-                                           PLAIN_AGG, SEMANTIC_AGG, 0,
+                                           SECLEVEL::PLAIN_AGG, SECLEVEL::SEMANTIC_AGG, 0,
                                            tmkm) + ", "
                                    + marshallBinary(cm->getPKInfo()) + ") ";
                 }
@@ -703,7 +700,7 @@ throw (CryptDBError)
             if (DECRYPTFIRST) {
                 resultQuery += processValsToInsert(field, table, 0, val, tmkm);
             } else {
-                if (sldet == SEMANTIC_DET) {
+                if (sldet == SECLEVEL::SEMANTIC_DET) {
                     //we need to lower the security level of the column
                     addIfNotContained(fullName(field,
                                                table), fieldsDec.DETFields);
@@ -712,7 +709,7 @@ throw (CryptDBError)
                               fullName(field,
                                        table), fullName(anonfieldName,
                                                         anonTableName),
-                              PLAIN_DET, DET, 0, tmkm);
+                              SECLEVEL::PLAIN_DET, SECLEVEL::DET, 0, tmkm);
 
                 } else {
                     resultQuery = resultQuery +
@@ -721,7 +718,7 @@ throw (CryptDBError)
                                                  table),
                                         fullName(anonfieldName,
                                                  anonTableName),
-                                        PLAIN_DET, sldet, 0, tmkm);
+                                        SECLEVEL::PLAIN_DET, sldet, 0, tmkm);
                 }
 
                 if (FieldMetadata::exists(fm1->anonFieldNameOPE)) {
@@ -729,7 +726,7 @@ throw (CryptDBError)
                     SECLEVEL slope = fm1->secLevelOPE;
                     anonfieldName = fm1->anonFieldNameOPE;
                     resultQuery = resultQuery  + ", " + anonfieldName + " = ";
-                    if (slope == SEMANTIC_OPE) {
+                    if (slope == SECLEVEL::SEMANTIC_OPE) {
                         addIfNotContained(fullName(field,
                                                    table),
                                           fieldsDec.OPEFields);
@@ -740,7 +737,7 @@ throw (CryptDBError)
                                                  table),
                                         fullName(anonfieldName,
                                                  anonTableName),
-                                        PLAIN_OPE, OPESELF, 0, tmkm);
+                                        SECLEVEL::PLAIN_OPE, SECLEVEL::OPE, 0, tmkm);
 
                 }
                 if (FieldMetadata::exists(fm1->anonFieldNameAGG)) {
@@ -752,7 +749,7 @@ throw (CryptDBError)
                                                  table),
                                         fullName(anonfieldName,
                                                  anonTableName),
-                                        PLAIN_AGG, SEMANTIC_AGG, 0, tmkm);
+                                        SECLEVEL::PLAIN_AGG, SECLEVEL::SEMANTIC_AGG, 0, tmkm);
                 }
             }
         }
@@ -769,11 +766,11 @@ throw (CryptDBError)
 
                 if (fm1->isEncrypted) {
                     //DET onion
-                    if (fm1->secLevelDET == SEMANTIC_DET) {
+                    if (fm1->secLevelDET == SECLEVEL::SEMANTIC_DET) {
                         addIfNotContained(fullName(field,
                                                    table),
                                           fieldsDec.DETFields);
-                        fm1->secLevelDET = DET;
+                        fm1->secLevelDET = SECLEVEL::DET;
                     }
 
                     //encrypt the value
@@ -786,17 +783,17 @@ throw (CryptDBError)
                                                  table),
                                         fullName(anonfieldname,
                                                  anonTableName),
-                                        PLAIN_DET, fm1->secLevelDET, 0, tmkm);
+                                        SECLEVEL::PLAIN_DET, fm1->secLevelDET, 0, tmkm);
 
                     //OPE onion
                     if (fm1->exists(fm1->anonFieldNameOPE)) {
                         string anonName = fm1->anonFieldNameOPE;
 
-                        if (fm1->secLevelDET == SEMANTIC_OPE) {
+                        if (fm1->secLevelOPE == SECLEVEL::SEMANTIC_OPE) {
                             addIfNotContained(fullName(field,
                                                        table),
                                               fieldsDec.OPEFields);
-                            fm1->secLevelDET = OPESELF;
+                            fm1->secLevelOPE = SECLEVEL::OPE;
                         }
 
                         resultQuery += ", " + anonName + " = " +
@@ -804,7 +801,7 @@ throw (CryptDBError)
                                              fullName(field,table),
                                              fullName(anonName,
                                                       anonTableName),
-                                             PLAIN_OPE, fm1->secLevelOPE, 0,
+                                             SECLEVEL::PLAIN_OPE, fm1->secLevelOPE, 0,
                                              tmkm);
                     }
 
@@ -816,7 +813,7 @@ throw (CryptDBError)
                                        crypt(*wordsIt, TYPE_TEXT,
                                              fullName(field,table),
                                              fullName(anonName, anonTableName),
-                                             PLAIN_SWP, SWP, 0, tmkm);
+                                             SECLEVEL::PLAIN_SWP, SECLEVEL::SWP, 0, tmkm);
                     }
 
                 } else {
@@ -836,9 +833,7 @@ throw (CryptDBError)
         processFilters(wordsIt, words, qm,  resultQuery, fieldsDec,
                        tmkm);
 
-    tmkm.cleanup();
     qm.cleanup();
-
     return res;
 }
 
@@ -850,8 +845,7 @@ EDBClient::processFilters(list<string>::iterator &  wordsIt,
                           list<string> subqueries)
 throw (CryptDBError)
 {
-    string keys[] = {"AND", "OR", "NOT", "(", ")"};
-    unsigned int noKeys = 5;
+    std::set<string> keys = {"AND", "OR", "NOT", "(", ")"};
 
     if (wordsIt == words.end()) {     //no WHERE clause
         resultQuery = resultQuery + ";";
@@ -895,7 +889,7 @@ throw (CryptDBError)
 
         //cerr << "in loop " << *wordsIt << "\n";
         //case: keyword
-        if (contains(*wordsIt, keys, noKeys)) {
+        if (contains(*wordsIt, keys)) {
             resultQuery += " " + *wordsIt;
             wordsIt++;
             continue;
@@ -979,13 +973,13 @@ groupings:
             if (comm.compare("order") == 0) {
                 fm->ope_used = true;
 
-                if (fm->secLevelOPE == SEMANTIC_OPE) {
+                if (fm->secLevelOPE == SECLEVEL::SEMANTIC_OPE) {
                     addIfNotContained(fullName(field,
                                                table), fieldsDec.OPEFields);
                 }
 
             } else {                    //group
-                if (fm->secLevelDET == SEMANTIC_DET) {
+                if (fm->secLevelDET == SECLEVEL::SEMANTIC_DET) {
                     addIfNotContained(fullName(field,
                                                table), fieldsDec.DETFields);
                 }
@@ -1031,7 +1025,6 @@ ascdesc:
     }
 
     resultQuery = resultQuery + ";";
-    resultQuery = resultQuery + '\0';
 
     if (wordsIt != words.end()) {cerr << "we have " << *wordsIt << "\n"; }
     assert_s(
@@ -1071,7 +1064,7 @@ throw (CryptDBError)
                      "there should be no adjustment in multi-key mode\n");
         }
 
-        string whereClause = ";" + '\0';
+        string whereClause = ";";
         string fname = fullName(field, table);
 
         /*if (mp) {
@@ -1096,18 +1089,18 @@ throw (CryptDBError)
             decryptS = "decrypt_int_sem(" + anonfieldName + "," +
                        cm->marshallKey(cm->getKey(fullName(anonfieldName,
                                                            anonTableName),
-                                                  SEMANTIC_DET)) + ", " +
+                                                  SECLEVEL::SEMANTIC_DET)) + ", " +
                        "salt)" + whereClause;
             //cout << "KEY USED TO DECRYPT field from SEM " << anonfieldName
             // << " " << cm->marshallKey(cm->getKey(anonTableName
-            // +"."+anonfieldName, SEMANTIC)) << "\n"; fflush(stdout);
+            // +"."+anonfieldName, SECLEVEL::SEMANTIC)) << "\n"; fflush(stdout);
             break;
         }
         case TYPE_TEXT: {
             decryptS = "decrypt_text_sem(" + anonfieldName + "," +
                        cm->marshallKey(cm->getKey(fullName(anonfieldName,
                                                            anonTableName),
-                                                  SEMANTIC_DET)) + ", " +
+                                                  SECLEVEL::SEMANTIC_DET)) + ", " +
                        "salt)" + whereClause;
             break;
         }
@@ -1122,7 +1115,7 @@ throw (CryptDBError)
 
         result.push_back(resultQ);
 
-        tableMetaMap[table]->fieldMetaMap[field]->secLevelDET = DET;
+        tableMetaMap[table]->fieldMetaMap[field]->secLevelDET = SECLEVEL::DET;
     }
 
     for (list<string>::iterator it = fieldsDec.OPEFields.begin();
@@ -1140,7 +1133,7 @@ throw (CryptDBError)
             assert_s(false,
                      "there should be no adjustment in multi-key mode\n");
         }
-        string whereClause = ";" + '\0';
+        string whereClause = ";";
         string fname = fullName(field, table);
 
         /*if (mp) {
@@ -1158,14 +1151,14 @@ throw (CryptDBError)
         string decryptS = "decrypt_int_sem("  + anonfieldName + "," +
                           cm->marshallKey(cm->getKey(fullName(anonfieldName,
                                                               anonTableName),
-                                                     SEMANTIC_OPE)) +
+                                                     SECLEVEL::SEMANTIC_OPE)) +
                           ", " +  "salt)" + whereClause;
 
         string resultQ = string("UPDATE ") + tm->anonTableName +
                          " SET " + anonfieldName + "= " + decryptS;
         result.push_back(resultQ);
 
-        tm->fieldMetaMap[field]->secLevelOPE = OPESELF;
+        tm->fieldMetaMap[field]->secLevelOPE = SECLEVEL::OPE;
 
         tm->fieldMetaMap[field]->ope_used = true;
 
@@ -1215,7 +1208,7 @@ throw (CryptDBError)
         decryptS = decryptS + "(" + anonfieldName + "," +
                    cm->marshallKey(cm->getKey(fullName(anonfieldName,
                                                        anonTableName),
-                                              DET)) + ");"+'\0';
+                                              SECLEVEL::DET)) + ");";
 
         string resultQ = string("UPDATE ") +
                          tableMetaMap[table]->anonTableName +
@@ -1224,7 +1217,7 @@ throw (CryptDBError)
         //cout << "adding JOIN DEC " << resultQ << "\n"; fflush(stdout);
         result.push_back(resultQ);
 
-        tableMetaMap[table]->fieldMetaMap[field]->secLevelDET = DETJOIN;
+        tableMetaMap[table]->fieldMetaMap[field]->secLevelDET = SECLEVEL::DETJOIN;
     }
 
     for (list<string>::iterator it = fieldsDec.OPEJoinFields.begin();
@@ -1236,9 +1229,9 @@ throw (CryptDBError)
         //result.push_back(getCStr(string("UPDATE ") +
         // tableMetaMap[table]->anonTableName +
         //" SET " + tableMetaMap[table]->fieldMetaMap[field]->anonFieldNameDET
-        //+ " = DECRYPT(0);"+'\0')); //TODO: link in the right key here
+        //+ " = DECRYPT(0);")); //TODO: link in the right key here
 
-        tableMetaMap[table]->fieldMetaMap[field]->secLevelOPE = OPEJOIN;
+        tableMetaMap[table]->fieldMetaMap[field]->secLevelOPE = SECLEVEL::OPEJOIN;
 
         if (mp) {
             assert_s(false,
@@ -1311,12 +1304,11 @@ list<string>
 EDBClient::rewriteEncryptSelect(const string &query)
 throw (CryptDBError)
 {
-
     FieldsToDecrypt fieldsDec;
 
     if (!isNested(query)) {
         list<string> words = getSQLWords(query);
-        LOG(edb) << "after sql words " << toString(words);
+        LOG(edb) << "after sql words " << toString(words, angleBrackets);
         return rewriteSelectHelper(words);
     }
 
@@ -1531,19 +1523,19 @@ throw (CryptDBError)
 
     //first figure out what tables are involved to know what fields refer to
     //gettimeofday(&starttime, NULL);
-    QueryMeta qm  = getQueryMeta(SELECT, words, tableMetaMap);
+    QueryMeta qm  = getQueryMeta(cmd::SELECT, words, tableMetaMap);
     LOG(edb_v) << "after get query meta";
-//	gettimeofday(&endtime, NULL);
-//	cout << "get query meta" << timeInMSec(starttime, endtime) << "\n";
+//    gettimeofday(&endtime, NULL);
+//    cout << "get query meta" << timeInMSec(starttime, endtime) << "\n";
     //expand * in SELECT *
 
-//	gettimeofday(&starttime, NULL);
+//    gettimeofday(&starttime, NULL);
     expandWildCard(words, qm, tableMetaMap);
-//	gettimeofday(&endtime, NULL);
-//	cout << "expand wild card " << timeInMSec(starttime, endtime) << "\n";
+//    gettimeofday(&endtime, NULL);
+//    cout << "expand wild card " << timeInMSec(starttime, endtime) << "\n";
     //=========================================================
 
-    LOG(edb_v) << "new query is " << toString(words);
+    LOG(edb_v) << "new query is: " << toString(words, angleBrackets);
 
     list<string>::iterator wordsIt = words.begin();
 
@@ -1552,11 +1544,11 @@ throw (CryptDBError)
     if (mp) {
         tmkm.processingQuery = true;
         mp->prepareSelect(words, tmkm, qm, tableMetaMap);
-        if (VERBOSE) { cerr << "done with prepare select \n"; }
+        if (VERBOSE) { LOG(edb_v) << "done with prepare select"; }
     }
 
-//	gettimeofday(&endtime, NULL);
-//		cout << "MULTIPRINC prepare select" << timeInMSec(starttime,
+//    gettimeofday(&endtime, NULL);
+//        cout << "MULTIPRINC prepare select" << timeInMSec(starttime,
 // endtime) << "\n";
 
     FieldsToDecrypt fieldsDec;
@@ -1579,7 +1571,7 @@ throw (CryptDBError)
     string oldTable = "";
 
     while (!equalsIgnoreCase(*wordsIt, "from")) {
-        LOG(edb_v) << "query so far: " << resultQuery;
+        if (VERBOSE_V) {LOG(edb_v) << "query so far: " << resultQuery;}
 
         string table, field;
 
@@ -1591,11 +1583,7 @@ throw (CryptDBError)
             string fieldToAgg = *wordsIt;
             wordsIt++;
             //there may be other stuff before first parent
-            string termin[] = {")"};
-            int noTermin = 1;
-
-            string res = mirrorUntilTerm(wordsIt, words, termin, noTermin, 0,
-                                         0);
+            string res = mirrorUntilTerm(wordsIt, words, {")"}, 0, 0);
 
             assert_s(wordsIt->compare(
                          ")") == 0, ") needed to close sum expression\n  ");
@@ -1661,7 +1649,7 @@ throw (CryptDBError)
                 getTableField(*wordsIt, tableD, fieldD, qm, tableMetaMap);
                 FieldMetadata * fmd =
                     tableMetaMap[tableD]->fieldMetaMap[fieldD];
-                if (fmd->secLevelDET == SEMANTIC_DET) {
+                if (fmd->secLevelDET == SECLEVEL::SEMANTIC_DET) {
                     addIfNotContained(fullName(fieldD,
                                                tableD), fieldsDec.DETFields);
                 }
@@ -1744,13 +1732,13 @@ throw (CryptDBError)
             TableMetadata * tm = tableMetaMap[table2];
             FieldMetadata * fm = tm->fieldMetaMap[field2];
 
-            assert_s(fm->type != TYPE_TEXT,
-                     "min, max not fully implemented for text");
-
             string anonName =
                 getOnionName(fm,oOPE);
 
             if (fm->isEncrypted) {
+                assert_s((fm->type != TYPE_TEXT),
+                                     "min, max not fully implemented for text");
+
                 if (DECRYPTFIRST) {
                     resultQuery = resultQuery + fieldNameForQuery(
                         tm->anonTableName, table2, field2, fm->type, qm);
@@ -1767,7 +1755,7 @@ throw (CryptDBError)
 
                 if (tableMetaMap[table2]->fieldMetaMap[field2]->secLevelOPE
                     ==
-                    SEMANTIC_OPE) {
+                    SECLEVEL::SEMANTIC_OPE) {
                     addIfNotContained(fullName(realname,
                                                table2), fieldsDec.OPEFields);
                 }
@@ -1828,18 +1816,18 @@ throw (CryptDBError)
                                                 fm);
             }
 
-            if (tm->fieldMetaMap[field]->secLevelDET == SEMANTIC_DET) {
+            if (tm->fieldMetaMap[field]->secLevelDET == SECLEVEL::SEMANTIC_DET) {
                 addIfNotContained(fullName(field, table), fieldsDec.DETFields);
                 addIfNotContained(fullName(field,
                                            table), fieldsDec.DETJoinFields);
             }
-            if (tm->fieldMetaMap[field]->secLevelDET == DET) {
+            if (tm->fieldMetaMap[field]->secLevelDET == SECLEVEL::DET) {
                 addIfNotContained(fullName(field,
                                            table), fieldsDec.DETJoinFields);
             }
         } else {
             FieldMetadata * fm2 = tm->fieldMetaMap[field];
-            if (detToAll && (fm2->secLevelDET == SEMANTIC_DET)) {
+            if (detToAll && (fm2->secLevelDET == SECLEVEL::SEMANTIC_DET)) {
                 addIfNotContained(fullName(field, table), fieldsDec.DETFields);
             }
             if (DECRYPTFIRST) {
@@ -1892,26 +1880,24 @@ throw (CryptDBError)
         processFilters(wordsIt, words, qm, resultQuery, fieldsDec, tmkm,
                        subqueries);
 
-    tmkm.cleanup();
     qm.cleanup();
-
     return res;
 }
 
 //words are the keywords of expanded unanonymized queries
 //words is unencrypted and unmodified query
 static ResMeta
-getResMeta(list<string> words, vector<vector<string> > & vals, QueryMeta & qm,
+getResMeta(list<string> words, const ResType &vals, QueryMeta & qm,
            map<string, TableMetadata * > & tm, MultiPrinc * mp,
            TMKM & tmkm)
 {
-    LOG(edb_v) << toString(words);
+    LOG(edb_v) << toString(words, angleBrackets);
 
     ResMeta rm = ResMeta();
 
-    size_t nFields = vals[0].size();
+    size_t nFields = vals.names.size();
     rm.nFields = nFields;
-    rm.nTuples = vals.size() - 1;
+    rm.nTuples = vals.rows.size();
 
     //try to fill in these values based on the information in vals
     rm.isSalt = new bool[nFields];
@@ -1931,12 +1917,13 @@ getResMeta(list<string> words, vector<vector<string> > & vals, QueryMeta & qm,
 
         //case : fields we added to help with multi princ enc
         if (ignore) {
+            rm.isSalt[i] = false;
             ignore = false;
             continue;
         }
 
         //case : salt
-        if (isFieldSalt(vals[0][i])) {
+        if (isFieldSalt(vals.names[i])) {
             rm.isSalt[i] = true;
             rm.o[i] = oNONE;
             continue;
@@ -1964,7 +1951,7 @@ getResMeta(list<string> words, vector<vector<string> > & vals, QueryMeta & qm,
                                          tmkm, ignore);
             }
 
-//			cerr << "field, " << rm.field[i] << " table  " <<
+//            cerr << "field, " << rm.field[i] << " table  " <<
 // rm.table[i] << " onion " << rm.o[i] << " nameForRes " << rm.namesForRes[i]
 // << "\n";
             continue;
@@ -2014,32 +2001,30 @@ getResMeta(list<string> words, vector<vector<string> > & vals, QueryMeta & qm,
 }
 
 static void
-printRes(vector<vector<string> > & vals)
+printRes(const ResType &r)
 {
-    LOG(edb) << "Raw results from the server to decrypt:";
-
     stringstream ssn;
-    for (unsigned int i = 0; i < vals[0].size(); i++) {
+    for (unsigned int i = 0; i < r.names.size(); i++) {
         char buf[256];
-        snprintf(buf, sizeof(buf), "%-20s", vals[0][i].c_str());
+        snprintf(buf, sizeof(buf), "%-20s", r.names[i].c_str());
         ssn << buf;
     }
     LOG(edb) << ssn.str();
 
     /* next, print out the rows */
-    for (unsigned int i = 0; i < vals.size() - 1; i++) {
+    for (unsigned int i = 0; i < r.rows.size(); i++) {
         stringstream ss;
-        for (unsigned int j = 0; j < vals[i].size(); j++) {
+        for (unsigned int j = 0; j < r.rows[i].size(); j++) {
             char buf[256];
-            snprintf(buf, sizeof(buf), "%-20s", vals[i+1][j].c_str());
+            snprintf(buf, sizeof(buf), "%-20s", r.rows[i][j].c_str());
             ss << buf;
         }
         LOG(edb) << ss.str();
     }
 }
 
-ResType *
-EDBClient::rewriteDecryptSelect(const string &query, ResType * dbAnswer)
+ResType
+EDBClient::rewriteDecryptSelect(const string &query, const ResType &dbAnswer)
 {
 
     //cerr << "in decrypt \n";
@@ -2049,13 +2034,14 @@ EDBClient::rewriteDecryptSelect(const string &query, ResType * dbAnswer)
     //parse
     list<string> words = getSQLWords(query);
 
-    QueryMeta qm = getQueryMeta(SELECT, words, tableMetaMap);
+    QueryMeta qm = getQueryMeta(cmd::SELECT, words, tableMetaMap);
 
     expandWildCard(words, qm, tableMetaMap);
 
-    vector<vector<string> > vals = *dbAnswer;
-
-    if (VERBOSE) {printRes(vals); }
+    if (VERBOSE) {
+        LOG(edb) << "Raw results from the server to decrypt:";
+        printRes(dbAnswer);
+    }
 
     TMKM tmkm;
     if (mp) {
@@ -2064,33 +2050,41 @@ EDBClient::rewriteDecryptSelect(const string &query, ResType * dbAnswer)
         mp->prepareSelect(words, tmkm, qm, tableMetaMap);
     }
 
-    ResMeta rm = getResMeta(words, vals, qm, tableMetaMap, mp, tmkm);
+    ResMeta rm = getResMeta(words, dbAnswer, qm, tableMetaMap, mp, tmkm);
 
     //====================================================
 
     LOG(edb) << "done with res meta";
 
     //prepare the result
-    ResType * rets = new ResType;
-    rets = new vector<vector<string> >(rm.nTuples+1);
+
+    ResType rets;
+    rets.rows = vector<vector<string> >(rm.nTuples);
 
     size_t nFields = rm.nFields;
     size_t nTrueFields = rm.nTrueFields;
 
-    //fill in field names
-    rets->at(0) = vector<string>(nTrueFields);
+    //fill in field names and types
+    rets.names.resize(nTrueFields);
+    rets.types.resize(nTrueFields);
 
     unsigned int index0 = 0;
     for (unsigned int i = 0; i < nFields; i++) {
         if ((!rm.isSalt[i]) && (!mp || tmkm.returnBitMap[i])) {
-            rets->at(0).at(index0) = rm.namesForRes[i];
+            rets.names[index0] = rm.namesForRes[i];
+            if (rm.o[i] == oNONE) { // val not encrypted
+                rets.types[index0] = dbAnswer.types[i]; //return the type from the mysql server
+            } else {
+                rets.types[index0] = tableMetaMap[rm.table[i]]->fieldMetaMap[rm.field[i]]->mysql_type;
+            }
             index0++;
         }
     }
 
+
     for (unsigned int i = 0; i < rm.nTuples; i++)
     {
-        rets->at(i+1) = vector<string>(nTrueFields);
+        rets.rows[i].resize(nTrueFields);
         unsigned int index = 0;
         uint64_t salt = 0;
 
@@ -2098,7 +2092,7 @@ EDBClient::rewriteDecryptSelect(const string &query, ResType * dbAnswer)
 
             if (rm.isSalt[j]) {             // this is salt
                 LOG(edb) << "salt";
-                salt = unmarshallVal(vals[i+1][j]);
+                salt = unmarshallVal(dbAnswer.rows[i][j]);
                 continue;
             }
 
@@ -2120,7 +2114,7 @@ EDBClient::rewriteDecryptSelect(const string &query, ResType * dbAnswer)
 
             if (rm.o[j] == oNONE) {             //not encrypted
                 LOG(edb) << "its not enc";
-                rets->at(i+1).at(index) = vals[i+1][j];
+                rets.rows[i][index] = dbAnswer.rows[i][j];
                 index++;
                 continue;
             }
@@ -2131,25 +2125,41 @@ EDBClient::rewriteDecryptSelect(const string &query, ResType * dbAnswer)
             string fullAnonName = fullName(getOnionName(fm,
                                                         rm.o[j]),
                                            tableMetaMap[table]->anonTableName);
-            rets->at(i+
-                     1).at(index) =
-                crypt(vals[i+1][j], fm->type, fullName(field,
-                                                       table),
+            rets.rows[i][index] =
+                crypt(dbAnswer.rows[i][j], fm->type, fullName(field, table),
                       fullAnonName,
-                      getLevelForOnion(fm,
-                                       rm.o[j]),
+                      getLevelForOnion(fm, rm.o[j]),
                       getLevelPlain(rm.o[j]), salt,
-                      tmkm, vals[i+1]);
+                      tmkm, dbAnswer.rows[i]);
 
             index++;
 
         }
     }
 
-    tmkm.cleanup();
     qm.cleanup();
     rm.cleanup();
     return rets;
+}
+
+// It removes "%" from the search constant - we want to consider them
+// at some point
+// e.g. LIKE "ana%" means that 'ana' should be at the beginning
+static string
+getLIKEToken(const string &s)
+{
+    string res = removeApostrophe(s);
+    unsigned int len = (uint) res.length();
+
+    if (res[0]=='%') {
+        res = res.substr(1, --len);
+    }
+    if (res[len-1] == '%') {
+        res = res.substr(0, --len);
+    }
+
+    LOG(edb_v) << "search token is <" << res << ">\n";
+    return toLowerCase(res);
 }
 
 string
@@ -2173,7 +2183,7 @@ throw (CryptDBError)
                      "MULTIPRINC first operand of operation should be field");
         }
         AES_KEY * aesKeyJoin =
-            CryptoManager::get_key_DET(cm->getKey("join", DETJOIN));
+            CryptoManager::get_key_DET(cm->getKey("join", SECLEVEL::DETJOIN));
         string res = "";
         res =
             marshallVal(cm->encrypt_DET((uint64_t) unmarshallVal(op1),
@@ -2190,6 +2200,8 @@ throw (CryptDBError)
     string anonField1, anonOp1;
 
     FieldMetadata * fm1 = tableMetaMap[table1]->fieldMetaMap[field1];
+
+    assert_s(!fm1->INCREMENT_HAPPENED, "field " + field1 + " has already been used in an aggregate so predicates cannot be evaluated any more ");
 
     fieldType ftype1 = fm1->type;
 
@@ -2211,6 +2223,9 @@ throw (CryptDBError)
         getTableField(op2, table3, field3, qm, tableMetaMap);
         TableMetadata * tm2 = tableMetaMap[table3];
         FieldMetadata * fm2 = tm2->fieldMetaMap[field3];
+
+        assert_s(!fm2->INCREMENT_HAPPENED, "field " + field3 + " has already been used in an aggregate so predicates cannot be evaluated any more ");
+
         string anonTable2 = tm2->anonTableName;
         string anonField2 = fm2->anonFieldNameDET;
         string anonOp2 = fullName(anonField2, anonTable2);
@@ -2246,7 +2261,7 @@ throw (CryptDBError)
         }
 
         res = res + crypt(op2, ftype1, fullName(field1,
-                                                table1), anonOp1, PLAIN_DET,
+                                                table1), anonOp1, SECLEVEL::PLAIN_DET,
                           highestEq(sl), 0, tmkm);
 
         return res;
@@ -2256,22 +2271,29 @@ throw (CryptDBError)
     if (Operation::isILIKE(operation)) {     //DET
 
         /* Method 2 search: SWP */
+         LOG(edb_v) << "IS LIKE/ILIKE";
 
         anonField1 = fm1->anonFieldNameSWP;
         string anonfull = fullName(anonField1,
                                    tableMetaMap[table1]->anonTableName);
 
-        res += "search(" + anonField1 + ", ";
+        if (removeApostrophe(op2).length() == 0) {
 
-        Binary key = Binary(cm->getKey(cm->getmkey(), anonfull, SWP));
+            res += anonField1 + " LIKE '' ";
 
-        Token t = CryptoManager::token(key, Binary(removeApostrophe(op2)));
+        } else {
+            res += SEARCHSWP"(";
 
-        res +=
-            marshallBinary(string((char *)t.ciph.content,
-                                  t.ciph.len)) + ", " +
-            marshallBinary(string((char *)t.wordKey.content,
-                                  t.ciph.len)) + ") ";
+            Binary key = Binary(cm->getKey(cm->getmkey(), anonfull, SECLEVEL::SWP));
+
+            Token t = CryptoManager::token(key, Binary(getLIKEToken(op2)));
+
+            res +=
+                    marshallBinary(string((char *)t.ciph.content,
+                            t.ciph.len)) + ", " +
+                            marshallBinary(string((char *)t.wordKey.content,
+                                    t.wordKey.len)) +  ", " +  anonField1 + ") = 1; ";
+        }
 
         return res;
 
@@ -2294,8 +2316,8 @@ throw (CryptDBError)
                  marshallVal((unsigned int)ftype));
 
            res = res + crypt(op2, ftype, fullName(field1,
-                                               table1), anonOp1, PLAIN_DET,
-                          DET, 0, tmkm);
+                                               table1), anonOp1, SECLEVEL::PLAIN_DET,
+                          SECLEVEL::DET, 0, tmkm);
 
            res = res + ", " + anonOp1 + ") ";
 
@@ -2304,6 +2326,7 @@ throw (CryptDBError)
 
     }
 
+    LOG(edb_v) << "IS OPE";
     //operation is OPE
 
     anonField1 = tableMetaMap[table1]->fieldMetaMap[field1]->anonFieldNameOPE;
@@ -2323,10 +2346,10 @@ throw (CryptDBError)
     }
 
     //cout << "key used to get to OPE level for "<< tokenOperand << "is " <<
-    //  CryptoManager::marshallKey(cm->getKey(tokenOperand, OPESELF)) << "\n";
+    //  CryptoManager::marshallKey(cm->getKey(tokenOperand, SECLEVEL::OPE)) << "\n";
     res = res + " " + fieldname + " " +  operation + " " +
           crypt(op2, fm->type, fullName(field1, table1),
-                anonOp1, PLAIN_OPE, OPESELF, 0, tmkm);
+                anonOp1, SECLEVEL::PLAIN_OPE, SECLEVEL::OPE, 0, tmkm);
 
     return res;
 }
@@ -2358,6 +2381,7 @@ throw (CryptDBError)
 
     //cout << result << "\n\n";
     //delete associated data from internal data structures
+    delete tableMetaMap[tableName];
     tableMetaMap.erase(tableName);
     tableNameMap.erase(anonTableName);
 
@@ -2382,18 +2406,18 @@ throw (CryptDBError)
     list<string> words = getSQLWords(query);
 
     if (mp) {
-        if (mp->checkPsswd(DELETE, words)) {
+        if (mp->checkPsswd(cmd::DELETE, words)) {
             return list<string>();
         }
     }
 
     //first figure out what tables are involved to know what fields refer to
-    QueryMeta qm = getQueryMeta(DELETE, words, tableMetaMap);
+    QueryMeta qm = getQueryMeta(cmd::DELETE, words, tableMetaMap);
 
     TMKM tmkm;
     if (mp) {
         tmkm.processingQuery = true;
-        mp->getEncForFromFilter(DELETE, words, tmkm, qm, tableMetaMap);
+        mp->getEncForFromFilter(cmd::DELETE, words, tmkm, qm, tableMetaMap);
     }
 
     list<string>::iterator wordsIt = words.begin();
@@ -2428,9 +2452,7 @@ throw (CryptDBError)
         processFilters(wordsIt, words, qm, resultQuery, ftd,
                        tmkm);
 
-    tmkm.cleanup();
     qm.cleanup();
-
     return res;
 }
 
@@ -2492,7 +2514,7 @@ EDBClient::processValsToInsert(string field, string table, uint64_t salt,
         res +=  " " +
                crypt(value, fm->type, fullname,
                      fullName(fm->anonFieldNameDET,
-                              anonTableName), PLAIN_DET, fm->secLevelDET,
+                              anonTableName), SECLEVEL::PLAIN_DET, fm->secLevelDET,
                      salt, tmkm);
 
         LOG(edb_v) << "just added key from crypt";
@@ -2501,7 +2523,7 @@ EDBClient::processValsToInsert(string field, string table, uint64_t salt,
             res += ", " +
                    crypt(value, fm->type, fullname,
                          fullName(fm->anonFieldNameOPE,
-                                  anonTableName), PLAIN_OPE, fm->secLevelOPE,
+                                  anonTableName), SECLEVEL::PLAIN_OPE, fm->secLevelOPE,
                          salt, tmkm);
 
         }
@@ -2510,7 +2532,7 @@ EDBClient::processValsToInsert(string field, string table, uint64_t salt,
             res += ", " +
                    crypt(value, fm->type, fullname,
                          fullName(fm->anonFieldNameAGG,
-                                  anonTableName), PLAIN_AGG, SEMANTIC_AGG,
+                                  anonTableName), SECLEVEL::PLAIN_AGG, SECLEVEL::SEMANTIC_AGG,
                          salt, tmkm);
         }
 
@@ -2518,7 +2540,7 @@ EDBClient::processValsToInsert(string field, string table, uint64_t salt,
             res += ", " +
                    crypt(value, fm->type, fullname,
                          fullName(fm->anonFieldNameSWP,
-                                  anonTableName), PLAIN_SWP, SWP,
+                                  anonTableName), SECLEVEL::PLAIN_SWP, SECLEVEL::SWP,
                          salt, tmkm);
         }
 
@@ -2569,7 +2591,7 @@ throw (CryptDBError)
     if (mp) {
         tmkm.processingQuery = true;
         //if this is the fake table providing user passwords, ignore query
-        if (mp->checkPsswd(INSERT, words)) {
+        if (mp->checkPsswd(cmd::INSERT, words)) {
             //gettimeofday(&endtime, NULL);
             //cerr << "insert passwd took " << timeInMSec(starttime, endtime)
             // << "\n";
@@ -2807,9 +2829,7 @@ throw (CryptDBError)
 
     assert_s(wordsIt == words.end(), "invalid text after )");
 
-    resultQuery = resultQuery + ";" + '\0';
-
-    tmkm.cleanup();
+    resultQuery = resultQuery + ";";
 
     return list<string>(1, resultQuery);
 }
@@ -2935,7 +2955,7 @@ considerQuery(command com, const string &query)
 {
 
     switch (com) {
-    case CREATE: {
+    case cmd::CREATE: {
         list<string> words = getSQLWords(query);
         list<string>::iterator wordsIt = words.begin();
         wordsIt++;
@@ -2944,8 +2964,8 @@ considerQuery(command com, const string &query)
         }
         break;
     }
-    case UPDATE: {break; }
-    case INSERT: {
+    case cmd::UPDATE: {break; }
+    case cmd::INSERT: {
         list<string> words = getSQLWords(query);
         if (contains("select", words)) {
             LOG(warn) << "given nested query!";
@@ -2953,7 +2973,7 @@ considerQuery(command com, const string &query)
         }
         break;
     }
-    case SELECT: {
+    case cmd::SELECT: {
         list<string> words = getSQLWords(query);
         //for speed
         /*if ((!contains("from", words)) && (!contains("FROM", words))) {
@@ -2962,7 +2982,7 @@ considerQuery(command com, const string &query)
            }*/
         break;
     }
-    case DROP: {
+    case cmd::DROP: {
         list<string> words = getSQLWords(query);
         list<string>::iterator wordsIt = words.begin();
         wordsIt++;
@@ -2971,15 +2991,15 @@ considerQuery(command com, const string &query)
         }
         break;
     }
-    case DELETE: {break; }
-    case BEGIN: {
+    case cmd::DELETE: {break; }
+    case cmd::BEGIN: {
         LOG(edb_v) << "begin";
         if (DECRYPTFIRST) {
             return true;
         }
         return false;
     }
-    case COMMIT: {
+    case cmd::COMMIT: {
         if (DECRYPTFIRST) {
             return true;
         }
@@ -2992,7 +3012,7 @@ considerQuery(command com, const string &query)
         LOG(edb_v) << "commit";
         return false;
     }
-    case ALTER: {
+    case cmd::ALTER: {
         LOG(edb_v) << "alter";
         if (DECRYPTFIRST) {
             return true;
@@ -3001,7 +3021,7 @@ considerQuery(command com, const string &query)
         return false;
     }
     default:
-    case OTHER: {
+    case cmd::OTHER: {
         LOG(edb_v) << "other";
         return false;
     }
@@ -3023,40 +3043,39 @@ throw (CryptDBError)
 
     //some queries do not need to be encrypted
     if (!considerQuery(com, query)) {
-        if (VERBOSE) { cerr << "query not considered \n"; }
+        if (VERBOSE) { LOG(edb_v) << "query not considered: " << query; }
         list<string> res;
         res.push_back(query);
-        if (VERBOSE) { cerr << "returning query " << query << "\n"; }
         return res;
     }
 
     //dispatch query to the appropriate rewriterEncryptor
     switch (com) {
-    case CREATE: {return rewriteEncryptCreate(query); }
-    case UPDATE: {return rewriteEncryptUpdate(query); }
-    case INSERT: {return rewriteEncryptInsert(query, ai); }
-    case SELECT: {return rewriteEncryptSelect(query); }
-    case DROP: {return rewriteEncryptDrop(query); }
-    case DELETE: {return rewriteEncryptDelete(query); }
-    case BEGIN: {
+    case cmd::CREATE: {return rewriteEncryptCreate(query); }
+    case cmd::UPDATE: {return rewriteEncryptUpdate(query); }
+    case cmd::INSERT: {return rewriteEncryptInsert(query, ai); }
+    case cmd::SELECT: {return rewriteEncryptSelect(query); }
+    case cmd::DROP: {return rewriteEncryptDrop(query); }
+    case cmd::DELETE: {return rewriteEncryptDelete(query); }
+    case cmd::BEGIN: {
         if (DECRYPTFIRST)
             return list<string>(1, query);
 
         return rewriteEncryptBegin(query);
     }
-    case COMMIT: {
+    case cmd::COMMIT: {
         if (DECRYPTFIRST)
             return list<string>(1, query);
 
         return rewriteEncryptCommit(query);
     }
-    case ALTER: {
+    case cmd::ALTER: {
         if (DECRYPTFIRST)
             return list<string>(1, query);
 
         return rewriteEncryptAlter(query);
     }
-    case OTHER:
+    case cmd::OTHER:
     default: {
         cerr << "other query\n";
         if (DECRYPTFIRST)
@@ -3068,13 +3087,13 @@ throw (CryptDBError)
     return list<string>();
 }
 
-ResType *
-EDBClient::decryptResults(const string &query, ResType * dbAnswer)
+ResType
+EDBClient::decryptResults(const string &query, const ResType &dbAnswer)
 {
     if (DECRYPTFIRST)
         return dbAnswer;
 
-    if (dbAnswer->size() == 0)
+    if (dbAnswer.rows.size() == 0)
         return dbAnswer;
 
     // some queries do not need to be encrypted
@@ -3085,7 +3104,7 @@ EDBClient::decryptResults(const string &query, ResType * dbAnswer)
     }
 
     switch (com) {
-    case SELECT:
+    case cmd::SELECT:
         return rewriteDecryptSelect(query, dbAnswer);
 
     default:
@@ -3108,28 +3127,18 @@ EDBClient::dropTables()
     }
 }
 
-ResType *
+ResType
 EDBClient::decryptResultsWrapper(const string &query, DBResult * dbres)
 {
     command comm = getCommand(query);
 
-    if (comm == SELECT) {
+    if (comm == cmd::SELECT) {
         LOG(edb) << "going in select";
-        ResType * rets = decryptResults(query, dbres->unpack());
+        ResType rets = decryptResults(query, dbres->unpack());
 
         if (VERBOSE) {
-            LOG(edb_v) << "Decrypted results:";
-
-            for (unsigned int i = 0; i < rets->size(); i++) {
-                stringstream ss;
-                for (unsigned int j = 0; j < rets->at(i).size(); j++) {
-                    char buf[256];
-                    snprintf(buf, sizeof(buf), "%-30s", rets->at(i).at(
-                                 j).c_str());
-                    ss << buf;
-                }
-                LOG(edb_v) << ss.str();
-            }
+            LOG(edb) << "Decrypted results:";
+            printRes(rets);
         }
 
         return rets;
@@ -3137,62 +3146,58 @@ EDBClient::decryptResultsWrapper(const string &query, DBResult * dbres)
 
     LOG(edb) << "return empty results";
     //empty result
-    return new ResType();
-
+    return ResType();
 }
 
-ResType *
+ResType
 EDBClient::execute(const string &query)
 {
     DBResult * res = 0;
 
-    LOG(edb_v) << "Query: " << query;
+    LOG(edb_query_plain) << "Query: " << query;
 
     if (!isSecure) {
 
         if (!conn->execute(query, res)) {
             fprintf(stderr, "%s failed: %s \n", query.c_str(), conn->getError(
                         ).c_str());
-            return NULL;
+            return ResType(false);
         }
 
-        if (getCommand(query) == SELECT) {
-            ResType *r = res->unpack();
+        if (getCommand(query) == cmd::SELECT) {
+            ResType r = res->unpack();
             delete res;
             return r;
         } else {
             delete res;
-            return new ResType();
+            return ResType();
         }
     }
 
     //secure
 
     list<string> queries;
-    AutoInc * ai = new AutoInc();
+    AutoInc ai;
 
     try {
-        queries = rewriteEncryptQuery(query, ai);
+        queries = rewriteEncryptQuery(query, &ai);
     } catch (CryptDBError se) {
-        LOG(warn) << "problem with query " << query << " " << se.msg;
-        return NULL;
+        LOG(warn) << "problem with query " << query << ": " << se.msg;
+        return ResType(false);
     }
 
-    if (queries.size() == 0) {
-        return new ResType();
-    }
+    if (queries.size() == 0)
+        return ResType();
 
     auto queryIt = queries.begin();
 
     size_t noQueries = queries.size();
     size_t counter = 0;
 
-    LOG(edb_v) << "Translated queries:";
-
     for (; queryIt != queries.end(); queryIt++) {
         counter++;
 
-        LOG(edb_v) << *queryIt;
+        LOG(edb_query) << "Translated query: " << *queryIt;
 
         DBResult * reply;
         reply = NULL;
@@ -3203,7 +3208,7 @@ EDBClient::execute(const string &query)
 
         if (!conn->execute(*queryIt, reply)) {
             LOG(warn) << "query " << *queryIt << "failed";
-            return NULL;
+            return ResType(false);
         }
 
         if (VERBOSE) {
@@ -3221,20 +3226,14 @@ EDBClient::execute(const string &query)
             assert_s(counter == noQueries, "counter differs from noQueries");
 
             LOG(edb) << "onto decrypt results";
-            ResType * rets;
+            ResType rets;
             try {
-
-                //remove
-                //cerr << "dec\n";
-                //rets = new vector<vector<string> >(1);
-                //rets->at(0)=vector<string>(1);
-                //rets->at(0).at(0) = "1";
                 rets = decryptResultsWrapper(query, reply);
             } catch (CryptDBError e) {
-                cerr << e.msg;
+                LOG(warn) << e.msg;
                 queries.clear();
                 delete reply;
-                return NULL;
+                return ResType(false);
             }
 
             LOG(edb) << "done with decrypt results";
@@ -3247,8 +3246,7 @@ EDBClient::execute(const string &query)
     }
 
     assert_s(false, "invalid control path");
-
-    return new ResType();
+    return ResType(false);
 }
 
 void
@@ -3268,17 +3266,13 @@ EDBClient::exit()
     }
 }
 
-static void
-cleanup(map<string, TableMetadata *> & tableMetaMap)
-{
-    //todo
-}
-
 EDBClient::~EDBClient()
 {
-    cleanup(tableMetaMap);
+    for (auto i = tableMetaMap.begin(); i != tableMetaMap.end(); i++)
+        delete i->second;
     delete cm;
     delete mp;
+    delete conn;
 }
 
 static string
@@ -3357,7 +3351,7 @@ throw (CryptDBError)
                 cerr << " AGG ";
             }
 
-            if (fm->secLevelDET == SEMANTIC_DET) {
+            if (fm->secLevelDET == SECLEVEL::SEMANTIC_DET) {
                 cerr << " sem ";
             } else {
                 cerr << " det ";
@@ -3535,9 +3529,9 @@ EDBClient::outputOnionState()
                 FieldMetadata * f = fm->second;
                 if (f->isEncrypted) {
                     printf("%-36s", fullName(f->fieldName, tm->first).c_str());
-                    printf(" %-14s", levelnames[f->secLevelDET].c_str());
+                    printf(" %-14s", levelnames[(int) f->secLevelDET].c_str());
                     if (FieldMetadata::exists(f->anonFieldNameOPE))
-                        printf(" %-14s", levelnames[f->secLevelOPE].c_str());
+                        printf(" %-14s", levelnames[(int) f->secLevelOPE].c_str());
                     cout << "\n";
                 }
             }
@@ -3558,8 +3552,8 @@ EDBClient::crypt(string data, fieldType ft, string fullname,
                 << " type " << ft
                 << " fullname " << fullname
                 << " anonfullname " << anonfullname
-                << " fromlevel " << fromlevel
-                << " tolevel " << tolevel
+                << " fromlevel " << levelnames[(int) fromlevel]
+                << " tolevel " << levelnames[(int) tolevel]
                 << " salt " << salt;
 
     if (DECRYPTFIRST) {
