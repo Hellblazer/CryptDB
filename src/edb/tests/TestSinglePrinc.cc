@@ -60,7 +60,7 @@ CheckSelectResults(const TestConfig &tc, EDBClient * cl, vector<string> in, vect
         if (!test_res.ok) {
             LOG(test) << "Query: " << *query_it;
             if (tc.stop_if_fail) {
-                assert_s(false, "above query failed");
+                assert_s(false, *query_it + " failed");
             }
             passed = false;
         }
@@ -73,7 +73,7 @@ CheckSelectResults(const TestConfig &tc, EDBClient * cl, vector<string> in, vect
             PrintRes(test_res);
             cerr << "Select or Join test failed\n";
             if (tc.stop_if_fail) {
-                assert_s(false, "above query generated the wrong result");
+                assert_s(false, *query_it + " generated the wrong result");
             }
             passed = false;
         }
@@ -180,7 +180,7 @@ testInsert(const TestConfig &tc, EDBClient * cl)
         "DROP TABLE IF EXISTS table0, table1, table2, table3, table4, table5, t1");
 
     assert_res(myCreate(cl,"CREATE TABLE t1 (id integer primary key auto_increment, age enc integer, salary enc integer, address enc text, name text)",
-              "CREATE TABLE t1 (id integer, age integer, salary integer, address text, name text)"),
+              "CREATE TABLE t1 (id integer primary key auto_increment, age integer, salary integer, address text, name text)"),
              "testInsert could not create table");
 
     qUpdateSelect(tc, cl,
@@ -224,7 +224,7 @@ testInsert(const TestConfig &tc, EDBClient * cl)
         "select age from t1",
         { "age" },
         { { "21" }, { "23" }, { "25" }, { "26" }, { "27" },
-          { "0" /* XXX should be NULL */ }, { "40" } });
+          { "" /* XXX should be NULL */ }, { "40" } });
     qUpdateSelect(tc, cl,
         "INSERT INTO t1 (address) VALUES ('right star to the right')",
         "select address from t1 where id=9",
@@ -487,17 +487,20 @@ testSelect(const TestConfig &tc, EDBClient * cl)
                             {"4", "10", "0", "London", "Edmund"} };
     reply.push_back(convert(rows23,6));
 
-    query.push_back("SELECT * FROM t1 GROUP BY address ORDER BY address");
-    string rows24[5][5] = { {"id", "age", "salary", "address", "name"},
-                            {"5", "30", "100000", "221B Baker Street",
-                             "Sherlock Holmes"},
-                            {"1", "10", "0",
-                             "first star to the right and straight on till morning",
-                             "Peter Pan"},
-                            {"2", "16", "1000", "Green Gables",
-                             "Anne Shirley"},
-                            {"3", "8", "0", "London", "Lucy"} };
+    query.push_back("SELECT sum(age) FROM t1 GROUP BY address");
+    string rows24[5][1] = { {"sum(age)"},
+			    {"30"},
+			    {"10"},
+			    {"16"},
+			    {"18"} };
     reply.push_back(convert(rows24,5));
+
+    query.push_back("SELECT salary, max(id) FROM t1 GROUP BY salary");
+    string rows24a[4][2] = { {"salary", "max(id)"},
+			    {"0", "4"},
+			    {"1000", "2"},
+			    {"100000", "5"} };
+    reply.push_back(convert(rows24a,4));
 
     query.push_back("SELECT * FROM t1 GROUP BY age ORDER BY age");
     string rows25[5][5] = { {"id", "age", "salary", "address", "name"},
@@ -966,13 +969,12 @@ static void
 testSearch(const TestConfig &tc, EDBClient * cl)
 {
     cl->plain_execute(
-        "DROP TABLE IF EXISTS table0, table1, table2, table3, table4, table5, table6, table7, table8, table9, table10, table11, table12");
+        "DROP TABLE IF EXISTS table0, table1, table2, table3, table4, table5, table6, table7, table8, table9, table10, table11, table12, t3");
 
-    if (!PLAIN) {
-        assert_res(cl->execute(
-                     "CREATE TABLE t3 (id integer, searchable enc search text)"),
+    assert_res(myCreate(cl, "CREATE TABLE t3 (id integer, searchable enc search text)",
+			"CREATE TABLE t3 (id integer, searchable text)"),
                  "testSearch couldn't create table");
-    }
+
     assert_res(myExecute(cl, "INSERT INTO t3 VALUES (1, 'short text')"),
              "testSearch couldn't insert (1)");
     assert_res(myExecute(cl,
@@ -994,16 +996,14 @@ testSearch(const TestConfig &tc, EDBClient * cl)
     reply.push_back(convert(rows1,3));
 
     query.push_back("SELECT * FROM t3 WHERE searchable LIKE 'short'");
-    string rows2[2][2] = { {"id", "searchable"},
-                           {"1", "short text"} };
-    reply.push_back(convert(rows2,2));
+    reply.push_back(ResType());
 
     query.push_back("SELECT * FROM t3 WHERE searchable LIKE ''");
     string rows3[2][2] = { {"id", "searchable"},
                            {"3", ""} };
     reply.push_back(convert(rows3,2));
 
-    query.push_back("SELECT * FROM t3 WHERE searchable LIKE 'capitalization'");
+    query.push_back("SELECT * FROM t3 WHERE searchable LIKE '%capitalization'");
     string rows4[2][2] = { {"id", "searchable"},
                            {"2", "Text with CAPITALIZATION"} };
     reply.push_back(convert(rows4,2));
@@ -1011,7 +1011,7 @@ testSearch(const TestConfig &tc, EDBClient * cl)
     query.push_back("SELECT * FROM t3 WHERE searchable LIKE 'noword'");
     reply.push_back(ResType());
 
-    query.push_back("SELECT * FROM t3 WHERE searchable LIKE 'when'");
+    query.push_back("SELECT * FROM t3 WHERE searchable LIKE 'when%'");
     string rows5[2][2] = { {"id", "searchable"},
                            {"4",
                             "When I have fears that I may cease to be, before my pen has gleaned my teaming brain; before high-piled books in charactery hold like rich garners the full-ripened grain.  When I behold upon the nights starred face Huge cloudy symbols of high romance And think that I may never live to trace Their shadows with the magic hand of chance.  And when I feel, fair creature of the hour That I shall never look upon thee more, Never have relish of the faerie power Of unreflecting love, I stand alone of the edge of the wide world and think, to love and fame to nothingness do sink"} };

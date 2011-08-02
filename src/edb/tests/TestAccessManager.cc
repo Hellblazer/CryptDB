@@ -432,49 +432,49 @@ testOrphans(const TestConfig &tc, KeyAccess * am) {
 
     am->insertPsswd(chris,secretC);
     chris_key = am->getKey(chris);
-    record(chris_key.length() > 0,
+    record(tc, chris_key.length() > 0,
 	   test+"cannot access chris key with chris logged on after logging off");
     string chris_key3 = marshallBinary(chris_key);
-    record(chris_key1.compare(chris_key3) == 0,
+    record(tc, chris_key1.compare(chris_key3) == 0,
 	   test+"chris key is different for orphan and chris logged on after logging off");
     u3_key = am->getKey(u3);
-    record(u3_key.length() > 0,
+    record(tc, u3_key.length() > 0,
 	   test+"cannot access user 3 key with chris logged on after logging off");
     string u3_key2 = marshallBinary(u3_key);
-    record(u3_key1.compare(u3_key2) == 0,
+    record(tc, u3_key1.compare(u3_key2) == 0,
 	   test+"user 3 key is different for orphan and chris logged on after logging off");
     m15_key = am->getKey(m15);
-    record(m15_key.length() > 0,
+    record(tc, m15_key.length() > 0,
 	   test+"cannot access message 15 key with chris logged on after logging off");
     string m15_key2 = marshallBinary(m15_key);
-    record(m15_key1.compare(m15_key2) == 0,
+    record(tc, m15_key1.compare(m15_key2) == 0,
 	   test+"message 15 key is different for orphan and chris logged on after logging off");
     s24_key = am->getKey(s24);
-    record(s24_key.length() > 0,
+    record(tc, s24_key.length() > 0,
 	   test+"cannot access subject 24 key with chris logged on after logging off");
     string s24_key2 = marshallBinary(s24_key);
-    record(s24_key1.compare(s24_key2) == 0,
+    record(tc, s24_key1.compare(s24_key2) == 0,
 	   test+"subject 24 key is different for orphan and chris logged on after logging off");
 
     string s16_key = am->getKey(s16);
     string s16_key1 = marshallBinary(s16_key);
-    record(s16_key.length() > 0, test+"orphan subject 16 did not get a key generated for it");
+    record(tc, s16_key.length() > 0, test+"orphan subject 16 did not get a key generated for it");
     am->insert(m15, s16);
     s16_key = am->getKey(s16);
     string s16_key2 = marshallBinary(s16_key);
-    record(s16_key.length() > 0, test+"subject 16 does not have key being de-orphanized");
-    record(s16_key1.compare(s16_key2) == 0,
+    record(tc, s16_key.length() > 0, test+"subject 16 does not have key being de-orphanized");
+    record(tc, s16_key1.compare(s16_key2) == 0,
 	   test+"subject 16 has a different key after being orphanized");
     am->removePsswd(chris);
-    record((am->getKey(s16)).length() == 0, test+"can access subject 16 key with chris offline");
+    record(tc, (am->getKey(s16)).length() == 0, test+"can access subject 16 key with chris offline");
     am->insertPsswd(chris, secretC);
 
     s16_key = am->getKey(s16);
     string s16_key3 = marshallBinary(s16_key);
-    record(s16_key.length() > 0,
+    record(tc, s16_key.length() > 0,
 	   test+"subject 16 does not have key after chris logs off and on");
-    record(s16_key1.compare(s16_key2) == 0,
-	   test+"subject 16 has a different key after chris logs out and back in");
+    record(tc, s16_key1.compare(s16_key2) == 0,
+    test+"subject 16 has a different key after chris logs out and back in");
 
 
 
