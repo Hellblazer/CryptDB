@@ -20,9 +20,10 @@
  *              \delta k = k2 * k1^{-1} mod order
  *              E_k2[v] = E_k1[v]*\delta k \in G
  *
- * TODO:
- * - may speed up by passing BN_CTX * to some functions and using ssl's preprocessing functions
- * - use curve with less bits representation, e.g., NID_secp160r1, or even shorter
+ * TODO: may speed up by:
+ * - passing BN_CTX * to some functions (and CTX for point, group, if any)
+ * - using ssl's preprocessing functions
+ * - use NIST curves with less bits representation, e.g., NID_secp160r1; there are even shorter
  */
 
 #ifndef ECJOIN_H_
@@ -32,6 +33,7 @@
 #include "openssl/bn.h"
 #include "openssl/ec.h"
 #include "BasicCrypto.h"
+
 
 struct ECJoinSK{
     AES_KEY * aesKey;
@@ -56,8 +58,8 @@ public:
     //returns secret key needed to adjust from encryption with key 1 to encryption with key 2
     ECDeltaSK * getDeltaKey(const ECJoinSK * key1, const ECJoinSK *  key2);
 
-    string encrypt(ECJoinSK * sk, const string & ptext);
-    static string adjust(ECDeltaSK * deltaSK, const string & ctext);
+    string encrypt(const ECJoinSK * sk, const string & ptext);
+    static string adjust(const ECDeltaSK * deltaSK, const string & ctext);
 
     virtual
     ~ECJoin();
@@ -72,6 +74,7 @@ private:
     BIGNUM * order; //order of the group
     EC_POINT * Infty;
     BIGNUM * ZeroBN;
+    BN_CTX * bn_ctx;
 
 
     //using curve of 160 bits prime field \n";
@@ -85,7 +88,7 @@ private:
     EC_POINT * randomPoint();
     // a PRF with 128 bits security, but bytesLong output
     static string PRFForEC(const AES_KEY * sk, const string & ptext);
-    static string point2Str(EC_GROUP * group, EC_POINT * point);
+    static string point2Str(const EC_GROUP * group, const EC_POINT * point);
 };
 
 #endif /* ECJOIN_H_ */
