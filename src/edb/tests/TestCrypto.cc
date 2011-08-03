@@ -8,6 +8,7 @@
 #include "TestCrypto.h"
 #include "pbkdf2.h"
 #include "cryptdb_log.h"
+#include "ECJoin.h"
 
 TestCrypto::TestCrypto()
 {
@@ -380,6 +381,7 @@ testECJoin() {
 	string c1sk1 = ecj->encrypt(sk1, data1);
 	string c1sk2 = ecj->encrypt(sk2, data1);
 	string c2sk1 = ecj->encrypt(sk1, data2);
+	string c2sk2 = ecj->encrypt(sk2, data2);
 	string c3sk1 = ecj->encrypt(sk1, data3);
 	string c3sk2 = ecj->encrypt(sk2, data3);
 

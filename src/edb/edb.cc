@@ -110,7 +110,7 @@ log(string s)
 static AES_KEY *
 get_key_SEM(const string &key)
 {
-    return get_key_SEM(key);
+    return CryptoManager::get_key_SEM(key);
 }
 
 static AES_KEY *
