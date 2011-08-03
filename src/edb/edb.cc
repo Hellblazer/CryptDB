@@ -19,6 +19,7 @@
 #include "util.h"
 #include "CryptoManager.h" /* various functions for EDB */
 
+
 extern "C" {
 #if MYSQL_S
 
@@ -109,7 +110,7 @@ log(string s)
 static AES_KEY *
 get_key_SEM(const string &key)
 {
-    return CryptoManager::get_key_SEM(key);
+    return get_key_SEM(key);
 }
 
 static AES_KEY *

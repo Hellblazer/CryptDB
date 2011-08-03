@@ -84,28 +84,28 @@ class CryptoManager {
 
     //SEMANTIC
     //since many values may be encrypted with same key you want to set the key
-    AES_KEY * get_key_SEM(const string &key);
-    uint64_t encrypt_SEM(uint64_t ptext, AES_KEY * key, uint64_t salt);
-    uint64_t decrypt_SEM(uint64_t ctext, AES_KEY * key, uint64_t salt);
-    uint32_t encrypt_SEM(uint32_t ptext, AES_KEY * key, uint64_t salt);
-    uint32_t decrypt_SEM(uint32_t ctext, AES_KEY * key, uint64_t salt);
+    static AES_KEY * get_key_SEM(const string &key);
+    static uint64_t encrypt_SEM(uint64_t ptext, AES_KEY * key, uint64_t salt);
+    static uint64_t decrypt_SEM(uint64_t ctext, AES_KEY * key, uint64_t salt);
+    static uint32_t encrypt_SEM(uint32_t ptext, AES_KEY * key, uint64_t salt);
+    static uint32_t decrypt_SEM(uint32_t ctext, AES_KEY * key, uint64_t salt);
 
     //output same len as input
-    string encrypt_SEM(const string &ptext, AES_KEY *key,
+    static string encrypt_SEM(const string &ptext, AES_KEY *key,
             uint64_t salt);
-    string decrypt_SEM(const string &ctext, AES_KEY *key,
+    static string decrypt_SEM(const string &ctext, AES_KEY *key,
             uint64_t salt);
 
 
     //DET: one-way functions
-    AES_KEY * get_key_DET(const string &key);
-    uint64_t encrypt_DET(uint32_t plaintext, AES_KEY * key);
-    uint64_t encrypt_DET(uint64_t plaintext, AES_KEY * key);
+    static AES_KEY * get_key_DET(const string &key);
+    static uint64_t encrypt_DET(uint32_t plaintext, AES_KEY * key);
+    static uint64_t encrypt_DET(uint64_t plaintext, AES_KEY * key);
     //static uint64_t encrypt_DET(const string &plaintext, AES_KEY *key);
-    uint64_t decrypt_DET(uint64_t ciphertext, AES_KEY * key);
+    static uint64_t decrypt_DET(uint64_t ciphertext, AES_KEY * key);
 
-    string encrypt_DET(const string & plaintext, AES_KEY * key);
-    string decrypt_DET(const string & ciphertext, AES_KEY * key);
+    static string encrypt_DET(const string & plaintext, AES_KEY * key);
+    static string decrypt_DET(const string & ciphertext, AES_KEY * key);
 
 
     /**

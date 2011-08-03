@@ -365,6 +365,52 @@ testSWPSearch()
 
 }
 
+static void
+testECJoin() {
+
+	ECJoin * ecj = new ECJoin();
+
+	ECJoinSK * sk1 = ecj->getSKey("secret key 1");
+	ECJoinSK * sk2 = ecj->getSKey("secret key 2");
+
+	string data1 = "hello world";
+	string data2 = "data2";
+	string data3 = "hello world";
+
+	string c1sk1 = ecj->encrypt(sk1, data1);
+	string c1sk2 = ecj->encrypt(sk2, data1);
+	string c2sk1 = ecj->encrypt(sk1, data2);
+	string c3sk1 = ecj->encrypt(sk1, data3);
+	string c3sk2 = ecj->encrypt(sk2, data3);
+
+	assert_s(c1sk1 != c1sk2, "encryption returns same thing for two different keys");
+	assert_s(c1sk1 != c2sk1, "encryption the same for two different items");
+	assert_s(c1sk1 == c3sk1, "encryption is different for the same value");
+
+	ECDeltaSK * delta = ecj->getDeltaKey(sk1, sk2);
+
+	string c1sk1TOsk2 = ECJoin::adjust(delta, c1sk1);
+
+	assert_s(c1sk1TOsk2 == c1sk2, "adjusting does not work properly");
+	assert_s(c1sk1TOsk2 != c2sk2, "adjusting is incorrect");
+	assert_s(c1sk1TOsk2 == c2sk2, "adjusting does not work well");
+
+
+	ECDeltaSK * deltaBack = ecj->getDeltaKey(sk2, sk1);
+
+	string c1sk2TOsk1 = ECJoin::adjust(deltaBack, c1sk2);
+	string c3sk2TOsk1 = ECJoin::adjust(deltaBack, c3sk2);
+
+	assert_s(c1sk2TOsk1 == c1sk1, "adjusting back incorrect");
+	assert_s(c1sk2TOsk1 !=  c1sk2, "adjusting back incorrect");
+	assert_s(c3sk2TOsk1 == c1sk1, "adjusting back is incorrect");
+
+	string c1sk1TOsk2TOsk1 = ECJoin::adjust(deltaBack, c1sk1TOsk2);
+	assert_s(c1sk1 == c1sk1TOsk2TOsk1, "adjusting forward/backward does not cancel");
+
+
+}
+
 void
 TestCrypto::run(const TestConfig &tc, int argc, char ** argv)
 {
@@ -379,5 +425,7 @@ TestCrypto::run(const TestConfig &tc, int argc, char ** argv)
     testSWPSearch();
     cerr << "Testing PBKDF2" << endl;
     testPBKDF2();
+    cerr << "Testing ECJoin " << endl;
+    testECJoin();
     cerr << "Done! All crypto tests passed." << endl;
 }
