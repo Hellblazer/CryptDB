@@ -4,7 +4,7 @@
  * Implements CryptDB's adjustable join encryption scheme.
  * It is based on the elliptic-curve DDH assumption.
  *
- * Currently, it is using the NIST curve denoted NID_secp160r1 believed to satisfy ECDDH
+ * Currently, it is using the NIST curve denoted NID_X9_62_prime192v1 believed to satisfy ECDDH
  * To use a different NIST curve, simply modify the NID field below.
  *
  *
@@ -22,6 +22,7 @@
  *
  * TODO:
  * - may speed up by passing BN_CTX * to some functions and using ssl's preprocessing functions
+ * - use curve with less bits representation, e.g., NID_secp160r1, or even shorter
  */
 
 #ifndef ECJOIN_H_
@@ -74,8 +75,8 @@ private:
 
 
     //using curve of 160 bits prime field \n";
-    static const int NID = NID_secp160r1;
-    static const unsigned int bytesLong = 20;
+    static const int NID = NID_X9_62_prime192v1;
+    static const unsigned int bytesLong = 24;
     static const unsigned int MAX_BUF = 256;
 
     /*** Helper Functions ***/

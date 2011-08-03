@@ -22,39 +22,64 @@ bn2str(BIGNUM * bn) {
 	return res;
 }
 
+static EC_POINT *
+my_EC_POINT_new(EC_GROUP * group) {
 
+    EC_POINT* point = EC_POINT_new(group);
+    assert_s(point, "could not create point");
+    return point;
+
+}
+
+static BIGNUM *
+my_BN_new() {
+
+    BIGNUM* num = BN_new();
+    assert_s(num, "could not create BIGNUM");
+    return num;
+
+}
 
 EC_POINT *
 ECJoin::randomPoint() {
-    EC_POINT * point = EC_POINT_new(group);
+    cerr << "before new point \n";
+    EC_POINT * point = my_EC_POINT_new(group);
 
-    BIGNUM *x = BN_new(), *y = BN_new(), * rem = BN_new();
+    cerr << "after new point \n";
+
+    BIGNUM *x = my_BN_new(), *y = my_BN_new(), * rem = my_BN_new();
 
     bool found = false;
 
     while (!found) {
     	cerr << "here order is " << bn2str(order) << "\n";
         BN_rand_range(x, order);
-        if (x > order) {
-        	cerr << "rand range does not work properly \n";
-        }
         cerr << "compare result x order is " << BN_cmp(x, order) << "\n";
+        cerr << "compare result order x is " << BN_cmp(order, x) << "\n";
         //need to take the mod because BN_rand_range does not work as expected
        // BN_mod(rem, x, order, NULL);
         //x = rem;
         cerr << "here x is " << bn2str(x) << "\n";
 
        // cerr << "val is " << val <<"\n";
-        assert_s(EC_POINT_set_compressed_coordinates_GFp(group, point, x, 1, NULL), "issue setting coordinates");
-        assert_s(EC_POINT_get_affine_coordinates_GFp(group, point, x, y, NULL),"issue getting coordinates");
+       // cerr << group->meth->point_set_compressed_coordinates << " \n";
+        //cerr << (point->meth != group->meth) << "\n";
+        if (EC_POINT_set_compressed_coordinates_GFp(group, point, x, 1, NULL)) {
+            assert_s(EC_POINT_get_affine_coordinates_GFp(group, point, x, y, NULL),"issue getting coordinates");
 
-        if(BN_is_zero(x) || BN_is_zero(y)) {
+            if(BN_is_zero(x) || BN_is_zero(y)) {
                 found = false;
                 continue;
-        }
+            }
 
-        if(EC_POINT_is_on_curve(group, point, NULL)) {
-            found = true;
+            if (EC_POINT_is_on_curve(group, point, NULL)) {
+                cerr << "found \n";
+                found = true;
+            } else {
+                cerr << "not on curve \n";
+            }
+        } else {
+            cerr << "could not set coordinates\n";
         }
     }
 
@@ -71,16 +96,18 @@ ECJoin::ECJoin()
     group = EC_GROUP_new_by_curve_name(NID);
     assert_s(group, "issue creating new curve");
 
-    order = BN_new();
+    order = my_BN_new();
 
     assert_s(EC_GROUP_get_order(group, order, NULL), "failed to retrieve the order");
 
     cerr << "order is " << bn2str(order) << "\n";
 
-    P = randomPoint();
+    Infty = my_EC_POINT_new(group);
+    assert_s(EC_POINT_set_to_infinity(group, Infty), "could not create point at infinity");
 
-    Infty = EC_POINT_new(group);
-    assert_s(Infty, "failed to create point at infinity");
+    cerr << "created infinity \n";
+
+    P = randomPoint();
 
     ZeroBN = BN_new();
     assert_s(ZeroBN != NULL, "cannot create big num");
