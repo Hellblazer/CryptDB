@@ -73,7 +73,7 @@ ECJoin::getSKey(const string & key) {
     ECJoinSK * skey = new ECJoinSK();
     skey->aesKey = get_AES_KEY(key);
 
-    skey->k = BN_bin2bn((unsigned char *)key.c_str(), key.length(), NULL);
+    skey->k = BN_bin2bn((unsigned char *) key.data(), (int) key.length(), NULL);
 
     assert_s(skey->k != NULL, "failed to convert key to BIGNUM");
 
@@ -109,7 +109,7 @@ ECJoin::PRFForEC(const AES_KEY * sk, const string & ptext) {
 
     string nptext = ptext;
 
-    unsigned int len = ptext.length();
+    unsigned int len = (uint) ptext.length();
 
     if (bytesLong > len) {
         for (unsigned int i = 0 ; i < bytesLong - len; i++) {
@@ -142,7 +142,8 @@ ECJoin::encrypt(ECJoinSK * sk, const string & ptext) {
     string ctext = PRFForEC(sk->aesKey, ptext);
 
     //cbn = PRF(ptext)
-    BIGNUM * cbn = BN_bin2bn((const unsigned char *)ctext.c_str(), ctext.length(), NULL);
+    BIGNUM * cbn = BN_bin2bn((const unsigned char *) ctext.data(),
+                             (uint) ctext.length(), NULL);
     assert_s(cbn, "issue convering string to BIGNUM ");
 
     //ans = sk->kp * cbn
@@ -161,7 +162,7 @@ ECJoin::adjust(ECDeltaSK * delta, const string & ctext) {
 
     EC_POINT * point = EC_POINT_new(delta->group);
 
-    assert_s(EC_POINT_oct2point(delta->group, point, (const unsigned char *)ctext.c_str(), ctext.length(), NULL),
+    assert_s(EC_POINT_oct2point(delta->group, point, (const unsigned char *)ctext.data(), ctext.length(), NULL),
             "cannot convert from ciphertext to point");
 
     EC_POINT * res = mul(delta->group, delta->ZeroBN, point, delta->deltaK);
