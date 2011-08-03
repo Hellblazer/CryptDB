@@ -12,6 +12,7 @@
 #include "params.h"
 #include <stdio.h>
 #include "SWPSearch.h"
+#include "BasicCrypto.h"
 
 //returns the highest security level lower than sl that allows equality
 SECLEVEL highestEq(SECLEVEL sl);
@@ -80,6 +81,33 @@ class CryptoManager {
     //result len is same as input len
     string encrypt_VAL(string uniqueFieldName, string value, uint64_t salt);
 
+
+    //SEMANTIC
+    //since many values may be encrypted with same key you want to set the key
+    AES_KEY * get_key_SEM(const string &key);
+    uint64_t encrypt_SEM(uint64_t ptext, AES_KEY * key, uint64_t salt);
+    uint64_t decrypt_SEM(uint64_t ctext, AES_KEY * key, uint64_t salt);
+    uint32_t encrypt_SEM(uint32_t ptext, AES_KEY * key, uint64_t salt);
+    uint32_t decrypt_SEM(uint32_t ctext, AES_KEY * key, uint64_t salt);
+
+    //output same len as input
+    string encrypt_SEM(const string &ptext, AES_KEY *key,
+            uint64_t salt);
+    string decrypt_SEM(const string &ctext, AES_KEY *key,
+            uint64_t salt);
+
+
+    //DET: one-way functions
+    AES_KEY * get_key_DET(const string &key);
+    uint64_t encrypt_DET(uint32_t plaintext, AES_KEY * key);
+    uint64_t encrypt_DET(uint64_t plaintext, AES_KEY * key);
+    //static uint64_t encrypt_DET(const string &plaintext, AES_KEY *key);
+    uint64_t decrypt_DET(uint64_t ciphertext, AES_KEY * key);
+
+    string encrypt_DET(const string & plaintext, AES_KEY * key);
+    string decrypt_DET(const string & ciphertext, AES_KEY * key);
+
+
     /**
      * Returns the key corresponding to the security level given for some
      * master key and some unique field name. Result will be AES_KEY_SIZE
@@ -95,42 +123,18 @@ class CryptoManager {
     //int32_t decrypt_SEM(int32_t, const char * ctext, unsigned char * salt,
     // unsigned char * key);
 
-    //SEMANTIC
-    //since many values may be encrypted with same key you want to set the key
-    static AES_KEY * get_key_SEM(const string &key);
-    static uint64_t encrypt_SEM(uint64_t ptext, AES_KEY * key, uint64_t salt);
-    static uint64_t decrypt_SEM(uint64_t ctext, AES_KEY * key, uint64_t salt);
-    static uint32_t encrypt_SEM(uint32_t ptext, AES_KEY * key, uint64_t salt);
-    static uint32_t decrypt_SEM(uint32_t ctext, AES_KEY * key, uint64_t salt);
-
-    //output same len as input
-    static string encrypt_SEM(const string &ptext, AES_KEY *key,
-                              uint64_t salt);
-    static string decrypt_SEM(const string &ctext, AES_KEY *key,
-                              uint64_t salt);
-
     //OPE
     static OPE * get_key_OPE(const string &key);     //key must have
-                                                     // OPE_KEY_SIZE
+    // OPE_KEY_SIZE
     static uint64_t encrypt_OPE(uint32_t plaintext, OPE * ope);
     static uint32_t decrypt_OPE(uint64_t ciphertext, OPE * ope);
     // used to encrypt text
     static uint64_t encrypt_OPE_text_wrapper(const string & plaintext,
-                                             OPE * ope);
+            OPE * ope);
     static string encrypt_OPE(const string &plaintext, OPE * ope);
     static string decrypt_OPE(const string &ciphertext, OPE * ope);
 
     uint64_t encrypt_OPE(uint32_t plaintext, string uniqueFieldName);
-
-    //DET: one-way functions
-    static AES_KEY * get_key_DET(const string &key);
-    static uint64_t encrypt_DET(uint32_t plaintext, AES_KEY * key);
-    static uint64_t encrypt_DET(uint64_t plaintext, AES_KEY * key);
-    //static uint64_t encrypt_DET(const string &plaintext, AES_KEY *key);
-    static uint64_t decrypt_DET(uint64_t ciphertext, AES_KEY * key);
-
-    static string encrypt_DET(const string & plaintext, AES_KEY * key);
-    static string decrypt_DET(const string & ciphertext, AES_KEY * key);
 
     /*
      * SEARCH

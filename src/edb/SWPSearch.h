@@ -70,12 +70,14 @@ class SWP {
 
     static const bool canDecrypt = (SWPCiphSize % AES_BLOCK_SIZE == 0);
 
- private:
     /** PRP **/
 
-    // Computes PRP_{key}(val), where PRP is a pseudorandom permutation
-    // Result is empty on problem
-    static Binary PRP(const Binary & key, const Binary & val);
+     // Computes PRP_{key}(val), where PRP is a pseudorandom permutation
+     // Result is empty on problem
+     static Binary PRP(const Binary & key, const Binary & val);
+
+ private:
+
 
     /* Symmetric key crypto -- AES
      * requires: iv of AES_BLOCK_BYTES */
