@@ -54,9 +54,7 @@ ECJoin::randomPoint() {
     while (!found) {
     	cerr << "here order is " << bn2str(order) << "\n";
         BN_rand_range(x, order);
-        cerr << "compare result x order is " << BN_cmp(x, order) << "\n";
-        cerr << "compare result order x is " << BN_cmp(order, x) << "\n";
-        //need to take the mod because BN_rand_range does not work as expected
+       //need to take the mod because BN_rand_range does not work as expected
        // BN_mod(rem, x, order, NULL);
         //x = rem;
         cerr << "here x is " << bn2str(x) << "\n";
@@ -76,10 +74,10 @@ ECJoin::randomPoint() {
                 cerr << "found \n";
                 found = true;
             } else {
-                cerr << "not on curve \n";
+                cerr << "not on curve; try again \n";
             }
         } else {
-            cerr << "could not set coordinates\n";
+            cerr << "bad random point; try again \n";
         }
     }
 
