@@ -369,7 +369,11 @@ testSWPSearch()
 static void
 testECJoin() {
 
+	cerr << "SETUP\n";
+
 	ECJoin * ecj = new ECJoin();
+
+	cerr << "DONE WITH SETUP \n";
 
 	ECJoinSK * sk1 = ecj->getSKey("secret key 1");
 	ECJoinSK * sk2 = ecj->getSKey("secret key 2");

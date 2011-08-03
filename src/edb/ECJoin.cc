@@ -6,16 +6,45 @@
 #include "ECJoin.h"
 
 
+
+static string
+bn2str(BIGNUM * bn) {
+	unsigned char * tov = new unsigned char[256];
+	int len = BN_bn2bin(bn, tov);
+
+	assert_s(len, "cannot convert from bn to binary ");
+
+	string res = "";
+
+	for (int i = 0 ; i < len ; i++) {
+		res = res + StringFromVal(tov[i]) + " ";
+	}
+	return res;
+}
+
+
+
 EC_POINT *
 ECJoin::randomPoint() {
     EC_POINT * point = EC_POINT_new(group);
 
-    BIGNUM *x = BN_new(), *y = BN_new();
+    BIGNUM *x = BN_new(), *y = BN_new(), * rem = BN_new();
 
     bool found = false;
 
     while (!found) {
+    	cerr << "here order is " << bn2str(order) << "\n";
         BN_rand_range(x, order);
+        if (x > order) {
+        	cerr << "rand range does not work properly \n";
+        }
+        cerr << "compare result x order is " << BN_cmp(x, order) << "\n";
+        //need to take the mod because BN_rand_range does not work as expected
+       // BN_mod(rem, x, order, NULL);
+        //x = rem;
+        cerr << "here x is " << bn2str(x) << "\n";
+
+       // cerr << "val is " << val <<"\n";
         assert_s(EC_POINT_set_compressed_coordinates_GFp(group, point, x, 1, NULL), "issue setting coordinates");
         assert_s(EC_POINT_get_affine_coordinates_GFp(group, point, x, y, NULL),"issue getting coordinates");
 
@@ -31,8 +60,10 @@ ECJoin::randomPoint() {
 
     BN_free(x);
     BN_free(y);
+    BN_free(rem);
     return point;
 }
+
 
 ECJoin::ECJoin()
 {
@@ -43,6 +74,8 @@ ECJoin::ECJoin()
     order = BN_new();
 
     assert_s(EC_GROUP_get_order(group, order, NULL), "failed to retrieve the order");
+
+    cerr << "order is " << bn2str(order) << "\n";
 
     P = randomPoint();
 
