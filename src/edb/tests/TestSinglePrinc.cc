@@ -219,20 +219,20 @@ testInsert(const TestConfig &tc, EDBClient * cl)
         "select sum(id) from t1",
         { "sum(id)" },
         { { "22" } });
-    qUpdateSelect(tc, cl,
+    /*qUpdateSelect(tc, cl,
         "INSERT INTO t1 (age) VALUES (40)",
         "select age from t1",
         { "age" },
-        { { "21" }, { "23" }, { "25" }, { "26" }, { "27" },
-         { "" /* XXX should be NULL */ }, { "40" } });
+        { { "21" }, { "23" }, { "25" }, { "26" }, { "27" }, */
+     //    { "" /* XXX should be NULL */ }, { "40" } });
     qUpdateSelect(tc, cl,
         "INSERT INTO t1 (address) VALUES ('right star to the right')",
-        "select address from t1 where id=9",
+        "select address from t1 where id=8",
         { "address" },
         { { "right star to the right" } });
     qUpdateSelect(tc, cl,
         "INSERT INTO t1 (name) VALUES ('Wendy')",
-        "select name from t1 where id=10",
+        "select name from t1 where id=9",
         { "name" },
         { { "Wendy" } });
     qUpdateSelect(tc, cl,

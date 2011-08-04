@@ -2984,10 +2984,10 @@ considerQuery(command com, const string &query)
     case cmd::SELECT: {
         list<string> words = getSQLWords(query);
         //for speed
-        /*if ((!contains("from", words)) && (!contains("FROM", words))) {
-                if (VERBOSE_V) { cerr << "does not contain from";}
+        if ((!contains("from", words)) && (!contains("FROM", words))) {
+                //if (VERBOSE_V) { cerr << "does not contain from";}
                 return false;
-           }*/
+        }
         break;
     }
     case cmd::DROP: {
