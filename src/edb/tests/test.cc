@@ -26,6 +26,7 @@
 #include "TestMultiPrinc.h"
 #include "TestCrypto.h"
 #include "TestAccessManager.h"
+#include "TestProxy.h"
 
 using namespace std;
 
@@ -3890,6 +3891,7 @@ static struct {
     { "paillier",    &testPaillier },
     { "parseaccess", &testParseAccess },
     { "pkcs",        &test_PKCS },
+    { "proxy",       &TestProxy::run },
     { "shell",       &interactiveTest },
     { "single",      &TestSinglePrinc::run },
     { "tables",      &encryptionTablesTest },

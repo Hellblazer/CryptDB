@@ -14,8 +14,9 @@ class TestConfig {
     TestConfig() {
         user = "root";
         pass = "letmein";
-        host = "localhost";
+        host = "127.0.0.1";
         db = "cryptdbtest";
+	port = 3307;
         stop_if_fail = false;
     }
 
@@ -23,6 +24,7 @@ class TestConfig {
     std::string pass;
     std::string host;
     std::string db;
+    uint port;
 
     bool stop_if_fail;
 };
