@@ -995,8 +995,10 @@ testSearch(const TestConfig &tc, EDBClient * cl)
                            {"2", "Text with CAPITALIZATION"} };
     reply.push_back(convert(rows1,3));
 
-    query.push_back("SELECT * FROM t3 WHERE searchable LIKE 'short'");
-    reply.push_back(ResType());
+    query.push_back("SELECT * FROM t3 WHERE searchable LIKE 'short%'");
+    string rows2[2][2] = { {"id", "searchable"},
+                             {"1", "short text"}};
+    reply.push_back(convert(rows2,2));
 
     query.push_back("SELECT * FROM t3 WHERE searchable LIKE ''");
     string rows3[2][2] = { {"id", "searchable"},
