@@ -38,14 +38,14 @@ checkQuery(const TestConfig &tc, Connect * conn, const string &query,
 	return;
     }
     ResType res = dbres->unpack();
-
+    //PrintRes(res);
     if (!match(res, expected)) {
 	if (tc.stop_if_fail) {
 	    LOG(test) << query << "\nshould have returned:\n";
 	    PrintRes(expected);
 	    LOG(test) << "but actually returned\n";
 	    PrintRes(res);
-	    assert_s(false,query);
+	    assert_s(false,query + " returned incorrect result");
 	}
 	return;
     }
@@ -123,7 +123,9 @@ TestProxy::run(const TestConfig &tc, int argc, char ** argv)
     if (pid == 0) {
 	cerr << "child happened" << endl;
 	//run proxy in child
-	execl("/usr/local/bin/mysql-proxy", "mysql-proxy", "--plugins=proxy", "--max-open-files=1024", "--proxy-lua-script=$EDBDIR/../mysqlproxy/wrapper.lua", "--proxy-address=localhost:3307", "--proxy-backend-addresses=localhost:3306", (char *) 0);
+	string edbdir = getenv("EDBDIR");
+	string script_path = "--proxy-lua-script=" + edbdir + "/../mysqlproxy/wrapper.lua";
+	execl("/usr/local/bin/mysql-proxy", "mysql-proxy", "--plugins=proxy", "--max-open-files=1024", script_path.c_str(), "--proxy-address=localhost:3307", "--proxy-backend-addresses=localhost:3306", (char *) 0);
     } else if (pid < 0) {
 	cerr << "failed to fork" << endl;
 	exit(1);

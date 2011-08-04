@@ -61,6 +61,7 @@ function read_query_real(packet)
         new_queries = CryptDB.rewrite(proxy.connection.client.src.name, query)
         if #new_queries > 0 then
             for i, v in pairs(new_queries) do
+	    	dprint(v)
                 local result_key
                 if i == #new_queries then
                     result_key = RES_DECRYPT
