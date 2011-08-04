@@ -37,7 +37,7 @@ class CryptoManager {
     //assumes the two levels are one the same onion
     // salt need only be provided for semantic encryptions
     string crypt(AES_KEY * mkey, string data, fieldType ft,
-                 string fullfieldname, SECLEVEL fromlevel, SECLEVEL tolevel,
+                 string fullfieldname, SECLEVEL fromlevel, SECLEVEL tolevel, bool & isBin,
                  uint64_t salt = 0);
 
     //SPECIFIC FUNCTIONS

@@ -211,7 +211,7 @@ getVal(list<string>::iterator & it)
 }
 
 string
-marshallVal(uint64_t x)
+strFromVal(uint64_t x)
 {
     stringstream ss;
     ss << (int64_t) x;
@@ -219,7 +219,7 @@ marshallVal(uint64_t x)
 }
 
 string
-marshallVal(uint32_t x)
+strFromVal(uint32_t x)
 {
     stringstream ss;
     ss << (int32_t) x;
@@ -227,7 +227,7 @@ marshallVal(uint32_t x)
 }
 
 uint64_t
-unmarshallVal(const string &str)
+valFromStr(const string &str)
 {
     stringstream ss(str);
     int64_t val;
@@ -315,7 +315,7 @@ unmarshallBinary(const string &s)
 
     myassert((len - offset) % 2 == 0,
              "unmarshallBinary: newlen is odd! newlen is " +
-             marshallVal(len-offset));
+             strFromVal(len-offset));
 
     stringstream ss;
     for (uint i = 0; i < (len-offset)/2; i++)
@@ -386,7 +386,7 @@ parse(const string &query, const string &delimsStayArg,
             }
 
             string msg = "keepIntact was not closed in <";
-            msg = msg + query + "> at index " + marshallVal(index);
+            msg = msg + query + "> at index " + strFromVal(index);
             assert_s((index < len)  &&
                      matches(&query[index],
                              keepIntactArg.c_str(), index), msg);
