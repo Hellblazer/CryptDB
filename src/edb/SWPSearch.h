@@ -5,6 +5,8 @@
  *      Author: raluca
  *
  *      Implementation of the Song-Wagner-Perrig cryptosystem, 2000
+ *
+ *      TODO: interpret "%" in searches
  */
 
 #ifndef SWPSEARCH_H_

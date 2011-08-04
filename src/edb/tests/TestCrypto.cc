@@ -369,21 +369,22 @@ testSWPSearch()
 static void
 testECJoin() {
 
+       LOG(test) << "   -- EC setup";
 
 	ECJoin * ecj = new ECJoin();
 
-	cerr << "setup is fine \n";
-
-	ECJoinSK * sk1 = ecj->getSKey("secret key 1");
-	ECJoinSK * sk2 = ecj->getSKey("secret key 2");
-
-	//cerr << "A\n";
+	AES_KEY * baseKey = get_AES_KEY("secret key master");
+	ECJoinSK * sk1 = ecj->getSKey(baseKey, "secret key for col 1");
+	ECJoinSK * sk2 = ecj->getSKey(baseKey, "secret key for col 2");
+	ECJoinSK * sk3 = ecj->getSKey(baseKey, "secret key for col 3");
 
 	string data1 = "hello world";
 	string data2 = "data2";
 	string data3 = "hello world";
 
-	//cerr << "B\n";
+	/** test encryption **/
+
+        LOG(test) << "   -- test EC encryption";
 
 	string c1sk1 = ecj->encrypt(sk1, data1);
 	string c1sk2 = ecj->encrypt(sk2, data1);
@@ -397,38 +398,66 @@ testECJoin() {
 	assert_s(c1sk1 == c3sk1, "encryption is different for the same value");
 	assert_s(c1sk2 == c3sk2, "encryption is different for the same value");
 
-	cerr << "encrypt passes tests \n";
+
+	/*** test adjustability **/
+
+	LOG(test) << "   -- adjust forward";
 
 	ECDeltaSK * delta = ecj->getDeltaKey(sk1, sk2);
 
+	/* adjust from k1 --> k2 */
 
 	string c1sk1TOsk2 = ECJoin::adjust(delta, c1sk1);
 	string c3sk1TOsk2 = ECJoin::adjust(delta, c3sk1);
 
-	cerr << "AD\n";
-
 	assert_s(c1sk1TOsk2 == c1sk2, "adjusting does not work properly");
 	assert_s(c1sk1TOsk2 != c2sk2, "adjusting is incorrect");
-	assert_s(c1sk1TOsk2 == c2sk2, "adjusting does not work well");
+	assert_s(c1sk1TOsk2 == c3sk2, "adjusting does not work well");
 	assert_s(c3sk1TOsk2 == c1sk2, "adjusting does not work correctly");
 
-	cerr << "DB\n";
+
+	/* test backwards adjustability k2 --> k1 */
+
+        LOG(test) << "   -- adjust backward";
 
 	ECDeltaSK * deltaBack = ecj->getDeltaKey(sk2, sk1);
 
 	string c1sk2TOsk1 = ECJoin::adjust(deltaBack, c1sk2);
 	string c3sk2TOsk1 = ECJoin::adjust(deltaBack, c3sk2);
 
-	cerr << "AD2\n";
 
 	assert_s(c1sk2TOsk1 == c1sk1, "adjusting back incorrect");
 	assert_s(c1sk2TOsk1 !=  c1sk2, "adjusting back incorrect");
 	assert_s(c3sk2TOsk1 == c1sk1, "adjusting back is incorrect");
 
-	cerr << "EQ\n";
 
 	string c1sk1TOsk2TOsk1 = ECJoin::adjust(deltaBack, c1sk1TOsk2);
 	assert_s(c1sk1 == c1sk1TOsk2TOsk1, "adjusting forward/backward does not cancel");
+
+	/* test composable adjustability k1 -> k2 -> k3 == k1 --> k3 */
+
+        LOG(test) << "   -- adjust composability";
+
+	ECDeltaSK * deltask1TOsk3 = ecj->getDeltaKey(sk1, sk3);
+	ECDeltaSK * deltask2TOsk3 = ecj->getDeltaKey(sk2, sk3);
+
+	string c1sk1TOsk2TOsk3 = ECJoin::adjust(deltask2TOsk3, c1sk1TOsk2);
+	string c2sk1TOsk3 = ECJoin::adjust(deltask1TOsk3, c2sk1);
+	string c3sk1TOsk3 = ECJoin::adjust(deltask1TOsk3, c3sk1);
+
+	assert_s(c1sk1TOsk2TOsk3 == c3sk1TOsk3, "adjusting not composable");
+	assert_s(c1sk1TOsk2TOsk3 != c2sk1TOsk3, "adjust composability flawed");
+
+	delete delta;
+	delete deltaBack;
+	delete deltask1TOsk3;
+	delete deltask2TOsk3;
+	delete sk1;
+	delete sk2;
+	delete sk3;
+	delete ecj;
+
+	LOG(test) << "   -- done!";
 
 }
 

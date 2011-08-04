@@ -36,7 +36,7 @@
 
 
 struct ECJoinSK{
-    AES_KEY * aesKey;
+    const AES_KEY * aesKey;
     BIGNUM * k; //secret key
     EC_POINT * kP;
 };
@@ -53,7 +53,7 @@ public:
     //setups the elliptic curve and systems parameters
     ECJoin();
 
-    ECJoinSK * getSKey(const string & key);
+    ECJoinSK * getSKey(const AES_KEY * baseKey, const string & columnKey);
 
     //returns secret key needed to adjust from encryption with key 1 to encryption with key 2
     ECDeltaSK * getDeltaKey(const ECJoinSK * key1, const ECJoinSK *  key2);

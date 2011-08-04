@@ -7,20 +7,6 @@
 #include "cryptdb_log.h"
 
 
-static string
-pretty_bn2str(BIGNUM * bn) {
-	unsigned char * tov = new unsigned char[256];
-	int len = BN_bn2bin(bn, tov);
-
-	assert_s(len, "cannot convert from bn to binary ");
-
-	string res = "";
-
-	for (int i = 0 ; i < len ; i++) {
-		res = res + StringFromVal(tov[i]) + " ";
-	}
-	return res;
-}
 
 static EC_POINT *
 my_EC_POINT_new(EC_GROUP * group) {
@@ -49,6 +35,16 @@ my_BN_mod(const BIGNUM * a, const BIGNUM * n, BN_CTX * bn_ctx) {
     return res;
 }
 
+static EC_POINT *
+str2Point(const EC_GROUP * group, const string & indata) {
+
+    EC_POINT * point = EC_POINT_new(group);
+
+    assert_s(EC_POINT_oct2point(group, point, (const unsigned char *)indata.data(), indata.length(), NULL),
+            "cannot convert from ciphertext to point");
+
+    return point;
+}
 
 EC_POINT *
 ECJoin::randomPoint() {
@@ -60,9 +56,8 @@ ECJoin::randomPoint() {
     bool found = false;
 
     while (!found) {
-    	LOG(crypto) << "here order is " << pretty_bn2str(order);
 
-    	BN_rand_range(x, order);
+        BN_rand_range(x, order);
 
         if (EC_POINT_set_compressed_coordinates_GFp(group, point, x, 1, bn_ctx)) {
             assert_s(EC_POINT_get_affine_coordinates_GFp(group, point, x, y, bn_ctx),"issue getting coordinates");
@@ -73,7 +68,7 @@ ECJoin::randomPoint() {
             }
 
             if (EC_POINT_is_on_curve(group, point, bn_ctx)) {
-                LOG(crypto) << "found P \n";
+                LOG(crypto) << "found correct random point, P";
                 found = true;
             } else {
                 LOG(crypto) << "P not on curve; try again";
@@ -113,7 +108,6 @@ ECJoin::ECJoin()
     BN_zero(ZeroBN);
 
 
-
 }
 
 static EC_POINT *
@@ -137,14 +131,14 @@ my_BN_bin2bn(string data) {
 }
 
 ECJoinSK *
-ECJoin::getSKey(const string & key) {
+ECJoin::getSKey(const AES_KEY * baseKey, const string & columnKey) {
 
 
     ECJoinSK * skey = new ECJoinSK();
 
-    skey->aesKey = get_AES_KEY(key);
+    skey->aesKey = baseKey;
 
-    BIGNUM * bnkey = my_BN_bin2bn(key);
+    BIGNUM * bnkey = my_BN_bin2bn(columnKey);
 
     skey->k = my_BN_mod(bnkey, order, bn_ctx);
 
@@ -160,30 +154,15 @@ ECJoin::getDeltaKey(const ECJoinSK * key1, const ECJoinSK *  key2) {
 
     ECDeltaSK * delta = new ECDeltaSK();
 
-
     delta->group = group;
+    delta->ZeroBN = ZeroBN;
 
-
-    cerr << "is key null? " << pretty_bn2str(key1->k) << "\n";
-    cerr << "comp key oder " << BN_cmp(key1->k, order) << "\n";
     BIGNUM * key1Inverse = BN_mod_inverse(NULL, key1->k, order, bn_ctx);
     assert_s(key1Inverse, "could not compute inverse of key 1");
 
     delta->deltaK = BN_new();
     BN_mod_mul(delta->deltaK, key1Inverse, key2->k, order, bn_ctx);
     assert_s(delta->deltaK, "failed to multiply");
-
-    //delta * k1 = k2?
-    cerr << "(remove this code) \n checking delta \n";
-    BIGNUM * temp = BN_new();
-    BN_mod_mul(temp, delta->deltaK, key1->k, order, bn_ctx);
-    cerr << "cmp temp key2 " << BN_cmp(temp, key2->k) << "\n";
-    BN_free(temp);
-
-
-    delta->ZeroBN = ZeroBN;
-
-    cerr << "5\n";
 
     BN_free(key1Inverse);
 
@@ -248,19 +227,11 @@ ECJoin::encrypt(const ECJoinSK * sk, const string & ptext) {
 string
 ECJoin::adjust(const ECDeltaSK * delta, const string & ctext) {
 
-    EC_POINT * point = EC_POINT_new(delta->group);
-
-    assert_s(EC_POINT_oct2point(delta->group, point, (const unsigned char *)ctext.data(), ctext.length(), NULL),
-            "cannot convert from ciphertext to point");
+    EC_POINT * point = str2Point(delta->group, ctext);
 
     EC_POINT * res = mul(delta->group, delta->ZeroBN, point, delta->deltaK, NULL);
 
     string result = point2Str(delta->group, res);
-
-    cerr << "given point " << marshallBinary(ctext) << " adjust to " << marshallBinary(result) << "\n";
-
-
-
 
     EC_POINT_free(res);
     EC_POINT_free(point);
@@ -275,3 +246,52 @@ ECJoin::~ECJoin()
     EC_GROUP_clear_free(group);
     BN_CTX_free(bn_ctx);
 }
+
+
+
+
+/*** some internal test code ..
+    cerr << "is key null? " << pretty_bn2str(key1->k) << "\n";
+    cerr << "comp key oder " << BN_cmp(key1->k, order) << "\n";
+    BIGNUM * key1Inverse = BN_mod_inverse(NULL, key1->k, order, bn_ctx);
+    assert_s(key1Inverse, "could not compute inverse of key 1");
+
+    delta->deltaK = BN_new();
+    BN_mod_mul(delta->deltaK, key1Inverse, key2->k, order, bn_ctx);
+    assert_s(delta->deltaK, "failed to multiply");
+
+    //delta * k1 = k2?
+    cerr << "(remove this code) \n checking delta \n";
+    BIGNUM * temp = BN_new();
+    BN_mod_mul(temp, delta->deltaK, key1->k, order, bn_ctx);
+    cerr << "cmp temp key2 " << BN_cmp(temp, key2->k) << "\n";
+    BN_free(temp);
+
+
+    //let's now check that key1->kP * deltaK = key2->Kp
+    cerr << "remove code here\n";
+    cerr << "are the two points equal? " << EC_POINT_cmp(group, mul(group, ZeroBN, key1->kP, delta->deltaK, bn_ctx), key2->kP, bn_ctx) << "\n";
+
+    //let's now check with the ciphertexts
+
+    cerr << "are the points with ciph equal? " << EC_POINT_cmp(group,
+                                                mul(group, ZeroBN, str2Point(group, c1), delta->deltaK, bn_ctx),
+                                                str2Point(group, c2),
+                                                bn_ctx) << "\n";
+*/
+
+/* static string
+pretty_bn2str(BIGNUM * bn) {
+        unsigned char * tov = new unsigned char[256];
+        int len = BN_bn2bin(bn, tov);
+
+        assert_s(len, "cannot convert from bn to binary ");
+
+        string res = "";
+
+        for (int i = 0 ; i < len ; i++) {
+                res = res + StringFromVal(tov[i]) + " ";
+        }
+        return res;
+}
+*/
