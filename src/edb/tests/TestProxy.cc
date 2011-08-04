@@ -109,14 +109,17 @@ Basic(const TestConfig &tc, Connect *conn) {
 	       { {"1", "3", "Queens Play"},
 		 {"3", "4", "Queens Play"},
 		 {"1", "2", "Checkmate"} });
+
+    
 }
 
 void
 TestProxy::run(const TestConfig &tc, int argc, char ** argv)
 {
     
-    if (argc > 2) {
-	cerr << "Too many arguments.  Command should be /n/t$EDBDIR/tests/test proxy [single | multi | plain]\nDefault is to test plain" << endl;
+    if (argc > 2 || ((argc == 2) && (strncmp(argv[1], "help", 4) == 0))) {
+	cerr << "Command should be    $EDBDIR/tests/test proxy [ single | multi | plain ]\nDefault is to test plain" << endl;
+	return;
     }
 
     pid_t pid = fork();
@@ -141,6 +144,9 @@ TestProxy::run(const TestConfig &tc, int argc, char ** argv)
 	    } else if (strncmp(argv[1], "multi", 5) == 0) {
 		cerr << "Creating multi principle tables" << endl;
 		CreateMulti(conn);
+	    } else if (strncmp(argv[1], "plain", 5) == 0) {
+		cerr << "Creating plain principle tables" << endl;
+		CreatePlain(conn);
 	    }
 	} else if (argc == 1) {
 	    cerr << "Creating plain principle tables" << endl;
