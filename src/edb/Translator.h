@@ -42,6 +42,7 @@ string getOnionName(FieldMetadata * fm, onion o);
 SECLEVEL getLevelForOnion(FieldMetadata * fm, onion o);
 SECLEVEL getLevelPlain(onion o);
 
+
 bool isCommand(string str);
 
 //computes query metadata (e.g. table names, aliases)

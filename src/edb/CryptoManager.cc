@@ -248,14 +248,15 @@ increaseLevel(SECLEVEL l, fieldType ft, onion o)
 string
 CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft,
                      string fullfieldname,
-                     SECLEVEL fromlevel, SECLEVEL tolevel,
+                     SECLEVEL fromlevel, SECLEVEL tolevel, bool & isBin,
                      uint64_t salt)
 {
     onion o = getOnion(fromlevel);
     onion o2 = getOnion(tolevel);
+    isBin = false;
 
     LOG(crypto_data)
-        << "crypt: salt " << salt << " data " << data
+        << "crypt: salt " << salt << " data len " << data.length() << " data "<< data
         << " fullfieldname " << fullfieldname
         << " fromlevel " << levelnames[(int) fromlevel]
         << " to level" << levelnames[(int) tolevel]
@@ -277,7 +278,7 @@ CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft,
 
             switch (o) {
             case oDET: {
-                uint64_t val = unmarshallVal(data);
+                uint64_t val = valFromStr(data);
                 if (fromlevel == SECLEVEL::SEMANTIC_DET) {
                     AES_KEY * key =
                         get_key_SEM(getKey(mkey, fullfieldname, fromlevel));
@@ -285,7 +286,7 @@ CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft,
                     delete key;
                     fromlevel  = decreaseLevel(fromlevel, ft, oDET);
                     if (fromlevel == tolevel) {
-                        return marshallVal(val);
+                        return strFromVal(val);
                     }
                 }
 
@@ -296,7 +297,7 @@ CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft,
                     delete key;
                     fromlevel = decreaseLevel(fromlevel, ft, oDET);
                     if (fromlevel == tolevel) {
-                        return marshallVal(val);
+                        return strFromVal(val);
                     }
                 }
 
@@ -307,7 +308,7 @@ CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft,
                     delete key;
                     fromlevel = decreaseLevel(fromlevel, ft, oDET);
                     if (fromlevel == tolevel) {
-                        return marshallVal(val);
+                        return strFromVal(val);
                     }
                 }
 
@@ -316,7 +317,7 @@ CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft,
                 return "";
             }
             case oOPE: {
-                uint64_t val = unmarshallVal(data);
+                uint64_t val = valFromStr(data);
                 if (fromlevel == SECLEVEL::SEMANTIC_OPE) {
                     AES_KEY * key =
                         get_key_SEM(getKey(mkey, fullfieldname, fromlevel));
@@ -324,7 +325,7 @@ CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft,
                     delete key;
                     fromlevel  = decreaseLevel(fromlevel, ft, oOPE);
                     if (fromlevel == tolevel) {
-                        return marshallVal(val);
+                        return strFromVal(val);
                     }
                 }
 
@@ -335,14 +336,14 @@ CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft,
                     delete key;
                     fromlevel = decreaseLevel(fromlevel, ft, oOPE);
                     if (fromlevel == tolevel) {
-                        return marshallVal(val);
+                        return strFromVal(val);
                     }
                 }
 
                 if (fromlevel == SECLEVEL::OPEJOIN) {
                     fromlevel = decreaseLevel(fromlevel, ft, oOPE);
                     if (fromlevel == tolevel) {
-                        return marshallVal(val);
+                        return strFromVal(val);
                     }
                 }
 
@@ -351,12 +352,13 @@ CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft,
                 return "";
             }
             case oAGG: {
-                string uval = unmarshallBinary(data);
+                string uval = data;
                 if (fromlevel == SECLEVEL::SEMANTIC_AGG) {
                     uint64_t val = decrypt_Paillier(uval);
                     fromlevel  = decreaseLevel(fromlevel, ft, oAGG);
                     if (fromlevel == tolevel) {
-                        return marshallVal(val);
+                        isBin = true;
+                        return strFromVal(val);
                     }
                 }
 
@@ -377,7 +379,7 @@ CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft,
             switch (o) {
             case oDET: {
 
-                string val = unmarshallBinary(data);
+                string val = data;
                 if (fromlevel == SECLEVEL::SEMANTIC_DET) {
                     LOG(crypto) << "at sem det " << data;
 
@@ -387,7 +389,8 @@ CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft,
                     delete key;
                     fromlevel  = decreaseLevel(fromlevel, ft, oDET);
                     if (fromlevel == tolevel) {
-                        return marshallBinary(val);
+                        isBin = true;
+                        return val;
                     }
                 }
 
@@ -400,7 +403,8 @@ CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft,
                     delete key;
                     fromlevel = decreaseLevel(fromlevel, ft, oDET);
                     if (fromlevel == tolevel) {
-                        return marshallBinary(val);
+                        isBin = true;
+                        return val;
                     }
                 }
 
@@ -423,7 +427,7 @@ CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft,
             }
             case oOPE: {
 
-                uint64_t val = unmarshallVal(data);
+                uint64_t val = valFromStr(data);
                 if (fromlevel == SECLEVEL::SEMANTIC_OPE) {
                     AES_KEY * key =
                         get_key_SEM(getKey(mkey, fullfieldname, fromlevel));
@@ -431,7 +435,7 @@ CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft,
                     delete key;
                     fromlevel  = decreaseLevel(fromlevel, ft, oOPE);
                     if (fromlevel == tolevel) {
-                        return marshallVal(val);
+                        return strFromVal(val);
                     }
                 }
 
@@ -470,7 +474,7 @@ CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft,
         switch (o) {
         case oDET: {
 
-            uint64_t val = unmarshallVal(data);
+            uint64_t val = valFromStr(data);
 
             if (fromlevel == SECLEVEL::PLAIN_DET) {
                 fromlevel = increaseLevel(fromlevel, ft, oDET);
@@ -478,7 +482,7 @@ CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft,
                 val = encrypt_DET(val, key);
                 delete key;
                 if (fromlevel == tolevel) {
-                    return marshallVal(val);
+                    return strFromVal(val);
                 }
             }
 
@@ -489,7 +493,7 @@ CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft,
                 val = encrypt_DET(val, key);
                 delete key;
                 if (fromlevel == tolevel) {
-                    return marshallVal(val);
+                    return strFromVal(val);
                 }
             }
 
@@ -500,7 +504,7 @@ CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft,
                 val = encrypt_SEM(val, key, salt);
                 delete key;
                 if (fromlevel == tolevel) {
-                    return marshallVal(val);
+                    return strFromVal(val);
                 }
             }
 
@@ -509,12 +513,12 @@ CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft,
             return "";
         }
         case oOPE: {
-            uint64_t val = unmarshallVal(data);
+            uint64_t val = valFromStr(data);
 
             if (fromlevel == SECLEVEL::PLAIN_OPE) {
                 fromlevel = increaseLevel(fromlevel, ft, oOPE);
                 if (fromlevel == tolevel) {
-                    return marshallVal(val);
+                    return strFromVal(val);
                 }
             }
 
@@ -524,7 +528,7 @@ CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft,
                 val = encrypt_OPE((uint32_t)val, key);
                 delete key;
                 if (fromlevel == tolevel) {
-                    return marshallVal(val);
+                    return strFromVal(val);
                 }
             }
 
@@ -536,7 +540,7 @@ CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft,
                 val = encrypt_SEM(val, key, salt);
                 delete key;
                 if (fromlevel == tolevel) {
-                    return marshallVal(val);
+                    return strFromVal(val);
                 }
             }
 
@@ -545,12 +549,13 @@ CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft,
             return "";
         }
         case oAGG: {
-            uint64_t val = unmarshallVal(data);
+            uint64_t val = valFromStr(data);
             if (fromlevel == SECLEVEL::PLAIN_AGG) {
                 string uval = encrypt_Paillier(val);
                 fromlevel = increaseLevel(fromlevel, ft, oAGG);
                 if (fromlevel == tolevel) {
-                    return marshallBinary(uval);
+                    isBin = true;
+                    return uval;
                 }
             }
 
@@ -586,11 +591,12 @@ CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft,
                 delete key;
                 if (fromlevel == tolevel) {
                     //cerr << "result is " << marshallBinary(uval, newlen);
-                    return marshallBinary(data);
+                    isBin = true;
+                    return data;
                 }
 
             } else {
-                data = unmarshallBinary(data);
+
             }
 
             if (fromlevel == SECLEVEL::DETJOIN) {
@@ -602,7 +608,8 @@ CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft,
                 data = encrypt_DET(data, key);
                 delete key;
                 if (fromlevel == tolevel) {
-                    return marshallBinary(data);
+                    isBin = true;
+                    return data;
                 }
             }
 
@@ -617,7 +624,8 @@ CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft,
                 delete key;
                 if (fromlevel == tolevel) {
                     LOG(crypto) << "at sem " << marshallBinary(data);
-                    return marshallBinary(data);
+                    isBin = true;
+                    return data;
                 }
             }
 
@@ -635,10 +643,10 @@ CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft,
                 val = encrypt_OPE_text_wrapper(data, key);
                 delete key;
                 if (fromlevel == tolevel) {
-                    return marshallVal(val);
+                    return strFromVal(val);
                 }
             } else {
-                val = unmarshallVal(data);
+                val = valFromStr(data);
             }
 
             if (fromlevel == SECLEVEL::OPE) {
@@ -648,7 +656,7 @@ CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft,
                 val = encrypt_SEM(val, key, salt);
                 delete key;
                 if (fromlevel == tolevel) {
-                    return marshallVal(val);
+                    return strFromVal(val);
                 }
             }
 
@@ -681,8 +689,8 @@ CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft,
             LOG(crypto) << "t.ciph " << marshallBinary(string((char *)t.ciph.content, t.ciph.len)) << "\n";
 
             assert_s(fromlevel == tolevel, "cannot go higher than SWP on onion SWP");
-
-            return marshallBinary(string((char *)ovciph.content, ovciph.len));
+            isBin = true;
+            return string((char *)ovciph.content, ovciph.len);
         }
 
         case oINVALID: {
@@ -742,7 +750,7 @@ string
 CryptoManager::getKey(AES_KEY * masterKeyArg, const string &uniqueFieldName,
                       SECLEVEL sec)
 {
-    string id = uniqueFieldName + marshallVal((unsigned int) sec);
+    string id = uniqueFieldName + strFromVal((unsigned int) sec);
 
     unsigned char shaDigest[SHA_DIGEST_LENGTH];
     SHA1((const uint8_t *) &id[0], id.length(), shaDigest);
@@ -760,7 +768,7 @@ CryptoManager::marshallKey(const string &key)
     string res = "";
 
     for (unsigned int i = 0; i < AES_KEY_SIZE/bitsPerByte; i++) {
-        res = res + marshallVal((unsigned int)(key[i])) + ",";
+        res = res + strFromVal((unsigned int)(key[i])) + ",";
     }
 
     //remove last comma
@@ -784,7 +792,7 @@ CryptoManager::unmarshallKey(const string &key)
     list<string>::iterator wordsIt = words.begin();
 
     while (wordsIt != words.end()) {
-        uint64_t val = unmarshallVal(*wordsIt);
+        uint64_t val = valFromStr(*wordsIt);
         myassert(val < 256,
                  "invalid key -- some elements are bigger than bytes " + key);
         reskey[i] = (unsigned char) (val % 256);

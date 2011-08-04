@@ -224,7 +224,7 @@ testInsert(const TestConfig &tc, EDBClient * cl)
         "select age from t1",
         { "age" },
         { { "21" }, { "23" }, { "25" }, { "26" }, { "27" },
-          { "" /* XXX should be NULL */ }, { "40" } });
+         { "" /* XXX should be NULL */ }, { "40" } });
     qUpdateSelect(tc, cl,
         "INSERT INTO t1 (address) VALUES ('right star to the right')",
         "select address from t1 where id=9",

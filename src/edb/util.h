@@ -436,10 +436,12 @@ isLastIterator(typename list<T>::iterator it,
 }
 
 //returns a Postgres bigint representation in string form for x
-string marshallVal(uint64_t x);
-string marshallVal(uint32_t x);
+string strFromVal(uint64_t x);
+string strFromVal(uint32_t x);
 
-uint64_t unmarshallVal(const string &str);
+
+
+uint64_t valFromStr(const string & str);
 
 //marshalls a binary value into characters readable by Postgres
 string marshallBinary(const string &s);

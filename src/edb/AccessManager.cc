@@ -524,7 +524,7 @@ MetaAccess::CreateTables()
     for(it = genHasAccessToList.begin(); it != genHasAccessToList.end();
         it++) {
         for(it_s = it->second.begin(); it_s != it->second.end(); it_s++) {
-            num = marshallVal(table_num);
+            num = strFromVal(table_num);
             table_num++;
             sql = "DROP TABLE IF EXISTS " + table_name + num;
             if(!conn->execute(sql)) {
@@ -562,7 +562,7 @@ MetaAccess::DeleteTables()
     //Tables for each principal access link
     for(unsigned int i = 0; i < table_num; i++) {
         unsigned int n = i;
-        num = marshallVal(n);
+        num = strFromVal(n);
         sql = "DROP TABLE " + table_name + num + ";";
         if(!conn->execute(sql)) {
             LOG(am) << "error with sql query " << sql;
@@ -831,7 +831,7 @@ KeyAccess::insert(Prin hasAccess, Prin accessTo)
         uint64_t salt = randomValue();
         AES_KEY * aes = crypt_man->get_key_SEM(hasAccessKey);
         encrypted_accessToKey = crypt_man->encrypt_SEM(accessToKey, aes, salt);
-        string string_salt = marshallVal(salt);
+        string string_salt = strFromVal(salt);
         string_encrypted_accessToKey = marshallBinary(encrypted_accessToKey);
         sql = "INSERT INTO " + table + "(" + hasAccess.gen + ", " +
               accessTo.gen + ", Sym_Key, Salt) VALUES ('" + hasAccess.value +
@@ -1613,7 +1613,7 @@ KeyAccess::SelectCount(std::set<Prin> & prin_set, string table_name)
     auto res = dbres->unpack();
     delete dbres;
 
-    return (int) unmarshallVal(res.rows[0][0]);
+    return (int) valFromStr(res.rows[0][0]);
 }
 
 int
@@ -1648,7 +1648,7 @@ KeyAccess::GenerateAsymKeys(Prin prin, PrinKey prin_key)
         string pub_key = crypt_man->marshallKey(rsa_pub_key,true);
         string sec_key = crypt_man->marshallKey(rsa_sec_key,false);
         string encrypted_sec_key = crypt_man->encrypt_SEM(sec_key, aes, salt);
-        salt_string = marshallVal(salt);
+        salt_string = strFromVal(salt);
         encrypted_sec_key_string = marshallBinary(encrypted_sec_key);
         pub_key_string = marshallBinary(pub_key);
     }
@@ -1672,7 +1672,7 @@ KeyAccess::decryptSym(string str_encrypted_key,
         cerr << "\tuse symmetric decryption" << endl;
     }
     string encrypted_key = unmarshallBinary(str_encrypted_key);
-    uint64_t salt = unmarshallVal(str_salt);
+    uint64_t salt = valFromStr(str_salt);
     AES_KEY * aes = crypt_man->get_key_SEM(key_for_decrypting);
     string key = crypt_man->decrypt_SEM(encrypted_key,aes,salt);
     PrinKey result;

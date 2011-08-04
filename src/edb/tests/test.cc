@@ -602,7 +602,7 @@ interactiveTest(const TestConfig &tc, int ac, char **av)
                 unsigned int val1 = rand() % 10;
                 unsigned int val2 = rand() % 10;
                 string qq = "INSERT INTO people VALUES ( " +
-                            marshallVal(val1) + ", " + marshallVal(val2) +
+                            strFromVal(val1) + ", " + strFromVal(val2) +
                             ");";
                 cl->execute(qq);
             }
@@ -613,8 +613,8 @@ interactiveTest(const TestConfig &tc, int ac, char **av)
             for (int i = 0; i < noInserts; i++) {
                 unsigned int val1 = rand() % 10;
                 unsigned int val2 = rand() % 10;
-                string qq = "INSERT INTO emp VALUES ( " + marshallVal(val1) +
-                            ", " + marshallVal(val2) + ");";
+                string qq = "INSERT INTO emp VALUES ( " + strFromVal(val1) +
+                            ", " + strFromVal(val2) + ");";
                 cl->execute(qq);
             }
         } else if (commandS.find("login") == 0) {
@@ -642,23 +642,18 @@ interactiveTest(const TestConfig &tc, int ac, char **av)
             cl->plain_execute("DROP TABLE IF EXISTS table0, table1");
             cerr << "here \n";
             assert_res(cl->execute(
-                         "CREATE TABLE hi (id integer, name enc text);"),
+                         "CREATE TABLE hi (id enc integer);"),
                      "failed");
-            assert_res(cl->execute(
-                         "CREATE TABLE hi2 (id integer, name enc text);"),
-                     "failed");
-            assert_res(cl->execute(
-                         "INSERT INTO hi VALUES (3, 'first star');"),
-                     "failed");
-            assert_res(cl->execute(
-                         "INSERT INTO hi VALUES (2, 'Green');"), "failed");
-            assert_res(cl->execute(
-                         "INSERT INTO hi VALUES (1, 'dan');"), "failed");
 
             assert_res(cl->execute(
-                         "INSERT INTO hi2 VALUES (22, 'Green');"), "failed");
+                         "INSERT INTO hi VALUES (1);"), "failed");
+
             assert_res(cl->execute(
-                         "INSERT INTO hi2 VALUES (21, 'dan');"), "failed");
+                                    "SELECT sum(id) FROM hi;"), "failed");
+
+           // assert_res(cl->execute(
+           //              "SELECT sum(id) FROM hi;"), "failed");
+
 
             /* assert_res(cl->execute(
                          "INSERT INTO hi VALUES (1, 'lauren');"), "failed");
@@ -673,10 +668,10 @@ interactiveTest(const TestConfig &tc, int ac, char **av)
                assert_res(cl->execute(
                          "INSERT INTO hi VALUES (1, 'naaa');"), "failed");
                assert_res(cl->execute(
-                         "INSERT INTO hi VALUES (1, 'hello');"), "failed"); */
+                         "INSERT INTO hi VALUES (1, 'hello');"), "failed");
             assert_res(cl->execute(
                          "SELECT * FROM hi, hi2 WHERE hi.name = hi2.name ;"),
-                     "failed");
+                     "failed");*/
 
             //debugging of DECRYPTFIRST mode
 
@@ -1035,8 +1030,8 @@ microEvaluate(const TestConfig &tc, int argc, char ** argv)
     for (int i = 0; i < nrInsertsSecure; i++) {
         unsigned int val1 = rand() % 10;
         unsigned int val2 = rand() % 10;
-        string qq = "INSERT INTO tableeval VALUES ( " + marshallVal(val1) +
-                    ", " + marshallVal(val2) + ");";
+        string qq = "INSERT INTO tableeval VALUES ( " + strFromVal(val1) +
+                    ", " + strFromVal(val2) + ");";
         clsecure->execute(qq);
     }
     double endTimer = (readTimer()/(1.0 * nrInsertsSecure));
@@ -1048,8 +1043,8 @@ microEvaluate(const TestConfig &tc, int argc, char ** argv)
     for (int i = 0; i < nrInsertsPlain; i++) {
         unsigned int val1 = rand() % 10;
         unsigned int val2 = rand() % 10;
-        string qq = "INSERT INTO tableeval VALUES ( " + marshallVal(val1) +
-                    ", " + marshallVal(val2) + ");";
+        string qq = "INSERT INTO tableeval VALUES ( " + strFromVal(val1) +
+                    ", " + strFromVal(val2) + ");";
         clplain->execute(qq);
     }
     endTimer = (readTimer()/(1.0 * nrInsertsPlain));
@@ -1062,11 +1057,11 @@ microEvaluate(const TestConfig &tc, int argc, char ** argv)
         unsigned int val1 = rand() % 50;
         string qq =
             "SELECT tableeval.id FROM tableeval WHERE tableeval.id = " +
-            marshallVal(val1) + ";";
+            strFromVal(val1) + ";";
         clsecure->execute(qq);
         //unsigned int val2 = rand() % 50;
         //qq = "SELECT tableeval.age FROM tableeval WHERE tableeval.age > " +
-        // marshallVal(val2) + ";";
+        // strFromVal(val2) + ";";
         clsecure->execute(qq);
     }
     endTimer = (readTimer()/(1.0 * nrSelectsSecure));
@@ -1079,11 +1074,11 @@ microEvaluate(const TestConfig &tc, int argc, char ** argv)
         unsigned int val1 = rand() % 50;
         string qq =
             "SELECT tableeval.id FROM tableeval WHERE tableeval.id = " +
-            marshallVal(val1) + ";";
+            strFromVal(val1) + ";";
         clplain->execute(qq);
         //unsigned int val2 = rand() % 50;
         //qq = "SELECT tableeval.age FROM tableeval WHERE tableeval.age > " +
-        // marshallVal(val2) + ";";
+        // strFromVal(val2) + ";";
         clplain->execute(qq);
     }
     endTimer = (readTimer()/(1.0 * nrSelectsPlain));
@@ -1322,7 +1317,7 @@ convertQueries()
                 pos++;
             }
             nr2 = nr2 - 20;
-            string replacement =  marshallVal((uint32_t)nr2) + "     ";
+            string replacement =  strFromVal((uint32_t)nr2) + "     ";
             line.replace(oldpos, 9, replacement);
 
         }
@@ -1976,7 +1971,7 @@ suffix(int no)
 //    res = system("rm eval/pieces/*");
 /*
         string splitComm = "split  -l " +
-           marshallVal((uint32_t)(totalLines/noWorkers)) + " -a 2 " + dfile +
+           strFromVal((uint32_t)(totalLines/noWorkers)) + " -a 2 " + dfile +
            " eval/pieces/piece";
         cerr << "split comm " << splitComm << "\n";
         res  = system(splitComm);
@@ -2079,7 +2074,7 @@ suffix(int no)
 //    res = system("rm eval/queries/*");
 /*
         string splitComm = "split  -l " +
-           marshallVal((uint32_t)(totalLines/noClients)) + " -a 1 " +
+           strFromVal((uint32_t)(totalLines/noClients)) + " -a 1 " +
            queryFile + " eval/queries/piece";
         cerr << "split comm " << splitComm << "\n";
         res  = system(getCStr(splitComm));
@@ -3379,7 +3374,7 @@ accessManagerTest(const TestConfig &tc, int ac, char **av)
     for (unsigned int i = 6; i < 110; i++) {
         Prin group;
         group.type = "g.gid";
-        group.value = marshallVal(i);
+        group.value = strFromVal(i);
         am->insert(u3,group);
         if(i == 50) {
             g50_key = am->getKey(group);
@@ -3409,7 +3404,7 @@ accessManagerTest(const TestConfig &tc, int ac, char **av)
     for (unsigned int i = 6; i < 110; i++) {
         Prin group;
         group.type = "g.gid";
-        group.value = marshallVal(i);
+        group.value = strFromVal(i);
         am->remove(u3,group);
     }
 

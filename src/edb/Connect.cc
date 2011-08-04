@@ -85,17 +85,6 @@ Connect::getError()
 #endif
 }
 
-static bool
-mysql_isBinary(enum_field_types t, int charsetnr)
-{
-    if (((t == MYSQL_TYPE_VAR_STRING) && (charsetnr == 63)) ||
-        ((t == MYSQL_TYPE_BLOB) && (charsetnr == 63)))
-    {
-        return true;
-    } else {
-        return false;
-    }
-}
 
 uint64_t
 Connect::last_insert_id()
@@ -151,14 +140,12 @@ DBResult::unpack()
     }
 
     ResType res;
-    bool binFlags[cols];
 
     for (int j = 0;; j++) {
         MYSQL_FIELD *field = mysql_fetch_field(n);
         if (!field)
             break;
 
-        binFlags[j] = mysql_isBinary(field->type, field->charsetnr);
         res.names.push_back(field->name);
         res.types.push_back(field->type);
     }
@@ -172,18 +159,16 @@ DBResult::unpack()
         vector<string> resrow;
 
         for (int j = 0; j < cols; j++) {
-            if (binFlags[j] && !DECRYPTFIRST) {
-                resrow.push_back(marshallBinary(string(row[j], lengths[j])));
+
+            if (row[j] == NULL) {
+                /*
+                 * XXX why are we losing NULLs?
+                 */
+                resrow.push_back("");
             } else {
-                if (row[j] == NULL) {
-                    /*
-                     * XXX why are we losing NULLs?
-                     */
-                    resrow.push_back("");
-                } else {
-                    resrow.push_back(string(row[j], lengths[j]));
-                }
+                resrow.push_back(string(row[j], lengths[j]));
             }
+
         }
 
         res.rows.push_back(resrow);

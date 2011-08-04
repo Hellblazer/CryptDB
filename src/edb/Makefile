@@ -29,19 +29,19 @@ test: tests/test
 
 # UDF libraries
 libedbcrypto.so: $(CRYPTO_OBJS)
-	$(CXX) $(LDFLAGS) -shared -o $@ $^ -lntl -lcrypto
+	$(CXX) -shared -o $@ $^ $(LDFLAGS) -lntl -lcrypto
 
 edb.so: edb.o libedbcrypto.so
-	$(CXX) $(LDFLAGS) -shared -o $@ $< -ledbcrypto -ldl
+	$(CXX) -shared -o $@ $< $(LDFLAGS) -ledbcrypto -ldl
 
 libcryptdb.so: $(CRYPTDB_OBJS) libedbcrypto.so
-	$(CXX) $(LDFLAGS) -shared -o $@ $(CRYPTDB_OBJS) -lntl -ldl -lcrypto -ledbcrypto
+	$(CXX) -shared -o $@ $(CRYPTDB_OBJS) $(LDFLAGS) -lntl -ldl -lcrypto -ledbcrypto
 
 libexecute.so: $(PROXY_OBJS) libcryptdb.so libedbcrypto.so
-	$(CXX) $(LDFLAGS) -shared -o $@ $(PROXY_OBJS) -lntl -ldl -lcrypto -ledbcrypto -lcryptdb
+	$(CXX) -shared -o $@ $(PROXY_OBJS) $(LDFLAGS) -lntl -ldl -lcrypto -ledbcrypto -lcryptdb
 
 tests/test: libcryptdb.so $(TEST_OBJS)
-	$(CXX) $(LDFLAGS) -o $@ $(TEST_OBJS) -lcryptdb -ldl -lcrypto -lntl -ledbcrypto
+	$(CXX) -o $@ $(TEST_OBJS) $(LDFLAGS) -lcryptdb -ldl -lcrypto -lntl -ledbcrypto
 
 %.o: %.cc $(HEADERS)
 	$(CXX) $(CXXFLAGS) $< -c -o $@

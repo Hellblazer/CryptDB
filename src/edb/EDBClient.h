@@ -184,9 +184,17 @@ class EDBClient {
                  string anonfullname,
                  SECLEVEL fromlevel, SECLEVEL tolevel, uint64_t salt,
                  //optional, for MULTIPRINC
-                 TMKM & tmkm,
+                 TMKM & tmkm, bool & isBin,
                  const vector<string> & res = vector<string>());
 
+    //performs above crypt and marshalls binaries for MySQL query
+    string
+    dataForQuery(string data, fieldType ft, string fullname,
+                     string anonfullname,
+                     SECLEVEL fromlevel, SECLEVEL tolevel, uint64_t salt,
+                     //optional, for MULTIPRINC
+                     TMKM & tmkm,
+                     const vector<string> & res = vector<string>());
     // OTHER
 
     void dropTables();

@@ -12,7 +12,7 @@ string
 anonymizeTableName(unsigned int tableNo, string tableName, bool multiPrinc)
 {
     if (!multiPrinc) {
-        return string("table") + marshallVal((uint32_t)tableNo);
+        return string("table") + strFromVal((uint32_t)tableNo);
     } else {
         return tableName;
     }
@@ -26,12 +26,12 @@ anonymizeFieldName(unsigned int index, onion o, string origname, bool multiPrinc
         if (multiPrinc) {
             return origname;
         } else {
-            return string("field") + marshallVal(index) + "DET";
+            return string("field") + strFromVal(index) + "DET";
         }
     }
-    case oOPE: {return string("field") + marshallVal(index) + "OPE"; }
-    case oAGG: {return string("field") + marshallVal(index) + "AGG"; }
-    case oSWP: {return string("field") + marshallVal(index) + "SWP"; }
+    case oOPE: {return string("field") + strFromVal(index) + "OPE"; }
+    case oAGG: {return string("field") + strFromVal(index) + "AGG"; }
+    case oSWP: {return string("field") + strFromVal(index) + "SWP"; }
     default: {assert_s(false, "invalid onion in anonymizeFieldName"); }
     }
 
@@ -130,7 +130,7 @@ nextAutoInc(map<string, unsigned int > & autoInc, string fullname)
         autoInc[fullname] = 1;
     } else {
         autoInc[fullname] += 1;
-        val = marshallVal(autoInc[fullname]);
+        val = strFromVal(autoInc[fullname]);
     }
 
     return val;

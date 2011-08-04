@@ -303,7 +303,7 @@ throw (CryptDBError)
     wordsIt++;
 
     IndexMetadata * im = new IndexMetadata;
-    im->anonIndexName = string("index") + marshallVal(totalIndexes);
+    im->anonIndexName = string("index") + strFromVal(totalIndexes);
     totalIndexes++;
     im->isUnique = isUnique;
     tableMetaMap[table]->indexes.push_back(im);
@@ -663,7 +663,7 @@ throw (CryptDBError)
                 } else {
                     resultQuery += anonFieldName + " =  func_add_set (" +
                                    anonName2 +  ", "
-                                   + crypt(*wordsIt, ft,
+                                   + dataForQuery(*wordsIt, ft,
                                            fullName(field,
                                                     table),
                                            fullName(anonFieldName,
@@ -705,7 +705,7 @@ throw (CryptDBError)
                     addIfNotContained(fullName(field,
                                                table), fieldsDec.DETFields);
                     resultQuery +=
-                        crypt(val, TYPE_INTEGER,
+                        dataForQuery(val, TYPE_INTEGER,
                               fullName(field,
                                        table), fullName(anonfieldName,
                                                         anonTableName),
@@ -713,7 +713,7 @@ throw (CryptDBError)
 
                 } else {
                     resultQuery = resultQuery +
-                                  crypt(val, TYPE_INTEGER,
+                                  dataForQuery(val, TYPE_INTEGER,
                                         fullName(field,
                                                  table),
                                         fullName(anonfieldName,
@@ -732,7 +732,7 @@ throw (CryptDBError)
                                           fieldsDec.OPEFields);
                     }
                     resultQuery = resultQuery +
-                                  crypt(val, TYPE_INTEGER,
+                                  dataForQuery(val, TYPE_INTEGER,
                                         fullName(field,
                                                  table),
                                         fullName(anonfieldName,
@@ -744,7 +744,7 @@ throw (CryptDBError)
                     anonfieldName = fm1->anonFieldNameAGG;
                     resultQuery = resultQuery  + ", " + anonfieldName +
                                   " = " +
-                                  crypt(val, TYPE_INTEGER,
+                                  dataForQuery(val, TYPE_INTEGER,
                                         fullName(field,
                                                  table),
                                         fullName(anonfieldName,
@@ -778,7 +778,7 @@ throw (CryptDBError)
 
                     resultQuery = resultQuery + " "  + anonfieldname +
                                   " = " +
-                                  crypt(*wordsIt, TYPE_TEXT,
+                                  dataForQuery(*wordsIt, TYPE_TEXT,
                                         fullName(field,
                                                  table),
                                         fullName(anonfieldname,
@@ -797,7 +797,7 @@ throw (CryptDBError)
                         }
 
                         resultQuery += ", " + anonName + " = " +
-                                       crypt(*wordsIt, TYPE_TEXT,
+                                       dataForQuery(*wordsIt, TYPE_TEXT,
                                              fullName(field,table),
                                              fullName(anonName,
                                                       anonTableName),
@@ -810,7 +810,7 @@ throw (CryptDBError)
                         string anonName = fm1->anonFieldNameSWP;
 
                         resultQuery += ", " + anonName + " = " +
-                                       crypt(*wordsIt, TYPE_TEXT,
+                                       dataForQuery(*wordsIt, TYPE_TEXT,
                                              fullName(field,table),
                                              fullName(anonName, anonTableName),
                                              SECLEVEL::PLAIN_SWP, SECLEVEL::SWP, 0, tmkm);
@@ -1420,6 +1420,7 @@ expandWildCard(list<string> & words, QueryMeta & qm, map<string,
                        0);
             continue;
         }
+
         //case 1: *
         if (wordsIt->compare("*") == 0) {
             int noinserts = 0;
@@ -1430,9 +1431,11 @@ expandWildCard(list<string> & words, QueryMeta & qm, map<string,
                 if (noinserts > 0) {
                     words.insert(wordsIt, ",");
                 }
+
                 TableMetadata * tm = tableMetaMap[*tit];
                 list<string> fnames = tm->fieldNames;
                 size_t count = fnames.size();
+
                 size_t index = 0;
                 for (list<string>::iterator fieldsIt = fnames.begin();
                      fieldsIt != fnames.end(); fieldsIt++ ) {
@@ -1495,10 +1498,13 @@ expandWildCard(list<string> & words, QueryMeta & qm, map<string,
             checkStr(wordsIt, words, ",", "from");
             continue;
         }
+
         //case 3: no wildcard
         wordsIt++;
 
     }
+
+
 
 }
 
@@ -1531,6 +1537,7 @@ throw (CryptDBError)
 
 //    gettimeofday(&starttime, NULL);
     expandWildCard(words, qm, tableMetaMap);
+    LOG(edb_v) << "after expand wildcard";
 //    gettimeofday(&endtime, NULL);
 //    cout << "expand wild card " << timeInMSec(starttime, endtime) << "\n";
     //=========================================================
@@ -2005,7 +2012,7 @@ printRes(const ResType &r)
 {
     stringstream ssn;
     for (unsigned int i = 0; i < r.names.size(); i++) {
-        char buf[256];
+        char buf[400];
         snprintf(buf, sizeof(buf), "%-20s", r.names[i].c_str());
         ssn << buf;
     }
@@ -2015,7 +2022,7 @@ printRes(const ResType &r)
     for (unsigned int i = 0; i < r.rows.size(); i++) {
         stringstream ss;
         for (unsigned int j = 0; j < r.rows[i].size(); j++) {
-            char buf[256];
+            char buf[400];
             snprintf(buf, sizeof(buf), "%-20s", r.rows[i][j].c_str());
             ss << buf;
         }
@@ -2092,7 +2099,7 @@ EDBClient::rewriteDecryptSelect(const string &query, const ResType &dbAnswer)
 
             if (rm.isSalt[j]) {             // this is salt
                 LOG(edb) << "salt";
-                salt = unmarshallVal(dbAnswer.rows[i][j]);
+                salt = valFromStr(dbAnswer.rows[i][j]);
                 continue;
             }
 
@@ -2125,12 +2132,13 @@ EDBClient::rewriteDecryptSelect(const string &query, const ResType &dbAnswer)
             string fullAnonName = fullName(getOnionName(fm,
                                                         rm.o[j]),
                                            tableMetaMap[table]->anonTableName);
+            bool isBin;
             rets.rows[i][index] =
                 crypt(dbAnswer.rows[i][j], fm->type, fullName(field, table),
                       fullAnonName,
                       getLevelForOnion(fm, rm.o[j]),
                       getLevelPlain(rm.o[j]), salt,
-                      tmkm, dbAnswer.rows[i]);
+                      tmkm, isBin, dbAnswer.rows[i]);
 
             index++;
 
@@ -2186,7 +2194,7 @@ throw (CryptDBError)
             CryptoManager::get_key_DET(cm->getKey("join", SECLEVEL::DETJOIN));
         string res = "";
         res =
-            marshallVal(cm->encrypt_DET((uint64_t) unmarshallVal(op1),
+            strFromVal(cm->encrypt_DET((uint64_t) valFromStr(op1),
                                         aesKeyJoin)) + " IN " +
             encryptedsubquery + " ";
         return res;
@@ -2260,7 +2268,7 @@ throw (CryptDBError)
             return res;
         }
 
-        res = res + crypt(op2, ftype1, fullName(field1,
+        res = res + dataForQuery(op2, ftype1, fullName(field1,
                                                 table1), anonOp1, SECLEVEL::PLAIN_DET,
                           highestEq(sl), 0, tmkm);
 
@@ -2348,7 +2356,7 @@ throw (CryptDBError)
     //cout << "key used to get to OPE level for "<< tokenOperand << "is " <<
     //  CryptoManager::marshallKey(cm->getKey(tokenOperand, SECLEVEL::OPE)) << "\n";
     res = res + " " + fieldname + " " +  operation + " " +
-          crypt(op2, fm->type, fullName(field1, table1),
+          dataForQuery(op2, fm->type, fullName(field1, table1),
                 anonOp1, SECLEVEL::PLAIN_OPE, SECLEVEL::OPE, 0, tmkm);
 
     return res;
@@ -2477,7 +2485,7 @@ EDBClient::processValsToInsert(string field, string table, uint64_t salt,
             if (equalsIgnoreCase(value,"null")) {value = "0"; }
             AES_KEY * key = CryptoManager::get_key_DET(dec_first_key);
             string res =
-                marshallVal(CryptoManager::encrypt_DET(unmarshallVal(value),
+                strFromVal(CryptoManager::encrypt_DET(valFromStr(value),
                                                        key));
             return res;
         } else {
@@ -2512,7 +2520,7 @@ EDBClient::processValsToInsert(string field, string table, uint64_t salt,
     } else {
 
         res +=  " " +
-               crypt(value, fm->type, fullname,
+               dataForQuery(value, fm->type, fullname,
                      fullName(fm->anonFieldNameDET,
                               anonTableName), SECLEVEL::PLAIN_DET, fm->secLevelDET,
                      salt, tmkm);
@@ -2521,7 +2529,7 @@ EDBClient::processValsToInsert(string field, string table, uint64_t salt,
 
         if (fm->exists(fm->anonFieldNameOPE)) {
             res += ", " +
-                   crypt(value, fm->type, fullname,
+                   dataForQuery(value, fm->type, fullname,
                          fullName(fm->anonFieldNameOPE,
                                   anonTableName), SECLEVEL::PLAIN_OPE, fm->secLevelOPE,
                          salt, tmkm);
@@ -2530,7 +2538,7 @@ EDBClient::processValsToInsert(string field, string table, uint64_t salt,
 
         if (fm->exists(fm->anonFieldNameAGG)) {
             res += ", " +
-                   crypt(value, fm->type, fullname,
+                   dataForQuery(value, fm->type, fullname,
                          fullName(fm->anonFieldNameAGG,
                                   anonTableName), SECLEVEL::PLAIN_AGG, SECLEVEL::SEMANTIC_AGG,
                          salt, tmkm);
@@ -2538,7 +2546,7 @@ EDBClient::processValsToInsert(string field, string table, uint64_t salt,
 
         if (fm->has_search) {
             res += ", " +
-                   crypt(value, fm->type, fullname,
+                   dataForQuery(value, fm->type, fullname,
                          fullName(fm->anonFieldNameSWP,
                                   anonTableName), SECLEVEL::PLAIN_SWP, SECLEVEL::SWP,
                          salt, tmkm);
@@ -2749,7 +2757,7 @@ throw (CryptDBError)
             if (tableMetaMap[table]->hasEncrypted) {
                 //rand field
                 salt =  randomValue();
-                resultQuery =  resultQuery + marshallVal(salt) + ", ";
+                resultQuery =  resultQuery + strFromVal(salt) + ", ";
             }
         }
 
@@ -3540,11 +3548,28 @@ EDBClient::outputOnionState()
 }
 
 string
-EDBClient::crypt(string data, fieldType ft, string fullname,
+EDBClient::dataForQuery(string data, fieldType ft, string fullname,
                  string anonfullname,
                  SECLEVEL fromlevel, SECLEVEL tolevel, uint64_t salt,
                  //optional, for MULTIPRINC
                  TMKM & tmkm,
+                 const vector<string> & res) {
+    bool isBin = false;
+    data = crypt(data, ft, fullname, anonfullname, fromlevel, tolevel, salt, tmkm, isBin, res);
+
+    if (isBin) {
+        return marshallBinary(data);
+    } else {
+        return data;
+    }
+}
+
+string
+EDBClient::crypt(string data, fieldType ft, string fullname,
+                 string anonfullname,
+                 SECLEVEL fromlevel, SECLEVEL tolevel, uint64_t salt,
+                 //optional, for MULTIPRINC
+                 TMKM & tmkm, bool & isBin,
                  const vector<string> & res)
 {
 
@@ -3606,7 +3631,7 @@ EDBClient::crypt(string data, fieldType ft, string fullname,
     }
 
     string resu = cm->crypt(
-        cm->getmkey(), data, ft, anonfullname, fromlevel, tolevel, salt);
+        cm->getmkey(), data, ft, anonfullname, fromlevel, tolevel, isBin, salt);
     if (VERBOSE_V) {
         //cerr << "result is " << resu << "\n";
     }
