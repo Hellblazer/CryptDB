@@ -15,10 +15,185 @@ static int test_type;
 static int no_conn = 1;
 static Connection * control;
 static Connection * test;
-static vector<string> query_list;
-static vector<string> plain_create;
-static vector<string> single_create;
-static vector<string> multi_create;
+static vector<string> query_list = {
+    //migrated from TestSinglePrinc TestInsert
+    "INSERT INTO test_insert VALUES (1, 21, 100, '24 Rosedale, Toronto, ONT', 'Pat Carlson')",
+    "SELECT * FROM test_insert",
+    "INSERT INTO test_insert (id, age, salary, address, name) VALUES (2, 23, 101, '25 Rosedale, Toronto, ONT', 'Pat Carlson2')",
+    "SELECT * FROM test_insert",
+    "INSERT INTO test_insert (age, address, salary, name, id) VALUES (25, '26 Rosedale, Toronto, ONT', 102, 'Pat2 Carlson', 3)",
+    "SELECT * FROM test_insert",
+    "INSERT INTO test_insert (age, address, salary, name) VALUES (26, 'test address', 30, 'test name')",
+    "SELECT * FROM test_insert",
+    "INSERT INTO test_insert (age, address, salary, name) VALUES (27, 'test address2', 31, 'test name')",
+    "select last_insert_id()",
+    "INSERT INTO test_insert (id) VALUES (7)",
+    "select sum(id) from test_insert",
+    "INSERT INTO test_insert (age) VALUES (40)",
+    "SELECT age FROM test_insert",
+    "INSERT INTO test_insert (name) VALUES ('Wendy')",
+    "SELECT name FROM test_insert WHERE id=10",
+    "INSERT INTO test_insert (name, address, id, age) VALUES ('Peter Pan', 'first star to the right and straight on till morning', 42, 10)",
+    "SELECT name, address, age FROM test_insert WHERE id=42",
+    "DROP TABLE test_insert",
+    //migrated from TestSinglePrinc TestSelect
+    "INSERT INTO test_select VALUES (1, 10, 0, 'first star to the right and straight on till morning', 'Peter Pan')",
+    "INSERT INTO test_select VALUES (2, 16, 1000, 'Green Gables', 'Anne Shirley')",
+    "INSERT INTO test_select VALUES (3, 8, 0, 'London', 'Lucy')",
+    "INSERT INTO test_select VALUES (4, 10, 0, 'London', 'Edmund')",
+    "INSERT INTO test_select VALUES (5, 30, 100000, '221B Baker Street', 'Sherlock Holmes')",
+    "SELECT * FROM test_select",
+    "SELECT max(id) FROM test_select",
+    "SELECT max(salary) FROM test_select",
+    "SELECT COUNT(*) FROM test_select",
+    "SELECT COUNT(DISTINCT age) FROM test_select",
+    "SELECT COUNT(DISTINCT(address)) FROM test_select",
+    "SELECT name FROM test_select",
+    "SELECT address FROM test_select",
+    "SELECT * FROM test_select WHERE id>3",
+    "SELECT * FROM test_select WHERE age = 8",
+    "SELECT * FROM test_select WHERE salary=15",
+    "SELECT * FROM test_select WHERE age > 10",
+    "SELECT * FROM test_select WHERE age = 10 AND salary = 0",
+    "SELECT * FROM test_select WHERE age = 10 OR salary = 0",
+    "SELECT * FROM test_select WHERE name = 'Peter Pan'",
+    "SELECT * FROM test_select WHERE address='Green Gables'",
+    "SELECT * FROM test_select WHERE address <= '221C'",
+    "SELECT * FROM test_select WHERE address >= 'Green Gables' AND age > 9",
+    "SELECT * FROM test_select WHERE address >= 'Green Gables' OR age > 9",
+    "SELECT * FROM test_select ORDER BY id",
+    "SELECT * FROM test_select ORDER BY salary",
+    "SELECT * FROM test_select ORDER BY name",
+    "SELECT * FROM test_select ORDER BY address",
+    "SELECT sum(age) FROM test_select GROUP BY address",
+    "SELECT salary, max(id) FROM test_select GROUP BY salary",
+    "SELECT * FROM test_select GROUP BY age ORDER BY age",
+    "SELECT * FROM test_select ORDER BY age ASC",
+    "SELECT * FROM test_select ORDER BY address DESC",
+    "SELECT sum(age) as z FROM test_select",
+    "SELECT sum(age) z FROM test_select",
+    "SELECT min(t.id) a FROM test_select AS t",
+    "SELECT t.address AS b FROM test_select t",
+    "DROP TABLE test_select",
+    //migrated from TestSinglePrinc TestJoin
+    "INSERT INTO test_join1 VALUES (1, 10, 0, 'first star to the right and straight on till morning','Peter Pan')",
+    "INSERT INTO test_join1 VALUES (2, 16, 1000, 'Green Gables', 'Anne Shirley')",
+    "INSERT INTO test_join1 VALUES (3, 8, 0, 'London', 'Lucy')",
+    "INSERT INTO test_join1 VALUES (4, 10, 0, 'London', 'Edmund')",
+    "INSERT INTO test_join1 VALUES (5, 30, 100000, '221B Baker Street', 'Sherlock Holmes')",
+    "INSERT INTO test_join2 VALUES (1, 6, 'Peter Pan')",
+    "INSERT INTO test_join2 VALUES (2, 8, 'Anne Shirley')",
+    "INSERT INTO test_join2 VALUES (3, 7, 'Lucy')",
+    "INSERT INTO test_join2 VALUES (4, 7, 'Edmund')",
+    "INSERT INTO test_join2 VALUES (10, 4, '221B Baker Street')",
+    "SELECT address FROM test_join1, test_join2 WHERE test_join1.id=test_join2.id",
+    "SELECT test_join1.id, test_join2.id, age, books, test_join2.name FROM test_join1, test_join2 WHERE test_join1.id = test_join2.id",
+    "SELECT test_join1.name, age, salary, test_join2.name, books FROM test_join1, test_join2 WHERE test_join1.age=test_join2.books",
+    "SELECT * FROM test_join1, test_join2 WHERE test_join1.name=test_join2.name",
+    "SELECT * FROM test_join1, test_join2 WHERE test_join1.address=test_join2.name",
+    "SELECT address FROM test_join1 AS a, test_join2 WHERE a.id=test_join2.id",
+    "SELECT a.id, b.id, age, books, b.name FROM test_join1 a, test_join2 AS b WHERE a.id=b.id",
+    "SELECT test_join1.name, age, salary, b.name, books FROM test_join1, test_join2 b WHERE test_join1.age = b.books",
+    "DROP TABLE test_join1",
+    "DROP TABLE test_join2",
+    //migrated from TestSinglePrinc TestUpdate
+    "INSERT INTO test_update VALUES (1, 10, 0, 'first star to the right and straight on till morning','Peter Pan')",
+    "INSERT INTO test_update VALUES (2, 16, 1000, 'Green Gables', 'Anne Shirley')",
+    "INSERT INTO test_update VALUES (3, 8, 0, 'London', 'Lucy')",
+    "INSERT INTO test_update VALUES (4, 10, 0, 'London', 'Edmund')",
+    "INSERT INTO test_update VALUES (5, 30, 100000, '221B Baker Street', 'Sherlock Holmes')",
+    "INSERT INTO test_update VALUES (6, 11, 0 , 'hi', 'no one')",
+    "UPDATE test_update SET salary=0",
+    "SELECT * FROM test_update",
+    "UPDATE test_update SET age=21 WHERE id = 6",
+    "SELECT * FROM test_update",
+    "UPDATE test_update SET address='Pemberly', name='Elizabeth Darcy' WHERE id=6",
+    "SELECT * FROM test_update",
+    "UPDATE test_update SET salary=55000 WHERE age=30",
+    "SELECT * FROM test_update",
+    "UPDATE test_update SET salary=20000 WHERE address='Pemberly'",
+    "SELECT * FROM test_update",
+    "SELECT age FROM test_update WHERE age > 20",
+    "SELECT id FROM test_update",
+    "SELECT sum(age) FROM test_update",
+    "UPDATE test_update SET age=20 WHERE name='Elizabeth Darcy'",
+    "SELECT * FROM test_update WHERE age > 20",
+    "SELECT sum(age) FROM test_update",
+    "UPDATE test_update SET age = age + 2",
+    "SELECT age FROM test_update",
+    "UPDATE test_update SET id = id + 10, salary = salary + 19, name = 'xxx', address = 'foo' WHERE address = 'London'",
+    "SELECT * FROM test_update",
+    "SELECT * FROM test_update WHERE address < 'fml'",
+    "UPDATE test_update SET address = 'Neverland' WHERE id=1",
+    "SELECT * FROM test_update",
+    "DROP TABLE test_update",
+    //migrated from TestDelete
+    "INSERT INTO test_delete VALUES (1, 10, 0, 'first star to the right and straight on till morning','Peter Pan')",
+    "INSERT INTO test_delete VALUES (2, 16, 1000, 'Green Gables', 'Anne Shirley')",
+    "INSERT INTO test_delete VALUES (3, 8, 0, 'London', 'Lucy')",
+    "INSERT INTO test_delete VALUES (4, 10, 0, 'London', 'Edmund')",
+    "INSERT INTO test_delete VALUES (5, 30, 100000, '221B Baker Street', 'Sherlock Holmes')",
+    "INSERT INTO test_delete VALUES (6, 21, 2000, 'Pemberly', 'Elizabeth')",
+    "INSERT INTO test_delete VALUES (7, 10000, 1, 'Mordor', 'Sauron')",
+    "INSERT INTO test_delete VALUES (8, 25, 100, 'The Heath', 'Eustacia Vye')",
+    "DELETE FROM test_delete WHERE id=1",
+    "SELECT * FROM test_delete",
+    "DELETE FROM test_delete WHERE age=30",
+    "SELECT * FROM test_delete",
+    "DELETE FROM test_delete WHERE name='Eustacia Vye'",
+    "SELECT * FROM test_delete",
+    "DELETE FROM test_delete WHERE address='London'",
+    "SELECT * FROM test_delete",
+    "DELETE FROM test_delete WHERE salary = 1",
+    "SELECT * FROM test_delete",
+    "INSERT INTO test_delete VALUES (1, 10, 0, 'first star to the right and straight on till morning','Peter Pan')",
+    "SELECT * FROM test_delete",
+    "DELETE FROM test_delete",
+    "SELECT * FROM test_delete",
+    "DROP TABLE test_delete",
+    //migrated from TestSearch
+    "INSERT INTO test_search VALUES (1, 'short text')",
+    "INSERT INTO test_search VALUES (2, 'Text with CAPITALIZATION')",
+    "INSERT INTO test_search VALUES (3, '')",
+    "INSERT INTO test_search VALUES (4, 'When I have fears that I may cease to be, before my pen has gleaned my teeming brain; before high piled books in charactery hold like ruch garners the full-ripened grain. When I behold on the nights starred face huge cloudy symbols of high romance and think that I may never live to trace their shadows with the magic hand of chance; when I feel fair creature of the hour that I shall never look upon thee more, never have relish of the faerie power of unreflecting love, I stand alone on the edge of the wide world and think till love and fame to nothingness do sink')",
+    "SELECT * FROM test_search WHERE searchable LIKE '%text%'",
+    "SELECT * FROM test_search WHERE searchable LIKE 'short%'",
+    "SELECT * FROM test_search WHERE searchable LIKE ''",
+    "SELECT * FROM test_search WHERE searchable LIKE '%capitalization'",
+    "SELECT * FROM test_search WHERE searchable LIKE 'noword'",
+    "SELECT * FROM test_search WHERE searchable LIKE 'when%'",
+    "SELECT * FROM test_search WHERE searchable < 'slow'",
+    "UPDATE test_search SET searchable='text that is new' WHERE id=1",
+    "SELECT * FROM test_search WHERE searchable < 'slow'",
+    "DROP TABLE test_search",
+};
+static vector<string> plain_create = {
+    "CREATE TABLE test_insert (id integer primary key auto_increment, age integer, salary integer, address text, name text)",
+    "CREATE TABLE test_select (id integer, age integer, salary integer, address text, name text)",
+    "CREATE TABLE test_join1 (id integer, age integer, salary integer, address text, name text)",
+    "CREATE TABLE test_join2 (id integer, books integer, name text)",
+    "CREATE TABLE test_update (id integer, age integer, salary integer, address text, name text)",
+    "CREATE TABLE test_delete (id integer, age integer, salary integer, address text, name text)",
+    "CREATE TABLE test_search (id integer, searchable text)"
+};
+static vector<string> single_create = {
+    "CREATE TABLE test_insert (id integer primary key auto_increment, age enc integer, salary enc integer, address enc text, name text)",
+    "CREATE TABLE test_select (id integer, age enc integer, salary enc integer, address enc text, name text)",
+    "CREATE TABLE test_join1 (id integer, age enc integer, salary enc integer, address enc text, name text)",
+    "CREATE TABLE test_join2 (id integer, books enc integer, name enc text)",
+    "CREATE TABLE test_update (id integer, age enc integer, salary enc integer, address enc text, name enc text)",
+    "CREATE TABLE test_delete (id integer, age enc integer, salary enc integer, address enc text, name enc text)",
+    "CREATE TABLE test_search (id integer, searchable enc search text)"
+};
+static vector<string> multi_create = {
+    "CREATE TABLE test_insert (id integer primary key auto_increment, age integer, salary integer, address text, name text)",
+    "CREATE TABLE test_select (id integer, age integer, salary integer, address text, name text)",
+    "CREATE TABLE test_join1 (id integer, age integer, salary integer, address text, name text)",
+    "CREATE TABLE test_join2 (id integer, books integer, name text)",
+    "CREATE TABLE test_update (id integer, age integer, salary integer, address text, name text)",
+    "CREATE TABLE test_delete (id integer, age enc integer, salary enc integer, address enc text, name enc text)",
+    "CREATE TABLE test_search (id integer, searchable enc search text)"
+};
 
 Connection::Connection(const TestConfig &input_tc, int input_type) {
     if (input_type > 3) { 
@@ -100,6 +275,7 @@ Connection::execute(string query) {
 
 void
 Connection::executeFail(string query) {
+    cerr << query << endl;
     LOG(test) << "Query: " << query << " could not execute" << endl;
     if(tc.stop_if_fail) {
         assert_s(false, query + " could not execute");
@@ -156,7 +332,7 @@ static void
 RunTest(const TestConfig &tc) {
     assert_s(plain_create.size() == single_create.size() && plain_create.size() == multi_create.size(), "create query lists are not the same size");
 
-    for (unsigned int i = 0; i <= plain_create.size(); i++) {
+    for (unsigned int i = 0; i < plain_create.size(); i++) {
         string control_query;
         string test_query;
         switch(control_type) {
@@ -262,9 +438,11 @@ TestQueries::run(const TestConfig &tc, int argc, char ** argv) {
         return;
     }        
 
-    //query: do they need their own tc?
+    //query: do they need their own tc? yes!  different dbs
+    TestConfig control_tc = TestConfig();
+    control_tc.db = control_tc.db+"_control";
     
-    control = new Connection(tc, control_type);
+    control = new Connection(control_tc, control_type);
     test = new Connection(tc, test_type);
 
     RunTest(tc);
