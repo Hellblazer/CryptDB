@@ -15,7 +15,7 @@ PrintRes(const ResType &res)
     cerr << endl;
     for (auto outer = res.rows.begin(); outer != res.rows.end(); outer++) {
         for (auto inner = outer->begin(); inner != outer->end(); inner++)
-            cerr << *inner << " | ";
+            cerr << inner->to_string() << " | ";
         cerr << endl;
     }
 }

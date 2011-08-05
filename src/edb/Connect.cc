@@ -156,19 +156,18 @@ DBResult::unpack()
             break;
         unsigned long *lengths = mysql_fetch_lengths(n);
 
-        vector<string> resrow;
+        vector<SqlItem> resrow;
 
         for (int j = 0; j < cols; j++) {
-
+            SqlItem item;
             if (row[j] == NULL) {
-                /*
-                 * XXX why are we losing NULLs?
-                 */
-                resrow.push_back("");
+                item.null = true;
             } else {
-                resrow.push_back(string(row[j], lengths[j]));
+                item.null = false;
+                item.type = res.types[j];
+                item.data = string(row[j], lengths[j]);
             }
-
+            resrow.push_back(item);
         }
 
         res.rows.push_back(resrow);

@@ -74,7 +74,7 @@ class MultiPrinc {
     /*** INSERT tasks ***/
 
     //wordsIt points to the first value
-    void insertRelations(const list<string> & values, string table,
+    void insertRelations(const list<pair<string, bool> > & values, string table,
                          list<string> fields,
                          TMKM & tmkm);
 
@@ -93,7 +93,7 @@ class MultiPrinc {
     // field
     // -- the key is to be used for a result set
     string get_key(string fieldName, TMKM & tmkm,
-                   const vector<string>  & res);
+                   const vector<SqlItem> &res);
 
  private:
     Connect * conn;

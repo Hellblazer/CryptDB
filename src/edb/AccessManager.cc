@@ -796,11 +796,10 @@ KeyAccess::insert(Prin hasAccess, Prin accessTo)
             Prin this_row;
             this_row.type = hasAccess.type;
             this_row.gen = hasAccess.gen;
-            this_row.value = it->at(0);
+            this_row.value = it->at(0).data;
             string key_for_decryption = getKey(this_row);
             if (key_for_decryption.length() > 0) {
-                PrinKey accessToPrinKey = decryptSym(it->at(
-                                                         2),
+                PrinKey accessToPrinKey = decryptSym(it->at(2),
                                                      key_for_decryption,
                                                      it->at(3));
                 accessToKey = accessToPrinKey.key;
@@ -1152,7 +1151,7 @@ KeyAccess::getPublicKey(Prin prin)
         return NULL;
     }
 
-    string key = unmarshallBinary(res.rows[0][2]);
+    string key = res.rows[0][2].data;
     return crypt_man->unmarshallKey(key, true);
 }
 
@@ -1185,7 +1184,6 @@ KeyAccess::getSecretKey(Prin prin)
         return error;
     }
 
-    string string_key = res.rows[0][3];
     return decryptSym(res.rows[0][3], getKey(prin), res.rows[0][4]);
 }
 
@@ -1277,7 +1275,7 @@ KeyAccess::insertPsswd(Prin gives, const string &psswd)
                         //remember to check this Prin on the next level
                         Prin new_prin;
                         new_prin.gen = res.names[1];
-                        new_prin.value = row->at(1);
+                        new_prin.value = row->at(1).data;
                         accessible_values.insert(new_prin);
                         string new_key = getKey(new_prin);
                         PrinKey new_prin_key;
@@ -1286,15 +1284,15 @@ KeyAccess::insertPsswd(Prin gives, const string &psswd)
                             assert_s(getKey(
                                          hasAccess_prin).length() > 0,
                                      "there is a logical issue with insertPsswd: getKey should have the key for hasAccess");
-                            if (row->at(4) == "X''") {  // symmetric key okay
+                            if (row->at(4).null || row->at(4).data.size() == 0) {
+                                // symmetric key okay
                                 new_prin_key =
                                     decryptSym(row->at(2), getKey(
                                                    hasAccess_prin), row->at(3));
-                            } else {                             //use
-                                                                 // asymmetric
+                            } else {
+                                // use asymmetric
                                 PrinKey sec_key = getSecretKey(hasAccess_prin);
-                                new_prin_key = decryptAsym(row->at(
-                                                               4),
+                                new_prin_key = decryptAsym(row->at(4),
                                                            sec_key.key);
                             }
                         }
@@ -1617,7 +1615,7 @@ KeyAccess::SelectCount(std::set<Prin> & prin_set, string table_name)
     auto res = dbres->unpack();
     delete dbres;
 
-    return (int) valFromStr(res.rows[0][0]);
+    return (int) valFromStr(res.rows[0][0].data);
 }
 
 int
@@ -1668,30 +1666,30 @@ KeyAccess::GenerateAsymKeys(Prin prin, PrinKey prin_key)
 }
 
 PrinKey
-KeyAccess::decryptSym(string str_encrypted_key,
+KeyAccess::decryptSym(const SqlItem &sql_encrypted_key,
                       const string &key_for_decrypting,
-                      string str_salt)
+                      const SqlItem &sql_salt)
 {
     if(VERBOSE) {
         cerr << "\tuse symmetric decryption" << endl;
     }
-    string encrypted_key = unmarshallBinary(str_encrypted_key);
-    uint64_t salt = valFromStr(str_salt);
+    string encrypted_key = sql_encrypted_key.data;
+    uint64_t salt = valFromStr(sql_salt.data);
     AES_KEY * aes = crypt_man->get_key_SEM(key_for_decrypting);
-    string key = crypt_man->decrypt_SEM(encrypted_key,aes,salt);
+    string key = crypt_man->decrypt_SEM(encrypted_key, aes, salt);
     PrinKey result;
     result.key = key;
     return result;
 }
 
 PrinKey
-KeyAccess::decryptAsym(string str_encrypted_key, const string &secret_key)
+KeyAccess::decryptAsym(const SqlItem &sql_encrypted_key, const string &secret_key)
 {
     if(VERBOSE) {
         cerr << "\tuse asymmetric decryption" << endl;
     }
     PKCS * pk_sec_key = crypt_man->unmarshallKey(secret_key, false);
-    string encrypted_key = unmarshallBinary(str_encrypted_key);
+    string encrypted_key = sql_encrypted_key.data;
     string key = crypt_man->decrypt(pk_sec_key, encrypted_key);
     assert_s(
         key.length() == (unsigned int) AES_KEY_BYTES,
@@ -1770,10 +1768,12 @@ KeyAccess::getUncached(Prin prin)
             Select(prin_set, meta->getTable(set_it->gen, prin.gen), "*");
         if (res.rows.size() > 0) {
             PrinKey new_prin_key;
-            if (res.rows[0][4] == "X''") {             //symmetric key okay
+            if (res.rows[0][4].null || res.rows[0][4].data.size() == 0) {
+                // symmetric key okay
                 new_prin_key = decryptSym(res.rows[0][2],
                                           getKey(*set_it), res.rows[0][3]);
-            } else {             //use asymmetric
+            } else {
+                // use asymmetric
                 PrinKey sec_key = getSecretKey(*set_it);
                 new_prin_key = decryptAsym(res.rows[0][4], sec_key.key);
             }

@@ -533,7 +533,7 @@ MultiPrinc::checkPredicate(string hasaccess, map<string, string> & vals)
                      dbres), "failure while executing query " + query);
         ResType result = dbres->unpack();
         delete dbres;
-        if (result.rows[0][0].compare("1") == 0) {
+        if (result.rows[0][0].data == "1") {
             if (VERBOSE_G) { LOG(mp) << "pred OK\n"; }
             return true;
         } else {
@@ -548,7 +548,7 @@ MultiPrinc::checkPredicate(string hasaccess, map<string, string> & vals)
 
 //wordsIt points to the first value
 void
-MultiPrinc::insertRelations(const list<string> & values, string table,
+MultiPrinc::insertRelations(const list<pair<string, bool> > & values, string table,
                             list<string> fields,
                             TMKM & tmkm)
 {
@@ -556,13 +556,13 @@ MultiPrinc::insertRelations(const list<string> & values, string table,
     //first collect all values in a list
     map<string, string> vals;
     list<string>::iterator fieldIt = fields.begin();
-    list<string>::const_iterator valIt = values.begin();
+    auto valIt = values.begin();
 
-    if (VERBOSE_G) { LOG(mp) << "fields are " << toString(fields, id_op); }
-    if (VERBOSE_G) { LOG(mp) << "values are " << toString(fields, id_op); }
+    // if (VERBOSE_G) { LOG(mp) << "fields are " << toString(fields, id_op); }
+    // if (VERBOSE_G) { LOG(mp) << "values are " << toString(fields, id_op); }
 
     while (fieldIt != fields.end()) {
-        vals[*fieldIt] = removeApostrophe(*valIt);
+        vals[*fieldIt] = removeApostrophe(valIt->first);
         fieldIt++; valIt++;
     }
 
@@ -676,7 +676,7 @@ MultiPrinc::get_key(string fieldName, TempMKM & tmkm)
 
 string
 MultiPrinc::get_key(string fieldName, TMKM & tmkm,
-                    const vector<string>  & res)
+                    const vector<SqlItem> &res)
 {
     assert_s(mkm.encForMap.find(
                  fieldName) != mkm.encForMap.end(),
@@ -700,7 +700,7 @@ MultiPrinc::get_key(string fieldName, TMKM & tmkm,
     }
 
     if (tmkm.encForReturned.find(encForField) != tmkm.encForReturned.end()) {
-        string val = res[tmkm.encForReturned[encForField]];
+        string val = res[tmkm.encForReturned[encForField]].data;
         string key = accMan->getKey(Prin(encForField, removeApostrophe(val)));
         LOG(mp) << "-- key from accman is " <<
         CryptoManager::marshallKey(key) << "\n";

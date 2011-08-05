@@ -27,7 +27,21 @@ checkQuery(const TestConfig &tc, EDBClient * cl, const string &query,
 {
     ResType expect;
     expect.names = names;
-    expect.rows = rows;
+    /*
+     * XXX temporarily fudge this..  Catherine is planning to redo testing
+     * so that we don't have to supply expected answers anyway.
+     */
+    for (auto i = rows.begin(); i != rows.end(); i++) {
+        vector<SqlItem> row;
+        for (auto j = i->begin(); j != i->end(); j++) {
+            SqlItem item;
+            item.null = false;
+            item.type = MYSQL_TYPE_BLOB;
+            item.data = *j;
+            row.push_back(item);
+        }
+        expect.rows.push_back(row);
+    }
 
     ntest++;
     ResType test_res = myExecute(cl, query);

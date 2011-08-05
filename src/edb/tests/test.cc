@@ -977,8 +977,8 @@ interactiveTest(const TestConfig &tc, int ac, char **av)
                 for (uint i = 0; i < r.names.size(); i++) {
                     width[i] = r.names[i].length();;
                     for (uint j = 0; j < r.rows.size(); j++)
-                        if (r.rows[j][i].length() > width[i])
-                            width[i] = r.rows[j][i].length();
+                        if (r.rows[j][i].to_string().length() > width[i])
+                            width[i] = r.rows[j][i].to_string().length();
                 }
                 {
                     stringstream ss;
@@ -989,7 +989,7 @@ interactiveTest(const TestConfig &tc, int ac, char **av)
                 for (unsigned int i = 0; i < r.rows.size(); i++) {
                     stringstream ss;
                     for (unsigned int j = 0; j < r.rows[i].size(); j++)
-                        ss << left << setw((int) (width[j] + 2)) << r.rows[i][j];
+                        ss << left << setw((int) (width[j] + 2)) << r.rows[i][j].to_string();
                     cout << ss.str() << endl;
                 }
             }
@@ -2459,19 +2459,19 @@ autoIncTest(const TestConfig &tc, int ac, char **av)
     ResType rt = cl->execute(
         "INSERT INTO t1 (post, age) VALUES ('A you go', 23);");
     assert_s(rt.ok && rt.names[0].compare("cryptdb_autoinc") == 0, "fieldname is not autoinc");
-    assert_s(rt.ok && rt.rows[0][0].compare("1") == 0, "autoinc not correct1");
+    assert_s(rt.ok && rt.rows[0][0].data == "1", "autoinc not correct1");
 
     rt = cl->execute(
         "INSERT INTO t1 (post, age) VALUES ('B there you go', 23);");
-    assert_s(rt.ok && rt.rows[1][0].compare("2") == 0, "autoinc not correct2");
+    assert_s(rt.ok && rt.rows[1][0].data == "2", "autoinc not correct2");
 
     rt = cl->execute("INSERT INTO t1 VALUES (3, 'C there you go', 23);");
-    cerr << "result is  " << rt.rows[0][0] << "\n";
-    assert_s(rt.ok && rt.rows[0][0].compare("3") == 0, "autoinc not correct3");
+    cerr << "result is  " << rt.rows[0][0].to_string() << "\n";
+    assert_s(rt.ok && rt.rows[0][0].data == "3", "autoinc not correct3");
 
     rt = cl->execute(
         "INSERT INTO t1 (post, age) VALUES ( 'D there you go', 23);");
-    assert_s(rt.ok && rt.rows[0][0].compare("4") == 0, "autoinc not correct4");
+    assert_s(rt.ok && rt.rows[0][0].data == "4", "autoinc not correct4");
 
     //delete cl;
 }

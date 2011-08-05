@@ -145,10 +145,14 @@ decrypt(lua_State *L)
         if (!lua_istable(L, -1))
             LOG(warn) << "mismatch";
 
-        vector<string> row;
+        vector<SqlItem> row;
         lua_pushnil(L);
         while (lua_next(L, -2)) {
-            row.push_back(xlua_tolstring(L, -1));
+            SqlItem item;
+            item.null = false;              /* XXX */
+            item.type = MYSQL_TYPE_BLOB;    /* XXX */
+            item.data = xlua_tolstring(L, -1);
+            row.push_back(item);
             lua_pop(L, 1);
         }
 
@@ -191,7 +195,7 @@ decrypt(lua_State *L)
 
         for (uint j = 0; j < rd.rows[i].size(); j++) {
             lua_pushinteger(L, j+1);
-            xlua_pushlstring(L, rd.rows[i][j]);
+            xlua_pushlstring(L, rd.rows[i][j].data);    /* XXX type, null */
             lua_settable(L, t_row);
         }
 
