@@ -27,6 +27,7 @@
 #include "TestCrypto.h"
 #include "TestAccessManager.h"
 #include "TestProxy.h"
+#include "TestQueries.h"
 
 using namespace std;
 
@@ -3888,6 +3889,7 @@ static struct {
     { "parseaccess",    "",                             &testParseAccess },
     { "pkcs",           "",                             &test_PKCS },
     { "proxy",          "(proxy)",                      &TestProxy::run },
+    { "queries",        "(queries)",                    &TestQueries::run },
     { "shell",          "(interactive shell)",          &interactiveTest },
     { "single",         "(integration - single principal)",&TestSinglePrinc::run },
     { "tables",         "",                             &encryptionTablesTest },

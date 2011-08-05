@@ -16,7 +16,7 @@ class TestConfig {
         pass = "letmein";
         host = "127.0.0.1";
         db = "cryptdbtest";
-	port = 3307;
+        port = 3307;
         stop_if_fail = false;
     }
 
