@@ -619,6 +619,10 @@ MultiPrinc::insertRelations(const list<string> & values, string table,
 }
 
 bool
+MultiPrinc::isPrincipal(string princ) {
+    return accMan->isType(princ);
+}
+bool
 MultiPrinc::isActiveUsers(const string &query)
 {
     list<string> words = getSQLWords(query);
@@ -640,16 +644,6 @@ MultiPrinc::isActiveUsers(const string &query)
     }
     return false;
 
-}
-
-bool
-MultiPrinc::isPrincipal(string fullname)
-{
-    if ((accMan->getTypesAccessibleFrom(fullname).size() > 0)) {
-
-        return true;
-    }
-    return false;
 }
 
 string

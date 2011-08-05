@@ -3875,25 +3875,26 @@ static void help(const TestConfig &tc, int ac, char **av);
 
 static struct {
     const char *name;
+    const char * description;
     void (*f)(const TestConfig &, int ac, char **av);
 } tests[] = {
-    { "access",      &TestAccessManager::run },
-    { "access_old",  &accessManagerTest },
-    { "aes",         &evaluate_AES },
-    { "autoinc",     &autoIncTest },
-    { "crypto",      &TestCrypto::run },
-    { "multi",       &TestMultiPrinc::run },
-    { "paillier",    &testPaillier },
-    { "parseaccess", &testParseAccess },
-    { "pkcs",        &test_PKCS },
-    { "proxy",       &TestProxy::run },
-    { "shell",       &interactiveTest },
-    { "single",      &TestSinglePrinc::run },
-    { "tables",      &encryptionTablesTest },
-    { "trace",       &testTrace },
-    { "utils",       &testUtils },
+    { "access",         "",                             &TestAccessManager::run },
+    { "access_old",     "",                             &accessManagerTest },
+    { "aes",            "",                             &evaluate_AES },
+    { "autoinc",        "",                             &autoIncTest },
+    { "crypto",         "(crypto functions)",           &TestCrypto::run },
+    { "multi",          "(integration multi principal)",&TestMultiPrinc::run },
+    { "paillier",       "",                             &testPaillier },
+    { "parseaccess",    "",                             &testParseAccess },
+    { "pkcs",           "",                             &test_PKCS },
+    { "proxy",          "(proxy)",                      &TestProxy::run },
+    { "shell",          "(interactive shell)",          &interactiveTest },
+    { "single",         "(integration - single principal)",&TestSinglePrinc::run },
+    { "tables",         "",                             &encryptionTablesTest },
+    { "trace",          "",                             &testTrace },
+    { "utils",          "",                             &testUtils },
 
-    { "help",        &help },
+    { "help",  "",      &help },
 };
 
 static void
@@ -3912,7 +3913,7 @@ help(const TestConfig &tc, int ac, char **av)
         cerr << "    " << i->first << endl;
     cerr << "Supported tests:" << endl;
     for (uint i = 0; i < NELEM(tests); i++)
-        cerr << "    " << tests[i].name << endl;
+        cerr << "    " << tests[i].name <<  "  " << tests[i].description << endl;
 }
 
 int

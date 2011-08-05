@@ -425,9 +425,8 @@ MetaAccess::getGenericPublic(string princ)
 {
     princ = sanitize(princ);
     if (prinToGen.find(princ) == prinToGen.end()) {
-        if (VERBOSE) {
-            LOG(am_v) << "Could not find generic for " << princ;
-        }
+        LOG(am_v) << "Could not find generic for " << princ;
+
         return "";
     }
     return prinToGen[princ];
@@ -500,6 +499,7 @@ MetaAccess::CheckAccess()
 int
 MetaAccess::CreateTables()
 {
+    LOG(am_v) << "create tables";
     assert_s(
         CheckAccess(),
         "ERROR: there is an access chain that does not terminate at a givesPsswd principal");
@@ -1056,6 +1056,7 @@ KeyAccess::removeFromOrphans(Prin orphan)
 string
 KeyAccess::getKey(Prin prin)
 {
+    LOG(am_v) << "getKey (" << prin.type << ", " << prin.value << ") \n";
     if(prin.gen == "") {
         prin.gen = meta->getGenericPublic(prin.type);
     }
@@ -1199,8 +1200,11 @@ KeyAccess::insertPsswd(Prin gives, const string &psswd)
 
     int ret = 0;
 
+    cerr << "AAAAAAAAAAAAA\n";
     gives.gen = meta->getGenericPublic(gives.type);
     std::set<string> gives_hasAccessTo = meta->getGenHasAccessTo(gives.gen);
+
+    cerr << "BBBBBBBBBB\n";
 
     // put password into local keys
     PrinKey password = buildKey(gives, psswd);
