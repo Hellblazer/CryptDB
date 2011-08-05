@@ -40,9 +40,9 @@ ResType myExecute(EDBClient * cl, string query);
 ResType myCreate(EDBClient * cl, string annotated_query, string plain_query);
 
 static inline void
-assert_res(const ResType &r, const char *blah)
+assert_res(const ResType &r, const char *msg)
 {
-    assert_s(r.ok, blah);
+    assert_s(r.ok, msg);
 }
 
 static inline bool

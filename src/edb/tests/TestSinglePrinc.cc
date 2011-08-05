@@ -33,9 +33,18 @@ convert(string rows[][N], int num_rows)
     for (int j = 0; j < N; j++)
         res.names.push_back(rows[0][j]);
     for (int i = 1; i < num_rows; i++) {
-        vector<string> temp;
-        for (int j = 0; j < N; j++)
-            temp.push_back(rows[i][j]);
+        vector<SqlItem> temp;
+        for (int j = 0; j < N; j++) {
+            /*
+             * XXX temporarily fudge this..  Catherine is planning to redo
+             * testing so that we don't have to supply expected answers anyway.
+             */
+            SqlItem item;
+            item.null = false;
+            item.type = MYSQL_TYPE_BLOB;
+            item.data = rows[i][j];
+            temp.push_back(item);
+        }
         res.rows.push_back(temp);
     }
     return res;
@@ -95,7 +104,22 @@ qUpdateSelect(const TestConfig &tc, EDBClient *cl, const string &update,
     assert_res(myExecute(cl, update), "Query failed, Update or Delete test failed\n");
     ResType expect;
     expect.names = exp_names;
-    expect.rows = exp_rows;
+
+    /*
+     * XXX temporarily fudge this..  Catherine is planning to redo testing
+     * so that we don't have to supply expected answers anyway.
+     */
+    for (auto i = exp_rows.begin(); i != exp_rows.end(); i++) {
+        vector<SqlItem> row;
+        for (auto j = i->begin(); j != i->end(); j++) {
+            SqlItem item;
+            item.type = MYSQL_TYPE_BLOB;
+            item.data = *j;
+            item.null = (item.data == "NULL");
+            row.push_back(item);
+        }
+        expect.rows.push_back(row);
+    }
 
     ntest++;
     ResType test_res = myExecute(cl, select);
@@ -224,7 +248,7 @@ testInsert(const TestConfig &tc, EDBClient * cl)
         "select age from t1",
         { "age" },
         { { "21" }, { "23" }, { "25" }, { "26" }, { "27" },
-         { "" /* XXX should be NULL */ }, { "40" } });
+          { "NULL" /* XXX weird way to represent NULL */ }, { "40" } });
     qUpdateSelect(tc, cl,
         "INSERT INTO t1 (address) VALUES ('right star to the right')",
         "select address from t1 where id=9",
@@ -995,8 +1019,10 @@ testSearch(const TestConfig &tc, EDBClient * cl)
                            {"2", "Text with CAPITALIZATION"} };
     reply.push_back(convert(rows1,3));
 
-    query.push_back("SELECT * FROM t3 WHERE searchable LIKE 'short'");
-    reply.push_back(ResType());
+    query.push_back("SELECT * FROM t3 WHERE searchable LIKE 'short%'");
+    string rows2[2][2] = { {"id", "searchable"},
+                             {"1", "short text"}};
+    reply.push_back(convert(rows2,2));
 
     query.push_back("SELECT * FROM t3 WHERE searchable LIKE ''");
     string rows3[2][2] = { {"id", "searchable"},

@@ -1,18 +1,10 @@
 - check that our keys and ciphertexts are actually random and changing..
 
-- marshalling/escaping code is too complicated and sometimes wrong; e.g.,
-  text seems to encrypt a quoted version of the string.  no need to keep
-  marshalled versions of data in CryptoManager::crypt.  no need to marshall
-  data we get back from the database in DBResult::unpack.  just marshall
-  when issuing an SQL query.  may need explicit type info to know how to
-  marshall different types.
-
 - use PBKDF2 for password-based key generation.
   need to store (salt varchar(128), rounds int) for each external principal,
   and fetch it before being able to compute the key.
 
-- RND wrapper around SWP for completeness.
-
 - fix MySQL UDFs so that invalid invocations do not crash the server,
   e.g. "select searchSWP();"
 
+- BIG TODO: more generic parser and a cell data structure for each data item

@@ -2023,7 +2023,7 @@ printRes(const ResType &r)
         stringstream ss;
         for (unsigned int j = 0; j < r.rows[i].size(); j++) {
             char buf[400];
-            snprintf(buf, sizeof(buf), "%-20s", r.rows[i][j].c_str());
+            snprintf(buf, sizeof(buf), "%-20s", r.rows[i][j].to_string().c_str());
             ss << buf;
         }
         LOG(edb) << ss.str();
@@ -2066,7 +2066,7 @@ EDBClient::rewriteDecryptSelect(const string &query, const ResType &dbAnswer)
     //prepare the result
 
     ResType rets;
-    rets.rows = vector<vector<string> >(rm.nTuples);
+    rets.rows.resize(rm.nTuples);
 
     size_t nFields = rm.nFields;
     size_t nTrueFields = rm.nTrueFields;
@@ -2099,7 +2099,7 @@ EDBClient::rewriteDecryptSelect(const string &query, const ResType &dbAnswer)
 
             if (rm.isSalt[j]) {             // this is salt
                 LOG(edb) << "salt";
-                salt = valFromStr(dbAnswer.rows[i][j]);
+                salt = valFromStr(dbAnswer.rows[i][j].data);
                 continue;
             }
 
@@ -2133,15 +2133,16 @@ EDBClient::rewriteDecryptSelect(const string &query, const ResType &dbAnswer)
                                                         rm.o[j]),
                                            tableMetaMap[table]->anonTableName);
             bool isBin;
-            rets.rows[i][index] =
-                crypt(dbAnswer.rows[i][j], fm->type, fullName(field, table),
-                      fullAnonName,
+            rets.rows[i][index].null = dbAnswer.rows[i][j].null;
+            rets.rows[i][index].type = dbAnswer.rows[i][j].type; /* XXX not always right */
+            rets.rows[i][index].data =
+                crypt(dbAnswer.rows[i][j].data, fm->type,
+                      fullName(field, table), fullAnonName,
                       getLevelForOnion(fm, rm.o[j]),
                       getLevelPlain(rm.o[j]), salt,
                       tmkm, isBin, dbAnswer.rows[i]);
 
             index++;
-
         }
     }
 
@@ -2466,8 +2467,7 @@ throw (CryptDBError)
 
 string
 EDBClient::processValsToInsert(string field, string table, uint64_t salt,
-                               string value,
-                               TMKM & tmkm)
+                               string value, TMKM & tmkm, bool null)
 {
 
     FieldMetadata * fm = tableMetaMap[table]->fieldMetaMap[field];
@@ -2476,20 +2476,24 @@ EDBClient::processValsToInsert(string field, string table, uint64_t salt,
         return value;
     }
 
+    /* XXX */
+    if (equalsIgnoreCase(value, "null"))
+        null = true;
+
     if (DECRYPTFIRST) {
         string fullname = fullName(field, table);
         fieldType type = fm->type;
         string anonTableName = tableMetaMap[table]->anonTableName;
 
+        if (null)
+            return "NULL";
         if (type == TYPE_INTEGER) {
-            if (equalsIgnoreCase(value,"null")) {value = "0"; }
             AES_KEY * key = CryptoManager::get_key_DET(dec_first_key);
             string res =
                 strFromVal(CryptoManager::encrypt_DET(valFromStr(value),
                                                        key));
             return res;
         } else {
-            if (equalsIgnoreCase(value,"null")) {value = " "; }
             assert_s(type == TYPE_TEXT, "given unexpected type");
             AES_KEY * key = CryptoManager::get_key_SEM(dec_first_key);
             string ptext = removeApostrophe(value);
@@ -2504,15 +2508,13 @@ EDBClient::processValsToInsert(string field, string table, uint64_t salt,
 
     string anonTableName = tableMetaMap[table]->anonTableName;
 
-    if (equalsIgnoreCase(value,"null")) {
+    if (null) {
+        res += " NULL ";    /* DET */
         if (fm->exists(fm->anonFieldNameOPE)) {
             res += ", NULL ";
         }
         if (fm->exists(fm->anonFieldNameAGG)) {
-            res += ", " +
-                   marshallBinary(BytesFromInt(1,
-                                               CryptoManager::
-                                               Paillier_len_bytes));
+            res += ", NULL ";
         }
         if (fm->has_search) {
             res += ", NULL ";
@@ -2558,13 +2560,13 @@ EDBClient::processValsToInsert(string field, string table, uint64_t salt,
 
 }
 
-string
+pair<string, bool>
 EDBClient::getInitValue(string field, string table, AutoInc * ai)
 {
 
     TableMetadata * tm = tableMetaMap[table];
 
-    FieldMetadata * fm = tm->fieldMetaMap[field];
+    // FieldMetadata * fm = tm->fieldMetaMap[field];
 
     //check if field has autoinc
     if (tm->autoIncField == field) {
@@ -2572,17 +2574,12 @@ EDBClient::getInitValue(string field, string table, AutoInc * ai)
         assert_s(
             ai != NULL,
             "Current field has autoinc, but the autoincrement value was not supplied ");
-        return StringFromVal(ai->incvalue + 1);
+        return make_pair(StringFromVal(ai->incvalue + 1), false);
     }
 
     // use the default value
     // TODO: record default values
-    if (fm->type == TYPE_INTEGER) {
-        return "0";
-    } else {
-        return "''";
-    }
-
+    return make_pair("", true);
 }
 
 list<string>
@@ -2717,12 +2714,12 @@ throw (CryptDBError)
 
         //collect all values in vals
 
-        list<string> vals;
+        list<pair<string, bool> > valnulls;
         list<string>::iterator fieldIt = fields.begin();
 
         //add encryptions of the fields
         for (unsigned int i = 0; i < noFieldsGiven; i++) {
-            vals.push_back(*wordsIt);
+            valnulls.push_back(make_pair(*wordsIt, false));
             wordsIt++;
             checkStr(wordsIt, words, ",",")");
         }
@@ -2730,8 +2727,7 @@ throw (CryptDBError)
         for (addit = fieldsToAdd.begin(); addit != fieldsToAdd.end();
              addit++) {
             string field = *addit;
-            string val = getInitValue(field, table, ai);
-            vals.push_back(val);
+            valnulls.push_back(getInitValue(field, table, ai));
         }
 
         if (mp) {
@@ -2739,17 +2735,17 @@ throw (CryptDBError)
             for (addit = princsToAdd.begin(); addit != princsToAdd.end();
                  addit++) {
                 string field = *addit;
-                vals.push_back(getInitValue(table, field));
+                valnulls.push_back(getInitValue(table, field));
             }
 
             //insert any new hasaccessto instances
             LOG(edb_v) << "before insert relations";
-            mp->insertRelations(vals, table, fields, tmkm);
+            mp->insertRelations(valnulls, table, fields, tmkm);
         }
 
         LOG(edb_v) << "noFieldsGiven " << noFieldsGiven;
         LOG(edb_v) << "fiels have " << fields.size();
-        LOG(edb_v) << "vals have " << vals.size();
+        LOG(edb_v) << "valnulls have " << valnulls.size();
 
         uint64_t salt = 0;
 
@@ -2761,13 +2757,13 @@ throw (CryptDBError)
             }
         }
 
-        list<string>::iterator valIt = vals.begin();
+        auto valIt = valnulls.begin();
         fieldIt = fields.begin();
 
         //add encryptions of the fields
         for (unsigned int i = 0; i < noFieldsGiven; i++) {
             string fieldName = *fieldIt;
-            string value = removeApostrophe(*valIt);
+            string value = removeApostrophe(valIt->first);
 
             if (mp) {
                 string fullname = fullName(fieldName, table);
@@ -2791,8 +2787,8 @@ throw (CryptDBError)
 
             //cerr << "processing for field " << *fieldIt << " with given
             // value " << *valIt << "\n";
-            resultQuery += processValsToInsert(*fieldIt, table, salt,  *valIt,
-                                               tmkm);
+            resultQuery += processValsToInsert(*fieldIt, table, salt, valIt->first,
+                                               tmkm, valIt->second);
             valIt++;
             fieldIt++;
             if (i < noFieldsGiven-1) {
@@ -2804,10 +2800,10 @@ throw (CryptDBError)
         for (addit = fieldsToAdd.begin(); addit != fieldsToAdd.end();
              addit++) {
             string field = *addit;
-            string val = *valIt;
+            resultQuery += ", " + processValsToInsert(field, table, salt,
+                                                      valIt->first,
+                                                      tmkm, valIt->second);
             valIt++;
-            resultQuery += ", " + processValsToInsert(field, table, salt, val,
-                                                      tmkm);
         }
 
         if (mp) {
@@ -2816,16 +2812,15 @@ throw (CryptDBError)
                  addit++) {
                 string field = *addit;
                 string fullname = fullName(field, table);
-                string val = *valIt;
-                valIt++;
                 resultQuery += ", " +
-                               processValsToInsert(field, table, salt, val,
-                                                   tmkm);
+                               processValsToInsert(field, table, salt, valIt->first,
+                                                   tmkm, valIt->second);
+                valIt++;
             }
         }
 
-        assert_s(valIt == vals.end(), "valIt should have been the end\n");
-        vals.clear();
+        assert_s(valIt == valnulls.end(), "valIt should have been the end\n");
+        valnulls.clear();
 
         assert_s(wordsIt->compare(")") == 0, "missing )");
         resultQuery += ")";
@@ -2984,10 +2979,10 @@ considerQuery(command com, const string &query)
     case cmd::SELECT: {
         list<string> words = getSQLWords(query);
         //for speed
-        /*if ((!contains("from", words)) && (!contains("FROM", words))) {
-                if (VERBOSE_V) { cerr << "does not contain from";}
+        if ((!contains("from", words)) && (!contains("FROM", words))) {
+                //if (VERBOSE_V) { cerr << "does not contain from";}
                 return false;
-           }*/
+        }
         break;
     }
     case cmd::DROP: {
@@ -3548,19 +3543,20 @@ EDBClient::outputOnionState()
 }
 
 string
-EDBClient::dataForQuery(string data, fieldType ft, string fullname,
-                 string anonfullname,
-                 SECLEVEL fromlevel, SECLEVEL tolevel, uint64_t salt,
-                 //optional, for MULTIPRINC
-                 TMKM & tmkm,
-                 const vector<string> & res) {
+EDBClient::dataForQuery(const string &data, fieldType ft,
+                        const string &fullname, const string &anonfullname,
+                        SECLEVEL fromlevel, SECLEVEL tolevel, uint64_t salt,
+                        //optional, for MULTIPRINC
+                        TMKM &tmkm, const vector<SqlItem> &res)
+{
     bool isBin = false;
-    data = crypt(data, ft, fullname, anonfullname, fromlevel, tolevel, salt, tmkm, isBin, res);
+    string ndata = crypt(data, ft, fullname, anonfullname,
+                         fromlevel, tolevel, salt, tmkm, isBin, res);
 
     if (isBin) {
-        return marshallBinary(data);
+        return marshallBinary(ndata);
     } else {
-        return data;
+        return ndata;
     }
 }
 
@@ -3570,7 +3566,7 @@ EDBClient::crypt(string data, fieldType ft, string fullname,
                  SECLEVEL fromlevel, SECLEVEL tolevel, uint64_t salt,
                  //optional, for MULTIPRINC
                  TMKM & tmkm, bool & isBin,
-                 const vector<string> & res)
+                 const vector<SqlItem> &res)
 {
 
     LOG(crypto) << "crypting data " << data

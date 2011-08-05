@@ -27,7 +27,21 @@ checkQuery(const TestConfig &tc, EDBClient * cl, const string &query,
 {
     ResType expect;
     expect.names = names;
-    expect.rows = rows;
+    /*
+     * XXX temporarily fudge this..  Catherine is planning to redo testing
+     * so that we don't have to supply expected answers anyway.
+     */
+    for (auto i = rows.begin(); i != rows.end(); i++) {
+        vector<SqlItem> row;
+        for (auto j = i->begin(); j != i->end(); j++) {
+            SqlItem item;
+            item.null = false;
+            item.type = MYSQL_TYPE_BLOB;
+            item.data = *j;
+            row.push_back(item);
+        }
+        expect.rows.push_back(row);
+    }
 
     ntest++;
     ResType test_res = myExecute(cl, query);
@@ -92,20 +106,20 @@ BasicFunctionality(const TestConfig &tc, EDBClient * cl)
              "problem commiting annotations");
 
     //check insert into users (doesn't effect actual db)
-    myCreate(
+    assert_res(myCreate(
         cl,"INSERT INTO "+ PWD_TABLE_PREFIX +
-        "users (username, psswd) VALUES ('alice','secretalice');",
-        "INSERT INTO plain_users (username, psswd) VALUES ('alice','secretalice');");
+        "u (username, psswd) VALUES ('alice','secretalice');",
+        "INSERT INTO plain_users (username, psswd) VALUES ('alice','secretalice');"), "cannot log in alice");
 
-    myCreate(
+    assert_res(myCreate(
         cl,"DELETE FROM "+ PWD_TABLE_PREFIX +
-        "users WHERE username = 'alice';",
-        "DELETE FROM plain_users WHERE username = 'alice';");
+        "u WHERE username = 'alice';",
+        "DELETE FROM plain_users WHERE username = 'alice';"), "cannot log out alice");
 
-    myCreate(
+    assert_res(myCreate(
         cl,"INSERT INTO "+ PWD_TABLE_PREFIX +
-        "users (username, psswd) VALUES ('alice','secretalice');",
-        "INSERT INTO plain_users (username, psswd) VALUES ('alice','secretalice');");
+        "u (username, psswd) VALUES ('alice','secretalice');",
+        "INSERT INTO plain_users (username, psswd) VALUES ('alice','secretalice');"), "cannot log in alice");
 
     //check responses to normal queries
     checkQuery(tc, cl,"INSERT INTO u VALUES (1, 'alice')", {}, {});
@@ -131,10 +145,10 @@ BasicFunctionality(const TestConfig &tc, EDBClient * cl)
                {"id", "post", "age"},
                { {"1", "hello!", "23"} });
 
-    myCreate(
+    assert_res(myCreate(
         cl,"INSERT INTO "+ PWD_TABLE_PREFIX +
-        "users (username, psswd) VALUES ('raluca','secretraluca');",
-        "INSERT INTO plain_users (username, psswd) VALUES ('raluca','secretraluca');");
+        "u (username, psswd) VALUES ('raluca','secretraluca');",
+        "INSERT INTO plain_users (username, psswd) VALUES ('raluca','secretraluca');"), "raluca could not log in");
 
     checkQuery(tc, cl,"INSERT INTO u VALUES (2, 'raluca');", {}, {});
 
@@ -177,14 +191,14 @@ PrivMessages(const TestConfig &tc, EDBClient * cl)
                       "CREATE TABLE plain_users (username text, psswd text)"),
              "problem commiting annotations");
 
-    myCreate(
+    assert_res(myCreate(
         cl,"INSERT INTO "+ PWD_TABLE_PREFIX +
-        "users (username, psswd) VALUES ('alice','secretalice');",
-        "INSERT INTO plain_users (username, psswd) VALUES ('alice','secretalice');");
-    myCreate(
+        "u (username, psswd) VALUES ('alice','secretalice');",
+        "INSERT INTO plain_users (username, psswd) VALUES ('alice','secretalice');"), "alice could not log in");
+    assert_res(myCreate(
         cl,"INSERT INTO "+ PWD_TABLE_PREFIX +
-        "users (username, psswd) VALUES ('bob','secretbob');",
-        "INSERT INTO plain_users (username, psswd) VALUES ('bob','secretbob');");
+        "u (username, psswd) VALUES ('bob','secretbob');",
+        "INSERT INTO plain_users (username, psswd) VALUES ('bob','secretbob');"), "bob could not log in");
 
     checkQuery(tc, cl,"INSERT INTO u VALUES (1, 'alice')",{}, {});
     checkQuery(tc, cl,"INSERT INTO u VALUES (2, 'bob')",{}, {});
@@ -231,9 +245,9 @@ UserGroupForum(const TestConfig &tc, EDBClient * cl) {
 
     assert_res(myCreate(cl,"COMMIT ANNOTATIONS;","CREATE TABLE plain_users (username text, psswd text)"), "problem commiting annotations");
 
-    myCreate(cl,"INSERT INTO "+ PWD_TABLE_PREFIX + "users (username, psswd) VALUES ('alice','secretalice');","INSERT INTO plain_users (username, psswd) VALUES ('alice','secretalice');");
-    myCreate(cl,"INSERT INTO "+ PWD_TABLE_PREFIX + "users (username, psswd) VALUES ('bob','secretbob');","INSERT INTO plain_users (username, psswd) VALUES ('bob','secretbob');");
-    myCreate(cl,"INSERT INTO "+ PWD_TABLE_PREFIX + "users (username, psswd) VALUES ('chris','secretchris');","INSERT INTO plain_users (username, psswd) VALUES ('chris','secretchris');");
+    assert_res(myCreate(cl,"INSERT INTO "+ PWD_TABLE_PREFIX + "u (username, psswd) VALUES ('alice','secretalice');","INSERT INTO plain_users (username, psswd) VALUES ('alice','secretalice');"), "failed to log in alice");
+    assert_res(myCreate(cl,"INSERT INTO "+ PWD_TABLE_PREFIX + "u (username, psswd) VALUES ('bob','secretbob');","INSERT INTO plain_users (username, psswd) VALUES ('bob','secretbob');"), "failed to log in bob");
+    assert_res(myCreate(cl,"INSERT INTO "+ PWD_TABLE_PREFIX + "u (username, psswd) VALUES ('chris','secretchris');","INSERT INTO plain_users (username, psswd) VALUES ('chris','secretchris');"), "failed to log in chris");
 
     //populate things while everyone is logged in
     checkQuery(tc, cl,"INSERT INTO u VALUES (1, 'alice')",{}, {});
@@ -264,32 +278,35 @@ UserGroupForum(const TestConfig &tc, EDBClient * cl) {
 
     checkQuery(tc, cl,"INSERT INTO forum VALUES (1,'success-- you can see forum text')",{}, {});
 
-    myCreate(cl,"DELETE FROM "+ PWD_TABLE_PREFIX + "users WHERE username='alice';",
-         "DELETE FROM plain_users WHERE username='alice'");
-    myCreate(cl,"DELETE FROM "+ PWD_TABLE_PREFIX + "users WHERE username='bob';",
-         "DELETE FROM plain_users WHERE username='bob'");
-    myCreate(cl,"DELETE FROM "+ PWD_TABLE_PREFIX + "users WHERE username='chris';",
-         "DELETE FROM plain_users WHERE username='chris'");
+    assert_res(myCreate(cl,"DELETE FROM "+ PWD_TABLE_PREFIX + "u WHERE username='alice';",
+         "DELETE FROM plain_users WHERE username='alice'"), "alice's log out failed");
+    assert_res(myCreate(cl,"DELETE FROM "+ PWD_TABLE_PREFIX + "u WHERE username='bob';",
+         "DELETE FROM plain_users WHERE username='bob'"), "bob's log out failed");
+    assert_res(myCreate(cl,"DELETE FROM "+ PWD_TABLE_PREFIX + "u WHERE username='chris';",
+         "DELETE FROM plain_users WHERE username='chris'"), "chris's log out failed");
 
+    cerr << "a\n";
     //alice
-    myCreate(cl,"INSERT INTO "+ PWD_TABLE_PREFIX + "users (username, psswd) VALUES ('alice','secretalice');",
-         "INSERT INTO plain_users (username, psswd) VALUES ('alice','secretalice');");
+    assert_res(myCreate(cl,"INSERT INTO "+ PWD_TABLE_PREFIX + "u (username, psswd) VALUES ('alice','secretalice');",
+         "INSERT INTO plain_users (username, psswd) VALUES ('alice','secretalice');"), "alice cannot log in");
     checkQuery(tc, cl,"SELECT forumtext from forum WHERE forumid=1",
            {"forumtext"},
            { {"success-- you can see forum text"} } );
-    myCreate(cl,"DELETE FROM "+ PWD_TABLE_PREFIX + "users WHERE username='alice';",
-         "DELETE FROM plain_users WHERE username='alice'");
+    assert_res(myCreate(cl,"DELETE FROM "+ PWD_TABLE_PREFIX + "u WHERE username='alice';",
+         "DELETE FROM plain_users WHERE username='alice'"), "alice cannot log out");
     
+    cerr << "b\n";
     //bob
-    myCreate(cl,"INSERT INTO "+ PWD_TABLE_PREFIX + "users (username, psswd) VALUES ('bob','secretbob');",
-         "INSERT INTO plain_users (username, psswd) VALUES ('bob','secretbob');");
+    assert_res(myCreate(cl,"INSERT INTO "+ PWD_TABLE_PREFIX + "u (username, psswd) VALUES ('bob','secretbob');",
+         "INSERT INTO plain_users (username, psswd) VALUES ('bob','secretbob');"), "bob cannot log in");
     testNULL(tc, cl,"SELECT forumtext from forum WHERE forumid=1","");
-    myCreate(cl,"DELETE FROM "+ PWD_TABLE_PREFIX + "users WHERE username='bob';",
-         "DELETE FROM plain_users WHERE username='bob'");    
+    assert_res(myCreate(cl,"DELETE FROM "+ PWD_TABLE_PREFIX + "u WHERE username='bob';",
+         "DELETE FROM plain_users WHERE username='bob'"), "bob cannot log out");
 
+    cerr << "c\n";
     //chris
-    myCreate(cl,"INSERT INTO "+ PWD_TABLE_PREFIX + "users (username, psswd) VALUES ('chris','secretchris');",
-         "INSERT INTO plain_users (username, psswd) VALUES ('chris','secretchris');");
+    assert_res(myCreate(cl,"INSERT INTO "+ PWD_TABLE_PREFIX + "u (username, psswd) VALUES ('chris','secretchris');",
+         "INSERT INTO plain_users (username, psswd) VALUES ('chris','secretchris');"), "chris cannot log in");
     checkQuery(tc, cl,"SELECT forumtext from forum WHERE forumid=1",
            {"forumtext"},
            { {"success-- you can see forum text"} } );
@@ -297,12 +314,12 @@ UserGroupForum(const TestConfig &tc, EDBClient * cl) {
     checkQuery(tc, cl,"SELECT forumtext from forum WHERE forumid=1",
            {"forumtext"},
            { {"you win!"} } );
-    myCreate(cl,"DELETE FROM "+ PWD_TABLE_PREFIX + "users WHERE username='chris';",
-         "DELETE FROM plain_users WHERE username='chris'");    
+    assert_res(myCreate(cl,"DELETE FROM "+ PWD_TABLE_PREFIX + "u WHERE username='chris';",
+         "DELETE FROM plain_users WHERE username='chris'"), "chris cannot log out");
 
     //alice
-    myCreate(cl,"INSERT INTO "+ PWD_TABLE_PREFIX + "users (username, psswd) VALUES ('alice','secretalice');",
-         "INSERT INTO plain_users (username, psswd) VALUES ('alice','secretalice');");
+    assert_res(myCreate(cl,"INSERT INTO "+ PWD_TABLE_PREFIX + "u (username, psswd) VALUES ('alice','secretalice');",
+         "INSERT INTO plain_users (username, psswd) VALUES ('alice','secretalice');"), "alice cannot log in");
     checkQuery(tc, cl,"SELECT forumtext from forum WHERE forumid=1",
            {"forumtext"},
            { {"you win!"} } );
@@ -310,21 +327,21 @@ UserGroupForum(const TestConfig &tc, EDBClient * cl) {
     checkQuery(tc, cl,"SELECT forumtext from forum WHERE forumid=2",
            {"forumtext"},
            { {"orphaned text!  everyone should be able to reach"} } );
-    myCreate(cl,"DELETE FROM "+ PWD_TABLE_PREFIX + "users WHERE username='alice';",
-         "DELETE FROM plain_users WHERE username='alice'");
+    assert_res(myCreate(cl,"DELETE FROM "+ PWD_TABLE_PREFIX + "users WHERE username='alice';",
+         "DELETE FROM plain_users WHERE username='alice'"), "alice cannot log out");
 
     //bob
-    myCreate(cl,"INSERT INTO "+ PWD_TABLE_PREFIX + "users (username, psswd) VALUES ('bob','secretbob');",
-         "INSERT INTO plain_users (username, psswd) VALUES ('bob','secretbob');");
+    assert_res(myCreate(cl,"INSERT INTO "+ PWD_TABLE_PREFIX + "u (username, psswd) VALUES ('bob','secretbob');",
+         "INSERT INTO plain_users (username, psswd) VALUES ('bob','secretbob');"), "Bob cannot log in");
     checkQuery(tc, cl,"SELECT forumtext from forum WHERE forumid=2",
            {"forumtext"},
            { {"orphaned text!  everyone should be able to reach"} } );
-    myCreate(cl,"DELETE FROM "+ PWD_TABLE_PREFIX + "users WHERE username='bob';",
-         "DELETE FROM plain_users WHERE username='bob  '");
+    assert_res(myCreate(cl,"DELETE FROM "+ PWD_TABLE_PREFIX + "users WHERE username='bob';",
+         "DELETE FROM plain_users WHERE username='bob  '"), "bob cannot log out");
 
     //chris
-    myCreate(cl,"INSERT INTO "+ PWD_TABLE_PREFIX + "users (username, psswd) VALUES ('chris','secretchris');",
-         "INSERT INTO plain_users (username, psswd) VALUES ('chris','secretchris');");
+    assert_res(myCreate(cl,"INSERT INTO "+ PWD_TABLE_PREFIX + "u (username, psswd) VALUES ('chris','secretchris');",
+         "INSERT INTO plain_users (username, psswd) VALUES ('chris','secretchris');"), "chris cannot log in");
     checkQuery(tc, cl,"SELECT forumtext from forum WHERE forumid=2",
            {"forumtext"},
            { {"orphaned text!  everyone should be able to reach"} } );
@@ -333,26 +350,26 @@ UserGroupForum(const TestConfig &tc, EDBClient * cl) {
            {"forumtext"},
            { {"you win!"},
          {"orphaned text!  everyone should be able to reach"} } );
-    myCreate(cl,"DELETE FROM "+ PWD_TABLE_PREFIX + "users WHERE username='chris';",
-         "DELETE FROM plain_users WHERE username='chris'");
+    assert_res(myCreate(cl,"DELETE FROM "+ PWD_TABLE_PREFIX + "u WHERE username='chris';",
+         "DELETE FROM plain_users WHERE username='chris'"), "chris cannot log out");
 
     //bob
-    myCreate(cl,"INSERT INTO "+ PWD_TABLE_PREFIX + "users (username, psswd) VALUES ('bob','secretbob');",
-         "INSERT INTO plain_users (username, psswd) VALUES ('bob','secretbob');");
+    assert_res(myCreate(cl,"INSERT INTO "+ PWD_TABLE_PREFIX + "u (username, psswd) VALUES ('bob','secretbob');",
+         "INSERT INTO plain_users (username, psswd) VALUES ('bob','secretbob');"), "bob is unable to log in");
     checkQuery(tc, cl,"SELECT forumtext FROM forum, groupforum, usergroup, u WHERE forum.forumid=groupforum.forumid AND groupforum.groupid=usergroup.groupid AND usergroup.userid=u.userid AND u.username='bob' AND groupforum.optionid=20",
            {"forumtext"},
            { {"orphaned text!  everyone should be able to reach"} } );
-    myCreate(cl,"DELETE FROM "+ PWD_TABLE_PREFIX + "users WHERE username='bob';",
-         "DELETE FROM plain_users WHERE username='bob  '");
+    assert_res(myCreate(cl,"DELETE FROM "+ PWD_TABLE_PREFIX + "u WHERE username='bob';",
+         "DELETE FROM plain_users WHERE username='bob  '"), "bob is unable to log out");
 
     //alice
-    myCreate(cl,"INSERT INTO "+ PWD_TABLE_PREFIX + "users (username, psswd) VALUES ('alice','secretalice');",
-         "INSERT INTO plain_users (username, psswd) VALUES ('alice','secretalice');");
+    assert_res(myCreate(cl,"INSERT INTO "+ PWD_TABLE_PREFIX + "u (username, psswd) VALUES ('alice','secretalice');",
+         "INSERT INTO plain_users (username, psswd) VALUES ('alice','secretalice');"), "alice is unable to log in");
     checkQuery(tc, cl,"SELECT forumtext FROM forum, groupforum, usergroup, u WHERE forum.forumid=groupforum.forumid AND groupforum.groupid=usergroup.groupid AND usergroup.userid=u.userid AND u.username='alice' AND groupforum.optionid=20",
            {"forumtext"},
            { {"you win!"} } );
-    myCreate(cl,"DELETE FROM "+ PWD_TABLE_PREFIX + "users WHERE username='alice';",
-         "DELETE FROM plain_users WHERE username='alice'");
+    assert_res(myCreate(cl,"DELETE FROM "+ PWD_TABLE_PREFIX + "u WHERE username='alice';",
+         "DELETE FROM plain_users WHERE username='alice'"), "alice is unable to log out");
 
 }
 
@@ -375,11 +392,12 @@ UserGroupForum_incFunction(const TestConfig &tc, EDBClient * cl) {
 
     assert_res(myCreate(cl,"COMMIT ANNOTATIONS;","CREATE TABLE plain_users (username text, psswd text)"), "problem commiting annotations");
 
-    myCreate(cl,"INSERT INTO "+ PWD_TABLE_PREFIX + "users (username, psswd) VALUES ('alice','secretalice');","INSERT INTO plain_users (username, psswd) VALUES ('alice','secretalice');");
-    myCreate(cl,"INSERT INTO "+ PWD_TABLE_PREFIX + "users (username, psswd) VALUES ('bob','secretbob');","INSERT INTO plain_users (username, psswd) VALUES ('bob','secretbob');");
-    myCreate(cl,"INSERT INTO "+ PWD_TABLE_PREFIX + "users (username, psswd) VALUES ('chris','secretchris');","INSERT INTO plain_users (username, psswd) VALUES ('chris','secretchris');");
+    assert_res(myCreate(cl,"INSERT INTO "+ PWD_TABLE_PREFIX + "u (username, psswd) VALUES ('alice','secretalice');","INSERT INTO plain_users (username, psswd) VALUES ('alice','secretalice');"), "alice can't log in");
+    assert_res(myCreate(cl,"INSERT INTO "+ PWD_TABLE_PREFIX + "u (username, psswd) VALUES ('bob','secretbob');","INSERT INTO plain_users (username, psswd) VALUES ('bob','secretbob');"), "bob can't log in");
+    assert_res(myCreate(cl,"INSERT INTO "+ PWD_TABLE_PREFIX + "u (username, psswd) VALUES ('chris','secretchris');","INSERT INTO plain_users (username, psswd) VALUES ('chris','secretchris');"), "chris can't log in");
 
-    //populate things while everyone is logged in
+    //Alice, Bob and Chris are all logged in at this point
+
     checkQuery(tc, cl,"INSERT INTO u VALUES (1, 'alice')",{}, {});
     checkQuery(tc, cl,"INSERT INTO u VALUES (2, 'bob')",{}, {});
     checkQuery(tc, cl,"INSERT INTO u VALUES (3, 'chris')",{}, {});
@@ -388,6 +406,8 @@ UserGroupForum_incFunction(const TestConfig &tc, EDBClient * cl) {
     checkQuery(tc, cl,"INSERT INTO usergroup VALUES (2,2)",{}, {});
     checkQuery(tc, cl,"INSERT INTO usergroup VALUES (3,1)",{}, {});
     checkQuery(tc, cl,"INSERT INTO usergroup VALUES (3,2)",{}, {});
+
+    //Alice is in group 1, Bob in group 2 and Chris in group 1 and 2
 
     checkQuery(tc, cl,"SELECT * FROM usergroup",
                {"userid", "groupid"},
@@ -401,6 +421,8 @@ UserGroupForum_incFunction(const TestConfig &tc, EDBClient * cl) {
     checkQuery(tc, cl,"INSERT INTO groupforum VALUES (1,2,2)",{}, {});
     checkQuery(tc, cl,"INSERT INTO groupforum VALUES (1,2,0)",{}, {});
 
+    //Group 1 has access to forum 1
+
     checkQuery(tc, cl,"SELECT * FROM groupforum",
            {"forumid","groupid","optionid"},
            { {"1","1","14"},
@@ -410,41 +432,59 @@ UserGroupForum_incFunction(const TestConfig &tc, EDBClient * cl) {
 
     checkQuery(tc, cl,"INSERT INTO forum VALUES (1,'success-- you can see forum text')", {}, {});
 
-    myCreate(cl,"DELETE FROM "+ PWD_TABLE_PREFIX + "users WHERE username='alice';",
-         "DELETE FROM plain_users WHERE username='alice'");
-    myCreate(cl,"DELETE FROM "+ PWD_TABLE_PREFIX + "users WHERE username='bob';",
-         "DELETE FROM plain_users WHERE username='bob'");
-    myCreate(cl,"DELETE FROM "+ PWD_TABLE_PREFIX + "users WHERE username='chris';",
-         "DELETE FROM plain_users WHERE username='chris'");
+    assert_res(myCreate(cl,"DELETE FROM "+ PWD_TABLE_PREFIX + "u WHERE username='alice';",
+         "DELETE FROM plain_users WHERE username='alice'"), "alice can't log out");
+    assert_res(myCreate(cl,"DELETE FROM "+ PWD_TABLE_PREFIX + "u WHERE username='bob';",
+         "DELETE FROM plain_users WHERE username='bob'"), "bob can't log out");
+    assert_res(myCreate(cl,"DELETE FROM "+ PWD_TABLE_PREFIX + "u WHERE username='chris';",
+         "DELETE FROM plain_users WHERE username='chris'"), "chris can't log out");
 
+
+    // All users log out at this point
+
+    cerr << "m\n";
     //alice
-    myCreate(cl,"INSERT INTO "+ PWD_TABLE_PREFIX + "users (username, psswd) VALUES ('alice','secretalice');",
-         "INSERT INTO plain_users (username, psswd) VALUES ('alice','secretalice');");
+    assert_res(myCreate(cl,"INSERT INTO "+ PWD_TABLE_PREFIX + "u (username, psswd) VALUES ('alice','secretalice');",
+         "INSERT INTO plain_users (username, psswd) VALUES ('alice','secretalice');"), "alice can't log in");
+
+    //Alice logged in and she should see forum 1
+
     checkQuery(tc, cl,"SELECT forumtext from forum WHERE forumid=1",
            {"forumtext"},
            { {"success-- you can see forum text"} } );
-    myCreate(cl,"DELETE FROM "+ PWD_TABLE_PREFIX + "users WHERE username='alice';",
-         "DELETE FROM plain_users WHERE username='alice'");
+    assert_res(myCreate(cl,"DELETE FROM "+ PWD_TABLE_PREFIX + "u WHERE username='alice';",
+         "DELETE FROM plain_users WHERE username='alice'"), "alice can't log out");
     
+    // Alice logged out
+    cerr << "n\n";
     //bob
-    myCreate(cl,"INSERT INTO "+ PWD_TABLE_PREFIX + "users (username, psswd) VALUES ('bob','secretbob');",
-         "INSERT INTO plain_users (username, psswd) VALUES ('bob','secretbob');");
+    assert_res(myCreate(cl,"INSERT INTO "+ PWD_TABLE_PREFIX + "u (username, psswd) VALUES ('bob','secretbob');",
+         "INSERT INTO plain_users (username, psswd) VALUES ('bob','secretbob');"), "bob can't log in");
     if (tc.stop_if_fail) {
       cerr << "\n\nIn FUNCTION-BASED!!! version of groupsusersforums tests\n\n" << endl;
     }
-    testNULL(tc, cl,"SELECT forumtext from forum WHERE forumid=1","");
-    myCreate(cl,"DELETE FROM "+ PWD_TABLE_PREFIX + "users WHERE username='bob';",
-         "DELETE FROM plain_users WHERE username='bob'");    
 
+    //Bob logged in, but should not read forum 1
+
+    testNULL(tc, cl,"SELECT forumtext from forum WHERE forumid=1","");
+
+
+    assert_res(myCreate(cl,"DELETE FROM "+ PWD_TABLE_PREFIX + "u WHERE username='bob';",
+         "DELETE FROM plain_users WHERE username='bob'"), "bob can't log out");
+
+    // Bob logged out
+
+    cerr << "d\n";
     //chris
-    myCreate(cl,"INSERT INTO "+ PWD_TABLE_PREFIX + "users (username, psswd) VALUES ('chris','secretchris');",
-         "INSERT INTO plain_users (username, psswd) VALUES ('chris','secretchris');");
+    assert_res(myCreate(cl,"INSERT INTO "+ PWD_TABLE_PREFIX + "u (username, psswd) VALUES ('chris','secretchris');",
+         "INSERT INTO plain_users (username, psswd) VALUES ('chris','secretchris');"), "chris cannot log in");
     checkQuery(tc, cl,"SELECT forumtext from forum WHERE forumid=1",
            {"forumtext"},
            { {"success-- you can see forum text"} } );
-    myCreate(cl,"DELETE FROM "+ PWD_TABLE_PREFIX + "users WHERE username='chris';",
-         "DELETE FROM plain_users WHERE username='chris'");
+    assert_res(myCreate(cl,"DELETE FROM "+ PWD_TABLE_PREFIX + "u WHERE username='chris';",
+         "DELETE FROM plain_users WHERE username='chris'"), "chris cannot log out");
 
+    cerr << "k\n";
 
 
 

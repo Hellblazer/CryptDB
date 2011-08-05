@@ -96,6 +96,8 @@ typedef MYSQL_RES DBResult_native;
 typedef PGresult DBResult_native;
 #endif
 
+class SqlItem;
+
 class ResType {
  public:
     explicit ResType(bool okflag = true) : ok(okflag) {}
@@ -103,7 +105,7 @@ class ResType {
     bool ok;  // query executed successfully
     vector<string> names;
     vector<enum_field_types> types;
-    vector<vector<string> > rows;
+    vector<vector<SqlItem> > rows;
 };
 
 typedef struct CryptDBError {
@@ -546,5 +548,30 @@ string homomorphicAdd(const string &val1, const string &val2,
 string toLowerCase(const string &token);
 
 bool equalsIgnoreCase(const string &s1, const string &s2);
+
+class SqlItem {
+ public:
+    SqlItem() : null(true) {}
+
+    bool null;
+    enum_field_types type;
+    string data;
+
+    string to_string() const {
+        if (null)
+            return "NULL";
+        if (type == MYSQL_TYPE_BLOB || type == MYSQL_TYPE_VAR_STRING)
+            return marshallBinary(data);
+        return data;
+    }
+
+    bool operator==(const SqlItem &other) const {
+        if (null && other.null)
+            return true;
+        return null == other.null &&
+               /* type == other.type && */  /* XXX re-enable once we get types right */
+               data == other.data;
+    }
+};
 
 #endif   /* _UTIL_H */

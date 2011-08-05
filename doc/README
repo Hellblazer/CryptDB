@@ -1,3 +1,24 @@
+
+How to use CryptDB:
+
+
+    ./tests/test help
+	-- this command shows you the various tests you can run
+
+   - EDBClient constructor takes as argument a flag indicating if we run in single or multi principal mode
+    1. single principal	
+    - refer to tests/TestSinglePrinc.cc for examples of how to use it
+    2. multi principal
+    - refer to tests/TestMultiPrinc.cc for examples on usage
+
+
+===============================================================================
+
+Old instructions for Postgres: 
+
+** Note that CryptDB has not been compiled/ran on Postgres for a while and much implementation done since then 
+
+
 How to run EncryptDB:
 
 -- get & start Postgres: 

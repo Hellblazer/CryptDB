@@ -337,11 +337,12 @@ class KeyAccess {
     //returns: str_encrypted_key decrypted symmetrically with
     // key_for_decrypting
     //         principals_with_access is empty
-    PrinKey decryptSym(string str_encrypted_key,
+    PrinKey decryptSym(const SqlItem &sql_encrypted_key,
                        const string &key_for_decrypting,
-                       string str_salt);
+                       const SqlItem &sql_salt);
 
-    PrinKey decryptAsym(string str_encrypted_key, const string &secret_key);
+    PrinKey decryptAsym(const SqlItem &sql_encrypted_key,
+                        const string &secret_key);
 
     bool isInstance(Prin prin);
     bool isOrphan(Prin prin);

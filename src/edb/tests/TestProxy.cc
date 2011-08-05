@@ -23,11 +23,27 @@ TestProxy::~TestProxy()
 
 static void
 checkQuery(const TestConfig &tc, Connect * conn, const string &query,
-	   const vector<string> &names, const vector<vector<string>> &rows) {
+	   const vector<string> &names, const vector<vector<string>> &rows)
+{
     ntest++;
     ResType expected;
     expected.names = names;
-    expected.rows = rows;
+
+    /*
+     * XXX temporarily fudge this..  Catherine is planning to redo testing
+     * so that we don't have to supply expected answers anyway.
+     */
+    for (auto i = rows.begin(); i != rows.end(); i++) {
+        vector<SqlItem> row;
+        for (auto j = i->begin(); j != i->end(); j++) {
+            SqlItem item;
+            item.null = false;
+            item.type = MYSQL_TYPE_BLOB;
+            item.data = *j;
+            row.push_back(item);
+        }
+        expected.rows.push_back(row);
+    }
 
     DBResult * dbres;
     if (!conn->execute(query, dbres)) {

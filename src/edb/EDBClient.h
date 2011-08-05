@@ -116,11 +116,10 @@ class EDBClient {
     //returns the value to be included in an insert a given value of a
     // field/table
     string processValsToInsert(string field, string table, uint64_t salt,
-                               string value,
-                               TMKM & tmkm);
+                               string value, TMKM & tmkm, bool null = false);
     // returns the value we should insert for a field for which the INSERT
     // statement does not specify a value
-    string getInitValue(string field, string table, AutoInc * ai = NULL);
+    pair<string, bool> getInitValue(string field, string table, AutoInc * ai = NULL);
 
     //FILTERS ("WHERE")
     //process where clause
@@ -185,16 +184,16 @@ class EDBClient {
                  SECLEVEL fromlevel, SECLEVEL tolevel, uint64_t salt,
                  //optional, for MULTIPRINC
                  TMKM & tmkm, bool & isBin,
-                 const vector<string> & res = vector<string>());
+                 const vector<SqlItem> &res = vector<SqlItem>());
 
     //performs above crypt and marshalls binaries for MySQL query
     string
-    dataForQuery(string data, fieldType ft, string fullname,
-                     string anonfullname,
-                     SECLEVEL fromlevel, SECLEVEL tolevel, uint64_t salt,
-                     //optional, for MULTIPRINC
-                     TMKM & tmkm,
-                     const vector<string> & res = vector<string>());
+    dataForQuery(const string &data, fieldType ft,
+                 const string &fullname, const string &anonfullname,
+                 SECLEVEL fromlevel, SECLEVEL tolevel, uint64_t salt,
+                 //optional, for MULTIPRINC
+                 TMKM &tmkm,
+                 const vector<SqlItem> &res = vector<SqlItem>());
     // OTHER
 
     void dropTables();
