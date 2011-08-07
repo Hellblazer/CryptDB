@@ -298,6 +298,35 @@ typedef struct Predicate {
 /********* Data structures for multi-key CryptDB -- should not be used by
    single-principal ****/
 
+
+
+typedef struct AccessRelation {
+	AccessRelation(string hacc, string acct) {
+		hasAccess = hacc;
+		accessTo = acct;
+	}
+	string hasAccess;
+	string accessTo;
+} AccessRelation;
+
+
+typedef struct AccessRelationComp {
+  bool operator() (const AccessRelation& lhs, const AccessRelation& rhs) const {
+ 		if (lhs.hasAccess < rhs.hasAccess) {
+  			return true;
+  		}
+  		if (lhs.hasAccess > rhs.hasAccess) {
+  			return false;
+  		}
+
+  		if (lhs.accessTo < rhs.accessTo) {
+  			return true;
+  		} else {
+  			return false;
+  		}
+  	}
+} AccessRelationComp;
+
 //permanent metadata for multi-key CryptDB - stores which field is encrypted
 // for which field
 typedef struct MultiKeyMeta {
@@ -305,12 +334,13 @@ typedef struct MultiKeyMeta {
     map<string, string> encForMap;
     //contains an element if that element has some field encrypted to it
     map<string, bool > reverseEncFor;
-    map<string, Predicate *> condAccess;     //maps a field having accessto to
+    map<AccessRelation, Predicate *, AccessRelationComp> condAccess;     //maps a field having accessto to
                                              // any conditional predicate it
                                              // may have
     ~MultiKeyMeta() {
-        for (auto i = condAccess.begin(); i != condAccess.end(); i++)
-            delete i->second;
+        for (auto i = condAccess.begin(); i != condAccess.end(); i++) {
+           delete i->second;
+        }
     }
 } MKM;
 

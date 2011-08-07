@@ -1071,7 +1071,7 @@ TestSinglePrinc::run(const TestConfig &tc, int argc, char ** argv)
     EDBClient * cl;
     uint64_t mkey = 113341234;
     string masterKey = BytesFromInt(mkey, AES_KEY_BYTES);
-    cl = new EDBClient(tc.host, tc.user, tc.pass, tc.db, 0, false);
+    cl = new EDBClient(tc.host, tc.user, tc.pass, tc.db, tc.port, false);
     cl->setMasterKey(masterKey);
 
     struct {

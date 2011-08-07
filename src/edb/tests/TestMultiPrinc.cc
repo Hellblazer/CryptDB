@@ -285,7 +285,6 @@ UserGroupForum(const TestConfig &tc, EDBClient * cl) {
     assert_res(myCreate(cl,"DELETE FROM "+ PWD_TABLE_PREFIX + "u WHERE username='chris';",
          "DELETE FROM plain_users WHERE username='chris'"), "chris's log out failed");
 
-    cerr << "a\n";
     //alice
     assert_res(myCreate(cl,"INSERT INTO "+ PWD_TABLE_PREFIX + "u (username, psswd) VALUES ('alice','secretalice');",
          "INSERT INTO plain_users (username, psswd) VALUES ('alice','secretalice');"), "alice cannot log in");
@@ -295,7 +294,6 @@ UserGroupForum(const TestConfig &tc, EDBClient * cl) {
     assert_res(myCreate(cl,"DELETE FROM "+ PWD_TABLE_PREFIX + "u WHERE username='alice';",
          "DELETE FROM plain_users WHERE username='alice'"), "alice cannot log out");
     
-    cerr << "b\n";
     //bob
     assert_res(myCreate(cl,"INSERT INTO "+ PWD_TABLE_PREFIX + "u (username, psswd) VALUES ('bob','secretbob');",
          "INSERT INTO plain_users (username, psswd) VALUES ('bob','secretbob');"), "bob cannot log in");
@@ -303,7 +301,6 @@ UserGroupForum(const TestConfig &tc, EDBClient * cl) {
     assert_res(myCreate(cl,"DELETE FROM "+ PWD_TABLE_PREFIX + "u WHERE username='bob';",
          "DELETE FROM plain_users WHERE username='bob'"), "bob cannot log out");
 
-    cerr << "c\n";
     //chris
     assert_res(myCreate(cl,"INSERT INTO "+ PWD_TABLE_PREFIX + "u (username, psswd) VALUES ('chris','secretchris');",
          "INSERT INTO plain_users (username, psswd) VALUES ('chris','secretchris');"), "chris cannot log in");
@@ -442,7 +439,6 @@ UserGroupForum_incFunction(const TestConfig &tc, EDBClient * cl) {
 
     // All users log out at this point
 
-    cerr << "m\n";
     //alice
     assert_res(myCreate(cl,"INSERT INTO "+ PWD_TABLE_PREFIX + "u (username, psswd) VALUES ('alice','secretalice');",
          "INSERT INTO plain_users (username, psswd) VALUES ('alice','secretalice');"), "alice can't log in");
@@ -456,13 +452,9 @@ UserGroupForum_incFunction(const TestConfig &tc, EDBClient * cl) {
          "DELETE FROM plain_users WHERE username='alice'"), "alice can't log out");
     
     // Alice logged out
-    cerr << "n\n";
     //bob
     assert_res(myCreate(cl,"INSERT INTO "+ PWD_TABLE_PREFIX + "u (username, psswd) VALUES ('bob','secretbob');",
          "INSERT INTO plain_users (username, psswd) VALUES ('bob','secretbob');"), "bob can't log in");
-    if (tc.stop_if_fail) {
-      cerr << "\n\nIn FUNCTION-BASED!!! version of groupsusersforums tests\n\n" << endl;
-    }
 
     //Bob logged in, but should not read forum 1
 
@@ -474,7 +466,6 @@ UserGroupForum_incFunction(const TestConfig &tc, EDBClient * cl) {
 
     // Bob logged out
 
-    cerr << "d\n";
     //chris
     assert_res(myCreate(cl,"INSERT INTO "+ PWD_TABLE_PREFIX + "u (username, psswd) VALUES ('chris','secretchris');",
          "INSERT INTO plain_users (username, psswd) VALUES ('chris','secretchris');"), "chris cannot log in");
@@ -483,8 +474,6 @@ UserGroupForum_incFunction(const TestConfig &tc, EDBClient * cl) {
            { {"success-- you can see forum text"} } );
     assert_res(myCreate(cl,"DELETE FROM "+ PWD_TABLE_PREFIX + "u WHERE username='chris';",
          "DELETE FROM plain_users WHERE username='chris'"), "chris cannot log out");
-
-    cerr << "k\n";
 
 
 
@@ -498,25 +487,25 @@ TestMultiPrinc::run(const TestConfig &tc, int argc, char ** argv)
     uint64_t mkey = 113341234;
     string masterKey = BytesFromInt(mkey, AES_KEY_BYTES);
 
-    cl = new EDBClient(tc.host, tc.user, tc.pass, tc.db, 0, true);
+    cl = new EDBClient(tc.host, tc.user, tc.pass, tc.db, tc.port, true);
     cl->setMasterKey(masterKey);
     cerr << "Test basic..." << endl;
     BasicFunctionality(tc, cl);
     delete cl;
 
-    cl = new EDBClient(tc.host, tc.user, tc.pass, tc.db, 0, true);
+    cl = new EDBClient(tc.host, tc.user, tc.pass, tc.db, tc.port, true);
     cl->setMasterKey(masterKey);
     cerr << "Test private messages..." << endl;
     PrivMessages(tc, cl);
     delete cl;
 
-    cl = new EDBClient(tc.host, tc.user, tc.pass, tc.db, 0, true);
+    cl = new EDBClient(tc.host, tc.user, tc.pass, tc.db, tc.port, true);
     cl->setMasterKey(masterKey);
     cerr << "Test user/group/forum..." << endl;
     UserGroupForum(tc, cl);
     delete cl;
 
-    cl = new EDBClient(tc.host, tc.user, tc.pass, tc.db, 0, true);
+    cl = new EDBClient(tc.host, tc.user, tc.pass, tc.db, tc.port, true);
     cl->setMasterKey(masterKey);
     cerr << "Test user/group/forum including function..." << endl;
     UserGroupForum_incFunction(tc, cl);

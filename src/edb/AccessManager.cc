@@ -1198,11 +1198,9 @@ KeyAccess::insertPsswd(Prin gives, const string &psswd)
 
     int ret = 0;
 
-    cerr << "AAAAAAAAAAAAA\n";
     gives.gen = meta->getGenericPublic(gives.type);
     std::set<string> gives_hasAccessTo = meta->getGenHasAccessTo(gives.gen);
 
-    cerr << "BBBBBBBBBB\n";
 
     // put password into local keys
     PrinKey password = buildKey(gives, psswd);

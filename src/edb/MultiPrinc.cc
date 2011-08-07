@@ -14,7 +14,13 @@ MultiPrinc::MultiPrinc(Connect * connarg)
 
 MultiPrinc::~MultiPrinc()
 {
+
+    for (auto predIt = mkm.condAccess.begin(); predIt != mkm.condAccess.end(); predIt++) {
+    	assert_s(conn->execute("DROP FUNCTION " + predIt->second->name + ";"), "Failed to drop predicate");
+    }
+
     delete accMan;
+
 }
 
 string
@@ -49,7 +55,6 @@ MultiPrinc::processAnnotation(list<string>::iterator & wordsIt,
                                                        TableMetadata *> & tm)
 {
 
-    LOG(mp) << "processing annotation";
     if (equalsIgnoreCase(*wordsIt, "encfor")) {
 
         if (VERBOSE_G) { LOG(mp) << "encfor"; }
@@ -58,10 +63,10 @@ MultiPrinc::processAnnotation(list<string>::iterator & wordsIt,
         wordsIt++;
         mkm.encForMap[fullName(currentField, tablename)] = fullName(field2,
                                                                     tablename);
-        if (VERBOSE_G) { LOG(mp) << "==> " <<
-                         fullName(currentField, tablename) << " " << fullName(
-                             field2,
-                             tablename); }
+        LOG(mp) << "==> " <<
+        		fullName(currentField, tablename) << " " << fullName(
+        				field2,
+        				tablename);
         mkm.reverseEncFor[fullName(field2, tablename)] = true;
         encryptfield = true;
 
@@ -141,6 +146,7 @@ MultiPrinc::processAnnotation(list<string>::iterator & wordsIt,
             assert_s(resacc >=0, "access manager addAccessto failed");
             encryptfield = false;
             if (equalsIgnoreCase(*wordsIt, "if")) {             //predicate
+            	LOG(mp) << "has predicate";
                 wordsIt++;                 // go over "if"
                 Predicate * pred = new Predicate();
                 pred->name = *wordsIt;
@@ -151,7 +157,8 @@ MultiPrinc::processAnnotation(list<string>::iterator & wordsIt,
                     checkStr(wordsIt, words, ",", ")");
                 }
                 wordsIt++;
-                mkm.condAccess[hasAccess] = pred;
+                mkm.condAccess[AccessRelation(hasAccess, accessto)] = pred;
+                LOG(mp) << hasAccess << " has access to " << accessto << " IF " << pred->name << "\n";
             }
             continue;
         }
@@ -512,37 +519,37 @@ MultiPrinc::checkPsswd(command comm, list<string> & words)
 }
 
 bool
-MultiPrinc::checkPredicate(string hasaccess, map<string, string> & vals)
+MultiPrinc::checkPredicate(const AccessRelation & accRel, map<string, string> & vals)
 {
-    if (mkm.condAccess.find(hasaccess) != mkm.condAccess.end()) {
-
-        Predicate * pred = mkm.condAccess[hasaccess];
+	if (mkm.condAccess.find(accRel) != mkm.condAccess.end()) {
+    	Predicate * pred = mkm.condAccess[accRel];
 
         //need to check correctness of this predicate
         string query = "SELECT " +  pred->name + "( ";
-        for (list<string>::iterator it = pred->fields.begin();
+        for (list<string>::const_iterator it = pred->fields.begin();
              it != pred->fields.end(); it++) {
             query += " " + vals[*it] + ",";
         }
         query[query.length()-1]=' ';
         query += ");";
         DBResult * dbres;
-        if (VERBOSE_G) { LOG(mp) << "check pred: " << query << "\n"; }
+        LOG(mp) << "Check predicate: " << query << "\n";
         assert_s(conn->execute(
                      query.c_str(),
                      dbres), "failure while executing query " + query);
         ResType result = dbres->unpack();
         delete dbres;
         if (result.rows[0][0].data == "1") {
-            if (VERBOSE_G) { LOG(mp) << "pred OK\n"; }
+            LOG(mp) << "pred OK\n";
             return true;
         } else {
-            if (VERBOSE_G) { LOG(mp) << "pred NO\n"; }
+            LOG(mp) << "pred NO\n";
             return false;
         }
     }
 
     //no predicate
+    LOG(mp) << "no predicate to check";
     return true;
 }
 
@@ -574,6 +581,7 @@ MultiPrinc::insertRelations(const list<pair<string, bool> > & values, string tab
     // we need to figure out which has access to values to insert
     // TODO: this is restricted to values in the same table only
 
+    LOG(mp) << "in insert relations";
     for (fieldIt = fields.begin(); fieldIt != fields.end(); fieldIt++) {
         string fullField = fullName(*fieldIt, table);
         if (mkm.encForMap.find(fullField) != mkm.encForMap.end()) {
@@ -581,29 +589,26 @@ MultiPrinc::insertRelations(const list<pair<string, bool> > & values, string tab
             tmkm.encForVal[encForField] = vals[getField(encForField)];
         }
         string hasaccess = fullField;
-        if (VERBOSE_G) { LOG(mp) << "hasaccess " << hasaccess; }
 
         if (accMan->isType(hasaccess)) {
-            LOG(mp) << hasaccess << " is type \n";
             std::set<string> accessto_lst = accMan->getTypesHasAccessTo(
                 hasaccess);
-            if (VERBOSE_G) { LOG(mp) << hasaccess << " has access to  " <<
-                             " <" << toString(accessto_lst, id_op) << ">\n"; }
+            LOG(mp) << hasaccess << " has access to  " <<
+                             " <" << toString(accessto_lst, id_op);
 
             for (std::set<string>::iterator accIt = accessto_lst.begin();
                  accIt != accessto_lst.end(); accIt++) {
                 string accessto = *accIt;
-                if (vals.find(accessto) == vals.end()) {
+                if (getTable(accessto) != table) {
                     //this access to is not in this table and hence in this
                     // insert
                     continue;
                 }
                 LOG(mp) << "before predicate \n";
                 //TODO: checkPredicate should also take accessto
-                if (checkPredicate(hasaccess, vals)) {
+                if (checkPredicate(AccessRelation(hasaccess, accessto), vals)) {
                     //need to insert
-                    LOG(mp) << "inserting \n";
-                    int resacc =
+                   int resacc =
                         accMan->insert(Prin(hasaccess,
                                             vals[*fieldIt]),
                                        Prin(*accIt, vals[getField(accessto)]));

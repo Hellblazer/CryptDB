@@ -69,7 +69,7 @@ class MultiPrinc {
                               TMKM & tmkm,
                               bool & ignore);
 
-    bool checkPredicate(string hasaccess, map<string, string> & vals);
+    bool checkPredicate(const AccessRelation & accRel, map<string, string> & vals);
 
     /*** INSERT tasks ***/
 

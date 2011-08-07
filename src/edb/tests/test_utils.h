@@ -12,11 +12,12 @@
 class TestConfig {
  public:
     TestConfig() {
+    	//default values
         user = "root";
         pass = "letmein";
         host = "127.0.0.1";
         db = "cryptdbtest";
-        port = 3307;
+        port = 5123;
         stop_if_fail = false;
     }
 
