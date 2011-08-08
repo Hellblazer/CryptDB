@@ -5,6 +5,7 @@
  *
  */
 
+#include <netinet/in.h>
 #include "TestQueries.h"
 #include "cryptdb_log.h"
 
@@ -323,23 +324,25 @@ Connection::Connection(const TestConfig &input_tc, int input_type) {
     switch (type) {
         //plain -- new connection straight to the DB
     case 0:
-        conn = new Connect(tc.host, tc.user, tc.pass, tc.db, 0);
+        conn = new Connect(tc.host, tc.user, tc.pass, tc.db, tc.port);
         break;
         //single -- new EDBClient
     case 1:
-        cl = new EDBClient(tc.host, tc.user, tc.pass, tc.db, 0, false);
+        cl = new EDBClient(tc.host, tc.user, tc.pass, tc.db, tc.port, false);
         cl->setMasterKey(masterKey);
         break;
         //multi -- new EDBClient
     case 2:
-        cl = new EDBClient(tc.host, tc.user, tc.pass, tc.db, 0, true);
+        cl = new EDBClient(tc.host, tc.user, tc.pass, tc.db, tc.port, true);
         cl->setMasterKey(masterKey);
         break;
         //proxy -- start proxy in separate process and initialize connection
     case 3:
+        this->tc.port = 5123;
         proxy_pid = fork();
         if (proxy_pid == 0) {
-            setenv("EBDDIR", tc.edbdir.c_str(), 1);
+            LOG(test) << "starting proxy, pid " << getpid();
+            setenv("EDBDIR", tc.edbdir.c_str(), 1);
             setenv("CRYPTDB_USER", tc.user.c_str(), 1);
             setenv("CRYPTDB_PASS", tc.pass.c_str(), 1);
             setenv("CRYPTDB_DB", tc.db.c_str(), 1);
@@ -351,12 +354,32 @@ Connection::Connection(const TestConfig &input_tc, int input_type) {
                                   script_path.c_str(),
                                   "--proxy-address=localhost:5123",
                                   "--proxy-backend-addresses=localhost:3306",
-                                  0);
+                                  (char *) 0);
+            LOG(warn) << "could not execlp: " << strerror(errno);
+            exit(-1);
         } else if (proxy_pid < 0) {
             cerr << "failed to fork" << endl;
             exit(1);
         } else {
-            sleep(1);
+            for (uint i = 0; i < 100; i++) {
+                usleep(100000);
+                LOG(test) << "checking if proxy is running yet..";
+
+                int fd = socket(AF_INET, SOCK_STREAM, 0);
+                assert(fd >= 0);
+
+                struct sockaddr_in sin;
+                sin.sin_family = AF_INET;
+                sin.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+                sin.sin_port = htons(tc.port);
+                int r = connect(fd, (struct sockaddr *) &sin, sizeof(sin));
+                LOG(test) << "connect: " << r;
+                close(fd);
+
+                if (r == 0)
+                    break;
+            }
+
             conn = new Connect(tc.host, tc.user, tc.pass, tc.db, tc.port);
         }
         break;
@@ -580,17 +603,13 @@ TestQueries::run(const TestConfig &tc, int argc, char ** argv) {
     TestConfig control_tc = TestConfig();
     control_tc.db = control_tc.db+"_control";
     
-    control = new Connection(control_tc, control_type);
-    test = new Connection(tc, test_type);
+    Connection control_(control_tc, control_type);
+    control = &control_;
+
+    Connection test_(tc, test_type);
+    test = &test_;
 
     RunTest(tc);
-
-    delete control;
-    delete test;
-    query_list.clear();
-    plain_create.clear();
-    single_create.clear();
-    multi_create.clear();
 
     cerr << "RESULT: " << npass << "/" << ntest << endl;
 }
