@@ -11,12 +11,56 @@
 #ifndef TESTQUERIES_H_
 #define TESTQUERIES_H_
 
+struct Query {
+    string query;
+    bool multi_null;
+
+    Query()
+    {
+    }
+
+    Query(string q, bool returns_null_multi) {
+        query = q;
+        multi_null = returns_null_multi;
+    }
+};
+
+struct QueryList {
+    string name;
+    vector<string> plain_create;
+    vector<string> single_create;
+    vector<string> multi_create;
+    vector<Query> common;
+    vector<string> plain_drop;
+    vector<string> single_drop;
+    vector<string> multi_drop;
+
+    QueryList() 
+    {
+    }
+
+    QueryList(string namearg, vector<string> pc, vector<string> sc, vector<string> mc, vector<Query> c, vector<string> pd, vector<string> sd, vector<string> md) {
+        name = namearg;
+        plain_create = pc;
+        single_create = sc;
+        multi_create = mc;
+        common = c;
+        plain_drop = pd;
+        single_drop = sd;
+        multi_drop = md;
+    }
+};
+
 class Connection {
  public:
     Connection(const TestConfig &tc, int type);
     ~Connection();
 
     ResType execute(string query);
+
+    void restart();
+    void start();
+    void stop();
 
  private:
     int type;

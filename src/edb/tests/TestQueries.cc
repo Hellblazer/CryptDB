@@ -16,300 +16,337 @@ static int test_type;
 static int no_conn = 1;
 static Connection * control;
 static Connection * test;
-static vector<string> query_list = {
-    //migrated from TestSinglePrinc TestInsert
-    "INSERT INTO test_insert VALUES (1, 21, 100, '24 Rosedale, Toronto, ONT', 'Pat Carlson')",
-    "SELECT * FROM test_insert",
-    "INSERT INTO test_insert (id, age, salary, address, name) VALUES (2, 23, 101, '25 Rosedale, Toronto, ONT', 'Pat Carlson2')",
-    "SELECT * FROM test_insert",
-    "INSERT INTO test_insert (age, address, salary, name, id) VALUES (25, '26 Rosedale, Toronto, ONT', 102, 'Pat2 Carlson', 3)",
-    "SELECT * FROM test_insert",
-    "INSERT INTO test_insert (age, address, salary, name) VALUES (26, 'test address', 30, 'test name')",
-    "SELECT * FROM test_insert",
-    "INSERT INTO test_insert (age, address, salary, name) VALUES (27, 'test address2', 31, 'test name')",
-    "select last_insert_id()",
-    "INSERT INTO test_insert (id) VALUES (7)",
-    "select sum(id) from test_insert",
-    "INSERT INTO test_insert (age) VALUES (40)",
-    //TODO: proxy has issues with this one...?
-    //"SELECT age FROM test_insert",
-    "INSERT INTO test_insert (name) VALUES ('Wendy')",
-    "SELECT name FROM test_insert WHERE id=10",
-    "INSERT INTO test_insert (name, address, id, age) VALUES ('Peter Pan', 'first star to the right and straight on till morning', 42, 10)",
-    "SELECT name, address, age FROM test_insert WHERE id=42",
-    "DROP TABLE test_insert",
-    //migrated from TestSinglePrinc TestSelect
-    "INSERT INTO test_select VALUES (1, 10, 0, 'first star to the right and straight on till morning', 'Peter Pan')",
-    "INSERT INTO test_select VALUES (2, 16, 1000, 'Green Gables', 'Anne Shirley')",
-    "INSERT INTO test_select VALUES (3, 8, 0, 'London', 'Lucy')",
-    "INSERT INTO test_select VALUES (4, 10, 0, 'London', 'Edmund')",
-    "INSERT INTO test_select VALUES (5, 30, 100000, '221B Baker Street', 'Sherlock Holmes')",
-    "SELECT * FROM test_select",
-    "SELECT max(id) FROM test_select",
-    "SELECT max(salary) FROM test_select",
-    "SELECT COUNT(*) FROM test_select",
-    "SELECT COUNT(DISTINCT age) FROM test_select",
-    "SELECT COUNT(DISTINCT(address)) FROM test_select",
-    "SELECT name FROM test_select",
-    "SELECT address FROM test_select",
-    "SELECT * FROM test_select WHERE id>3",
-    "SELECT * FROM test_select WHERE age = 8",
-    "SELECT * FROM test_select WHERE salary=15",
-    "SELECT * FROM test_select WHERE age > 10",
-    "SELECT * FROM test_select WHERE age = 10 AND salary = 0",
-    "SELECT * FROM test_select WHERE age = 10 OR salary = 0",
-    "SELECT * FROM test_select WHERE name = 'Peter Pan'",
-    "SELECT * FROM test_select WHERE address='Green Gables'",
-    "SELECT * FROM test_select WHERE address <= '221C'",
-    "SELECT * FROM test_select WHERE address >= 'Green Gables' AND age > 9",
-    "SELECT * FROM test_select WHERE address >= 'Green Gables' OR age > 9",
-    "SELECT * FROM test_select ORDER BY id",
-    "SELECT * FROM test_select ORDER BY salary",
-    "SELECT * FROM test_select ORDER BY name",
-    "SELECT * FROM test_select ORDER BY address",
-    "SELECT sum(age) FROM test_select GROUP BY address",
-    "SELECT salary, max(id) FROM test_select GROUP BY salary",
-    "SELECT * FROM test_select GROUP BY age ORDER BY age",
-    "SELECT * FROM test_select ORDER BY age ASC",
-    "SELECT * FROM test_select ORDER BY address DESC",
-    "SELECT sum(age) as z FROM test_select",
-    "SELECT sum(age) z FROM test_select",
-    "SELECT min(t.id) a FROM test_select AS t",
-    "SELECT t.address AS b FROM test_select t",
-    "DROP TABLE test_select",
-    //migrated from TestSinglePrinc TestJoin
-    "INSERT INTO test_join1 VALUES (1, 10, 0, 'first star to the right and straight on till morning','Peter Pan')",
-    "INSERT INTO test_join1 VALUES (2, 16, 1000, 'Green Gables', 'Anne Shirley')",
-    "INSERT INTO test_join1 VALUES (3, 8, 0, 'London', 'Lucy')",
-    "INSERT INTO test_join1 VALUES (4, 10, 0, 'London', 'Edmund')",
-    "INSERT INTO test_join1 VALUES (5, 30, 100000, '221B Baker Street', 'Sherlock Holmes')",
-    "INSERT INTO test_join2 VALUES (1, 6, 'Peter Pan')",
-    "INSERT INTO test_join2 VALUES (2, 8, 'Anne Shirley')",
-    "INSERT INTO test_join2 VALUES (3, 7, 'Lucy')",
-    "INSERT INTO test_join2 VALUES (4, 7, 'Edmund')",
-    "INSERT INTO test_join2 VALUES (10, 4, '221B Baker Street')",
-    "SELECT address FROM test_join1, test_join2 WHERE test_join1.id=test_join2.id",
-    "SELECT test_join1.id, test_join2.id, age, books, test_join2.name FROM test_join1, test_join2 WHERE test_join1.id = test_join2.id",
-    "SELECT test_join1.name, age, salary, test_join2.name, books FROM test_join1, test_join2 WHERE test_join1.age=test_join2.books",
-    //we don't support things that join unecrypted columns to encrypted columns
-    //"SELECT * FROM test_join1, test_join2 WHERE test_join1.name=test_join2.name",
-    "SELECT * FROM test_join1, test_join2 WHERE test_join1.address=test_join2.name",
-    "SELECT address FROM test_join1 AS a, test_join2 WHERE a.id=test_join2.id",
-    "SELECT a.id, b.id, age, books, b.name FROM test_join1 a, test_join2 AS b WHERE a.id=b.id",
-    "SELECT test_join1.name, age, salary, b.name, books FROM test_join1, test_join2 b WHERE test_join1.age = b.books",
-    "DROP TABLE test_join1",
-    "DROP TABLE test_join2",
-    //migrated from TestSinglePrinc TestUpdate
-    "INSERT INTO test_update VALUES (1, 10, 0, 'first star to the right and straight on till morning','Peter Pan')",
-    "INSERT INTO test_update VALUES (2, 16, 1000, 'Green Gables', 'Anne Shirley')",
-    "INSERT INTO test_update VALUES (3, 8, 0, 'London', 'Lucy')",
-    "INSERT INTO test_update VALUES (4, 10, 0, 'London', 'Edmund')",
-    "INSERT INTO test_update VALUES (5, 30, 100000, '221B Baker Street', 'Sherlock Holmes')",
-    "INSERT INTO test_update VALUES (6, 11, 0 , 'hi', 'no one')",
-    "UPDATE test_update SET salary=0",
-    "SELECT * FROM test_update",
-    "UPDATE test_update SET age=21 WHERE id = 6",
-    "SELECT * FROM test_update",
-    "UPDATE test_update SET address='Pemberly', name='Elizabeth Darcy' WHERE id=6",
-    "SELECT * FROM test_update",
-    "UPDATE test_update SET salary=55000 WHERE age=30",
-    "SELECT * FROM test_update",
-    "UPDATE test_update SET salary=20000 WHERE address='Pemberly'",
-    "SELECT * FROM test_update",
-    "SELECT age FROM test_update WHERE age > 20",
-    "SELECT id FROM test_update",
-    "SELECT sum(age) FROM test_update",
-    "UPDATE test_update SET age=20 WHERE name='Elizabeth Darcy'",
-    "SELECT * FROM test_update WHERE age > 20",
-    "SELECT sum(age) FROM test_update",
-    "UPDATE test_update SET age = age + 2",
-    "SELECT age FROM test_update",
-    "UPDATE test_update SET id = id + 10, salary = salary + 19, name = 'xxx', address = 'foo' WHERE address = 'London'",
-    "SELECT * FROM test_update",
-    "SELECT * FROM test_update WHERE address < 'fml'",
-    "UPDATE test_update SET address = 'Neverland' WHERE id=1",
-    "SELECT * FROM test_update",
-    "DROP TABLE test_update",
-    //migrated from TestDelete
-    "INSERT INTO test_delete VALUES (1, 10, 0, 'first star to the right and straight on till morning','Peter Pan')",
-    "INSERT INTO test_delete VALUES (2, 16, 1000, 'Green Gables', 'Anne Shirley')",
-    "INSERT INTO test_delete VALUES (3, 8, 0, 'London', 'Lucy')",
-    "INSERT INTO test_delete VALUES (4, 10, 0, 'London', 'Edmund')",
-    "INSERT INTO test_delete VALUES (5, 30, 100000, '221B Baker Street', 'Sherlock Holmes')",
-    "INSERT INTO test_delete VALUES (6, 21, 2000, 'Pemberly', 'Elizabeth')",
-    "INSERT INTO test_delete VALUES (7, 10000, 1, 'Mordor', 'Sauron')",
-    "INSERT INTO test_delete VALUES (8, 25, 100, 'The Heath', 'Eustacia Vye')",
-    "DELETE FROM test_delete WHERE id=1",
-    "SELECT * FROM test_delete",
-    "DELETE FROM test_delete WHERE age=30",
-    "SELECT * FROM test_delete",
-    "DELETE FROM test_delete WHERE name='Eustacia Vye'",
-    "SELECT * FROM test_delete",
-    "DELETE FROM test_delete WHERE address='London'",
-    "SELECT * FROM test_delete",
-    "DELETE FROM test_delete WHERE salary = 1",
-    "SELECT * FROM test_delete",
-    "INSERT INTO test_delete VALUES (1, 10, 0, 'first star to the right and straight on till morning','Peter Pan')",
-    "SELECT * FROM test_delete",
-    "DELETE FROM test_delete",
-    "SELECT * FROM test_delete",
-    "DROP TABLE test_delete",
-    //migrated from TestSearch
-    "INSERT INTO test_search VALUES (1, 'short text')",
-    "INSERT INTO test_search VALUES (2, 'Text with CAPITALIZATION')",
-    "INSERT INTO test_search VALUES (3, '')",
-    "INSERT INTO test_search VALUES (4, 'When I have fears that I may cease to be, before my pen has gleaned my teeming brain; before high piled books in charactery hold like ruch garners the full-ripened grain. When I behold on the nights starred face huge cloudy symbols of high romance and think that I may never live to trace their shadows with the magic hand of chance; when I feel fair creature of the hour that I shall never look upon thee more, never have relish of the faerie power of unreflecting love, I stand alone on the edge of the wide world and think till love and fame to nothingness do sink')",
-    "SELECT * FROM test_search WHERE searchable LIKE '%text%'",
-    "SELECT * FROM test_search WHERE searchable LIKE 'short%'",
-    "SELECT * FROM test_search WHERE searchable LIKE ''",
-    "SELECT * FROM test_search WHERE searchable LIKE '%capitalization'",
-    "SELECT * FROM test_search WHERE searchable LIKE 'noword'",
-    "SELECT * FROM test_search WHERE searchable LIKE 'when%'",
-    "SELECT * FROM test_search WHERE searchable < 'slow'",
-    "UPDATE test_search SET searchable='text that is new' WHERE id=1",
-    "SELECT * FROM test_search WHERE searchable < 'slow'",
-    "DROP TABLE test_search",
-    //migrated from TestMultiPrinc BasicFunctionality
-    "INSERT INTO "+PWD_TABLE_PREFIX+"u_basic (username, psswd) VALUES ('alice', 'secretalice')",
-    "DELETE FROM "+PWD_TABLE_PREFIX+"u_basic WHERE username='alice'",
-    "INSERT INTO "+PWD_TABLE_PREFIX+"u_basic (username, psswd) VALUES ('alice', 'secretalice')",
-    "INSERT INTO u_basic VALUES (1, 'alice')",
-    "SELECT * FROM u_basic",
-    "INSERT INTO t1 VALUES (1, 'text which is inserted', 23)",
-    "SELECT * FROM t1",
-    "SELECT post from t1 WHERE id = 1 AND age = 23",
-    "UPDATE t1 SET post='hello!' WHERE age > 22 AND id =1",
-    "SELECT * FROM t1",
-    "INSERT INTO "+PWD_TABLE_PREFIX+"u_basic (username, psswd) VALUES ('raluca','secretraluca')",
-    "INSERT INTO u_basic VALUES (2, 'raluca')",
-    "SELECT * FROM u_basic",
-    "INSERT INTO t1 VALUES (2, 'raluca has text here', 5)",
-    "SELECT * FROM t1",
-    "DROP TABLE u_basic",
-    "DROP TABLE t1",
-    "DROP TABLE "+PWD_TABLE_PREFIX+"u_basic",
-    //migrated from PrivMessages
-    "INSERT INTO "+PWD_TABLE_PREFIX+"u_mess (username, psswd) VALUES ('alice', 'secretalice')",
-    "INSERT INTO "+PWD_TABLE_PREFIX+"u_mess (username, psswd) VALUES ('bob', 'secretbob')",
-    "INSERT INTO u_mess VALUES (1, 'alice')",
-    "INSERT INTO u_mess VALUES (1, 'bob')",
-    "INSERT INTO privmsg (msgid, recid, senderid) VALUES (9, 1, 2)",
-    "INSERT INTO msgs VALUES (1, 'hello world')",
-    "SELECT msgtext FROM msgs WHERE msgid=1",
-    "SELECT msgtext FROM msgs, privmsg, u_mess WHERE username = 'alice' AND userid = recid AND msgs.msgid = privmsg.msgid",
-    "INSERT INTO msgs VALUES (9, 'message for alice from bob')",
-    "SELECT msgtext FROM msgs, privmsg, u_mess WHERE username = 'alice' AND userid = recid AND msgs.msgid = privmsg.msgid",
-    "DROP TABLE msgs",
-    "DROP TABLE privmsg",
-    "DROP TABLE u_mess",
-    "DROP TABLE "+PWD_TABLE_PREFIX+"u_mess",
-    "DROP TABLE nop",
 
-    //migrated from UserGroupForum
-    /*"INSERT INTO "+PWD_TABLE_PREFIX+"u (username, psswd) VALUES ('alice', 'secretalice')",
-    "INSERT INTO "+PWD_TABLE_PREFIX+"u (username, psswd) VALUES ('bob', 'secretbob')",
-    "INSERT INTO "+PWD_TABLE_PREFIX+"u (username, psswd) VALUES ('chris', 'secretchris')",
-    "INSERT INTO u VALUES (1, 'alice')",
-    "INSERT INTO u VALUES (2, 'bob')",
-    "INSERT INTO u VALUES (3, 'chris')",
-    "INSERT INTO usergroup VALUES (1,1)",
-    "INSERT INTO usergroup VALUES (2,2)",
-    "INSERT INTO usergroup VALUES (3,1)",
-    "INSERT INTO usergroup VALUES (3,2)",
-    "SELECT * FROM usergroup",
-    "INSERT INTO groupforum VALUES (1,1,14)",
-    "INSER INTO groupforum VALUES (1,1,20)",
-    "SELECT * FROM groupforum",
-    "INSERT INTO forum VALUES (1, 'sucess-- you can see forum text')",
-    "DELETE FROM "+PWD_TABLE_PREFIX+"u WHERE username='alice'",
-    "DELETE FROM "+PWD_TABLE_PREFIX+"u WHERE username='bob'",
-    "DELETE FROM "+PWD_TABLE_PREFIX+"u WHERE username='chris'",
-    "INSERT INTO "+PWD_TABLE_PREFIX+"u (username, psswd) VALUES ('alice', 'secretalice')",
-    "SELECT forumtext FROM forum WHERE forumid=1",
-    "DELETE FROM "+PWD_TABLE_PREFIX+"u WHERE username='alice'",
-    "INSERT INTO "+PWD_TABLE_PREFIX+"u (username, psswd) VALUES ('bob', 'secretbob')",
-    //should this even work???
-    "SELECT forumtext FROM forum WHERE forumid=1",
-    "DELETE FROM "+PWD_TABLE_PREFIX+"u WHERE username='bob'",
-    "INSERT INTO "+PWD_TABLE_PREFIX+"u (username, psswd) VALUES ('chris', 'secretchris')",*/
+static QueryList Insert = QueryList("SingleInsert",
+                                    {"CREATE TABLE test_insert (id integer primary key auto_increment, age integer, salary integer, address text, name text)"},
+                                    {"CREATE TABLE test_insert (id integer primary key auto_increment, age enc integer, salary enc integer, address enc text, name text)"},
+                                    {"CREATE TABLE test_insert (id integer primary key auto_increment, age integer, salary integer, address text, name text)"},
+                                    {Query("INSERT INTO test_insert VALUES (1, 21, 100, '24 Rosedale, Toronto, ONT', 'Pat Carlson')", false),
+                                            Query("SELECT * FROM test_insert",false),
+                                            Query("INSERT INTO test_insert (id, age, salary, address, name) VALUES (2, 23, 101, '25 Rosedale, Toronto, ONT', 'Pat Carlson2')",false),
+                                            Query("SELECT * FROM test_insert",false),
+                                            Query("INSERT INTO test_insert (age, address, salary, name, id) VALUES (25, '26 Rosedale, Toronto, ONT', 102, 'Pat2 Carlson', 3)",false),
+                                            Query("SELECT * FROM test_insert",false),
+                                            Query("INSERT INTO test_insert (age, address, salary, name) VALUES (26, 'test address', 30, 'test name')",false),
+                                            Query("SELECT * FROM test_insert",false),
+                                            Query("INSERT INTO test_insert (age, address, salary, name) VALUES (27, 'test address2', 31, 'test name')",false),
+                                            Query("select last_insert_id()",false),
+                                            Query("INSERT INTO test_insert (id) VALUES (7)",false),
+                                            Query("select sum(id) from test_insert",false),
+                                            Query("INSERT INTO test_insert (age) VALUES (40)",false),
+                                            //TODO: proxy has issues with this one...?
+                                            //Query("SELECT age FROM test_insert",false),
+                                            Query("INSERT INTO test_insert (name) VALUES ('Wendy')",false),
+                                            Query("SELECT name FROM test_insert WHERE id=10",false),
+                                            Query("INSERT INTO test_insert (name, address, id, age) VALUES ('Peter Pan', 'first star to the right and straight on till morning', 42, 10)",false),
+                                            Query("SELECT name, address, age FROM test_insert WHERE id=42",false)},
+                                    {"DROP TABLE test_insert"},
+                                    {"DROP TABLE test_insert"},
+                                    {"DROP TABLE test_insert"});
 
-};
+//migrated from TestSinglePrinc TestSelect
+static QueryList Select = QueryList("SingleSelect",
+                                    {"CREATE TABLE test_select (id integer, age integer, salary integer, address text, name text)"},
+                                    {"CREATE TABLE test_select (id integer, age enc integer, salary enc integer, address enc text, name text)"},
+                                    {"CREATE TABLE test_select (id integer, age integer, salary integer, address text, name text)"},
+                                    {Query("INSERT INTO test_select VALUES (1, 10, 0, 'first star to the right and straight on till morning', 'Peter Pan')",false),
+                                            Query("INSERT INTO test_select VALUES (2, 16, 1000, 'Green Gables', 'Anne Shirley')",false),
+                                            Query("INSERT INTO test_select VALUES (3, 8, 0, 'London', 'Lucy')",false),
+                                            Query("INSERT INTO test_select VALUES (4, 10, 0, 'London', 'Edmund')",false),
+                                            Query("INSERT INTO test_select VALUES (5, 30, 100000, '221B Baker Street', 'Sherlock Holmes')",false),
+                                            Query("SELECT * FROM test_select",false),
+                                            Query("SELECT max(id) FROM test_select",false),
+                                            Query("SELECT max(salary) FROM test_select",false),
+                                            Query("SELECT COUNT(*) FROM test_select",false),
+                                            Query("SELECT COUNT(DISTINCT age) FROM test_select",false),
+                                            Query("SELECT COUNT(DISTINCT(address)) FROM test_select",false),
+                                            Query("SELECT name FROM test_select",false),
+                                            Query("SELECT address FROM test_select",false),
+                                            Query("SELECT * FROM test_select WHERE id>3",false),
+                                            Query("SELECT * FROM test_select WHERE age = 8",false),
+                                            Query("SELECT * FROM test_select WHERE salary=15",false),
+                                            Query("SELECT * FROM test_select WHERE age > 10",false),
+                                            Query("SELECT * FROM test_select WHERE age = 10 AND salary = 0",false),
+                                            Query("SELECT * FROM test_select WHERE age = 10 OR salary = 0",false),
+                                            Query("SELECT * FROM test_select WHERE name = 'Peter Pan'",false),
+                                            Query("SELECT * FROM test_select WHERE address='Green Gables'",false),
+                                            Query("SELECT * FROM test_select WHERE address <= '221C'",false),
+                                            Query("SELECT * FROM test_select WHERE address >= 'Green Gables' AND age > 9",false),
+                                            Query("SELECT * FROM test_select WHERE address >= 'Green Gables' OR age > 9",false),
+                                            Query("SELECT * FROM test_select ORDER BY id",false),
+                                            Query("SELECT * FROM test_select ORDER BY salary",false),
+                                            Query("SELECT * FROM test_select ORDER BY name",false),
+                                            Query("SELECT * FROM test_select ORDER BY address",false),
+                                            Query("SELECT sum(age) FROM test_select GROUP BY address",false),
+                                            Query("SELECT salary, max(id) FROM test_select GROUP BY salary",false),
+                                            Query("SELECT * FROM test_select GROUP BY age ORDER BY age",false),
+                                            Query("SELECT * FROM test_select ORDER BY age ASC",false),
+                                            Query("SELECT * FROM test_select ORDER BY address DESC",false),
+                                            Query("SELECT sum(age) as z FROM test_select",false),
+                                            Query("SELECT sum(age) z FROM test_select",false),
+                                            Query("SELECT min(t.id) a FROM test_select AS t",false),
+                                            Query("SELECT t.address AS b FROM test_select t",false)},
+                                    {"DROP TABLE test_select"},
+                                    {"DROP TABLE test_select"},
+                                    {"DROP TABLE test_select"});
 
-static vector<string> plain_create = {
-    //from single
-    "CREATE TABLE test_insert (id integer primary key auto_increment, age integer, salary integer, address text, name text)",
-    "CREATE TABLE test_select (id integer, age integer, salary integer, address text, name text)",
-    "CREATE TABLE test_join1 (id integer, age integer, salary integer, address text, name text)",
-    "CREATE TABLE test_join2 (id integer, books integer, name text)",
-    "CREATE TABLE test_update (id integer, age integer, salary integer, address text, name text)",
-    "CREATE TABLE test_delete (id integer, age integer, salary integer, address text, name text)",
-    "CREATE TABLE test_search (id integer, searchable text)",
-    //from multi
-    "CREATE TABLE t1 (id integer, post text, age bigint)",
-    "CREATE TABLE u_basic (id integer, username text)",
-    "CREATE TABLE msgs (msgid integer, msgtext text)",
-    "CREATE TABLE privmsg (msgid integer, recid integer, senderid integer)",
-    "CREATE TABLE u_mess (userid integer, username text)",
-    //"CREATE TBALE u (userid, username text)",
-    //"CREATE TABLE usergroup (userid integer, groupid integer)",
-    //"CREATE TABLE groupforum (forumid integer, groupid integer, optionid integer)",
-    //"CREATE TABLE forum (forumid integer, forumtext text)",
+//migrated from TestSinglePrinc TestJoin
+static QueryList Join = QueryList("SingleJoin",
+                                  {"CREATE TABLE test_join1 (id integer, age integer, salary integer, address text, name text)",
+                                   "CREATE TABLE test_join2 (id integer, books integer, name text)"},
+                                  {"CREATE TABLE test_join1 (id integer, age enc integer, salary enc integer, address enc text, name text)",
+                                   "CREATE TABLE test_join2 (id integer, books enc integer, name enc text)"},
+                                  {"CREATE TABLE test_join1 (id integer, age integer, salary integer, address text, name text)",
+                                   "CREATE TABLE test_join2 (id integer, books integer, name text)"},
+                                  {Query("INSERT INTO test_join1 VALUES (1, 10, 0, 'first star to the right and straight on till morning','Peter Pan')",false),
+                                          Query("INSERT INTO test_join1 VALUES (2, 16, 1000, 'Green Gables', 'Anne Shirley')",false),
+                                          Query("INSERT INTO test_join1 VALUES (3, 8, 0, 'London', 'Lucy')",false),
+                                          Query("INSERT INTO test_join1 VALUES (4, 10, 0, 'London', 'Edmund')",false),
+                                          Query("INSERT INTO test_join1 VALUES (5, 30, 100000, '221B Baker Street', 'Sherlock Holmes')",false),
+                                          Query("INSERT INTO test_join2 VALUES (1, 6, 'Peter Pan')",false),
+                                          Query("INSERT INTO test_join2 VALUES (2, 8, 'Anne Shirley')",false),
+                                          Query("INSERT INTO test_join2 VALUES (3, 7, 'Lucy')",false),
+                                          Query("INSERT INTO test_join2 VALUES (4, 7, 'Edmund')",false),
+                                          Query("INSERT INTO test_join2 VALUES (10, 4, '221B Baker Street')",false),
+                                          Query("SELECT address FROM test_join1, test_join2 WHERE test_join1.id=test_join2.id",false),
+                                          Query("SELECT test_join1.id, test_join2.id, age, books, test_join2.name FROM test_join1, test_join2 WHERE test_join1.id = test_join2.id",false),
+                                          Query("SELECT test_join1.name, age, salary, test_join2.name, books FROM test_join1, test_join2 WHERE test_join1.age=test_join2.books",false),
+                                          //we don't support things that join unecrypted columns to encrypted columns
+                                          //Query("SELECT * FROM test_join1, test_join2 WHERE test_join1.name=test_join2.name",false),
+                                          Query("SELECT * FROM test_join1, test_join2 WHERE test_join1.address=test_join2.name",false),
+                                          Query("SELECT address FROM test_join1 AS a, test_join2 WHERE a.id=test_join2.id",false),
+                                          Query("SELECT a.id, b.id, age, books, b.name FROM test_join1 a, test_join2 AS b WHERE a.id=b.id",false),
+                                          Query("SELECT test_join1.name, age, salary, b.name, books FROM test_join1, test_join2 b WHERE test_join1.age = b.books",false)},
+                                  {"DROP TABLE test_join1",
+                                   "DROP TABLE test_join2"},
+                                  {"DROP TABLE test_join1",
+                                   "DROP TABLE test_join2"},
+                                  {"DROP TABLE test_join1",
+                                   "DROP TABLE test_join2"});
 
-    "CREATE TABLE "+PWD_TABLE_PREFIX+"u_basic (username text, psswd text)",
-    "CREATE TABLE "+PWD_TABLE_PREFIX+"u_mess (username text, psswd text)",
-    //"CREATE TABLE "+PWD_TABLE_PREFIX+"u (username text, psswd text)",
-};
+//migrated from TestSinglePrinc TestUpdate
+static QueryList Update = QueryList("SingleUpdate",
+                                    {"CREATE TABLE test_update (id integer, age integer, salary integer, address text, name text)"},
+                                    {"CREATE TABLE test_update (id integer, age enc integer, salary enc integer, address enc text, name enc text)"},
+                                    {"CREATE TABLE test_update (id integer, age integer, salary integer, address text, name text)"},
+                                    {Query("INSERT INTO test_update VALUES (1, 10, 0, 'first star to the right and straight on till morning','Peter Pan')",false),
+                                            Query("INSERT INTO test_update VALUES (2, 16, 1000, 'Green Gables', 'Anne Shirley')",false),
+                                            Query("INSERT INTO test_update VALUES (3, 8, 0, 'London', 'Lucy')",false),
+                                            Query("INSERT INTO test_update VALUES (4, 10, 0, 'London', 'Edmund')",false),
+                                            Query("INSERT INTO test_update VALUES (5, 30, 100000, '221B Baker Street', 'Sherlock Holmes')",false),
+                                            Query("INSERT INTO test_update VALUES (6, 11, 0 , 'hi', 'no one')",false),
+                                            Query("UPDATE test_update SET salary=0",false),
+                                            Query("SELECT * FROM test_update",false),
+                                            Query("UPDATE test_update SET age=21 WHERE id = 6",false),
+                                            Query("SELECT * FROM test_update",false),
+                                            Query("UPDATE test_update SET address='Pemberly', name='Elizabeth Darcy' WHERE id=6",false),
+                                            Query("SELECT * FROM test_update",false),
+                                            Query("UPDATE test_update SET salary=55000 WHERE age=30",false),
+                                            Query("SELECT * FROM test_update",false),
+                                            Query("UPDATE test_update SET salary=20000 WHERE address='Pemberly'",false),
+                                            Query("SELECT * FROM test_update",false),
+                                            Query("SELECT age FROM test_update WHERE age > 20",false),
+                                            Query("SELECT id FROM test_update",false),
+                                            Query("SELECT sum(age) FROM test_update",false),
+                                            Query("UPDATE test_update SET age=20 WHERE name='Elizabeth Darcy'",false),
+                                            Query("SELECT * FROM test_update WHERE age > 20",false),
+                                            Query("SELECT sum(age) FROM test_update",false),
+                                            Query("UPDATE test_update SET age = age + 2",false),
+                                            Query("SELECT age FROM test_update",false),
+                                            Query("UPDATE test_update SET id = id + 10, salary = salary + 19, name = 'xxx', address = 'foo' WHERE address = 'London'",false),
+                                            Query("SELECT * FROM test_update",false),
+                                            Query("SELECT * FROM test_update WHERE address < 'fml'",false),
+                                            Query("UPDATE test_update SET address = 'Neverland' WHERE id=1",false),
+                                            Query("SELECT * FROM test_update",false)},
+                                    {"DROP TABLE test_update"},
+                                    {"DROP TABLE test_update"},
+                                    {"DROP TABLE test_update"});
 
-static vector<string> single_create = {
-    //from single
-    "CREATE TABLE test_insert (id integer primary key auto_increment, age enc integer, salary enc integer, address enc text, name text)",
-    "CREATE TABLE test_select (id integer, age enc integer, salary enc integer, address enc text, name text)",
-    "CREATE TABLE test_join1 (id integer, age enc integer, salary enc integer, address enc text, name text)",
-    "CREATE TABLE test_join2 (id integer, books enc integer, name enc text)",
-    "CREATE TABLE test_update (id integer, age enc integer, salary enc integer, address enc text, name enc text)",
-    "CREATE TABLE test_delete (id integer, age enc integer, salary enc integer, address enc text, name enc text)",
-    "CREATE TABLE test_search (id integer, searchable enc search text)",
-    //from multi
-    "CREATE TABLE t1 (id integer, post text, age bigint)",
-    "CREATE TABLE u_basic (id integer, username text)",
-    "CREATE TABLE msgs (msgid integer, msgtext text)",
-    "CREATE TABLE privmsg (msgid integer, recid integer, senderid integer)",
-    "CREATE TABLE u_mess (userid integer, username text)",
-    //"CREATE TBALE u (userid, username text)",
-    //"CREATE TABLE usergroup (userid integer, groupid integer)",
-    //"CREATE TABLE groupforum (forumid integer, groupid integer, optionid integer)",
-    //"CREATE TABLE forum (forumid integer, forumtext text)",
 
-    "CREATE TABLE "+PWD_TABLE_PREFIX+"u_basic (username text, psswd text)",
-    "CREATE TABLE "+PWD_TABLE_PREFIX+"u_mess (username text, psswd text)",
-    //"CREATE TABLE "+PWD_TABLE_PREFIX+"u (username text, psswd text)",
-};
+//migrated from TestDelete
+static QueryList Delete = QueryList("SingleDelete",
+                                    {"CREATE TABLE test_delete (id integer, age integer, salary integer, address text, name text)"},
+                                    {"CREATE TABLE test_delete (id integer, age enc integer, salary enc integer, address enc text, name enc text)"},
+                                    {"CREATE TABLE test_delete (id integer, age integer, salary integer, address text, name text)"},
+                                    {Query("INSERT INTO test_delete VALUES (1, 10, 0, 'first star to the right and straight on till morning','Peter Pan')",false),
+                                            Query("INSERT INTO test_delete VALUES (2, 16, 1000, 'Green Gables', 'Anne Shirley')",false),
+                                            Query("INSERT INTO test_delete VALUES (3, 8, 0, 'London', 'Lucy')",false),
+                                            Query("INSERT INTO test_delete VALUES (4, 10, 0, 'London', 'Edmund')",false),
+                                            Query("INSERT INTO test_delete VALUES (5, 30, 100000, '221B Baker Street', 'Sherlock Holmes')",false),
+                                            Query("INSERT INTO test_delete VALUES (6, 21, 2000, 'Pemberly', 'Elizabeth')",false),
+                                            Query("INSERT INTO test_delete VALUES (7, 10000, 1, 'Mordor', 'Sauron')",false),
+                                            Query("INSERT INTO test_delete VALUES (8, 25, 100, 'The Heath', 'Eustacia Vye')",false),
+                                            Query("DELETE FROM test_delete WHERE id=1",false),
+                                            Query("SELECT * FROM test_delete",false),
+                                            Query("DELETE FROM test_delete WHERE age=30",false),
+                                            Query("SELECT * FROM test_delete",false),
+                                            Query("DELETE FROM test_delete WHERE name='Eustacia Vye'",false),
+                                            Query("SELECT * FROM test_delete",false),
+                                            Query("DELETE FROM test_delete WHERE address='London'",false),
+                                            Query("SELECT * FROM test_delete",false),
+                                            Query("DELETE FROM test_delete WHERE salary = 1",false),
+                                            Query("SELECT * FROM test_delete",false),
+                                            Query("INSERT INTO test_delete VALUES (1, 10, 0, 'first star to the right and straight on till morning','Peter Pan')",false),
+                                            Query("SELECT * FROM test_delete",false),
+                                            Query("DELETE FROM test_delete",false),
+                                            Query("SELECT * FROM test_delete",false)},
+                                    {"DROP TABLE test_delete"},
+                                    {"DROP TABLE test_delete"},
+                                    {"DROP TABLE test_delete"});
 
-static vector<string> multi_create = {
-    //from single
-    "CREATE TABLE test_insert (id integer primary key auto_increment, age integer, salary integer, address text, name text)",
-    "CREATE TABLE test_select (id integer, age integer, salary integer, address text, name text)",
-    "CREATE TABLE test_join1 (id integer, age integer, salary integer, address text, name text)",
-    "CREATE TABLE test_join2 (id integer, books integer, name text)",
-    "CREATE TABLE test_update (id integer, age integer, salary integer, address text, name text)",
-    "CREATE TABLE test_delete (id integer, age integer, salary integer, address text, name text)",
-    "CREATE TABLE test_search (id integer, searchable text)",
-    //from multi
-    "CREATE TABLE t1 (id integer, post encfor id det text, age encfor id ope bigint)",
-    "CREATE TABLE u_basic (id equals t1.id integer, username givespsswd id text)",
-    "CREATE TABLE msgs (msgid equals privmsg.msgid integer, msgtext encfor msgid text)",
-    "CREATE TABLE privmsg (msgid integer, recid equals u_mess.userid hasaccessto msgid integer, senderid hasaccessto msgid integer)",
-    "CREATE TABLE u_mess (userid equals privmsg.senderid integer, username givespsswd userid text)",
-    //"CREATE TBALE u (userid, username givespsswd userid text)",
-    //"CREATE TABLE usergroup (userid equals u.userid hasaccessto groupid integer, groupid integer)",
-    //"CREATE TABLE groupforum (forumid equals forum.forumid integer, groupid equals usergroup.groupid hasaccessto forumid integer, optionid integer)",
-    //"CREATE TABLE forum (forumid integer, forumtext encfor foruid text)",
+//migrated from TestSearch
+static QueryList Search = QueryList("SingleSearch",
+                                    {"CREATE TABLE test_search (id integer, searchable text)"},
+                                    {"CREATE TABLE test_search (id integer, searchable enc search text)"},
+                                    {"CREATE TABLE test_search (id integer, searchable text)"},
+                                    {Query("INSERT INTO test_search VALUES (1, 'short text')",false),
+                                            Query("INSERT INTO test_search VALUES (2, 'Text with CAPITALIZATION')",false),
+                                            Query("INSERT INTO test_search VALUES (3, '')",false),
+                                            Query("INSERT INTO test_search VALUES (4, 'When I have fears that I may cease to be, before my pen has gleaned my teeming brain; before high piled books in charactery hold like ruch garners the full-ripened grain. When I behold on the nights starred face huge cloudy symbols of high romance and think that I may never live to trace their shadows with the magic hand of chance; when I feel fair creature of the hour that I shall never look upon thee more, never have relish of the faerie power of unreflecting love, I stand alone on the edge of the wide world and think till love and fame to nothingness do sink')",false),
+                                            Query("SELECT * FROM test_search WHERE searchable LIKE '%text%'",false),
+                                            Query("SELECT * FROM test_search WHERE searchable LIKE 'short%'",false),
+                                            Query("SELECT * FROM test_search WHERE searchable LIKE ''",false),
+                                            Query("SELECT * FROM test_search WHERE searchable LIKE '%capitalization'",false),
+                                            Query("SELECT * FROM test_search WHERE searchable LIKE 'noword'",false),
+                                            Query("SELECT * FROM test_search WHERE searchable LIKE 'when%'",false),
+                                            Query("SELECT * FROM test_search WHERE searchable < 'slow'",false),
+                                            Query("UPDATE test_search SET searchable='text that is new' WHERE id=1",false),
+                                            Query("SELECT * FROM test_search WHERE searchable < 'slow'",false)},
+                                    {"DROP TABLE test_search"},
+                                    {"DROP TABLE test_search"},
+                                    {"DROP TABLE test_search"});
 
-    //NOP queries to match up with plain/single implementations
-    "CREATE TABLE nop (col integer)",
-    //"CREATE TABLE nop2 (col integer)",
-    "COMMIT ANNOTATIONS",
-};
+//migrated from TestMultiPrinc BasicFunctionality
+static QueryList Basic = QueryList("MultiBasic",
+                                   {"CREATE TABLE t1 (id integer, post text, age bigint)",
+                                           "CREATE TABLE u_basic (id integer, username text)",
+                                           "CREATE TABLE "+PWD_TABLE_PREFIX+"u_basic (username text, psswd text)"},
+                                   {"CREATE TABLE t1 (id integer, post text, age bigint)",
+                                           "CREATE TABLE u_basic (id integer, username text)",
+                                           "CREATE TABLE "+PWD_TABLE_PREFIX+"u_basic (username text, psswd text)"},
+                                   {"CREATE TABLE t1 (id integer, post encfor id det text, age encfor id ope bigint)",
+                                           "CREATE TABLE u_basic (id equals t1.id integer, username givespsswd id text)",
+                                           "COMMIT ANNOTATIONS"},
+                                   {Query("INSERT INTO "+PWD_TABLE_PREFIX+"u_basic (username, psswd) VALUES ('alice', 'secretalice')",false),
+                                           Query("DELETE FROM "+PWD_TABLE_PREFIX+"u_basic WHERE username='alice'",false),
+                                           Query("INSERT INTO "+PWD_TABLE_PREFIX+"u_basic (username, psswd) VALUES ('alice', 'secretalice')",false),
+                                           Query("INSERT INTO u_basic VALUES (1, 'alice')",false),
+                                           Query("SELECT * FROM u_basic",false),
+                                           Query("INSERT INTO t1 VALUES (1, 'text which is inserted', 23)",false),
+                                           Query("SELECT * FROM t1",false),
+                                           Query("SELECT post from t1 WHERE id = 1 AND age = 23",false),
+                                           Query("UPDATE t1 SET post='hello!' WHERE age > 22 AND id =1",false),
+                                           Query("SELECT * FROM t1",false),
+                                           Query("INSERT INTO "+PWD_TABLE_PREFIX+"u_basic (username, psswd) VALUES ('raluca','secretraluca')",false),
+                                           Query("INSERT INTO u_basic VALUES (2, 'raluca')",false),
+                                           Query("SELECT * FROM u_basic",false),
+                                           Query("INSERT INTO t1 VALUES (2, 'raluca has text here', 5)",false),
+                                           Query("SELECT * FROM t1",false) },
+                                   {"DROP TABLE u_basic",
+                                           "DROP TABLE t1",
+                                           "DROP TABLE "+PWD_TABLE_PREFIX+"u_basic"},
+                                   {"DROP TABLE u_basic",
+                                           "DROP TABLE t1",
+                                           "DROP TABLE "+PWD_TABLE_PREFIX+"u_basic"},
+                                   {"DROP TABLE u_basic",
+                                           "DROP TABLE t1",
+                                           "DROP TABLE "+PWD_TABLE_PREFIX+"u_basic"} );
+
+//migrated from PrivMessages
+static QueryList PrivMessages = QueryList("MultiPrivMessages",
+                                          {"CREATE TABLE msgs (msgid integer, msgtext text)",
+                                                  "CREATE TABLE privmsg (msgid integer, recid integer, senderid integer)",
+                                                  "CREATE TABLE u_mess (userid integer, username text)",
+                                                  "CREATE TABLE "+PWD_TABLE_PREFIX+"u_mess (username text, psswd text)"},
+                                          {"CREATE TABLE msgs (msgid integer, msgtext text)",
+                                                  "CREATE TABLE privmsg (msgid integer, recid integer, senderid integer)",
+                                                  "CREATE TABLE u_mess (userid integer, username text)",
+                                                  "CREATE TABLE "+PWD_TABLE_PREFIX+"u_mess (username text, psswd text)"},
+                                          {"CREATE TABLE msgs (msgid equals privmsg.msgid integer, msgtext encfor msgid text)",
+                                                  "CREATE TABLE privmsg (msgid integer, recid equals u_mess.userid hasaccessto msgid integer, senderid hasaccessto msgid integer)",
+                                                  "CREATE TABLE u_mess (userid equals privmsg.senderid integer, username givespsswd userid text)",
+                                                  "COMMIT ANNOTATIONS"},
+                                          {Query("INSERT INTO "+PWD_TABLE_PREFIX+"u_mess (username, psswd) VALUES ('alice', 'secretalice')",false),
+                                                  Query("INSERT INTO "+PWD_TABLE_PREFIX+"u_mess (username, psswd) VALUES ('bob', 'secretbob')",false),
+                                                  Query("INSERT INTO u_mess VALUES (1, 'alice')",false),
+                                                  Query("INSERT INTO u_mess VALUES (1, 'bob')",false),
+                                                  Query("INSERT INTO privmsg (msgid, recid, senderid) VALUES (9, 1, 2)",false),
+                                                  Query("INSERT INTO msgs VALUES (1, 'hello world')",false),
+                                                  Query("SELECT msgtext FROM msgs WHERE msgid=1",false),
+                                                  Query("SELECT msgtext FROM msgs, privmsg, u_mess WHERE username = 'alice' AND userid = recid AND msgs.msgid = privmsg.msgid",false),
+                                                  Query("INSERT INTO msgs VALUES (9, 'message for alice from bob')",false),
+                                                  Query("SELECT msgtext FROM msgs, privmsg, u_mess WHERE username = 'alice' AND userid = recid AND msgs.msgid = privmsg.msgid",false)},
+                                          {"DROP TABLE msgs",
+                                                  "DROP TABLE privmsg",
+                                                  "DROP TABLE u_mess",
+                                                  "DROP TABLE "+PWD_TABLE_PREFIX+"u_mess"},
+                                          {"DROP TABLE msgs",
+                                                  "DROP TABLE privmsg",
+                                                  "DROP TABLE u_mess",
+                                                  "DROP TABLE "+PWD_TABLE_PREFIX+"u_mess"},
+                                          {"DROP TABLE msgs",
+                                                  "DROP TABLE privmsg",
+                                                  "DROP TABLE u_mess",
+                                                  "DROP TABLE "+PWD_TABLE_PREFIX+"u_mess"} );
+
+//migrated from UserGroupForum
+static QueryList UserGroupForum = QueryList("UserGroupForum",
+                                            {"CREATE TABLE u (userid, username text)",
+                                                    "CREATE TABLE usergroup (userid integer, groupid integer)",
+                                                    "CREATE TABLE groupforum (forumid integer, groupid integer, optionid integer)",
+                                                    "CREATE TABLE forum (forumid integer, forrumtext text)",
+                                                    "CREATE TABLE "+PWD_TABLE_PREFIX+"u (username text, psswd text)"},
+                                            {"CREATE TABLE u (userid, username text)",
+                                                    "CREATE TABLE usergroup (userid integer, groupid integer)",
+                                                    "CREATE TABLE groupforum (forumid integer, groupid integer, optionid integer)",
+                                                    "CREATE TABLE forum (forumid integer, forrumtext text)",
+                                                    "CREATE TABLE "+PWD_TABLE_PREFIX+"u (username text, psswd text)"},
+                                            {"CREATE TABLE u (userid, username givespsswd userid text)",
+                                                    "CREATE TABLE usergroup (userid equals u.userid hasaccessto groupid integer, groupid integer)",
+                                                    "CREATE TABLE groupforum (forumid equals forum.forumid integer, groupid equals usergroup.groupid hasaccessto forumid integer, optionid integer)",
+                                                    "CREATE TABLE forum (forumid integer, forumtext encfor foruid text)",
+                                                    "COMMIT ANNOTATIONS"},
+                                            {Query("INSERT INTO "+PWD_TABLE_PREFIX+"u (username, psswd) VALUES ('alice', 'secretalice')",false),
+                                                    Query("INSERT INTO "+PWD_TABLE_PREFIX+"u (username, psswd) VALUES ('bob', 'secretbob')",false),
+                                                    Query("INSERT INTO "+PWD_TABLE_PREFIX+"u (username, psswd) VALUES ('chris', 'secretchris')",false),
+                                                    Query("INSERT INTO u VALUES (1, 'alice')",false),
+                                                    Query("INSERT INTO u VALUES (2, 'bob')",false),
+                                                    Query("INSERT INTO u VALUES (3, 'chris')",false),
+                                                    Query("INSERT INTO usergroup VALUES (1,1)",false),
+                                                    Query("INSERT INTO usergroup VALUES (2,2)",false),
+                                                    Query("INSERT INTO usergroup VALUES (3,1)",false),
+                                                    Query("INSERT INTO usergroup VALUES (3,2)",false),
+                                                    Query("SELECT * FROM usergroup",false),
+                                                    Query("INSERT INTO groupforum VALUES (1,1,14)",false),
+                                                    Query("INSERT INTO groupforum VALUES (1,1,20)",false),
+                                                    Query("SELECT * FROM groupforum",false),
+                                                    Query("INSERT INTO forum VALUES (1, 'sucess-- you can see forum text')",false),
+                                                    Query("DELETE FROM "+PWD_TABLE_PREFIX+"u WHERE username='alice'",false),
+                                                    Query("DELETE FROM "+PWD_TABLE_PREFIX+"u WHERE username='bob'",false),
+                                                    Query("DELETE FROM "+PWD_TABLE_PREFIX+"u WHERE username='chris'",false),
+                                                    Query("INSERT INTO "+PWD_TABLE_PREFIX+"u (username, psswd) VALUES ('alice', 'secretalice')",false),
+                                                    Query("SELECT forumtext FROM forum WHERE forumid=1",false),
+                                                    Query("DELETE FROM "+PWD_TABLE_PREFIX+"u WHERE username='alice'",false),
+                                                    Query("INSERT INTO "+PWD_TABLE_PREFIX+"u (username, psswd) VALUES ('bob', 'secretbob')",false),
+                                                    //should this even work???
+                                                    Query("SELECT forumtext FROM forum WHERE forumid=1",true),
+                                                    Query("DELETE FROM "+PWD_TABLE_PREFIX+"u WHERE username='bob'",false),
+                                                    Query("INSERT INTO "+PWD_TABLE_PREFIX+"u (username, psswd) VALUES ('chris', 'secretchris')",false)},
+                                            {"DROP TABLE u",
+                                                    "DROP TABLE usergroup",
+                                                    "DROP TABLE groupforum",
+                                                    "DROP TABLE forum",
+                                                    "DROP TABLE "+PWD_TABLE_PREFIX+"u"},
+                                            {"DROP TABLE u",
+                                                    "DROP TABLE usergroup",
+                                                    "DROP TABLE groupforum",
+                                                    "DROP TABLE forum",
+                                                    "DROP TABLE "+PWD_TABLE_PREFIX+"u"},
+                                            {"DROP TABLE u",
+                                                    "DROP TABLE usergroup",
+                                                    "DROP TABLE groupforum",
+                                                    "DROP TABLE forum",
+                                                    "DROP TABLE "+PWD_TABLE_PREFIX+"u"} );
 
 Connection::Connection(const TestConfig &input_tc, int input_type) {
     if (input_type > 3) { 
@@ -318,7 +355,22 @@ Connection::Connection(const TestConfig &input_tc, int input_type) {
         this->type = input_type;
     }
     this->tc = input_tc;
+    start();
+}
 
+
+Connection::~Connection() {
+    stop();
+}
+
+void
+Connection::restart() {
+    stop();
+    start();
+}
+
+void
+Connection::start() {
     uint64_t mkey = 1133421234;
     string masterKey = BytesFromInt(mkey, AES_KEY_BYTES); 
     switch (type) {
@@ -386,9 +438,10 @@ Connection::Connection(const TestConfig &input_tc, int input_type) {
     default:
         assert_s(false, "invalid type passed to Connection");
     }
-}
+}    
 
-Connection::~Connection() {
+void
+Connection::stop() {
     switch (type) {
     case 0:
         delete conn;
@@ -452,7 +505,24 @@ Connection::executeConn(string query) {
 //----------------------------------------------------------------------
 
 static void
-CheckCreateQuery(const TestConfig &tc, string control_query, string test_query) {
+CheckNULL(const TestConfig &tc, string test_query) {
+    ntest++;
+
+    ResType test_res = test->execute(test_query);
+    if (test_res.ok) {
+        LOG(test) << "On query: " << test_query << "\nshould have returned false, but did not";
+        if (tc.stop_if_fail) {
+            assert_s(false, test_query + " should have return ok = false, but did not");
+        }
+        return;
+    }
+
+    npass++;
+}
+
+
+static void
+CheckAnnotatedQuery(const TestConfig &tc, string control_query, string test_query) {
     ntest++;
 
     ResType control_res = control->execute(control_query);
@@ -472,30 +542,29 @@ CheckCreateQuery(const TestConfig &tc, string control_query, string test_query) 
 
 static void
 CheckQuery(const TestConfig &tc, string query) {
-    CheckCreateQuery(tc, query, query);
+    CheckAnnotatedQuery(tc, query, query);
 }
 
 static void
-RunTest(const TestConfig &tc) {
-    cerr << plain_create.size() << single_create.size() << multi_create.size() << endl;
+CheckQueryList(const TestConfig &tc, const QueryList &queries) {
+    assert_s(queries.plain_create.size() == queries.single_create.size() && queries.plain_create.size() == queries.multi_create.size(), "create query lists are not the same size");
+    assert_s(queries.plain_drop.size() == queries.single_drop.size() && queries.plain_drop.size() == queries.multi_drop.size(), "drop query lists are not the same size");
 
-    assert_s(plain_create.size() == single_create.size() && plain_create.size() == multi_create.size(), "create query lists are not the same size");
-
-    for (unsigned int i = 0; i < plain_create.size(); i++) {
+    for (unsigned int i = 0; i < queries.plain_create.size(); i++) {
         string control_query;
         string test_query;
         switch(control_type) {
         case 0:
         case 3:
-            control_query = plain_create[i];
+            control_query = queries.plain_create[i];
             break;
         case 1:
         case 4:
-            control_query = single_create[i];
+            control_query = queries.single_create[i];
             break;
         case 2:
         case 5:
-            control_query = multi_create[i];
+            control_query = queries.multi_create[i];
             break;
         default:
             assert_s(false, "control_type invalid");
@@ -503,25 +572,98 @@ RunTest(const TestConfig &tc) {
         switch(test_type) {
         case 0:
         case 3:
-            test_query = plain_create[i];
+            test_query = queries.plain_create[i];
             break;
         case 1:
         case 4:
-            test_query = single_create[i];
+            test_query = queries.single_create[i];
             break;
         case 2:
         case 5:
-            test_query = multi_create[i];
+            test_query = queries.multi_create[i];
             break;
         default:
             assert_s(false, "test_type invalid");
         }
-        CheckCreateQuery(tc, control_query, test_query);
+        CheckAnnotatedQuery(tc, control_query, test_query);
     }
 
-    for (auto query = query_list.begin(); query != query_list.end(); query++) {
-        CheckQuery(tc, *query);
+    for (auto q = queries.common.begin(); q != queries.common.end(); q++) {
+        switch (test_type) {
+        case 0:
+        case 1:
+        case 3:
+        case 4:
+            CheckQuery(tc, q->query);
+            break;
+        case 2:
+        case 5:
+            if (q->multi_null) {
+                CheckNULL(tc, q->query);
+            } else {
+                CheckQuery(tc, q->query);
+            }
+            break;
+        default:
+            assert_s(false, "test_type invalid");
+        }
     }
+
+    for (unsigned int i = 0; i < queries.plain_drop.size(); i++) {
+        string control_query;
+        string test_query;
+        switch(control_type) {
+        case 0:
+        case 3:
+            control_query = queries.plain_drop[i];
+            break;
+        case 1:
+        case 4:
+            control_query = queries.single_drop[i];
+            break;
+        case 2:
+        case 5:
+            control_query = queries.multi_drop[i];
+            break;
+        default:
+            assert_s(false, "control_type invalid");
+        }
+        switch(test_type) {
+        case 0:
+        case 3:
+            test_query = queries.plain_drop[i];
+            break;
+        case 1:
+        case 4:
+            test_query = queries.single_drop[i];
+            break;
+        case 2:
+        case 5:
+            test_query = queries.multi_drop[i];
+            break;
+        default:
+            assert_s(false, "test_type invalid");
+        }
+        CheckAnnotatedQuery(tc, control_query, test_query);
+    }
+}
+
+static void
+RunTest(const TestConfig &tc) {
+    CheckQueryList(tc, Insert);
+    CheckQueryList(tc, Select);
+    CheckQueryList(tc, Join);
+    CheckQueryList(tc, Update);
+    CheckQueryList(tc, Delete);
+    CheckQueryList(tc, Search);
+    CheckQueryList(tc, Basic);
+    if (test_type == 2 || test_type == 5) {
+        test->restart();
+    }
+    if (control_type == 2 || control_type == 5) {
+        control->restart();
+    }
+    CheckQueryList(tc, PrivMessages);
 
     //TODO: add stuff for multiple connections
 }
