@@ -552,7 +552,18 @@ TestQueries::run(const TestConfig &tc, int argc, char ** argv) {
         
         break;
     default:
-        cerr << "Wrong number of arguments.  Take arguments:\n\ttests/test queries control test [number_connections]\n  control and test are [ plain | single | multi | proxy-plain | proxy-single | proxy-multi ] which refers to the type of connections being made; control's results are assumed to be correct, so it is suggested that plain is used for control\n  test is the connection that is being tested; it's results are checked against control's\n   (single and multi make connections through EDBClient; proxy-* makes connections *'s encryption type through the proxy)\n  number_connections is the number of connections test are making a single database, with default of 1" << endl;
+        cerr << "Usage:" << endl
+             << "    .../tests/test queries control-type test-type [num_conn]" << endl
+             << "Possible control and test types:" << endl
+             << "    plain" << endl
+             << "    single" << endl
+             << "    multi" << endl
+             << "    proxy-plain" << endl
+             << "    proxy-single" << endl
+             << "    proxy-multi" << endl
+             << "single and multi make connections through EDBClient" << endl
+             << "proxy-* makes connections *'s encryption type through the proxy" << endl
+             << "num_conn is the number of conns made to a single db (default 1)" << endl;
         return;
     }        
 
