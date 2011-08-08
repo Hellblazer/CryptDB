@@ -18,7 +18,7 @@ class TestConfig {
         pass = "letmein";
         host = "127.0.0.1";
         db   = "cryptdbtest";
-        port = 5123;
+        port = 3306;
         stop_if_fail = false;
 
         // hack to find current dir
