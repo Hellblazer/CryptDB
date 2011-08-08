@@ -89,7 +89,8 @@ static vector<string> query_list = {
     "SELECT address FROM test_join1, test_join2 WHERE test_join1.id=test_join2.id",
     "SELECT test_join1.id, test_join2.id, age, books, test_join2.name FROM test_join1, test_join2 WHERE test_join1.id = test_join2.id",
     "SELECT test_join1.name, age, salary, test_join2.name, books FROM test_join1, test_join2 WHERE test_join1.age=test_join2.books",
-    "SELECT * FROM test_join1, test_join2 WHERE test_join1.name=test_join2.name",
+    //we don't support things that join unecrypted columns to encrypted columns
+    //"SELECT * FROM test_join1, test_join2 WHERE test_join1.name=test_join2.name",
     "SELECT * FROM test_join1, test_join2 WHERE test_join1.address=test_join2.name",
     "SELECT address FROM test_join1 AS a, test_join2 WHERE a.id=test_join2.id",
     "SELECT a.id, b.id, age, books, b.name FROM test_join1 a, test_join2 AS b WHERE a.id=b.id",
@@ -166,33 +167,151 @@ static vector<string> query_list = {
     "UPDATE test_search SET searchable='text that is new' WHERE id=1",
     "SELECT * FROM test_search WHERE searchable < 'slow'",
     "DROP TABLE test_search",
+    //migrated from TestMultiPrinc BasicFunctionality
+    "INSERT INTO "+PWD_TABLE_PREFIX+"u_basic (username, psswd) VALUES ('alice', 'secretalice')",
+    "DELETE FROM "+PWD_TABLE_PREFIX+"u_basic WHERE username='alice'",
+    "INSERT INTO "+PWD_TABLE_PREFIX+"u_basic (username, psswd) VALUES ('alice', 'secretalice')",
+    "INSERT INTO u_basic VALUES (1, 'alice')",
+    "SELECT * FROM u_basic",
+    "INSERT INTO t1 VALUES (1, 'text which is inserted', 23)",
+    "SELECT * FROM t1",
+    "SELECT post from t1 WHERE id = 1 AND age = 23",
+    "UPDATE t1 SET post='hello!' WHERE age > 22 AND id =1",
+    "SELECT * FROM t1",
+    "INSERT INTO "+PWD_TABLE_PREFIX+"u_basic (username, psswd) VALUES ('raluca','secretraluca')",
+    "INSERT INTO u_basic VALUES (2, 'raluca')",
+    "SELECT * FROM u_basic",
+    "INSERT INTO t1 VALUES (2, 'raluca has text here', 5)",
+    "SELECT * FROM t1",
+    "DELETE FROM "+PWD_TABLE_PREFIX+"u_basic",
+    "DROP TABLE u_basic",
+    "DROP TABLE t1",
+    "DROP TABLE "+PWD_TABLE_PREFIX+"u_basic",
+    /*//migrated from PrivMessages
+    "INSERT INTO "+PWD_TABLE_PREFIX+"u_mess (username, psswd) VALUES ('alice', 'secretalice')",
+    "INSERT INTO "+PWD_TABLE_PREFIX+"u_mess (username, psswd) VALUES ('bob', 'secretbob')",
+    "INSERT INTO u_mess VALUES (1, 'alice')",
+    "INSERT INTO u_mess VALUES (1, 'bob')",
+    "INSERT INTO privmsg (msgid, recid, senderid) VALUES (9, 1, 2)",
+    "INSERT INTO msgs VALUES (1, 'hello world')",
+    "SELECT msgtext FROM msgs WHERE msgid=1",
+    "SELECT msgtext FROM msgs, privmsg, u_mess WHERE username = 'alice' AND userid = recid AND msgs.msgid = privmsg.msgid",
+    "INSERT INTO msgs VALUES (9, 'message for alice from bob')",
+    "SELECT msgtext FROM msgs, privmsg, u_mess WHERE username = 'alice' AND userid = recid AND msgs.msgid = privmsg.msgid",
+    "DROP TABLE msgs",
+    "DROP TABLE privmsg",
+    "DROP TABLE u_mess",
+    "DROP TABLE "+PWD_TABLE_PREFIX+"u_mess",
+    "DROP TABLE nop",
+
+    //migrated from UserGroupForum
+        "INSERT INTO "+PWD_TABLE_PREFIX+"u (username, psswd) VALUES ('alice', 'secretalice')",
+    "INSERT INTO "+PWD_TABLE_PREFIX+"u (username, psswd) VALUES ('bob', 'secretbob')",
+    "INSERT INTO "+PWD_TABLE_PREFIX+"u (username, psswd) VALUES ('chris', 'secretchris')",
+    "INSERT INTO u VALUES (1, 'alice')",
+    "INSERT INTO u VALUES (2, 'bob')",
+    "INSERT INTO u VALUES (3, 'chris')",
+    "INSERT INTO usergroup VALUES (1,1)",
+    "INSERT INTO usergroup VALUES (2,2)",
+    "INSERT INTO usergroup VALUES (3,1)",
+    "INSERT INTO usergroup VALUES (3,2)",
+    "SELECT * FROM usergroup",
+    "INSERT INTO groupforum VALUES (1,1,14)",
+    "INSER INTO groupforum VALUES (1,1,20)",
+    "SELECT * FROM groupforum",
+    "INSERT INTO forum VALUES (1, 'sucess-- you can see forum text')",
+    "DELETE FROM "+PWD_TABLE_PREFIX+"u WHERE username='alice'",
+    "DELETE FROM "+PWD_TABLE_PREFIX+"u WHERE username='bob'",
+    "DELETE FROM "+PWD_TABLE_PREFIX+"u WHERE username='chris'",
+    "INSERT INTO "+PWD_TABLE_PREFIX+"u (username, psswd) VALUES ('alice', 'secretalice')",
+    "SELECT forumtext FROM forum WHERE forumid=1",
+    "DELETE FROM "+PWD_TABLE_PREFIX+"u WHERE username='alice'",
+    "INSERT INTO "+PWD_TABLE_PREFIX+"u (username, psswd) VALUES ('bob', 'secretbob')",
+    //should this even work???
+    "SELECT forumtext FROM forum WHERE forumid=1",
+    "DELETE FROM "+PWD_TABLE_PREFIX+"u WHERE username='bob'",
+    "INSERT INTO "+PWD_TABLE_PREFIX+"u (username, psswd) VALUES ('chris', 'secretchris')",*/
+
 };
+
 static vector<string> plain_create = {
+    //from single
     "CREATE TABLE test_insert (id integer primary key auto_increment, age integer, salary integer, address text, name text)",
     "CREATE TABLE test_select (id integer, age integer, salary integer, address text, name text)",
     "CREATE TABLE test_join1 (id integer, age integer, salary integer, address text, name text)",
     "CREATE TABLE test_join2 (id integer, books integer, name text)",
     "CREATE TABLE test_update (id integer, age integer, salary integer, address text, name text)",
     "CREATE TABLE test_delete (id integer, age integer, salary integer, address text, name text)",
-    "CREATE TABLE test_search (id integer, searchable text)"
+    "CREATE TABLE test_search (id integer, searchable text)",
+    //from multi
+    "CREATE TABLE t1 (id integer, post text, age bigint)",
+    "CREATE TABLE u_basic (id integer, username text)",
+    //"CREATE TABLE msgs (msgid integer, msgtext text)",
+    //"CREATE TABLE privmsg (msgid integer, recid integer, senderid integer)",
+    //"CREATE TABLE u_mess (userid integer, username text)",
+    //"CREATE TBALE u (userid, username text)",
+    //"CREATE TABLE usergroup (userid integer, groupid integer)",
+    //"CREATE TABLE groupforum (forumid integer, groupid integer, optionid integer)",
+    //"CREATE TABLE forum (forumid integer, forumtext text)",
+
+    "CREATE TABLE "+PWD_TABLE_PREFIX+"u_basic (username text, psswd text)",
+    //"CREATE TABLE "+PWD_TABLE_PREFIX+"u_mess (username text, psswd text)",
+    //"CREATE TABLE "+PWD_TABLE_PREFIX+"u (username text, psswd text)",
 };
+
 static vector<string> single_create = {
+    //from single
     "CREATE TABLE test_insert (id integer primary key auto_increment, age enc integer, salary enc integer, address enc text, name text)",
     "CREATE TABLE test_select (id integer, age enc integer, salary enc integer, address enc text, name text)",
     "CREATE TABLE test_join1 (id integer, age enc integer, salary enc integer, address enc text, name text)",
     "CREATE TABLE test_join2 (id integer, books enc integer, name enc text)",
     "CREATE TABLE test_update (id integer, age enc integer, salary enc integer, address enc text, name enc text)",
     "CREATE TABLE test_delete (id integer, age enc integer, salary enc integer, address enc text, name enc text)",
-    "CREATE TABLE test_search (id integer, searchable enc search text)"
+    "CREATE TABLE test_search (id integer, searchable enc search text)",
+    //from multi
+    "CREATE TABLE t1 (id integer, post text, age bigint)",
+    "CREATE TABLE u_basic (id integer, username text)",
+    //"CREATE TABLE msgs (msgid integer, msgtext text)",
+    //"CREATE TABLE privmsg (msgid integer, recid integer, senderid integer)",
+    //"CREATE TABLE u_mess (userid integer, username text)",
+    //"CREATE TBALE u (userid, username text)",
+    //"CREATE TABLE usergroup (userid integer, groupid integer)",
+    //"CREATE TABLE groupforum (forumid integer, groupid integer, optionid integer)",
+    //"CREATE TABLE forum (forumid integer, forumtext text)",
+
+    "CREATE TABLE "+PWD_TABLE_PREFIX+"u_basic (username text, psswd text)",
+    //"CREATE TABLE "+PWD_TABLE_PREFIX+"u_mess (username text, psswd text)",
+    //"CREATE TABLE "+PWD_TABLE_PREFIX+"u (username text, psswd text)",
 };
+
 static vector<string> multi_create = {
+    //from single
     "CREATE TABLE test_insert (id integer primary key auto_increment, age integer, salary integer, address text, name text)",
     "CREATE TABLE test_select (id integer, age integer, salary integer, address text, name text)",
     "CREATE TABLE test_join1 (id integer, age integer, salary integer, address text, name text)",
     "CREATE TABLE test_join2 (id integer, books integer, name text)",
     "CREATE TABLE test_update (id integer, age integer, salary integer, address text, name text)",
     "CREATE TABLE test_delete (id integer, age enc integer, salary enc integer, address enc text, name enc text)",
-    "CREATE TABLE test_search (id integer, searchable enc search text)"
+    "CREATE TABLE test_search (id integer, searchable enc search text)",
+    //from multi
+    "CREATE TABLE t1 (id integer, post encfor id det text, age encfor id ope bigint)",
+    "CREATE TABLE u_basic (id equals t1.id integer, username givespsswd id text)",
+    //"CREATE TABLE msgs (msgid equals privmsg.msgid integer, msgtext encfor msgid text)",
+    //"CREATE TABLE privmsg (msgid integer, recid equals u.userid hasaccessto msgid integer, senderid hasaccessto msgid integer)",
+    //"CREATE TABLE u_mess (userid equals privmsg.senderid integer, username givespsswd userid text)",
+    /*"CREATE TABLE msgs (msgid equals privmsg.msgid integer, msgtext encfor msgid text)",
+    "CREATE TABLE privmsg (msgid integer, recid equals u.userid hasaccessto msgid integer, senderid hasaccessto msgid integer)",
+    "CREATE TABLE u_mess (userid equals privmsg.senderid integer, username givespsswd userid text)",*/
+
+    //"CREATE TBALE u (userid, username givespsswd userid text)",
+    //"CREATE TABLE usergroup (userid equals u.userid hasaccessto groupid integer, groupid integer)",
+    //"CREATE TABLE groupforum (forumid equals forum.forumid integer, groupid equals usergroup.groupid hasaccessto forumid integer, optionid integer)",
+    //"CREATE TABLE forum (forumid integer, forumtext encfor foruid text)",
+
+    //NOP queries to match up with plain/single implementations
+    //"CREATE TABLE nop (col integer)",
+    //"CREATE TABLE nop2 (col integer)",
+    "COMMIT ANNOTATIONS",
 };
 
 Connection::Connection(const TestConfig &input_tc, int input_type) {
@@ -275,7 +394,7 @@ Connection::execute(string query) {
 
 void
 Connection::executeFail(string query) {
-    cerr << query << endl;
+    cerr << type << " " << query << endl;
     LOG(test) << "Query: " << query << " could not execute" << endl;
     if(tc.stop_if_fail) {
         assert_s(false, query + " could not execute");
@@ -330,6 +449,8 @@ CheckQuery(const TestConfig &tc, string query) {
 
 static void
 RunTest(const TestConfig &tc) {
+    cerr << plain_create.size() << single_create.size() << multi_create.size() << endl;
+
     assert_s(plain_create.size() == single_create.size() && plain_create.size() == multi_create.size(), "create query lists are not the same size");
 
     for (unsigned int i = 0; i < plain_create.size(); i++) {
@@ -405,6 +526,7 @@ TestQueries::run(const TestConfig &tc, int argc, char ** argv) {
         } else if (strncmp(argv[1], "proxy-single", 12) == 0) {
             control_type = 4;
             //TODO: check proxy is setting up in single mode... not quite sure how to do this...
+            //create file that specifies single or multi (system/fopen)
         } else if (strncmp(argv[1], "proxy-multi", 11) == 0) {
             control_type = 5;
             //TODO: check proxy is setting up in multi mode... not quite sure how to do this...
