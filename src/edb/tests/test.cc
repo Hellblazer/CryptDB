@@ -3883,15 +3883,15 @@ static struct {
     { "access_old",     "",                             &accessManagerTest },
     { "aes",            "",                             &evaluate_AES },
     { "autoinc",        "",                             &autoIncTest },
-    { "crypto",         "(crypto functions)",           &TestCrypto::run },
-    { "multi",          "(integration multi principal)",&TestMultiPrinc::run },
+    { "crypto",         "crypto functions",             &TestCrypto::run },
+    { "multi",          "integration multi principal",  &TestMultiPrinc::run },
     { "paillier",       "",                             &testPaillier },
     { "parseaccess",    "",                             &testParseAccess },
     { "pkcs",           "",                             &test_PKCS },
-    { "proxy",          "(proxy)",                      &TestProxy::run },
-    { "queries",        "(queries)",                    &TestQueries::run },
-    { "shell",          "(interactive shell)",          &interactiveTest },
-    { "single",         "(integration - single principal)",&TestSinglePrinc::run },
+    { "proxy",          "proxy",                        &TestProxy::run },
+    { "queries",        "queries",                      &TestQueries::run },
+    { "shell",          "interactive shell",            &interactiveTest },
+    { "single",         "integration - single principal",&TestSinglePrinc::run },
     { "tables",         "",                             &encryptionTablesTest },
     { "trace",          "",                             &testTrace },
     { "utils",          "",                             &testUtils },
@@ -3915,7 +3915,8 @@ help(const TestConfig &tc, int ac, char **av)
         cerr << "    " << i->first << endl;
     cerr << "Supported tests:" << endl;
     for (uint i = 0; i < NELEM(tests); i++)
-        cerr << "    " << tests[i].name <<  "  " << tests[i].description << endl;
+        cerr << "    " << left << setw(20) << tests[i].name
+                                           << tests[i].description << endl;
 }
 
 int
