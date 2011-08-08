@@ -7,18 +7,31 @@
 
 #pragma once
 #include <string>
+#include <assert.h>
 #include "EDBClient.h"
 
 class TestConfig {
  public:
     TestConfig() {
-    	//default values
+    	// default values
         user = "root";
         pass = "letmein";
         host = "127.0.0.1";
-        db = "cryptdbtest";
+        db   = "cryptdbtest";
         port = 5123;
         stop_if_fail = false;
+
+        // hack to find current dir
+        char buf[1024];
+        ssize_t n = readlink("/proc/self/exe", buf, sizeof(buf) - 1);
+        assert(n > 0);
+        buf[n] = '\0';
+
+        std::string s(buf, n);
+        auto i = s.find_last_of('/');
+        assert(i != s.npos);
+
+        edbdir = s.substr(0, i) + "/..";
     }
 
     std::string user;
@@ -28,6 +41,8 @@ class TestConfig {
     uint port;
 
     bool stop_if_fail;
+
+    std::string edbdir;
 };
 
 #define PLAIN 0

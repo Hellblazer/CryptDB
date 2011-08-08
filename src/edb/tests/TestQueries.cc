@@ -339,18 +339,19 @@ Connection::Connection(const TestConfig &input_tc, int input_type) {
     case 3:
         proxy_pid = fork();
         if (proxy_pid == 0) {
-            string edbdir = getenv("EDBDIR");
+            setenv("EBDDIR", tc.edbdir.c_str(), 1);
             setenv("CRYPTDB_USER", tc.user.c_str(), 1);
             setenv("CRYPTDB_PASS", tc.pass.c_str(), 1);
             setenv("CRYPTDB_DB", tc.db.c_str(), 1);
-            string script_path = "--proxy-lua-script="+edbdir+"/../mysqlproxy/wrapper.lua";
-            execl("/usr/local/bin/mysql-proxy",
-                  "mysql-proxy", "--plugins=proxy",
-                                 "--max-open-files=1024",
-                                 script_path.c_str(),
-                                 "--proxy-address=localhost:5123",
-                                 "--proxy-backend-addresses=localhost:3306",
-                                 0);
+            string script_path = "--proxy-lua-script=" + tc.edbdir
+                                                       + "/../mysqlproxy/wrapper.lua";
+            execlp("mysql-proxy",
+                   "mysql-proxy", "--plugins=proxy",
+                                  "--max-open-files=1024",
+                                  script_path.c_str(),
+                                  "--proxy-address=localhost:5123",
+                                  "--proxy-backend-addresses=localhost:3306",
+                                  0);
         } else if (proxy_pid < 0) {
             cerr << "failed to fork" << endl;
             exit(1);
