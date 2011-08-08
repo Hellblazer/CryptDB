@@ -3743,7 +3743,7 @@ testTrace(const TestConfig &tc, int argc, char ** argv)
     string masterKey =  BytesFromInt(mkey, AES_KEY_BYTES);
     EDBClient * cl;
 
-    cl = new EDBClient(tc.host, tc.user, tc.pass, tc.db, 5123);
+    cl = new EDBClient(tc.host, tc.user, tc.pass, tc.db, tc.port);
     cl->setMasterKey(masterKey);
     cl->VERBOSE = false;
 
@@ -3906,6 +3906,7 @@ help(const TestConfig &tc, int ac, char **av)
     cerr << "Options:" << endl
          << "    -s           stop on failure [" << tc.stop_if_fail << "]" << endl
          << "    -h host      database server [" << tc.host << "]" << endl
+         << "    -t port      database port [" << tc.port << "]" << endl
          << "    -u user      database username [" << tc.user << "]" << endl
          << "    -p pass      database password [" << tc.pass << "]" << endl
          << "    -d db        database to use [" << tc.db << "]" << endl
@@ -3925,7 +3926,7 @@ main(int argc, char ** argv)
     TestConfig tc;
     int c;
 
-    while ((c = getopt(argc, argv, "v:sh:u:p:d:")) != -1) {
+    while ((c = getopt(argc, argv, "v:sh:u:p:d:t:")) != -1) {
         switch (c) {
         case 'v':
             if (log_name_to_group.find(optarg) == log_name_to_group.end()) {
@@ -3937,7 +3938,6 @@ main(int argc, char ** argv)
             break;
 
         case 's':
-
             tc.stop_if_fail = true;
             break;
 
@@ -3955,6 +3955,10 @@ main(int argc, char ** argv)
 
         case 'h':
             tc.host = optarg;
+            break;
+
+        case 't':
+            tc.port = atoi(optarg);
             break;
 
         default:
