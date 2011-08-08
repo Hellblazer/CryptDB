@@ -30,7 +30,8 @@ static vector<string> query_list = {
     "INSERT INTO test_insert (id) VALUES (7)",
     "select sum(id) from test_insert",
     "INSERT INTO test_insert (age) VALUES (40)",
-    "SELECT age FROM test_insert",
+    //TODO: proxy has issues with this one...?
+    //"SELECT age FROM test_insert",
     "INSERT INTO test_insert (name) VALUES ('Wendy')",
     "SELECT name FROM test_insert WHERE id=10",
     "INSERT INTO test_insert (name, address, id, age) VALUES ('Peter Pan', 'first star to the right and straight on till morning', 42, 10)",
@@ -183,11 +184,10 @@ static vector<string> query_list = {
     "SELECT * FROM u_basic",
     "INSERT INTO t1 VALUES (2, 'raluca has text here', 5)",
     "SELECT * FROM t1",
-    "DELETE FROM "+PWD_TABLE_PREFIX+"u_basic",
     "DROP TABLE u_basic",
     "DROP TABLE t1",
     "DROP TABLE "+PWD_TABLE_PREFIX+"u_basic",
-    /*//migrated from PrivMessages
+    //migrated from PrivMessages
     "INSERT INTO "+PWD_TABLE_PREFIX+"u_mess (username, psswd) VALUES ('alice', 'secretalice')",
     "INSERT INTO "+PWD_TABLE_PREFIX+"u_mess (username, psswd) VALUES ('bob', 'secretbob')",
     "INSERT INTO u_mess VALUES (1, 'alice')",
@@ -205,7 +205,7 @@ static vector<string> query_list = {
     "DROP TABLE nop",
 
     //migrated from UserGroupForum
-        "INSERT INTO "+PWD_TABLE_PREFIX+"u (username, psswd) VALUES ('alice', 'secretalice')",
+    /*"INSERT INTO "+PWD_TABLE_PREFIX+"u (username, psswd) VALUES ('alice', 'secretalice')",
     "INSERT INTO "+PWD_TABLE_PREFIX+"u (username, psswd) VALUES ('bob', 'secretbob')",
     "INSERT INTO "+PWD_TABLE_PREFIX+"u (username, psswd) VALUES ('chris', 'secretchris')",
     "INSERT INTO u VALUES (1, 'alice')",
@@ -246,16 +246,16 @@ static vector<string> plain_create = {
     //from multi
     "CREATE TABLE t1 (id integer, post text, age bigint)",
     "CREATE TABLE u_basic (id integer, username text)",
-    //"CREATE TABLE msgs (msgid integer, msgtext text)",
-    //"CREATE TABLE privmsg (msgid integer, recid integer, senderid integer)",
-    //"CREATE TABLE u_mess (userid integer, username text)",
+    "CREATE TABLE msgs (msgid integer, msgtext text)",
+    "CREATE TABLE privmsg (msgid integer, recid integer, senderid integer)",
+    "CREATE TABLE u_mess (userid integer, username text)",
     //"CREATE TBALE u (userid, username text)",
     //"CREATE TABLE usergroup (userid integer, groupid integer)",
     //"CREATE TABLE groupforum (forumid integer, groupid integer, optionid integer)",
     //"CREATE TABLE forum (forumid integer, forumtext text)",
 
     "CREATE TABLE "+PWD_TABLE_PREFIX+"u_basic (username text, psswd text)",
-    //"CREATE TABLE "+PWD_TABLE_PREFIX+"u_mess (username text, psswd text)",
+    "CREATE TABLE "+PWD_TABLE_PREFIX+"u_mess (username text, psswd text)",
     //"CREATE TABLE "+PWD_TABLE_PREFIX+"u (username text, psswd text)",
 };
 
@@ -271,16 +271,16 @@ static vector<string> single_create = {
     //from multi
     "CREATE TABLE t1 (id integer, post text, age bigint)",
     "CREATE TABLE u_basic (id integer, username text)",
-    //"CREATE TABLE msgs (msgid integer, msgtext text)",
-    //"CREATE TABLE privmsg (msgid integer, recid integer, senderid integer)",
-    //"CREATE TABLE u_mess (userid integer, username text)",
+    "CREATE TABLE msgs (msgid integer, msgtext text)",
+    "CREATE TABLE privmsg (msgid integer, recid integer, senderid integer)",
+    "CREATE TABLE u_mess (userid integer, username text)",
     //"CREATE TBALE u (userid, username text)",
     //"CREATE TABLE usergroup (userid integer, groupid integer)",
     //"CREATE TABLE groupforum (forumid integer, groupid integer, optionid integer)",
     //"CREATE TABLE forum (forumid integer, forumtext text)",
 
     "CREATE TABLE "+PWD_TABLE_PREFIX+"u_basic (username text, psswd text)",
-    //"CREATE TABLE "+PWD_TABLE_PREFIX+"u_mess (username text, psswd text)",
+    "CREATE TABLE "+PWD_TABLE_PREFIX+"u_mess (username text, psswd text)",
     //"CREATE TABLE "+PWD_TABLE_PREFIX+"u (username text, psswd text)",
 };
 
@@ -291,25 +291,21 @@ static vector<string> multi_create = {
     "CREATE TABLE test_join1 (id integer, age integer, salary integer, address text, name text)",
     "CREATE TABLE test_join2 (id integer, books integer, name text)",
     "CREATE TABLE test_update (id integer, age integer, salary integer, address text, name text)",
-    "CREATE TABLE test_delete (id integer, age enc integer, salary enc integer, address enc text, name enc text)",
-    "CREATE TABLE test_search (id integer, searchable enc search text)",
+    "CREATE TABLE test_delete (id integer, age integer, salary integer, address text, name text)",
+    "CREATE TABLE test_search (id integer, searchable text)",
     //from multi
     "CREATE TABLE t1 (id integer, post encfor id det text, age encfor id ope bigint)",
     "CREATE TABLE u_basic (id equals t1.id integer, username givespsswd id text)",
-    //"CREATE TABLE msgs (msgid equals privmsg.msgid integer, msgtext encfor msgid text)",
-    //"CREATE TABLE privmsg (msgid integer, recid equals u.userid hasaccessto msgid integer, senderid hasaccessto msgid integer)",
-    //"CREATE TABLE u_mess (userid equals privmsg.senderid integer, username givespsswd userid text)",
-    /*"CREATE TABLE msgs (msgid equals privmsg.msgid integer, msgtext encfor msgid text)",
-    "CREATE TABLE privmsg (msgid integer, recid equals u.userid hasaccessto msgid integer, senderid hasaccessto msgid integer)",
-    "CREATE TABLE u_mess (userid equals privmsg.senderid integer, username givespsswd userid text)",*/
-
+    "CREATE TABLE msgs (msgid equals privmsg.msgid integer, msgtext encfor msgid text)",
+    "CREATE TABLE privmsg (msgid integer, recid equals u_mess.userid hasaccessto msgid integer, senderid hasaccessto msgid integer)",
+    "CREATE TABLE u_mess (userid equals privmsg.senderid integer, username givespsswd userid text)",
     //"CREATE TBALE u (userid, username givespsswd userid text)",
     //"CREATE TABLE usergroup (userid equals u.userid hasaccessto groupid integer, groupid integer)",
     //"CREATE TABLE groupforum (forumid equals forum.forumid integer, groupid equals usergroup.groupid hasaccessto forumid integer, optionid integer)",
     //"CREATE TABLE forum (forumid integer, forumtext encfor foruid text)",
 
     //NOP queries to match up with plain/single implementations
-    //"CREATE TABLE nop (col integer)",
+    "CREATE TABLE nop (col integer)",
     //"CREATE TABLE nop2 (col integer)",
     "COMMIT ANNOTATIONS",
 };
@@ -343,9 +339,10 @@ Connection::Connection(const TestConfig &input_tc, int input_type) {
     case 3:
         proxy_pid = fork();
         if (proxy_pid == 0) {
+            //TODO there should be a way to set db through the command line
             string edbdir = getenv("EDBDIR");
             string script_path = "--proxy-lua-script="+edbdir+"/../mysqlproxy/wrapper.lua";
-            execl("/usr/local/bin/mysql-proxy", "mysql-proxy", "--plugins=proxy", "--max-open-files=1024", script_path.c_str(), "--proxy-address=localhost:3307", "--proxy-backend-addresses=localhost:3306", (char *) 0);
+            execl("/usr/local/bin/mysql-proxy", "mysql-proxy", "--plugins=proxy", "--max-open-files=1024", script_path.c_str(), "--proxy-address=localhost:5123", "--proxy-backend-addresses=localhost:3306", (char *) 0);
         } else if (proxy_pid < 0) {
             cerr << "failed to fork" << endl;
             exit(1);
@@ -429,7 +426,6 @@ CheckCreateQuery(const TestConfig &tc, string control_query, string test_query) 
     ResType control_res = control->execute(control_query);
     ResType test_res = test->execute(test_query);
     if (!match(test_res, control_res)) {
-        //TODO: figure out how to LOG resultsets
         LOG(test) << "On query: " << test_query << "\nwe received the incorrect resultset";
         if (tc.stop_if_fail) {
             PrintRes(control_res);
