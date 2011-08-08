@@ -24,6 +24,12 @@ to start proxy:
 		--proxy-address=localhost:3307 \
 		--proxy-backend-addresses=localhost:3306
 
+to specify username / password / db for proxy, run before starting proxy:
+
+  % export CRYPTDB_USER=...
+  % export CRYPTDB_PASS=...
+  % export CRYPTDB_DB=...
+
 to send a single command to mysql:
   % mysql -u root -pletmein -h 127.0.0.1 -P 3307 -e 'command'
 
