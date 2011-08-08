@@ -14,8 +14,7 @@
 class Connection {
  public:
     Connection(const TestConfig &tc, int type);
-    virtual
-        ~Connection();
+    ~Connection();
 
     ResType execute(string query);
 
@@ -37,8 +36,7 @@ class Connection {
 class TestQueries {
  public:
     TestQueries();
-    virtual
-        ~TestQueries();
+    ~TestQueries();
 
     static void run(const TestConfig &tc, int argc, char ** argv);
 
