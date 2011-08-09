@@ -216,7 +216,6 @@ static QueryList Search = QueryList("SingleSearch",
     { "DROP TABLE test_search" },
     { "DROP TABLE test_search" } );
 
-//migrated from TestMultiPrinc BasicFunctionality
 static QueryList Basic = QueryList("MultiBasic",
     { "CREATE TABLE t1 (id integer, post text, age bigint)",
       "CREATE TABLE u_basic (id integer, username text)",
@@ -250,7 +249,7 @@ static QueryList Basic = QueryList("MultiBasic",
       "DROP TABLE "+PWD_TABLE_PREFIX+"u_basic" },
     { "DROP TABLE u_basic",
       "DROP TABLE t1",
-      "DROP TABLE "+PWD_TABLE_PREFIX+"u_basic" } );
+      "DROP TABLE nop" } );
 
 //migrated from PrivMessages
 static QueryList PrivMessages = QueryList("MultiPrivMessages",
@@ -287,24 +286,24 @@ static QueryList PrivMessages = QueryList("MultiPrivMessages",
     { "DROP TABLE msgs",
       "DROP TABLE privmsg",
       "DROP TABLE u_mess",
-      "DROP TABLE "+PWD_TABLE_PREFIX+"u_mess" } );
+      "DROP TABLE nop" } );
 
 //migrated from UserGroupForum
 static QueryList UserGroupForum = QueryList("UserGroupForum",
-    { "CREATE TABLE u (userid, username text)",
+    { "CREATE TABLE u (userid integer, username text)",
       "CREATE TABLE usergroup (userid integer, groupid integer)",
       "CREATE TABLE groupforum (forumid integer, groupid integer, optionid integer)",
-      "CREATE TABLE forum (forumid integer, forrumtext text)",
+      "CREATE TABLE forum (forumid integer, forumtext text)",
       "CREATE TABLE "+PWD_TABLE_PREFIX+"u (username text, psswd text)" },
-    { "CREATE TABLE u (userid, username text)",
+    { "CREATE TABLE u (userid integer, username text)",
       "CREATE TABLE usergroup (userid integer, groupid integer)",
       "CREATE TABLE groupforum (forumid integer, groupid integer, optionid integer)",
-      "CREATE TABLE forum (forumid integer, forrumtext text)",
+      "CREATE TABLE forum (forumid integer, forumtext text)",
       "CREATE TABLE "+PWD_TABLE_PREFIX+"u (username text, psswd text)" },
-    { "CREATE TABLE u (userid, username givespsswd userid text)",
+    { "CREATE TABLE u (userid integer, username givespsswd userid text)",
       "CREATE TABLE usergroup (userid equals u.userid hasaccessto groupid integer, groupid integer)",
       "CREATE TABLE groupforum (forumid equals forum.forumid integer, groupid equals usergroup.groupid hasaccessto forumid integer, optionid integer)",
-      "CREATE TABLE forum (forumid integer, forumtext encfor foruid text)",
+      "CREATE TABLE forum (forumid integer, forumtext encfor forumid text)",
       "COMMIT ANNOTATIONS" },
     { Query("INSERT INTO "+PWD_TABLE_PREFIX+"u (username, psswd) VALUES ('alice', 'secretalice')", false),
       Query("INSERT INTO "+PWD_TABLE_PREFIX+"u (username, psswd) VALUES ('bob', 'secretbob')", false),
@@ -324,14 +323,63 @@ static QueryList UserGroupForum = QueryList("UserGroupForum",
       Query("DELETE FROM "+PWD_TABLE_PREFIX+"u WHERE username='alice'", false),
       Query("DELETE FROM "+PWD_TABLE_PREFIX+"u WHERE username='bob'", false),
       Query("DELETE FROM "+PWD_TABLE_PREFIX+"u WHERE username='chris'", false),
+      //alice
       Query("INSERT INTO "+PWD_TABLE_PREFIX+"u (username, psswd) VALUES ('alice', 'secretalice')", false),
       Query("SELECT forumtext FROM forum WHERE forumid=1", false),
       Query("DELETE FROM "+PWD_TABLE_PREFIX+"u WHERE username='alice'", false),
+      //bob
       Query("INSERT INTO "+PWD_TABLE_PREFIX+"u (username, psswd) VALUES ('bob', 'secretbob')", false),
-      //should this even work???
       Query("SELECT forumtext FROM forum WHERE forumid=1",true),
       Query("DELETE FROM "+PWD_TABLE_PREFIX+"u WHERE username='bob'", false),
-      Query("INSERT INTO "+PWD_TABLE_PREFIX+"u (username, psswd) VALUES ('chris', 'secretchris')", false) },
+      //alice
+      Query("INSERT INTO "+PWD_TABLE_PREFIX+"u (username, psswd) VALUES ('alice', 'secretalice')",false),
+      Query("SELECT forumtext FROM forum WHERE forumid=1",false),
+      Query("DELETE FROM "+PWD_TABLE_PREFIX+"u WHERE username='alice'",false),
+      //bob
+      Query("INSERT INTO "+PWD_TABLE_PREFIX+"u (username, psswd) VALUES ('bob', 'secretbob')",false),
+      Query("SELECT forumtext FROM forum WHERE forumid=1",true),
+      Query("DELETE FROM "+PWD_TABLE_PREFIX+"u WHERE username='bob'",false),
+      //chris
+      Query("INSERT INTO "+PWD_TABLE_PREFIX+"u (username, psswd) VALUES ('chris', 'secretchris')",false),
+      Query("SELECT forumtext FROM forum WHERE forumid=1",false),
+      Query("UPDATE forum SET forumtext='you win!' WHERE forumid=1",false),
+      Query("SELECT forumtext FROM forum WHERE forumid=1",false),
+      Query("DELETE FROM "+PWD_TABLE_PREFIX+"u WHERE username='chris'",false),
+      //alice
+      Query("INSERT INTO "+PWD_TABLE_PREFIX+"u (username, psswd) VALUES ('alice','secretalice')",false),
+      Query("SELECT forumtext FROM forum WHERE forumid=1",false),
+      Query("INSERT INTO forum VALUES (2, 'orphaned text! everyone should be able to see me')",false),
+      Query("SELECT forumtext FROM forum WHERE forumid=2",false),
+      Query("DELETE FROM "+PWD_TABLE_PREFIX+"u WHERE username='alice'",false),
+      //bob
+      Query("INSERT INTO "+PWD_TABLE_PREFIX+"u (username, psswd) VALUES ('bob', 'secretbob')",false),
+      Query("SELECT forumtext FROM forum WHERE forumid=2",false),
+      Query("DELETE FROM "+PWD_TABLE_PREFIX+"u WHERE username='bob'",false),
+      //chris
+      Query("INSERT INTO "+PWD_TABLE_PREFIX+"u (username, psswd) VALUES ('chris','secretchris')",false),
+      Query("SELECT forumtext FROM forum WHERE forumid=2",false),
+      Query("INSERT INTO groupforum VALUES (2,2,20)",false),
+      Query("SELECT forumtext FROM forum AS f, groupforum AS g, usergroup AS ug, u WHERE f.forumid=g.forumid AND g.groupid=ug.groupid AND ug.userid=u.userid AND u.username='chris' AND g.optionid=20",false),
+      Query("DELETE FROM "+PWD_TABLE_PREFIX+"u WHERE username='chris'",false),
+      //bob
+      Query("INSERT INTO "+PWD_TABLE_PREFIX+"u (username, psswd) VALUES ('bob','secretbob')",false),
+      Query("SELECT forumtext FROM forum AS f, groupforum AS g, usergroup AS ug, u WHERE f.forumid=g.forumid AND g.groupid=ug.groupid AND ug.userid=u.userid AND u.username='bob' AND g.optionid=20",false),
+      Query("DELETE FROM "+PWD_TABLE_PREFIX+"u WHERE username='bob'",false),
+      //alice
+      Query("INSERT INTO "+PWD_TABLE_PREFIX+"u (username, psswd) VALUES ('alice','secretalice')",false),
+
+
+      Query("DELETE FROM "+PWD_TABLE_PREFIX+"u WHERE username='alice'",false),
+
+
+
+
+
+
+      Query("INSERT INTO "+PWD_TABLE_PREFIX+"u (username, psswd) VALUES ('chris','secretchris')",false),
+      Query("DELETE FROM "+PWD_TABLE_PREFIX+"u WHERE username='chris'",false),
+      Query("INSERT INTO "+PWD_TABLE_PREFIX+"u (username, psswd) VALUES ('chris','secretchris')",false),
+      Query("DELETE FROM "+PWD_TABLE_PREFIX+"u WHERE username='chris'",false)},
     { "DROP TABLE u",
       "DROP TABLE usergroup",
       "DROP TABLE groupforum",
@@ -346,7 +394,7 @@ static QueryList UserGroupForum = QueryList("UserGroupForum",
       "DROP TABLE usergroup",
       "DROP TABLE groupforum",
       "DROP TABLE forum",
-      "DROP TABLE "+PWD_TABLE_PREFIX+"u" } );
+      "DROP TABLE nop" } );
 
 Connection::Connection(const TestConfig &input_tc, int input_type) {
     if (input_type > 3) { 
@@ -387,6 +435,9 @@ Connection::start() {
     case 2:
         cl = new EDBClient(tc.host, tc.user, tc.pass, tc.db, tc.port, true);
         cl->setMasterKey(masterKey);
+        cl->plain_execute("DROP FUNCTION IF EXISTS test");
+        cl->plain_execute("CREATE FUNCTION test (optionid integer) RETURNS bool RETURN optionid=20");
+        cl->execute("CREATE TABLE nop (nothing integer)");
         break;
         //proxy -- start proxy in separate process and initialize connection
     case 3:
@@ -478,11 +529,8 @@ Connection::execute(string query) {
 
 void
 Connection::executeFail(string query) {
-    //cerr << type << " " << query << endl;
+    cerr << type << " " << query << endl;
     LOG(test) << "Query: " << query << " could not execute" << endl;
-    if(tc.stop_if_fail) {
-        assert_s(false, query + " could not execute");
-    }
 }
 
 ResType
@@ -509,6 +557,8 @@ Connection::executeConn(string query) {
 static void
 CheckNULL(const TestConfig &tc, string test_query) {
     ntest++;
+
+    cerr << "CHECKING NULL" << endl;
 
     ResType test_res = test->execute(test_query);
     if (test_res.ok) {
@@ -661,7 +711,7 @@ static void
 RunTest(const TestConfig &tc) {
     CheckQueryList(tc, Insert);
     CheckQueryList(tc, Select);
-    //CheckQueryList(tc, Join);
+    CheckQueryList(tc, Join);
     CheckQueryList(tc, Update);
     CheckQueryList(tc, Delete);
     CheckQueryList(tc, Search);
@@ -673,6 +723,13 @@ RunTest(const TestConfig &tc) {
         control->restart();
     }
     CheckQueryList(tc, PrivMessages);
+    if (test_type == 2 || test_type == 5) {
+        test->restart();
+    }
+    if (control_type == 2 || control_type == 5) {
+        control->restart();
+    }
+    CheckQueryList(tc, UserGroupForum);
 
     //TODO: add stuff for multiple connections
 }
