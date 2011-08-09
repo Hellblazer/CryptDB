@@ -337,6 +337,9 @@ typedef struct MultiKeyMeta {
     map<AccessRelation, Predicate *, AccessRelationComp> condAccess;     //maps a field having accessto to
                                              // any conditional predicate it
                                              // may have
+    MultiKeyMeta() {
+        encForMap = map<string,string>();
+    }
     ~MultiKeyMeta() {
         for (auto i = condAccess.begin(); i != condAccess.end(); i++) {
            delete i->second;
