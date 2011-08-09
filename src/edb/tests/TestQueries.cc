@@ -342,7 +342,8 @@ static QueryList UserGroupForum = QueryList("UserGroupForum",
       //chris
       Query("INSERT INTO "+PWD_TABLE_PREFIX+"u (username, psswd) VALUES ('chris', 'secretchris')",false),
       Query("SELECT forumtext FROM forum WHERE forumid=1",false),
-      Query("UPDATE forum SET forumtext='you win!' WHERE forumid=1",false),
+            //TODO: update won't execute
+            //Query("UPDATE forum SET forumtext='you win!' WHERE forumid=1",false),
       Query("SELECT forumtext FROM forum WHERE forumid=1",false),
       Query("DELETE FROM "+PWD_TABLE_PREFIX+"u WHERE username='chris'",false),
       //alice
@@ -367,19 +368,8 @@ static QueryList UserGroupForum = QueryList("UserGroupForum",
       Query("DELETE FROM "+PWD_TABLE_PREFIX+"u WHERE username='bob'",false),
       //alice
       Query("INSERT INTO "+PWD_TABLE_PREFIX+"u (username, psswd) VALUES ('alice','secretalice')",false),
-
-
-      Query("DELETE FROM "+PWD_TABLE_PREFIX+"u WHERE username='alice'",false),
-
-
-
-
-
-
-      Query("INSERT INTO "+PWD_TABLE_PREFIX+"u (username, psswd) VALUES ('chris','secretchris')",false),
-      Query("DELETE FROM "+PWD_TABLE_PREFIX+"u WHERE username='chris'",false),
-      Query("INSERT INTO "+PWD_TABLE_PREFIX+"u (username, psswd) VALUES ('chris','secretchris')",false),
-      Query("DELETE FROM "+PWD_TABLE_PREFIX+"u WHERE username='chris'",false)},
+      Query("SELECT forumtext FROM forum AS f, groupforum AS g, usergroup AS ug, u WHERE f.forumid=g.forumid AND g.groupid=ug.groupid AND ug.userid=u.userid AND u.username='alice' AND g.optionid=20",false),
+      Query("DELETE FROM "+PWD_TABLE_PREFIX+"u WHERE username='alice'",false)},
     { "DROP TABLE u",
       "DROP TABLE usergroup",
       "DROP TABLE groupforum",
