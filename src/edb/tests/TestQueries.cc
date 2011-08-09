@@ -476,7 +476,7 @@ Connection::execute(string query) {
 
 void
 Connection::executeFail(string query) {
-    cerr << type << " " << query << endl;
+    //cerr << type << " " << query << endl;
     LOG(test) << "Query: " << query << " could not execute" << endl;
     if(tc.stop_if_fail) {
         assert_s(false, query + " could not execute");
@@ -527,6 +527,13 @@ CheckAnnotatedQuery(const TestConfig &tc, string control_query, string test_quer
 
     ResType control_res = control->execute(control_query);
     ResType test_res = test->execute(test_query);
+    if (control_res.ok != test_res.ok) {
+        LOG(test) << "Query: " << test_query << "\ncould not execute in test or in control";
+        if (tc.stop_if_fail) {
+            assert_s(false, test_query+" did not execute properly");
+        }
+        return;
+    }
     if (!match(test_res, control_res)) {
         LOG(test) << "On query: " << test_query << "\nwe received the incorrect resultset";
         if (tc.stop_if_fail) {
@@ -652,7 +659,7 @@ static void
 RunTest(const TestConfig &tc) {
     CheckQueryList(tc, Insert);
     CheckQueryList(tc, Select);
-    CheckQueryList(tc, Join);
+    //CheckQueryList(tc, Join);
     CheckQueryList(tc, Update);
     CheckQueryList(tc, Delete);
     CheckQueryList(tc, Search);
