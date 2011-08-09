@@ -475,7 +475,7 @@ throw (CryptDBError)
     //fill the fieldNameMap and fieldMetaMap and prepare the anonymized query
 
     string resultQuery = "CREATE TABLE ";
-    resultQuery = resultQuery + anonTableName + " ( ";
+
 
     roll<string>(wordsIt, 2);
     unsigned int i = 0;
@@ -536,11 +536,23 @@ throw (CryptDBError)
         i++;
     }
 
+    if (!tm->hasEncrypted) {
+        tm->anonTableName = tableName;
+    }
+    resultQuery = resultQuery + tm->anonTableName + " ( ";
+
+
     if (!DECRYPTFIRST) {
         if (tm->hasEncrypted) {
             resultQuery += " salt " TN_I64 ", ";
+
+            FieldMetadata * fmsalt = new FieldMetadata();
+            fmsalt->type = TYPE_INTEGER;
+            fmsalt->fieldName = "salt";
+            tm->fieldMetaMap[fmsalt->fieldName] = fmsalt;
         }
     }
+
 
     resultQuery += fieldSeq;
 
@@ -632,7 +644,7 @@ throw (CryptDBError)
             FieldMetadata * fm2 = tableMetaMap[table2]->fieldMetaMap[field2];
             string anonName2 = fieldNameForQuery(
                 tableMetaMap[table2]->anonTableName, table2,
-                getOnionName(fm2, oAGG),fm2->type, qm);
+                getOnionName(fm2, oAGG),fm2, qm);
 
             wordsIt++;
             bool isEncrypted1 = fm1->isEncrypted;
@@ -655,8 +667,7 @@ throw (CryptDBError)
                                    fieldNameForQuery(
                         tableMetaMap[table]->anonTableName,
                         table, field2,
-                        TYPE_INTEGER,
-                        qm) +  " + " +
+                        fm2, qm) +  " + " +
                                    *wordsIt + ", "+
                                    CryptoManager::marshallKey(
                         dec_first_key) + ") ";
@@ -996,8 +1007,7 @@ groupings:
             resultQuery = resultQuery + " " +
                           fieldNameForQuery(
                 tableMetaMap[table]->anonTableName, table,
-                anonField, fm->type,
-                qm);
+                anonField, fm, qm);
 
 ascdesc:
 
@@ -1442,7 +1452,7 @@ expandWildCard(list<string> & words, QueryMeta & qm, map<string,
                     FieldMetadata * fm = tm->fieldMetaMap[*fieldsIt];
                     words.insert(wordsIt,
                                  fieldNameForQuery(*tit, *tit, *fieldsIt,
-                                                   fm->type, qm, 1));
+                                                   fm, qm, 1));
 
                     index++;
                     if (index < count) {                     //add comma only
@@ -1482,7 +1492,7 @@ expandWildCard(list<string> & words, QueryMeta & qm, map<string,
                 FieldMetadata * fm = tm->fieldMetaMap[*fieldsIt];
                 words.insert(wordsIt,
                              fieldNameForQuery(table, table, *fieldsIt,
-                                               fm->type, qm, 1));
+                                               fm, qm, 1));
                 index++;
                 if (index < count) {                 //add comma only if there
                                                      // are more fields to
@@ -1608,13 +1618,13 @@ throw (CryptDBError)
 
                 if (DECRYPTFIRST) {
                     resultQuery += " sum(" + fieldNameForQuery(
-                        tm->anonTableName, table, field, fm->type, qm) +") ";
+                        tm->anonTableName, table, field, fm, qm) +") ";
                 } else {
                     funcname = SUM_AGG;
                     resultQuery += " " + funcname + "( "  + fieldNameForQuery(
                         tm->anonTableName, table, getOnionName(fm,
                                                                oAGG),
-                        fm->type, qm) + ", " +
+                        fm, qm) + ", " +
                                    marshallBinary(cm->getPKInfo()) + ") ";
                 }
 
@@ -1665,8 +1675,7 @@ throw (CryptDBError)
                                     fieldNameForQuery(
                         tableMetaMap[tableD]->anonTableName,
                         tableD, fieldD,
-                        fmd->type,
-                        qm);
+                        fmd, qm);
 
                 } else {
                     resultQuery  += " " +
@@ -1675,7 +1684,7 @@ throw (CryptDBError)
                         tableD,
                         getNameForFilter(fmd,
                                          oDET),
-                        fmd->type, qm);
+                        fmd, qm);
                 }
                 wordsIt++;
                 resultQuery += *wordsIt;
@@ -1699,7 +1708,7 @@ throw (CryptDBError)
                         fieldNameForQuery(tableMetaMap[tableD]->anonTableName,
                                           tableD, getNameForFilter(fmd,
                                                                    oDET),
-                                          fmd->type, qm);
+                                          fmd, qm);
                     wordsIt++;
                     resultQuery += *wordsIt;
                     myassert(wordsIt->compare(
@@ -1748,10 +1757,10 @@ throw (CryptDBError)
 
                 if (DECRYPTFIRST) {
                     resultQuery = resultQuery + fieldNameForQuery(
-                        tm->anonTableName, table2, field2, fm->type, qm);
+                        tm->anonTableName, table2, field2, fm, qm);
                 } else {
                     resultQuery = resultQuery + fieldNameForQuery(
-                        tm->anonTableName, table2, anonName, fm->type, qm);
+                        tm->anonTableName, table2, anonName, fm, qm);
                 }
 
                 if (mp) {
@@ -1792,12 +1801,13 @@ throw (CryptDBError)
 
         if (!DECRYPTFIRST) {
             //cerr <<"w\n";
+        	LOG(edb) << "table " << table << " has encrypted? " << tm->hasEncrypted << "\n";
             if (table.compare(oldTable)) {
                 //need to add salt if new table is sensitive
                 oldTable = table;
                 if (tm->hasEncrypted && (!isSubquery)) {
                     resultQuery = resultQuery + " " + fieldNameForQuery(
-                        tm->anonTableName, table, "salt", fm->type,
+                        tm->anonTableName, table, "salt", tm->fieldMetaMap["salt"],
                         qm) + " ,";
                 }
             }
@@ -1805,8 +1815,9 @@ throw (CryptDBError)
 
         if (!fm->isEncrypted) {
             resultQuery = resultQuery + " " + fieldNameForQuery(
-                tm->anonTableName, table, field,fm->type,  qm) + processAlias(
-                ++wordsIt, words);
+                tm->anonTableName, table, field, fm, qm);
+             wordsIt++;
+             resultQuery += processAlias(wordsIt, words);
             continue;
         }
 
@@ -1816,7 +1827,7 @@ throw (CryptDBError)
             resultQuery = resultQuery + " " +
                           fieldNameForQuery(
                 tm->anonTableName, table,
-                getOnionName(tm->fieldMetaMap[field], oDET), fm->type, qm);
+                getOnionName(tm->fieldMetaMap[field], oDET), fm, qm);
 
             if (mp) {
                 resultQuery += mp->selectEncFor(table, field, qm, tmkm, tm,
@@ -1840,13 +1851,12 @@ throw (CryptDBError)
             if (DECRYPTFIRST) {
                 resultQuery = resultQuery + " " +
                               fieldNameForQuery(tm->anonTableName, table,
-                                                field, fm2->type,
-                                                qm);
+                                                field, fm2, qm);
             } else {
                 resultQuery = resultQuery + " " +
                               fieldNameForQuery(tm->anonTableName, table,
                                                 anonFieldNameForDecrypt(
-                                                    fm2), fm2->type, qm);
+                                                    fm2), fm2, qm);
             }
             if (mp) {
                 resultQuery += mp->selectEncFor(table, field, qm, tmkm, tm,
@@ -2238,12 +2248,11 @@ throw (CryptDBError)
         string anonTable2 = tm2->anonTableName;
         string anonField2 = fm2->anonFieldNameDET;
         string anonOp2 = fullName(anonField2, anonTable2);
-        fieldType ftype2 = fm2->type;
 
         res =
-            fieldNameForQuery(anonTable1, table1, anonField1, ftype1,
+            fieldNameForQuery(anonTable1, table1, anonField1, fm1,
                               qm) + " " + operation + " " +
-            fieldNameForQuery(anonTable2, table3, anonField2, ftype2,
+            fieldNameForQuery(anonTable2, table3, anonField2, fm2,
                               qm) + " ";
 
         return res;
@@ -2261,7 +2270,7 @@ throw (CryptDBError)
 
         SECLEVEL sl = fm1->secLevelDET;
         res = res + " " +
-              fieldNameForQuery(anonTable1, table1, anonField1, ftype1,
+              fieldNameForQuery(anonTable1, table1, anonField1, fm1,
                                 qm) + " " +  operation + " ";
 
         if (Operation::isIN(operation)) {
@@ -2348,9 +2357,9 @@ throw (CryptDBError)
 
     string fieldname;
     if (DECRYPTFIRST) {
-        fieldname = fieldNameForQuery(anonTable1, table1, field1, ftype1, qm);
+        fieldname = fieldNameForQuery(anonTable1, table1, field1, fm1, qm);
     } else {
-        fieldname = fieldNameForQuery(anonTable1, table1, anonField1, ftype1,
+        fieldname = fieldNameForQuery(anonTable1, table1, anonField1, fm1,
                                       qm);
     }
 
@@ -3102,7 +3111,7 @@ EDBClient::decryptResults(const string &query, const ResType &dbAnswer)
     // some queries do not need to be encrypted
     command com = getCommand(query);
     if (!considerQuery(com, query)) {
-        if (VERBOSE) { cerr << "do not consider \n"; }
+        LOG(edb)  << "do not consider query " << query;
         return dbAnswer;
     }
 

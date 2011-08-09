@@ -87,7 +87,7 @@ void getTableField(string token, string & table, string & field,
 //if ignoreDecFirst is set to true, the function will behave as if
 // DECRYPTFIRST were false
 string fieldNameForQuery(string anontable, string table, string anonfield,
-                         fieldType ft,  QueryMeta & qm,
+                         const FieldMetadata * fm,  QueryMeta & qm,
                          bool ignoreDecFirst = false);
 //returns the name of the given field as it should appear in the query result
 // table, field are unanonymized names

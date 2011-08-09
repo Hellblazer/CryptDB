@@ -550,12 +550,15 @@ isSensitive(string tok, QueryMeta & qm, map<string, TableMetadata *> & tm,
     FieldMetadata * fm = tm[table]->fieldMetaMap[field];
 
     if (fm->isEncrypted) {
+        if (isTableField(tok)) {
+
+        }
         return 1;
     } else {
         if (tm[table]->hasEncrypted) {
             fieldname =
                 fieldNameForQuery(tm[table]->anonTableName, table, field,
-                                  fm->type,
+                                  fm,
                                   qm);
         }
         return -1;
@@ -576,7 +579,6 @@ processSensitive(list<string>::iterator & it, list<string> & words,
 
     list<string>::iterator newit = it;
 
-    res = "";
 
     int openParen = 0;
 
@@ -781,7 +783,7 @@ processAgg(list<string>::iterator & wordsIt, list<string> & words,
                   fieldNameForQuery(tmet->anonTableName, table,
                                     getOnionName(fm,
                                                  o),
-                                    fm->type, qm);
+                                    fm, qm);
         } else {
             res = res + *wordsIt;
         }
@@ -943,25 +945,30 @@ throw (CryptDBError)
 
 string
 fieldNameForQuery(string anontable, string table,  string anonfield,
-                  fieldType ft, QueryMeta & qm,
+                  const FieldMetadata * fm, QueryMeta & qm,
                   bool ignoreDecFirst)
 {
 
     string res = "";
 
-    if (qm.tabToAlias.find(table) != qm.tabToAlias.end()) {     //it is using
-                                                                // the name of
-                                                                // the table
-                                                                // alias
+    //it is using the name of the table alias
+    if (qm.tabToAlias.find(table) != qm.tabToAlias.end()) {
         res = qm.tabToAlias[table];
     } else {
         res = anontable;
     }
 
-    res = res + "."+anonfield;
+    res = res + ".";
+
+    if (fm->isEncrypted) {
+        res = res +anonfield;
+    } else {
+        res = res + fm->fieldName;
+    }
+
 
     if (DECRYPTFIRST && (!ignoreDecFirst)) {
-        if (ft == TYPE_INTEGER) {
+        if (fm->type == TYPE_INTEGER) {
             //replace name of field with UDF having key
             res = " decrypt_int_det(" + res + "," +
                   CryptoManager::marshallKey(dec_first_key) + ") ";
