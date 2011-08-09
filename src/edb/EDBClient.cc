@@ -3111,7 +3111,7 @@ EDBClient::decryptResults(const string &query, const ResType &dbAnswer)
     // some queries do not need to be encrypted
     command com = getCommand(query);
     if (!considerQuery(com, query)) {
-        LOG(edb)  << "do not consider query " << query;
+        LOG(edb) << "do not consider query: " << query;
         return dbAnswer;
     }
 
@@ -3219,7 +3219,7 @@ EDBClient::execute(const string &query)
             gettimeofday(&t0, 0);
 
         if (!conn->execute(*queryIt, reply)) {
-            LOG(warn) << "query " << *queryIt << "failed";
+            LOG(warn) << "query failed: " << *queryIt;
             return ResType(false);
         }
 
