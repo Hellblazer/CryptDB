@@ -323,13 +323,14 @@ static QueryList UserGroupForum = QueryList("UserGroupForum",
       Query("DELETE FROM "+PWD_TABLE_PREFIX+"u WHERE username='alice'", false),
       Query("DELETE FROM "+PWD_TABLE_PREFIX+"u WHERE username='bob'", false),
       Query("DELETE FROM "+PWD_TABLE_PREFIX+"u WHERE username='chris'", false),
+      //alice
       Query("INSERT INTO "+PWD_TABLE_PREFIX+"u (username, psswd) VALUES ('alice', 'secretalice')", false),
       Query("SELECT forumtext FROM forum WHERE forumid=1", false),
       Query("DELETE FROM "+PWD_TABLE_PREFIX+"u WHERE username='alice'", false),
+      //bob
       Query("INSERT INTO "+PWD_TABLE_PREFIX+"u (username, psswd) VALUES ('bob', 'secretbob')", false),
       Query("SELECT forumtext FROM forum WHERE forumid=1",true),
       Query("DELETE FROM "+PWD_TABLE_PREFIX+"u WHERE username='bob'", false),
-      Query("INSERT INTO "+PWD_TABLE_PREFIX+"u (username, psswd) VALUES ('chris', 'secretchris')", false),
       //alice
       Query("INSERT INTO "+PWD_TABLE_PREFIX+"u (username, psswd) VALUES ('alice', 'secretalice')",false),
       Query("SELECT forumtext FROM forum WHERE forumid=1",false),
@@ -528,9 +529,6 @@ void
 Connection::executeFail(string query) {
     cerr << type << " " << query << endl;
     LOG(test) << "Query: " << query << " could not execute" << endl;
-    if(tc.stop_if_fail) {
-        assert_s(false, query + " could not execute");
-    }
 }
 
 ResType
@@ -557,6 +555,8 @@ Connection::executeConn(string query) {
 static void
 CheckNULL(const TestConfig &tc, string test_query) {
     ntest++;
+
+    cerr << "CHECKING NULL" << endl;
 
     ResType test_res = test->execute(test_query);
     if (test_res.ok) {
