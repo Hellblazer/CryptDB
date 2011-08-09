@@ -77,13 +77,11 @@ class cryptdb_logger : public std::stringstream {
 
     static std::string
     getConf() {
-    	cerr << "getting conf " << enable_mask << "\n";
     	return StringFromVal(enable_mask);
     }
 
     static void
     setConf(std::string conf) {
-    	cerr << "setting conf " << conf << "\n";
     	enable_mask = valFromStr(conf);
     }
 
