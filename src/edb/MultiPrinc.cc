@@ -407,7 +407,7 @@ MultiPrinc::selectEncFor(string table, string field, QueryMeta & qm,
                fieldNameForQuery(tm->anonTableName, table,
                                  getField(mkm.encForMap[fullName(field,
                                                                  table)]),
-                                 fm->type, qm) + " ";
+                                 fm, qm) + " ";
     }
 
     return "";
