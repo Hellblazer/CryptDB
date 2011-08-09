@@ -522,29 +522,29 @@ CheckNULL(const TestConfig &tc, string test_query) {
 
 
 static void
-CheckAnnotatedQuery(const TestConfig &tc, string control_query, string test_query) {
+CheckAnnotatedQuery(const TestConfig &tc, string control_query, string test_query)
+{
     ntest++;
 
     ResType control_res = control->execute(control_query);
     ResType test_res = test->execute(test_query);
+
     if (control_res.ok != test_res.ok) {
-        LOG(test) << "Query: " << test_query << "\ncould not execute in test or in control";
-        if (tc.stop_if_fail) {
-            assert_s(false, test_query+" did not execute properly");
-        }
-        return;
+        LOG(warn) << "control " << control_res.ok
+                  << ", test " << test_res.ok
+                  << " for query: " << test_query;
+        if (tc.stop_if_fail)
+            exit(1);
+    } else if (!match(test_res, control_res)) {
+        LOG(warn) << "result mismatch for query: " << test_query;
+        PrintRes(control_res);
+        PrintRes(test_res);
+
+        if (tc.stop_if_fail)
+            exit(1);
+    } else {
+        npass++;
     }
-    if (!match(test_res, control_res)) {
-        LOG(test) << "On query: " << test_query << "\nwe received the incorrect resultset";
-        if (tc.stop_if_fail) {
-            PrintRes(control_res);
-            PrintRes(test_res);
-            assert_s(false, test_query+" returned second resultset, should have returned first");
-        }
-        return;
-    }
-    
-    npass++;
 }
 
 static void
