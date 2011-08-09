@@ -230,7 +230,7 @@ uint64_t
 valFromStr(const string &str)
 {
     stringstream ss(str);
-    int64_t val;
+    uint64_t val;
     ss >> val;
     return (uint64_t) val;
 }
