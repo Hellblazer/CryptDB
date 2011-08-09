@@ -3,6 +3,8 @@
 #include <iostream>
 #include <sstream>
 #include <map>
+#include <string>
+#include "util.h"
 
 #define LOG_GROUPS(m)       \
     m(warn)                 \
@@ -73,6 +75,18 @@ class cryptdb_logger : public std::stringstream {
         return 1ULL << ((int) g);
     }
 
+    static std::string
+    getConf() {
+    	cerr << "getting conf " << enable_mask << "\n";
+    	return StringFromVal(enable_mask);
+    }
+
+    static void
+    setConf(std::string conf) {
+    	cerr << "setting conf " << conf << "\n";
+    	enable_mask = valFromStr(conf);
+    }
+
  private:
     uint64_t m;
     const char *file;
@@ -80,6 +94,7 @@ class cryptdb_logger : public std::stringstream {
     const char *func;
 
     static uint64_t enable_mask;
+
 };
 
 #define LOG(g) (cryptdb_logger(log_group::log_ ## g, __FILE__, __LINE__, __func__))

@@ -32,6 +32,8 @@ connect(lua_State *L)
     string psswd = luaL_checkstring(L, 5);
     string dbname = luaL_checkstring(L, 6);
 
+    cryptdb_logger::setConf(string(getenv("CRYPTDB_LOG")));
+
     LOG(wrapper) << "connect " << client << "; "
                  << "server = " << server << ":" << port << "; "
                  << "user = " << user << "; "

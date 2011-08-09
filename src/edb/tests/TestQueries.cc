@@ -395,11 +395,13 @@ Connection::start() {
         if (proxy_pid == 0) {
             LOG(test) << "starting proxy, pid " << getpid();
             setenv("EDBDIR", tc.edbdir.c_str(), 1);
+            setenv("CRYPTDB_LOG", cryptdb_logger::getConf().c_str(), 1);
             setenv("CRYPTDB_USER", tc.user.c_str(), 1);
             setenv("CRYPTDB_PASS", tc.pass.c_str(), 1);
             setenv("CRYPTDB_DB", tc.db.c_str(), 1);
             string script_path = "--proxy-lua-script=" + tc.edbdir
                                                        + "/../mysqlproxy/wrapper.lua";
+
             execlp("mysql-proxy",
                    "mysql-proxy", "--plugins=proxy",
                                   "--max-open-files=1024",
