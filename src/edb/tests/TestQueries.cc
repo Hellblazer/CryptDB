@@ -309,79 +309,112 @@ static QueryList UserGroupForum = QueryList("UserGroupForum",
     { Query("INSERT INTO "+PWD_TABLE_PREFIX+"u (username, psswd) VALUES ('alice', 'secretalice')", false),
       Query("INSERT INTO "+PWD_TABLE_PREFIX+"u (username, psswd) VALUES ('bob', 'secretbob')", false),
       Query("INSERT INTO "+PWD_TABLE_PREFIX+"u (username, psswd) VALUES ('chris', 'secretchris')", false),
+
+      //Alice, Bob, Chris all logged on
+
       Query("INSERT INTO u VALUES (1, 'alice')", false),
       Query("INSERT INTO u VALUES (2, 'bob')", false),
       Query("INSERT INTO u VALUES (3, 'chris')", false),
+
       Query("INSERT INTO usergroup VALUES (1,1)", false),
       Query("INSERT INTO usergroup VALUES (2,2)", false),
       Query("INSERT INTO usergroup VALUES (3,1)", false),
       Query("INSERT INTO usergroup VALUES (3,2)", false),
+
+      //Alice is in group 1, Bob in group 2, Chris in group 1 & group 2
+
       Query("SELECT * FROM usergroup", false),
       Query("INSERT INTO groupforum VALUES (1,1,14)", false),
       Query("INSERT INTO groupforum VALUES (1,1,20)", false),
+
+      //Group 1 has access to forum 1
+
       Query("SELECT * FROM groupforum", false),
       Query("INSERT INTO forum VALUES (1, 'sucess-- you can see forum text')", false),
       Query("DELETE FROM "+PWD_TABLE_PREFIX+"u WHERE username='alice'", false),
       Query("DELETE FROM "+PWD_TABLE_PREFIX+"u WHERE username='bob'", false),
       Query("DELETE FROM "+PWD_TABLE_PREFIX+"u WHERE username='chris'", false),
+
+      //All users logged off at this point
+
       //alice
       Query("INSERT INTO "+PWD_TABLE_PREFIX+"u (username, psswd) VALUES ('alice', 'secretalice')", false),
+      //only Alice logged in and she should see forum 1
       Query("SELECT forumtext FROM forum WHERE forumid=1", false),
       Query("DELETE FROM "+PWD_TABLE_PREFIX+"u WHERE username='alice'", false),
+
+
       //bob
       Query("INSERT INTO "+PWD_TABLE_PREFIX+"u (username, psswd) VALUES ('bob', 'secretbob')", false),
+      //only Bob logged in and he should not see forum 1
       Query("SELECT forumtext FROM forum WHERE forumid=1",true),
       Query("DELETE FROM "+PWD_TABLE_PREFIX+"u WHERE username='bob'", false),
-      //alice
-      Query("INSERT INTO "+PWD_TABLE_PREFIX+"u (username, psswd) VALUES ('alice', 'secretalice')",false),
-      Query("SELECT forumtext FROM forum WHERE forumid=1",false),
-      Query("DELETE FROM "+PWD_TABLE_PREFIX+"u WHERE username='alice'",false),
-      //bob
-      Query("INSERT INTO "+PWD_TABLE_PREFIX+"u (username, psswd) VALUES ('bob', 'secretbob')",false),
-      Query("SELECT forumtext FROM forum WHERE forumid=1",true),
-      Query("DELETE FROM "+PWD_TABLE_PREFIX+"u WHERE username='bob'",false),
+
+
       //chris
       Query("INSERT INTO "+PWD_TABLE_PREFIX+"u (username, psswd) VALUES ('chris', 'secretchris')",false),
+      //only Chris logged in and he should see forum 1
       Query("SELECT forumtext FROM forum WHERE forumid=1",false),
-            //TODO: update won't execute
-            Query("UPDATE forum SET forumtext='you win!' WHERE forumid=1",false),
+      //change forum text while Chris logged in
+      Query("UPDATE forum SET forumtext='you win!' WHERE forumid=1",false),
       Query("SELECT forumtext FROM forum WHERE forumid=1",false),
       Query("DELETE FROM "+PWD_TABLE_PREFIX+"u WHERE username='chris'",false),
+
+
       //alice
       Query("INSERT INTO "+PWD_TABLE_PREFIX+"u (username, psswd) VALUES ('alice','secretalice')",false),
+      //only Alice logged in and she should see new text in forum 1
       Query("SELECT forumtext FROM forum WHERE forumid=1",false),
+      //create an orphaned forum
       Query("INSERT INTO forum VALUES (2, 'orphaned text! everyone should be able to see me')",false),
+      //only Alice logged in and she should see text in orphaned forum 2                       
       Query("SELECT forumtext FROM forum WHERE forumid=2",false),
       Query("DELETE FROM "+PWD_TABLE_PREFIX+"u WHERE username='alice'",false),
+
+
       //bob
       Query("INSERT INTO "+PWD_TABLE_PREFIX+"u (username, psswd) VALUES ('bob', 'secretbob')",false),
+      //only Bob logged in and he should see text in orphaned forum 2
       Query("SELECT forumtext FROM forum WHERE forumid=2",false),
       Query("DELETE FROM "+PWD_TABLE_PREFIX+"u WHERE username='bob'",false),
+
+
       //chris
       Query("INSERT INTO "+PWD_TABLE_PREFIX+"u (username, psswd) VALUES ('chris','secretchris')",false),
+      //only Chris logged in and he should see text in orphaned forum 2
       Query("SELECT forumtext FROM forum WHERE forumid=2",false),
+      //de-orphanize forum 2 -- now only accessible by group 2
       Query("INSERT INTO groupforum VALUES (2,2,20)",false),
+      //only Chris logged in and he should see text in both forum 1 and forum 2
       Query("SELECT forumtext FROM forum AS f, groupforum AS g, usergroup AS ug, u WHERE f.forumid=g.forumid AND g.groupid=ug.groupid AND ug.userid=u.userid AND u.username='chris' AND g.optionid=20",false),
       Query("DELETE FROM "+PWD_TABLE_PREFIX+"u WHERE username='chris'",false),
+
+
       //bob
       Query("INSERT INTO "+PWD_TABLE_PREFIX+"u (username, psswd) VALUES ('bob','secretbob')",false),
+      //only Bob logged in and he should see text in forum 2
       Query("SELECT forumtext FROM forum AS f, groupforum AS g, usergroup AS ug, u WHERE f.forumid=g.forumid AND g.groupid=ug.groupid AND ug.userid=u.userid AND u.username='bob' AND g.optionid=20",false),
       Query("DELETE FROM "+PWD_TABLE_PREFIX+"u WHERE username='bob'",false),
+
+
       //alice
       Query("INSERT INTO "+PWD_TABLE_PREFIX+"u (username, psswd) VALUES ('alice','secretalice')",false),
+      //only Alice logged in and she should see text in forum 1
       Query("SELECT forumtext FROM forum AS f, groupforum AS g, usergroup AS ug, u WHERE f.forumid=g.forumid AND g.groupid=ug.groupid AND ug.userid=u.userid AND u.username='alice' AND g.optionid=20",false),
       Query("DELETE FROM "+PWD_TABLE_PREFIX+"u WHERE username='alice'",false),
+
       //all logged out at this point
-      Query("INSERT INTO groupforum VALUES (1,2,2)", true),
-      Query("INSERT INTO groupforum VALUES (1,2,0)", true),
-      Query("INSERT INTO groupforum VALUES (1,2,20)", true),
-      //alice
-      Query("INSERT INTO "+PWD_TABLE_PREFIX+"u (username, psswd) VALUES ('alice', 'secretalice')",false),
+
+      //give group 2 access to forum 1 with the wrong access IDs -- since the forum will be inaccessible to group 2, doesn't matter that no one is logged in
       Query("INSERT INTO groupforum VALUES (1,2,2)", false),
       Query("INSERT INTO groupforum VALUES (1,2,0)", false),
-      Query("DELETE FROM "+PWD_TABLE_PREFIX+"u WHERE username='alice'",false),
+      //attempt to gice group 2 actual access to the forum -- should fail, because no one is logged in
+      Query("INSERT INTO groupforum VALUES (1,2,20)", true),
+
+
       //bob
       Query("INSERT INTO "+PWD_TABLE_PREFIX+"u (username, psswd) VALUES ('bob', 'secretbob')",false),
+      //only Bob logged in and he should still not have access to forum 1
       Query("SELECT forumtext FROM forum WHERE forumid=1",true),
       Query("DELETE FROM "+PWD_TABLE_PREFIX+"u WHERE username='bob'",false)},
     { "DROP TABLE u",
@@ -400,6 +433,34 @@ static QueryList UserGroupForum = QueryList("UserGroupForum",
       "DROP TABLE forum",
       "DROP TABLE nop" } );
 
+static QueryList Auto = QueryList("AutoInc",
+    {"CREATE TABLE auto1 (id integer PRIMARY KEY AUTO_INCREMENT, num integer, username text)",
+     "CREATE TABLE auto2 (id integer, second integer PRIMARY KEY AUTO_INCREMENT)",
+     "CREATE TABLE "+PWD_TABLE_PREFIX+"auto1 (username text, psswd text)"},
+    {"CREATE TABLE auto1 (id integer PRIMARY KEY AUTO_INCREMENT, num enc integer, username enc text)",
+     "CREATE TABLE auto2 (id enc integer, second integer PRIMARY KEY AUTO_INCREMENT)",
+     "CREATE TABLE "+PWD_TABLE_PREFIX+"auto1 (username text, psswd text)"},
+    {"CREATE TABLE auto1 (id equals aut2.id integer PRIMARY KEY AUTO_INCREMENT, num encfor id integer, username encfor id givespsswd id text)",
+     "CREATE TABLE auto2 (id integer, second integer PRIMARY KEY AUTO_INCREMENT)",
+     "COMMIT ANNOTATIONS"},
+    {Query("INSERT INTO "+PWD_TABLE_PREFIX+"auto1 (username, psswd) VALUES ('alice','secretA')",false),
+            Query("INSERT INTO auto1 VALUES (1, 20, 'alice')",false),
+            Query("INSERT INTO auto1 (num, username) VALUES (20, 'alice')",false),
+            /*(Query("INSERT INTO auto1 (num, username) VALUES (15, 'alice')",false),
+            Query("SELECT * FROM auto1",false)*/
+
+},
+    {"DROP TABLE auto1",
+     "DROP TABLE auto2",
+     "DROP TABLE "+PWD_TABLE_PREFIX+"auto1"},
+    {"DROP TABLE auto1",
+     "DROP TABLE auto2",
+     "DROP TABLE "+PWD_TABLE_PREFIX+"auto1"},
+    {"DROP TABLE auto1",
+     "DROP TABLE auto2",
+     "DROP TABLE nop"} );
+
+//-----------------------------------------------------------------------
 
 Connection::Connection(const TestConfig &input_tc, test_mode input_type) {
     tc = input_tc;
@@ -411,7 +472,7 @@ Connection::Connection(const TestConfig &input_tc, test_mode input_type) {
     try {
         start();
     } catch (...) {
-        stop();
+        //stop();
         throw;
     }
 }
@@ -445,9 +506,9 @@ Connection::start() {
     case MULTI:
         cl = new EDBClient(tc.host, tc.user, tc.pass, tc.db, tc.port, true);
         cl->setMasterKey(masterKey);
-        cl->plain_execute("DROP FUNCTION IF EXISTS test");
-        cl->plain_execute("CREATE FUNCTION test (optionid integer) RETURNS bool RETURN optionid=20");
-        cl->execute("CREATE TABLE nop (nothing integer)");
+        assert_s(cl->plain_execute("DROP FUNCTION IF EXISTS test").ok, "dropping test for multi");
+        assert_s(cl->plain_execute("CREATE FUNCTION test (optionid integer) RETURNS bool RETURN optionid=20").ok, "creating test function for multi");
+        assert_s(cl->execute("CREATE TABLE nop (nothing integer)").ok, "creating empty table for balancing commit annotations");
         break;
         //proxy -- start proxy in separate process and initialize connection
     case PROXYPLAIN:
@@ -469,6 +530,7 @@ Connection::start() {
             } else {
                 setenv("CRYPTDB_MODE", "plain", 1);
             }
+            setenv("CRYPTDB_PROXY_DEBUG","true",1);
             string script_path = "--proxy-lua-script=" + tc.edbdir
                                                        + "/../mysqlproxy/wrapper.lua";
 
@@ -506,9 +568,9 @@ Connection::start() {
 
             conn = new Connect(tc.host, tc.user, tc.pass, tc.db, tc.port);
             if (type == PROXYMULTI) {
-                conn->execute("DROP FUNCTION IF EXISTS test");
-                conn->execute("CREATE FUNCTION test (optionid integer) RETURNS bool RETURN optionid=20");
-                conn->execute("CREATE TABLE nop;");
+                assert_s(conn->execute("DROP FUNCTION IF EXISTS test"),"dropping function test for proxy-multi");
+                assert_s(conn->execute("CREATE FUNCTION test (optionid integer) RETURNS bool RETURN optionid=20"),"creating function test for proxy-multi");
+                assert_s(conn->execute("CREATE TABLE nop;"),"creating empty table to balance commit annotations");
             }
         }
         break;
@@ -767,7 +829,13 @@ RunTest(const TestConfig &tc) {
         control->restart();
     }
     CheckQueryList(tc, UserGroupForum);
-
+    if (test_type == 2 || test_type == 5) {
+        test->restart();
+    }
+    if (control_type == 2 || control_type == 5) {
+        control->restart();
+    }
+    //CheckQueryList(tc, Auto);
     //TODO: add stuff for multiple connections
 }
 
