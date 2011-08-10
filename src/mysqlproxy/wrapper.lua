@@ -63,7 +63,13 @@ function read_query_real(packet)
         dprint("read_query: " .. query)
 
         new_queries = CryptDB.rewrite(proxy.connection.client.src.name, query)
-        if #new_queries > 0 then
+	if new_queries == nil then
+            proxy.response.type = proxy.MYSQLD_PACKET_ERR
+            proxy.response.errmsg = "query failed"
+            proxy.response.affected_rows = 0
+            return proxy.PROXY_SEND_RESULT	  
+        end      
+	if #new_queries > 0 then
             for i, v in pairs(new_queries) do
                 dprint("new queries: "..v)
                 local result_key
@@ -118,7 +124,12 @@ function read_query_result_real(inj)
 
         dfields, drows = CryptDB.decrypt(proxy.connection.client.src.name,
                                          fields, rows)
-
+        if dfields == nil or drows == nil then
+            proxy.response.type = proxy.MYSQLD_PACKET_ERR
+            proxy.response.errmsg = "could not decrypt result"
+            return proxy.PROXY_SEND_RESULT
+        end
+        
         if #dfields > 0 then
             proxy.response.resultset = { fields = dfields, rows = drows }
         end

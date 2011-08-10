@@ -90,8 +90,11 @@ rewrite(lua_State *L)
         new_queries = clients[client]->cl->rewriteEncryptQuery(query, &ai);
     } catch (CryptDBError &e) {
         LOG(wrapper) << "cannot rewrite " << query << ": " << e.msg;
+        lua_pushnil(L);
+        return 1;
     }
 
+    cerr << "it is rewriting \n";
     lua_createtable(L, (int) new_queries.size(), 0);
     int top = lua_gettop(L);
     int index = 1;
@@ -170,7 +173,16 @@ decrypt(lua_State *L)
         lua_pop(L, 1);
     }
 
-    ResType rd = clients[client]->cl->decryptResults(clients[client]->last_query, r);
+    ResType rd;
+    try {
+        rd = clients[client]->cl->decryptResults(clients[client]->last_query, r);
+    }
+    catch(CryptDBError e) {
+        lua_pushnil(L);
+        lua_pushnil(L);
+        return 2;
+    }
+
 
     /* return decrypted result set */
     lua_newtable(L);

@@ -2872,6 +2872,7 @@ throw (CryptDBError)
         }
     }
 
+    assert_s(wordsIt==words.end(), "nothing should come after commit;");
     return list<string>(1, "commit;");
 }
 
