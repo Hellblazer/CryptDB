@@ -41,7 +41,14 @@ connect(lua_State *L)
                  << "database = " << dbname;
 
     WrapperState *ws = new WrapperState();
-    ws->cl = new EDBClient(server, user, psswd, dbname, port);
+    string mode = getenv("CRYPTDB_MODE");
+    if (mode.compare("single") == 0) {
+        ws->cl = new EDBClient(server, user, psswd, dbname, port, false);
+    } else if (mode.compare("multi") == 0) {
+        ws->cl = new EDBClient(server, user, psswd, dbname, port, true);
+    } else {
+        ws->cl = new EDBClient(server, user, psswd, dbname, port);
+    }
 
     uint64_t mkey = 113341234;  // XXX
     ws->cl->setMasterKey(BytesFromInt(mkey, AES_KEY_BYTES));

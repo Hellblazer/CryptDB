@@ -31,6 +31,7 @@ static Prin u2 = Prin("u.uid","2");
 static Prin u3 = Prin("u.uid","3");
 
 static Prin g5 = Prin("g.gid","5");
+static Prin g50 = Prin("g.gid", "50");
 
 static Prin f2 = Prin("f.fid","2");
 static Prin f3 = Prin("f.fid","3");
@@ -132,6 +133,30 @@ buildBasic(KeyAccess * am) {
     am->insert(u2,g5);
     am->removePsswd(alice);
     am->removePsswd(bob);
+}
+
+static void
+buildAll(KeyAccess * am) {
+    buildBasic(am);
+    am->insertPsswd(alice,secretA);
+    am->insertPsswd(bob,secretB);
+    am->insertPsswd(chris,secretC);
+    am->insert(g5,a5);
+    am->insert(chris,u3);
+    am->insert(u1,m5);
+    am->insert(u2,m2);
+    am->insert(u2,m3);
+    am->insert(u3,m15);
+    am->insert(m2,s6);
+    am->insert(m3,s4);
+    am->insert(m4,s6);
+    am->insert(m5,s7);
+    am->insert(m5,s5);
+    am->insert(m15,s16);
+    am->insert(m15,s24);
+    am->removePsswd(alice);
+    am->removePsswd(bob);
+    am->removePsswd(chris);
 }
 
 static void
@@ -475,44 +500,250 @@ testOrphans(const TestConfig &tc, KeyAccess * am) {
 	   test+"subject 16 does not have key after chris logs off and on");
     record(tc, s16_key1.compare(s16_key2) == 0,
     test+"subject 16 has a different key after chris logs out and back in");
+}
+
+static void
+testRemove(const TestConfig &tc, KeyAccess * am) {
+    string test = "(remove) ";
+    buildAll(am);
+    string m4_key = am->getKey(m4);
+    record(tc, m4_key.length() > 0, test+"message 4 key (orphan) not available first");
+    am->insertPsswd(bob,secretB);
+    string s4_key = am->getKey(s4);
+    record(tc, s4_key.length() > 0, test+"cannot access subject 4 key with bob logged on");
+    string s4_key1 = marshallBinary(s4_key);
+    string s6_key = am->getKey(s6);
+    record(tc, s6_key.length() > 0, test+"cannot access subject 6 key with bob logged on");
+    string s6_key1 = marshallBinary(s6_key);
+    string m2_key = am->getKey(m2);
+    record(tc, m2_key.length() > 0, test+"cannot access message 2 key with bob logged on");
+    string m2_key1 = marshallBinary(m2_key);
+    string m3_key = am->getKey(m3);
+    record(tc, m3_key.length() > 0, test+"cannot access message 3 key with bob logged on");
+    string m3_key1 = marshallBinary(m3_key);
+    string u2_key = am->getKey(u2);
+    record(tc, u2_key.length() > 0, test+ "cannot access user 2 key with bob logged on");
+    string u2_key1 = marshallBinary(u2_key);
+    m4_key = am->getKey(m4);
+    record(tc, m4_key.length() > 0, test+"message 4 key (orphan) not available 1");
+
+    string g5_key = am->getKey(g5);
+    record(tc, g5_key.length() > 0, test+"cannot access group 5 key with bob logged on");
+    string g5_key1 = marshallBinary(g5_key);
+    string f2_key = am->getKey(f2);
+    record(tc, f2_key.length() > 0, test+"cannot access forum 2 key with bob logged on");
+    string f2_key1 = marshallBinary(f2_key);
+    string f3_key = am->getKey(f3);
+    record(tc, f3_key.length() > 0, test+"cannot access forum 3 key with bob logged on");
+    string f3_key1 = marshallBinary(f3_key);
+    string a5_key = am->getKey(a5);
+    record(tc, a5_key.length() > 0, test+"cannot access account 5 key with bob logged on");
+    string a5_key1 = marshallBinary(a5_key);
+    string u1_key = am->getKey(u1);
+    record(tc, u1_key.length() == 0, test+"user 1 key available when Alice not logged on");
+    am->insertPsswd(alice,secretA);
+    m4_key = am->getKey(m4);
+    record(tc, m4_key.length() > 0, test+"message 4 key (orphan) not available 2");
+
+    am->remove(u2, g5);
+    s4_key = am->getKey(s4);
+    record(tc, s4_key.length() > 0, test+"cannot access subject 4 key with bob logged on");
+    string s4_key5 = marshallBinary(s4_key);
+    record(tc, s4_key1.compare(s4_key5) == 0, test+"Subject 4 has changed");
+    s6_key = am->getKey(s6);
+    record(tc, s6_key.length() > 0, test+"cannot access subject 6 key with bob logged on");
+    string s6_key6 = marshallBinary(s6_key);
+    record(tc, s6_key1.compare(s6_key6) == 0, test+"Subject 6 has changed");
+    m2_key = am->getKey(m2);
+    record(tc, m2_key.length() > 0, test+"cannot access message 2 key with bob logged on");
+    string m2_key4 = marshallBinary(m2_key);
+    record(tc, m2_key1.compare(m2_key4) == 0, "Message 2 has changed");
+    m3_key = am->getKey(m3);
+    record(tc, m3_key.length() > 0, test+"cannot access message 3 key with bob logged on");
+    string m3_key5 = marshallBinary(m3_key);
+    record(tc, m3_key1.compare(m3_key5) == 0, test+"Message 3 has changed");
+    g5_key = am->getKey(g5);
+    record(tc, g5_key.length() > 0, test+"cannot access group 5 key with alice logged on");
+    string g5_key2 = marshallBinary(g5_key);
+    record(tc, g5_key1.compare(g5_key2) == 0, test+"Group 5 key has changed");
+    f2_key = am->getKey(f2);
+    record(tc, f2_key.length() > 0, test+"cannot access forum 2 key with alice logged on");
+    string f2_key5 = marshallBinary(f2_key);
+    record(tc, f2_key1.compare(f2_key5) == 0, test+"Forum 2 key has changed");
+    f3_key = am->getKey(f3);
+    record(tc, f3_key.length() > 0, test+"cannot access forum 3 key with alice logged on");
+    string f3_key4 = marshallBinary(f3_key);
+    record(tc, f3_key1.compare(f3_key4) == 0, test+"Forum 3 key has changed");
+    a5_key = am->getKey(a5);
+    record(tc, a5_key.length() > 0, test+"cannot access account 5 key with alice logged on");
+    string a5_key4 = marshallBinary(a5_key);
+    record(tc, a5_key1.compare(a5_key4) == 0, test+"Account 5 key has changed");
+    m4_key = am->getKey(m4);
+    record(tc, m4_key.length() > 0, test+"message 4 key (orphan) not available 3");
+
+    am->removePsswd(alice);
+    g5_key = am->getKey(g5);
+    record(tc, g5_key.length() == 0, test+"group 5 key available when alice is logged off");
+    a5_key = am->getKey(a5);
+    record(tc, a5_key.length() == 0, test+"account 5 key available when alice is logged off");
+    f2_key = am->getKey(f2);
+    record(tc, f2_key.length() == 0, test+"forum 2 key available when alice is logged off");
+    f3_key = am->getKey(f3);
+    record(tc, f3_key.length() == 0, test+"forum 3 key available when alice is logged off");
+    m4_key = am->getKey(m4);
+    record(tc, m4_key.length() > 0, test+"message 4 key (orphan) not available 4");
+
+    am->insertPsswd(chris, secretC);
+    string s24_key = am->getKey(s24);
+    record(tc, s24_key.length() > 0, test+"subject 24 key is not accessible with chris logged on");
+    string s24_key1 = marshallBinary(s24_key);
+    string m15_key = am->getKey(m15);
+    record(tc, m15_key.length() > 0, test+"message 15 key is not accessible with chris logged on");
+    string m15_key3 = marshallBinary(m15_key);
+    string u3_key = am->getKey(u3);
+    record(tc, u3_key.length() > 0, test+"user 3 key is not accessible with chris logged on");
+    string u3_key1 = marshallBinary(u3_key);
+
+    am->remove(u3,m15);
+    s24_key = am->getKey(s24);
+    record(tc, s24_key.length() == 0, test+"subject 24 key is accessible after removal");
+    m15_key = am->getKey(m15);
+    record(tc, m15_key.length() == 0, test+"message 15 key is accessible after removal");
+    u3_key = am->getKey(u3);
+    record(tc, u3_key.length() > 0, test+"user 3 key is not accessible with chris after u3->m15 removal");
+    string u3_key4 = marshallBinary(u3_key);
+    record(tc, u3_key1.compare(
+                             u3_key4) == 0,
+             test+"user 3 key is not the same after u3->m15 removal");
+    m4_key = am->getKey(m4);
+    record(tc, m4_key.length() > 0, test+"message 4 key (orphan) not available 5");
 
 
+    am->remove(g5,f3);
+    am->insertPsswd(alice, secretA);
+    g5_key = am->getKey(g5);
+    record(tc, g5_key.length() > 0, test+"cannot access group 5 key with alice logged on");
+    string g5_key3 = marshallBinary(g5_key);
+    record(tc, g5_key1.compare(g5_key3) == 0, test+"Group 5 key has changed");
+    f2_key = am->getKey(f2);
+    record(tc, f2_key.length() > 0, test+"cannot access forum 2 key with alice logged on");
+    string f2_key6 = marshallBinary(f2_key);
+    record(tc, f2_key1.compare(f2_key6) == 0, test+"Forum 2 key has changed");
+    a5_key = am->getKey(a5);
+    record(tc, a5_key.length() > 0, test+"cannot access account 5 key with alice logged on");
+    string a5_key5 = marshallBinary(a5_key);
+    record(tc, a5_key1.compare(a5_key5) == 0, test+"Account 5 key has changed");
+    g5_key = am->getKey(g5);
+    f3_key = am->getKey(f3);
+    record(tc, f3_key.length() == 0, test+"forum 3 key available when alice is logged off");
 
+    am->removePsswd(bob);
+    s6_key = am->getKey(s6);
+    record(tc, s6_key.length() > 0, test+"subject 6 key, attached to orphan m4 not accessible");
+    string s6_key7 = marshallBinary(s6_key);
+    record(tc, s6_key1.compare(s6_key7) == 0, test+"subject 6 key has changed");
+    m4_key = am->getKey(m4);
+    record(tc, m4_key.length() > 0, test+"message 4 key (orphan) not available last");
+    string m4_key1 = marshallBinary(m4_key);
 
+    am->remove(m4,s6);
+    m3_key = am->getKey(m3);
+    record(tc, m3_key.length() == 0, test+"message 3 key available when bob is logged off");
+    m2_key = am->getKey(m2);
+    record(tc, m2_key.length() == 0, test+"message 2 key available when bob is logged off");
+    s6_key = am->getKey(s6);
+    record(tc, s6_key.length() == 0, test+"subject 6 key available when bob is logged off");
+    m4_key = am->getKey(m4);
+    record(tc, m4_key.length() > 0, test+"message 4 key (orphan) not available after remove");
+    string m4_key4 = marshallBinary(m4_key);
+    record(tc, m4_key1.compare(
+                               m4_key4) == 0, test+"message 4 key has changed after remove");
+}
+
+static void
+testThreshold(const TestConfig &tc, KeyAccess * am) {
+    string test = "(threshold) ";
+    buildBasic(am);
+    am->insertPsswd(chris,secretC);
+    am->insert(chris, u3);
+    string g50_key1;
+    string g50_key;
+    for (unsigned int i = 6; i < 110; i++) {
+        Prin group = Prin("g.gid", strFromVal(i));
+        am->insert(u3,group);
+        if(i == 50) {
+            g50_key = am->getKey(g50);
+            record(tc, g50_key.length() > 0,
+                     test+"could not access g50 key just after it's inserted");
+            g50_key1 = marshallBinary(g50_key);
+        }
+    }
+
+    am->removePsswd(chris);
+    g50_key = am->getKey(g50);
+    record(tc, g50_key.length() == 0, test+"g50 key available after chris logs off");
+    am->insertPsswd(chris, secretC);
+    PrinKey g50_pkey = am->getUncached(g50);
+    record(tc,g50_pkey.key.length() != 0,
+           test+"can't access g50 key after chris logs back on");
+    g50_key = am->getKey(g50);
+    string g50_key2 = marshallBinary(g50_key);
+    record(tc, g50_key1.compare(
+                                g50_key2) == 0,
+           test+"group 50 key is different after chris logs on and off");
+
+    for (unsigned int i = 6; i < 110; i++) {
+        Prin group = Prin("g.gid", strFromVal(i));
+        am->remove(u3,group);
+    }
+
+    g50_key = am->getKey(g50);
+    record(tc, g50_key.length() == 0,
+             "g50 key exists after the hundred group keys have been removed");
 }
 
 void
 TestAccessManager::run(const TestConfig &tc, int argc, char ** argv)
 {
-  cerr << "testing meta locally..." << endl;
-  testMeta_native(tc, new Connect(tc.host, tc.user, tc.pass, tc.db));
+    cerr << "testing meta locally..." << endl;
+    testMeta_native(tc, new Connect(tc.host, tc.user, tc.pass, tc.db));
 
-  KeyAccess * ka;
-  ka = buildTest(new Connect(tc.host, tc.user, tc.pass, tc.db));
+    KeyAccess * ka;
+    ka = buildTest(new Connect(tc.host, tc.user, tc.pass, tc.db));
+    
+    cerr << "testing meta section of KeyAccess..." << endl;
+    testMeta(tc, ka);
 
-  cerr << "testing meta section of KeyAccess..." << endl;
-  testMeta(tc, ka);
+    cerr << "single user tests..." << endl;
+    testSingleUser(tc, ka);
 
-  cerr << "single user tests..." << endl;
-  testSingleUser(tc, ka);
+    delete ka;
+    ka = buildTest(new Connect(tc.host, tc.user, tc.pass, tc.db));
+    cerr << "multi user tests..." << endl;
+    testMultiBasic(tc, ka);
+  
+    delete ka;
+    ka = buildTest(new Connect(tc.host, tc.user, tc.pass, tc.db));
+    cerr << "acyclic graphs (not a tree) tests..." << endl;
+    testNonTree(tc, ka);
+    
+    ka->~KeyAccess();
+    ka = buildTest(new Connect(tc.host, tc.user, tc.pass, tc.db));
+    cerr << "orphan tests..." << endl;
+    testOrphans(tc, ka);
 
-  delete ka;
-  ka = buildTest(new Connect(tc.host, tc.user, tc.pass, tc.db));
-  cerr << "multi user tests..." << endl;
-  testMultiBasic(tc, ka);
+    ka->~KeyAccess();
+    ka = buildTest(new Connect(tc.host, tc.user, tc.pass, tc.db));
+    cerr << "remove tests..." << endl;
+    testRemove(tc, ka);
 
-  delete ka;
-  ka = buildTest(new Connect(tc.host, tc.user, tc.pass, tc.db));
-  cerr << "acyclic graphs (not a tree) tests..." << endl;
-  testNonTree(tc, ka);
+    ka->~KeyAccess();
+    ka = buildTest(new Connect(tc.host, tc.user, tc.pass, tc.db));
+    cerr << "threshold tests..." << endl;
+    testThreshold(tc, ka);
 
-  ka->~KeyAccess();
-  ka = buildTest(new Connect(tc.host, tc.user, tc.pass, tc.db));
-  cerr << "orphan tests..." << endl;
-  testOrphans(tc, ka);
+    cerr << "RESULT: " << npass << "/" << ntest << " passed" << endl;
 
-  cerr << "RESULT: " << npass << "/" << ntest << " passed" << endl;
-
-  delete ka;
+    delete ka;
 }
   

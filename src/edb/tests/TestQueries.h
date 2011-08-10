@@ -7,6 +7,7 @@
 #include "Connect.h"
 #include "test_utils.h"
 #include <signal.h>
+#include <stdlib.h>
 
 #ifndef TESTQUERIES_H_
 #define TESTQUERIES_H_
@@ -51,9 +52,11 @@ struct QueryList {
     }
 };
 
+typedef enum test_mode {UNENCRYPTED, SINGLE, MULTI, PROXYPLAIN, PROXYSINGLE, PROXYMULTI} test_mode;
+
 class Connection {
  public:
-    Connection(const TestConfig &tc, int type);
+    Connection(const TestConfig &tc, test_mode type);
     ~Connection();
 
     ResType execute(string query);
@@ -63,7 +66,7 @@ class Connection {
     void stop();
 
  private:
-    int type;
+    test_mode type;
     TestConfig tc;
     //connection objects for encryption test
     EDBClient * cl;

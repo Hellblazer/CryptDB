@@ -11,8 +11,8 @@
 
 static int ntest = 0;
 static int npass = 0;
-static int control_type;
-static int test_type;
+static test_mode control_type;
+static test_mode test_type;
 static int no_conn = 1;
 static Connection * control;
 static Connection * test;
@@ -303,7 +303,7 @@ static QueryList UserGroupForum = QueryList("UserGroupForum",
     { "CREATE TABLE u (userid integer, username givespsswd userid text)",
       "CREATE TABLE usergroup (userid equals u.userid hasaccessto groupid integer, groupid integer)",
       "CREATE TABLE groupforum (forumid equals forum.forumid integer, groupid equals usergroup.groupid hasaccessto forumid integer, optionid integer)",
-      "CREATE TABLE forum (forumid integer, forumtext encfor forumid text)",
+      "CREATE TABLE forum (forumid integer, forumtext encfor forumid det text)",
       "COMMIT ANNOTATIONS" },
     { Query("INSERT INTO "+PWD_TABLE_PREFIX+"u (username, psswd) VALUES ('alice', 'secretalice')", false),
       Query("INSERT INTO "+PWD_TABLE_PREFIX+"u (username, psswd) VALUES ('bob', 'secretbob')", false),
@@ -343,7 +343,7 @@ static QueryList UserGroupForum = QueryList("UserGroupForum",
       Query("INSERT INTO "+PWD_TABLE_PREFIX+"u (username, psswd) VALUES ('chris', 'secretchris')",false),
       Query("SELECT forumtext FROM forum WHERE forumid=1",false),
             //TODO: update won't execute
-            //Query("UPDATE forum SET forumtext='you win!' WHERE forumid=1",false),
+            Query("UPDATE forum SET forumtext='you win!' WHERE forumid=1",false),
       Query("SELECT forumtext FROM forum WHERE forumid=1",false),
       Query("DELETE FROM "+PWD_TABLE_PREFIX+"u WHERE username='chris'",false),
       //alice
@@ -369,7 +369,19 @@ static QueryList UserGroupForum = QueryList("UserGroupForum",
       //alice
       Query("INSERT INTO "+PWD_TABLE_PREFIX+"u (username, psswd) VALUES ('alice','secretalice')",false),
       Query("SELECT forumtext FROM forum AS f, groupforum AS g, usergroup AS ug, u WHERE f.forumid=g.forumid AND g.groupid=ug.groupid AND ug.userid=u.userid AND u.username='alice' AND g.optionid=20",false),
-      Query("DELETE FROM "+PWD_TABLE_PREFIX+"u WHERE username='alice'",false)},
+      Query("DELETE FROM "+PWD_TABLE_PREFIX+"u WHERE username='alice'",false),
+      //all logged out at this point
+      Query("INSERT INTO groupforum VALUES (1,2,2)", true),
+      Query("INSERT INTO groupforum VALUES (1,2,0)", true),
+      //alice
+      Query("INSERT INTO "+PWD_TABLE_PREFIX+"u (username, psswd) VALUES ('alice', 'secretbob')",false),
+      Query("INSERT INTO groupforum VALUES (1,2,2)", false),
+      Query("INSERT INTO groupforum VALUES (1,2,0)", false),
+      Query("DELETE FROM "+PWD_TABLE_PREFIX+"u WHERE username='alice'",false),
+      //bob
+      Query("INSERT INTO "+PWD_TABLE_PREFIX+"u (username, psswd) VALUES ('bob', 'secretbob')",false),
+      Query("SELECT forumtext FROM forum WHERE forumid=1",true),
+            Query("DELETE FROM "+PWD_TABLE_PREFIX+"u WHERE username='bob'",false)},
     { "DROP TABLE u",
       "DROP TABLE usergroup",
       "DROP TABLE groupforum",
@@ -386,13 +398,10 @@ static QueryList UserGroupForum = QueryList("UserGroupForum",
       "DROP TABLE forum",
       "DROP TABLE nop" } );
 
-Connection::Connection(const TestConfig &input_tc, int input_type) {
-    if (input_type > 3) { 
-        this->type = 3;
-    } else {
-        this->type = input_type;
-    }
+
+Connection::Connection(const TestConfig &input_tc, test_mode input_type) {
     this->tc = input_tc;
+    this->type = input_type;
     start();
 }
 
@@ -413,16 +422,16 @@ Connection::start() {
     string masterKey = BytesFromInt(mkey, AES_KEY_BYTES); 
     switch (type) {
         //plain -- new connection straight to the DB
-    case 0:
+    case UNENCRYPTED:
         conn = new Connect(tc.host, tc.user, tc.pass, tc.db, tc.port);
         break;
         //single -- new EDBClient
-    case 1:
+    case SINGLE:
         cl = new EDBClient(tc.host, tc.user, tc.pass, tc.db, tc.port, false);
         cl->setMasterKey(masterKey);
         break;
         //multi -- new EDBClient
-    case 2:
+    case MULTI:
         cl = new EDBClient(tc.host, tc.user, tc.pass, tc.db, tc.port, true);
         cl->setMasterKey(masterKey);
         cl->plain_execute("DROP FUNCTION IF EXISTS test");
@@ -430,7 +439,9 @@ Connection::start() {
         cl->execute("CREATE TABLE nop (nothing integer)");
         break;
         //proxy -- start proxy in separate process and initialize connection
-    case 3:
+    case PROXYPLAIN:
+    case PROXYSINGLE:
+    case PROXYMULTI:
         this->tc.port = 5123;
         proxy_pid = fork();
         if (proxy_pid == 0) {
@@ -440,6 +451,13 @@ Connection::start() {
             setenv("CRYPTDB_USER", tc.user.c_str(), 1);
             setenv("CRYPTDB_PASS", tc.pass.c_str(), 1);
             setenv("CRYPTDB_DB", tc.db.c_str(), 1);
+            if (type == PROXYSINGLE) {
+                setenv("CRYPTDB_MODE", "single", 1);
+            } else if (type == PROXYMULTI) {
+                setenv("CRYPTDB_MODE", "multi", 1);
+            } else {
+                setenv("CRYPTDB_MODE", "plain", 1);
+            }
             string script_path = "--proxy-lua-script=" + tc.edbdir
                                                        + "/../mysqlproxy/wrapper.lua";
 
@@ -486,14 +504,16 @@ Connection::start() {
 void
 Connection::stop() {
     switch (type) {
-    case 0:
+    case UNENCRYPTED:
         delete conn;
         break;
-    case 1:
-    case 2:
+    case SINGLE:
+    case MULTI:
         delete cl;
         break;
-    case 3:
+    case PROXYPLAIN:
+    case PROXYSINGLE:
+    case PROXYMULTI:
         kill(proxy_pid, SIGKILL);
         delete conn;
         break;
@@ -505,11 +525,13 @@ Connection::stop() {
 ResType
 Connection::execute(string query) {
     switch (type) {
-    case 0:
-    case 3:
+    case UNENCRYPTED:
+    case PROXYPLAIN:
+    case PROXYSINGLE:
+    case PROXYMULTI:
         return executeConn(query);
-    case 1:
-    case 2:
+    case SINGLE:
+    case MULTI:
         return executeEDBClient(query);
     default:
         assert_s(false, "unrecognized type in Connection");
@@ -519,7 +541,7 @@ Connection::execute(string query) {
 
 void
 Connection::executeFail(string query) {
-    cerr << type << " " << query << endl;
+    //cerr << type << " " << query << endl;
     LOG(test) << "Query: " << query << " could not execute" << endl;
 }
 
@@ -742,39 +764,34 @@ TestQueries::run(const TestConfig &tc, int argc, char ** argv) {
         no_conn = 1;
     case 3:
         if (strncmp(argv[1],"plain",5) == 0) {
-            control_type = 0;
+            control_type = UNENCRYPTED;
         } else if (strncmp(argv[1], "single", 6) == 0) {
-            control_type = 1;
+            control_type = SINGLE;
         } else if (strncmp(argv[1], "multi", 5) == 0) {
-            control_type = 2;
+            control_type = MULTI;
         } else if (strncmp(argv[1], "proxy-plain", 11) == 0) {
-            control_type = 3;
+            control_type = PROXYPLAIN;
         } else if (strncmp(argv[1], "proxy-single", 12) == 0) {
-            control_type = 4;
-            //TODO: check proxy is setting up in single mode... not quite sure how to do this...
-            //create file that specifies single or multi (system/fopen)
+            control_type = PROXYSINGLE;
         } else if (strncmp(argv[1], "proxy-multi", 11) == 0) {
-            control_type = 5;
-            //TODO: check proxy is setting up in multi mode... not quite sure how to do this...
+            control_type = PROXYMULTI;
         } else {
             cerr << "control is not recognized" << endl;
             return;
         }
 
         if (strncmp(argv[2],"plain",5) == 0) {
-            test_type = 0;
+            test_type = UNENCRYPTED;
         } else if (strncmp(argv[2], "single", 6) == 0) {
-            test_type = 1;
+            test_type = SINGLE;
         } else if (strncmp(argv[2], "multi", 5) == 0) {
-            test_type = 2;
+            test_type = MULTI;
         } else if (strncmp(argv[2], "proxy-plain", 11) == 0) {
-            test_type = 3;
+            test_type = PROXYPLAIN;
         } else if (strncmp(argv[2], "proxy-single", 12) == 0) {
-            test_type = 4;
-            //TODO: check proxy is setting up in single mode... not quite sure how to do this...
+            test_type = PROXYSINGLE;
         } else if (strncmp(argv[2], "proxy-multi", 11) == 0) {
-            test_type = 5;
-            //TODO: check proxy is setting up in multi mode... not quite sure how to do this...
+            test_type = PROXYMULTI;
         } else {
             cerr << "test is not recognized" << endl;
             return;
