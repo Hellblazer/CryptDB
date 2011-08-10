@@ -433,6 +433,34 @@ static QueryList UserGroupForum = QueryList("UserGroupForum",
       "DROP TABLE forum",
       "DROP TABLE nop" } );
 
+static QueryList Auto = QueryList("AutoInc",
+    {"CREATE TABLE auto1 (id integer PRIMARY KEY AUTO_INCREMENT, num integer, username text)",
+     "CREATE TABLE auto2 (id integer, second integer PRIMARY KEY AUTO_INCREMENT)",
+     "CREATE TABLE "+PWD_TABLE_PREFIX+"auto1 (username text, psswd text)"},
+    {"CREATE TABLE auto1 (id integer PRIMARY KEY AUTO_INCREMENT, num enc integer, username enc text)",
+     "CREATE TABLE auto2 (id enc integer, second integer PRIMARY KEY AUTO_INCREMENT)",
+     "CREATE TABLE "+PWD_TABLE_PREFIX+"auto1 (username text, psswd text)"},
+    {"CREATE TABLE auto1 (id equals aut2.id integer PRIMARY KEY AUTO_INCREMENT, num encfor id integer, username encfor id givespsswd id text)",
+     "CREATE TABLE auto2 (id integer, second integer PRIMARY KEY AUTO_INCREMENT)",
+     "COMMIT ANNOTATIONS"},
+    {Query("INSERT INTO "+PWD_TABLE_PREFIX+"auto1 (username, psswd) VALUES ('alice','secretA')",false),
+            Query("INSERT INTO auto1 VALUES (1, 20, 'alice')",false),
+            Query("INSERT INTO auto1 (num, username) VALUES (20, 'alice')",false),
+            /*(Query("INSERT INTO auto1 (num, username) VALUES (15, 'alice')",false),
+            Query("SELECT * FROM auto1",false)*/
+
+},
+    {"DROP TABLE auto1",
+     "DROP TABLE auto2",
+     "DROP TABLE "+PWD_TABLE_PREFIX+"auto1"},
+    {"DROP TABLE auto1",
+     "DROP TABLE auto2",
+     "DROP TABLE "+PWD_TABLE_PREFIX+"auto1"},
+    {"DROP TABLE auto1",
+     "DROP TABLE auto2",
+     "DROP TABLE nop"} );
+
+//-----------------------------------------------------------------------
 
 Connection::Connection(const TestConfig &input_tc, test_mode input_type) {
     tc = input_tc;
@@ -444,7 +472,7 @@ Connection::Connection(const TestConfig &input_tc, test_mode input_type) {
     try {
         start();
     } catch (...) {
-        stop();
+        //stop();
         throw;
     }
 }
@@ -502,6 +530,7 @@ Connection::start() {
             } else {
                 setenv("CRYPTDB_MODE", "plain", 1);
             }
+            setenv("CRYPTDB_PROXY_DEBUG","true",1);
             string script_path = "--proxy-lua-script=" + tc.edbdir
                                                        + "/../mysqlproxy/wrapper.lua";
 
@@ -799,7 +828,13 @@ RunTest(const TestConfig &tc) {
         control->restart();
     }
     CheckQueryList(tc, UserGroupForum);
-
+    if (test_type == 2 || test_type == 5) {
+        test->restart();
+    }
+    if (control_type == 2 || control_type == 5) {
+        control->restart();
+    }
+    CheckQueryList(tc, Auto);
     //TODO: add stuff for multiple connections
 }
 
