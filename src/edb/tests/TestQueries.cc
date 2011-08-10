@@ -506,9 +506,9 @@ Connection::start() {
     case MULTI:
         cl = new EDBClient(tc.host, tc.user, tc.pass, tc.db, tc.port, true);
         cl->setMasterKey(masterKey);
-        cl->plain_execute("DROP FUNCTION IF EXISTS test");
-        cl->plain_execute("CREATE FUNCTION test (optionid integer) RETURNS bool RETURN optionid=20");
-        cl->execute("CREATE TABLE nop (nothing integer)");
+        assert_s(cl->plain_execute("DROP FUNCTION IF EXISTS test").ok, "dropping test for multi");
+        assert_s(cl->plain_execute("CREATE FUNCTION test (optionid integer) RETURNS bool RETURN optionid=20").ok, "creating test function for multi");
+        assert_s(cl->execute("CREATE TABLE nop (nothing integer)").ok, "creating empty table for balancing commit annotations");
         break;
         //proxy -- start proxy in separate process and initialize connection
     case PROXYPLAIN:
@@ -568,9 +568,9 @@ Connection::start() {
 
             conn = new Connect(tc.host, tc.user, tc.pass, tc.db, tc.port);
             if (type == PROXYMULTI) {
-                conn->execute("DROP FUNCTION IF EXISTS test");
-                conn->execute("CREATE FUNCTION test (optionid integer) RETURNS bool RETURN optionid=20");
-                conn->execute("CREATE TABLE nop;");
+                assert_s(conn->execute("DROP FUNCTION IF EXISTS test"),"dropping function test for proxy-multi");
+                assert_s(conn->execute("CREATE FUNCTION test (optionid integer) RETURNS bool RETURN optionid=20"),"creating function test for proxy-multi");
+                assert_s(conn->execute("CREATE TABLE nop;"),"creating empty table to balance commit annotations");
             }
         }
         break;
@@ -835,7 +835,7 @@ RunTest(const TestConfig &tc) {
     if (control_type == 2 || control_type == 5) {
         control->restart();
     }
-    CheckQueryList(tc, Auto);
+    //CheckQueryList(tc, Auto);
     //TODO: add stuff for multiple connections
 }
 
