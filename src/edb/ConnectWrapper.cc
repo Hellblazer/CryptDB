@@ -45,6 +45,7 @@ connect(lua_State *L)
     if (mode.compare("single") == 0) {
         ws->cl = new EDBClient(server, user, psswd, dbname, port, false);
     } else if (mode.compare("multi") == 0) {
+        cerr << "multi" << endl;
         ws->cl = new EDBClient(server, user, psswd, dbname, port, true);
     } else {
         ws->cl = new EDBClient(server, user, psswd, dbname, port);

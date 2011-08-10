@@ -302,7 +302,7 @@ static QueryList UserGroupForum = QueryList("UserGroupForum",
       "CREATE TABLE "+PWD_TABLE_PREFIX+"u (username text, psswd text)" },
     { "CREATE TABLE u (userid integer, username givespsswd userid text)",
       "CREATE TABLE usergroup (userid equals u.userid hasaccessto groupid integer, groupid integer)",
-      "CREATE TABLE groupforum (forumid equals forum.forumid integer, groupid equals usergroup.groupid hasaccessto forumid integer, optionid integer)",
+      "CREATE TABLE groupforum (forumid equals forum.forumid integer, groupid equals usergroup.groupid hasaccessto forumid if test(optionid) integer, optionid integer)",
       "CREATE TABLE forum (forumid integer, forumtext encfor forumid det text)",
       "COMMIT ANNOTATIONS" },
     { Query("INSERT INTO "+PWD_TABLE_PREFIX+"u (username, psswd) VALUES ('alice', 'secretalice')", false),
@@ -373,15 +373,16 @@ static QueryList UserGroupForum = QueryList("UserGroupForum",
       //all logged out at this point
       Query("INSERT INTO groupforum VALUES (1,2,2)", true),
       Query("INSERT INTO groupforum VALUES (1,2,0)", true),
+      Query("INSERT INTO groupforum VALUES (1,2,20)", true),
       //alice
-      Query("INSERT INTO "+PWD_TABLE_PREFIX+"u (username, psswd) VALUES ('alice', 'secretbob')",false),
+      Query("INSERT INTO "+PWD_TABLE_PREFIX+"u (username, psswd) VALUES ('alice', 'secretalice')",false),
       Query("INSERT INTO groupforum VALUES (1,2,2)", false),
       Query("INSERT INTO groupforum VALUES (1,2,0)", false),
       Query("DELETE FROM "+PWD_TABLE_PREFIX+"u WHERE username='alice'",false),
       //bob
       Query("INSERT INTO "+PWD_TABLE_PREFIX+"u (username, psswd) VALUES ('bob', 'secretbob')",false),
       Query("SELECT forumtext FROM forum WHERE forumid=1",true),
-            Query("DELETE FROM "+PWD_TABLE_PREFIX+"u WHERE username='bob'",false)},
+      Query("DELETE FROM "+PWD_TABLE_PREFIX+"u WHERE username='bob'",false)},
     { "DROP TABLE u",
       "DROP TABLE usergroup",
       "DROP TABLE groupforum",
@@ -494,6 +495,10 @@ Connection::start() {
             }
 
             conn = new Connect(tc.host, tc.user, tc.pass, tc.db, tc.port);
+            if (type == PROXYMULTI) {
+                conn->execute("DROP FUNCTION IF EXISTS test");
+                conn->execute("CREATE FUNCTION test (optionid integer) RETURNS bool RETURN optionid=20");
+            }
         }
         break;
     default:
@@ -541,7 +546,7 @@ Connection::execute(string query) {
 
 void
 Connection::executeFail(string query) {
-    //cerr << type << " " << query << endl;
+    cerr << type << " " << query << endl;
     LOG(test) << "Query: " << query << " could not execute" << endl;
 }
 

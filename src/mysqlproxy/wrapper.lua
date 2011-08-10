@@ -52,7 +52,7 @@ RES_IGNORE  = 1
 RES_DECRYPT = 2
 
 function dprint(x)
-    -- print(x)
+    print(x)
 end
 
 function read_query_real(packet)
@@ -63,7 +63,7 @@ function read_query_real(packet)
         new_queries = CryptDB.rewrite(proxy.connection.client.src.name, query)
         if #new_queries > 0 then
             for i, v in pairs(new_queries) do
-                dprint(v)
+                dprint("new queries: "..v)
                 local result_key
                 if i == #new_queries then
                     result_key = RES_DECRYPT
@@ -78,7 +78,8 @@ function read_query_real(packet)
 
             return proxy.PROXY_SEND_QUERY
         else
-            -- do nothing
+            -- create empty resultset, send back
+            -- so 
         end
     elseif string.byte(packet) == proxy.COM_QUIT then
         -- do nothing
