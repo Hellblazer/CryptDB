@@ -642,7 +642,10 @@ CheckAnnotatedQuery(const TestConfig &tc, string control_query, string test_quer
 {
     ntest++;
 
+    LOG(test) << "control query: " << control_query;
     ResType control_res = control->execute(control_query);
+
+    LOG(test) << "test query: " << test_query;
     ResType test_res = test->execute(test_query);
 
     if (control_res.ok != test_res.ok) {
@@ -693,6 +696,7 @@ CheckQueryList(const TestConfig &tc, const QueryList &queries) {
         default:
             assert_s(false, "control_type invalid");
         }
+
         switch(test_type) {
         case 0:
         case 3:
