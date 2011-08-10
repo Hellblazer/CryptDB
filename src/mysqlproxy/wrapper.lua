@@ -52,7 +52,9 @@ RES_IGNORE  = 1
 RES_DECRYPT = 2
 
 function dprint(x)
-    print(x)
+    if os.getenv("CRYPTDB_PROXY_DEBUG") then
+        print(x)
+    end
 end
 
 function read_query_real(packet)
@@ -78,8 +80,10 @@ function read_query_real(packet)
 
             return proxy.PROXY_SEND_QUERY
         else
-            -- create empty resultset, send back
-            -- so 
+            proxy.response.affected_rows = 0
+            proxy.response.insert_id = 0
+            proxy.response.type = proxy.MYSQLD_PACKET_OK
+            return proxy.PROXY_SEND_RESULT
         end
     elseif string.byte(packet) == proxy.COM_QUIT then
         -- do nothing
