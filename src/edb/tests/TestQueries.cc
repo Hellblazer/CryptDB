@@ -5,6 +5,7 @@
  *
  */
 
+#include <stdexcept>
 #include <netinet/in.h>
 #include "TestQueries.h"
 #include "cryptdb_log.h"
@@ -401,9 +402,18 @@ static QueryList UserGroupForum = QueryList("UserGroupForum",
 
 
 Connection::Connection(const TestConfig &input_tc, test_mode input_type) {
-    this->tc = input_tc;
-    this->type = input_type;
-    start();
+    tc = input_tc;
+    type = input_type;
+    conn = 0;
+    cl = 0;
+    proxy_pid = -1;
+
+    try {
+        start();
+    } catch (...) {
+        stop();
+        throw;
+    }
 }
 
 
@@ -472,8 +482,8 @@ Connection::start() {
             LOG(warn) << "could not execlp: " << strerror(errno);
             exit(-1);
         } else if (proxy_pid < 0) {
-            cerr << "failed to fork" << endl;
-            exit(1);
+            LOG(warn) << "failed to fork";
+            throw runtime_error("failed to fork");
         } else {
             for (uint i = 0; i < 100; i++) {
                 usleep(100000);
@@ -508,19 +518,25 @@ Connection::start() {
 
 void
 Connection::stop() {
+    LOG(warn) << "conn stop";
+
     switch (type) {
     case UNENCRYPTED:
-        delete conn;
+        if (conn)
+            delete conn;
         break;
     case SINGLE:
     case MULTI:
-        delete cl;
+        if (cl)
+            delete cl;
         break;
     case PROXYPLAIN:
     case PROXYSINGLE:
     case PROXYMULTI:
-        kill(proxy_pid, SIGKILL);
-        delete conn;
+        if (proxy_pid > 0)
+            kill(proxy_pid, SIGKILL);
+        if (conn)
+            delete conn;
         break;
     default:
         break;
@@ -602,15 +618,16 @@ CheckAnnotatedQuery(const TestConfig &tc, string control_query, string test_quer
         LOG(warn) << "control " << control_res.ok
                   << ", test " << test_res.ok
                   << " for query: " << test_query;
+
         if (tc.stop_if_fail)
-            exit(1);
+            throw runtime_error("stop on failure");
     } else if (!match(test_res, control_res)) {
         LOG(warn) << "result mismatch for query: " << test_query;
         PrintRes(control_res);
         PrintRes(test_res);
 
         if (tc.stop_if_fail)
-            exit(1);
+            throw runtime_error("stop on failure");
     } else {
         npass++;
     }

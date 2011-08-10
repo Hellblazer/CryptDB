@@ -5,6 +5,7 @@
  *      Author: raluca
  */
 
+#include <stdexcept>
 #include "Connect.h"
 #include "cryptdb_log.h"
 
@@ -23,7 +24,7 @@ Connect::Connect(string server, string user, string passwd,
                   << " dbname " << dbname
                   << " port " << port;
         LOG(warn) << "mysql_real_connect: " << mysql_error(conn);
-        exit(1);
+        throw runtime_error("cannot connect");
     }
 
 #else /* postgres */
