@@ -171,8 +171,10 @@ EDBClient::EDBClient(string server, string user, string psswd, string dbname,
     totalIndexes = 0;
 
     if (multiPrinc) {
+        cerr << "multiprinc mode \n";
         mp = new MultiPrinc(conn);
     } else {
+        cerr << "not multiprinc mode\n";
         mp = NULL;
     }
 }
@@ -383,11 +385,13 @@ processAnnotation(MultiPrinc * mp, list<string>::iterator & wordsIt,
         return;
     }
 
+    cerr << "in proces ann \n";
     fm->isEncrypted = false;
 
     while (annotations.find(*wordsIt) != annotations.end()) {
         string annot = toLowerCase(*wordsIt);
 
+       // cerr << "current ann " << annot << "\n";
         if (annot == "enc") {
             fm->isEncrypted = true;
             if (!mp) {
@@ -405,15 +409,15 @@ processAnnotation(MultiPrinc * mp, list<string>::iterator & wordsIt,
         }
 
         // MULTI-PRINC annotations
-
-        if (annot == "encfor") {
-            fm->isEncrypted = true;
+        if (mp) {
+            if (annot == "encfor") {
+                fm->isEncrypted = true;
+            }
+            cerr << "before mp-process an \n";
+            mp->processAnnotation(wordsIt, words, tableName, fieldName,
+                    fm->isEncrypted,
+                    tm);
         }
-
-        mp->processAnnotation(wordsIt, words, tableName, fieldName,
-                              fm->isEncrypted,
-                              tm);
-
     }
 
 }

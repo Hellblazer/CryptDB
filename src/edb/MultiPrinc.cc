@@ -10,6 +10,10 @@ MultiPrinc::MultiPrinc(Connect * connarg)
 {
     conn = connarg;
     accMan = new KeyAccess(conn);
+
+    cerr << "creating multi princ ";
+    cerr << "size of mkm.encForMap " << mkm.encForMap.size() << "\n";
+
 }
 
 MultiPrinc::~MultiPrinc()
@@ -54,15 +58,23 @@ MultiPrinc::processAnnotation(list<string>::iterator & wordsIt,
                               bool & encryptfield, map<string,
                                                        TableMetadata *> & tm)
 {
+    cerr << "in process ann in mp\n";
 
     if (equalsIgnoreCase(*wordsIt, "encfor")) {
 
-        if (VERBOSE_G) { LOG(mp) << "encfor"; }
+        LOG(mp) << "encfor";
         wordsIt++;
+        cerr << "b\n";
         string field2 = *wordsIt;
+        cerr << "c\n";
         wordsIt++;
+        cerr << "before assign " << fullName(currentField, tablename) << " " << fullName(field2,
+                tablename) << "\n";
+
+        cerr << "size of encfor map " << (mkm.encForMap.size()) << "\n";
         mkm.encForMap[fullName(currentField, tablename)] = fullName(field2,
                                                                     tablename);
+        cerr << "e\n";
         LOG(mp) << "==> " <<
         		fullName(currentField, tablename) << " " << fullName(
         				field2,
