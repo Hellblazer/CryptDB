@@ -570,6 +570,7 @@ Connection::start() {
             if (type == PROXYMULTI) {
                 conn->execute("DROP FUNCTION IF EXISTS test");
                 conn->execute("CREATE FUNCTION test (optionid integer) RETURNS bool RETURN optionid=20");
+                conn->execute("CREATE TABLE nop;");
             }
         }
         break;
