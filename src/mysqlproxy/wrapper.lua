@@ -63,34 +63,32 @@ function read_query_real(packet)
         dprint("read_query: " .. query)
 
         new_queries = CryptDB.rewrite(proxy.connection.client.src.name, query)
-	if new_queries == nil then
+        if not new_queries then
             proxy.response.type = proxy.MYSQLD_PACKET_ERR
             proxy.response.errmsg = "query failed"
-            proxy.response.affected_rows = 0
-            return proxy.PROXY_SEND_RESULT	  
-        end      
-	if #new_queries > 0 then
-            for i, v in pairs(new_queries) do
-                dprint("new queries: "..v)
-                local result_key
-                if i == #new_queries then
-                    result_key = RES_DECRYPT
-                else
-                    result_key = RES_IGNORE
-                end
+            return proxy.PROXY_SEND_RESULT
+        end
 
-                proxy.queries:append(result_key,
-                                     string.char(proxy.COM_QUERY) .. v,
-                                     { resultset_is_needed = true })
-            end
-
-            return proxy.PROXY_SEND_QUERY
-        else
-            proxy.response.affected_rows = 0
-            proxy.response.insert_id = 0
+        if #new_queries == 0 then
             proxy.response.type = proxy.MYSQLD_PACKET_OK
             return proxy.PROXY_SEND_RESULT
         end
+
+        for i, v in pairs(new_queries) do
+            dprint("new queries: " .. v)
+            local result_key
+            if i == #new_queries then
+                result_key = RES_DECRYPT
+            else
+                result_key = RES_IGNORE
+            end
+
+            proxy.queries:append(result_key,
+                                 string.char(proxy.COM_QUERY) .. v,
+                                 { resultset_is_needed = true })
+        end
+
+        return proxy.PROXY_SEND_QUERY
     elseif string.byte(packet) == proxy.COM_QUIT then
         -- do nothing
     else
@@ -124,19 +122,18 @@ function read_query_result_real(inj)
 
         dfields, drows = CryptDB.decrypt(proxy.connection.client.src.name,
                                          fields, rows)
-        if dfields == nil or drows == nil then
+        if dfields and drows then
+            proxy.response.type = proxy.MYSQLD_PACKET_OK
+            proxy.response.affected_rows = inj.resultset.affected_rows
+            proxy.response.insert_id = inj.resultset.insert_id
+            if #dfields > 0 then
+                proxy.response.resultset = { fields = dfields, rows = drows }
+            end
+        else
             proxy.response.type = proxy.MYSQLD_PACKET_ERR
             proxy.response.errmsg = "could not decrypt result"
-            return proxy.PROXY_SEND_RESULT
-        end
-        
-        if #dfields > 0 then
-            proxy.response.resultset = { fields = dfields, rows = drows }
         end
 
-        proxy.response.affected_rows = inj.resultset.affected_rows
-        proxy.response.insert_id = inj.resultset.insert_id
-        proxy.response.type = proxy.MYSQLD_PACKET_OK
         return proxy.PROXY_SEND_RESULT
     else
         print("unexpected inj.id " .. inj.id)
