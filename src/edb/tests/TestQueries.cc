@@ -518,8 +518,6 @@ Connection::start() {
 
 void
 Connection::stop() {
-    LOG(warn) << "conn stop";
-
     switch (type) {
     case UNENCRYPTED:
         if (conn)
