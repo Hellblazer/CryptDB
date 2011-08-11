@@ -171,10 +171,10 @@ EDBClient::EDBClient(string server, string user, string psswd, string dbname,
     totalIndexes = 0;
 
     if (multiPrinc) {
-        cerr << "multiprinc mode \n";
+        LOG(edb_v) << "multiprinc mode";
         mp = new MultiPrinc(conn);
     } else {
-        cerr << "not multiprinc mode\n";
+        LOG(edb) << "single princ mode";
         mp = NULL;
     }
 }
@@ -385,7 +385,6 @@ processAnnotation(MultiPrinc * mp, list<string>::iterator & wordsIt,
         return;
     }
 
-    cerr << "in proces ann \n";
     fm->isEncrypted = false;
 
     while (annotations.find(*wordsIt) != annotations.end()) {
