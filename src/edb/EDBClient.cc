@@ -1380,8 +1380,8 @@ throw (CryptDBError)
 
     //4. RECREATE THE NEWLY NESTED QUERY
 
-    //cerr << "rewrite encrypt select Helper "; myPrint(simpleQ.back()); cerr
-    // << "\n";
+    //cerr << "rewrite encrypt select Helper "; myPrint(simpleQ.back());
+    //cerr << "\n";
 
     list<string> results = rewriteSelectHelper(
         simpleQ.back(), false, encqueries);
@@ -2254,7 +2254,7 @@ throw (CryptDBError)
         string anonOp2 = fullName(anonField2, anonTable2);
 
         res =
-            fieldNameForQuery(anonTable1, table1, anonField1, fm1,
+            " "+fieldNameForQuery(anonTable1, table1, anonField1, fm1,
                               qm) + " " + operation + " " +
             fieldNameForQuery(anonTable2, table3, anonField2, fm2,
                               qm) + " ";
