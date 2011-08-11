@@ -250,7 +250,7 @@ static QueryList Basic = QueryList("MultiBasic",
       "DROP TABLE "+PWD_TABLE_PREFIX+"u_basic" },
     { "DROP TABLE u_basic",
       "DROP TABLE t1",
-      "DROP TABLE nop" } );
+      "" } );
 
 //migrated from PrivMessages
 static QueryList PrivMessages = QueryList("MultiPrivMessages",
@@ -269,7 +269,7 @@ static QueryList PrivMessages = QueryList("MultiPrivMessages",
     { Query("INSERT INTO "+PWD_TABLE_PREFIX+"u_mess (username, psswd) VALUES ('alice', 'secretalice')", false),
       Query("INSERT INTO "+PWD_TABLE_PREFIX+"u_mess (username, psswd) VALUES ('bob', 'secretbob')", false),
       Query("INSERT INTO u_mess VALUES (1, 'alice')", false),
-      Query("INSERT INTO u_mess VALUES (1, 'bob')", false),
+      Query("INSERT INTO u_mess VALUES (2, 'bob')", false),
       Query("INSERT INTO privmsg (msgid, recid, senderid) VALUES (9, 1, 2)", false),
       Query("INSERT INTO msgs VALUES (1, 'hello world')", false),
       Query("SELECT msgtext FROM msgs WHERE msgid=1", false),
@@ -287,7 +287,7 @@ static QueryList PrivMessages = QueryList("MultiPrivMessages",
     { "DROP TABLE msgs",
       "DROP TABLE privmsg",
       "DROP TABLE u_mess",
-      "DROP TABLE nop" } );
+      "" } );
 
 //migrated from UserGroupForum
 static QueryList UserGroupForum = QueryList("UserGroupForum",
@@ -431,34 +431,43 @@ static QueryList UserGroupForum = QueryList("UserGroupForum",
       "DROP TABLE usergroup",
       "DROP TABLE groupforum",
       "DROP TABLE forum",
-      "DROP TABLE nop" } );
+      "" } );
 
 static QueryList Auto = QueryList("AutoInc",
-    {"CREATE TABLE auto1 (id integer PRIMARY KEY AUTO_INCREMENT, num integer, username text)",
-     "CREATE TABLE auto2 (id integer, second integer PRIMARY KEY AUTO_INCREMENT)",
-     "CREATE TABLE "+PWD_TABLE_PREFIX+"auto1 (username text, psswd text)"},
-    {"CREATE TABLE auto1 (id integer PRIMARY KEY AUTO_INCREMENT, num enc integer, username enc text)",
-     "CREATE TABLE auto2 (id enc integer, second integer PRIMARY KEY AUTO_INCREMENT)",
-     "CREATE TABLE "+PWD_TABLE_PREFIX+"auto1 (username text, psswd text)"},
-    {"CREATE TABLE auto1 (id equals aut2.id integer PRIMARY KEY AUTO_INCREMENT, num encfor id integer, username encfor id givespsswd id text)",
-     "CREATE TABLE auto2 (id integer, second integer PRIMARY KEY AUTO_INCREMENT)",
-     "COMMIT ANNOTATIONS"},
-    {Query("INSERT INTO "+PWD_TABLE_PREFIX+"auto1 (username, psswd) VALUES ('alice','secretA')",false),
-            Query("INSERT INTO auto1 VALUES (1, 20, 'alice')",false),
-            Query("INSERT INTO auto1 (num, username) VALUES (20, 'alice')",false),
-            /*(Query("INSERT INTO auto1 (num, username) VALUES (15, 'alice')",false),
-            Query("SELECT * FROM auto1",false)*/
-
-},
-    {"DROP TABLE auto1",
-     "DROP TABLE auto2",
-     "DROP TABLE "+PWD_TABLE_PREFIX+"auto1"},
-    {"DROP TABLE auto1",
-     "DROP TABLE auto2",
-     "DROP TABLE "+PWD_TABLE_PREFIX+"auto1"},
-    {"DROP TABLE auto1",
-     "DROP TABLE auto2",
-     "DROP TABLE nop"} );
+    { "CREATE TABLE msgs (msgid integer PRIMARY KEY AUTO_INCREMENT, msgtext text)",
+      "CREATE TABLE privmsg (msgid integer, recid integer, senderid integer)",
+      "CREATE TABLE u_auto (userid integer, username text)",
+      "CREATE TABLE "+PWD_TABLE_PREFIX+"u_auto (username text, psswd text)" },
+    { "CREATE TABLE msgs (msgid integer PRIMARY KEY AUTO_INCREMENT, msgtext enc text)",
+      "CREATE TABLE privmsg (msgid integer, recid enc integer, senderid enc integer)",
+      "CREATE TABLE u_auto (userid enc integer, username enc text)",
+      "CREATE TABLE "+PWD_TABLE_PREFIX+"u_auto (username text, psswd text)" },
+    { "CREATE TABLE msgs (msgid equals privmsg.msgid integer PRIMARY KEY AUTO_INCREMENT, msgtext encfor msgid text)",
+      "CREATE TABLE privmsg (msgid integer, recid equals u_auto.userid hasaccessto msgid integer, senderid hasaccessto msgid integer)",
+      "CREATE TABLE u_auto (userid equals privmsg.senderid integer, username givespsswd userid text)",
+      "COMMIT ANNOTATIONS" },
+    { Query("INSERT INTO "+PWD_TABLE_PREFIX+"u_auto (username, psswd) VALUES ('alice','secretA')",false),
+      Query("INSERT INTO "+PWD_TABLE_PREFIX+"u_auto (username, psswd) VALUES ('bob','secretB')",false),
+      Query("INSERT INTO u_auto VALUES (1, 'alice')",false),
+      Query("INSERT INTO u_auto VALUES (2, 'bob')",false),
+      Query("INSERT INTO privmsg (msgid, recid, senderid) VALUES (9, 1, 2)", false),
+      Query("INSERT INTO msgs (msgtext) VALUES ('hello world')", false),
+      Query("SELECT msgtext FROM msgs WHERE msgid=1", false),
+      Query("SELECT msgtext FROM msgs, privmsg, u_auto WHERE username = 'alice' AND userid = recid AND msgs.msgid = privmsg.msgid", false),
+      Query("INSERT INTO msgs VALUES (9, 'message for alice from bob')", false),
+      Query("SELECT msgtext FROM msgs, privmsg, u_auto WHERE username = 'alice' AND userid = recid AND msgs.msgid = privmsg.msgid", false) },
+    { "DROP TABLE msgs",
+      "DROP TABLE privmsg",
+      "DROP TABLE u_auto",
+      "DROP TABLE "+PWD_TABLE_PREFIX+"u_auto" },
+    { "DROP TABLE msgs",
+      "DROP TABLE privmsg",
+      "DROP TABLE u_auto",
+      "DROP TABLE "+PWD_TABLE_PREFIX+"u_auto" },
+    { "DROP TABLE msgs",
+      "DROP TABLE privmsg",
+      "DROP TABLE u_auto",
+      ""} );
 
 //-----------------------------------------------------------------------
 
@@ -508,7 +517,6 @@ Connection::start() {
         cl->setMasterKey(masterKey);
         assert_s(cl->plain_execute("DROP FUNCTION IF EXISTS test").ok, "dropping test for multi");
         assert_s(cl->plain_execute("CREATE FUNCTION test (optionid integer) RETURNS bool RETURN optionid=20").ok, "creating test function for multi");
-        assert_s(cl->execute("CREATE TABLE nop (nothing integer)").ok, "creating empty table for balancing commit annotations");
         break;
         //proxy -- start proxy in separate process and initialize connection
     case PROXYPLAIN:
@@ -530,7 +538,7 @@ Connection::start() {
             } else {
                 setenv("CRYPTDB_MODE", "plain", 1);
             }
-            setenv("CRYPTDB_PROXY_DEBUG","true",1);
+            //setenv("CRYPTDB_PROXY_DEBUG","true",1);
             string script_path = "--proxy-lua-script=" + tc.edbdir
                                                        + "/../mysqlproxy/wrapper.lua";
 
@@ -570,7 +578,6 @@ Connection::start() {
             if (type == PROXYMULTI) {
                 assert_s(conn->execute("DROP FUNCTION IF EXISTS test"),"dropping function test for proxy-multi");
                 assert_s(conn->execute("CREATE FUNCTION test (optionid integer) RETURNS bool RETURN optionid=20"),"creating function test for proxy-multi");
-                assert_s(conn->execute("CREATE TABLE nop;"),"creating empty table to balance commit annotations");
             }
         }
         break;
@@ -672,11 +679,22 @@ CheckAnnotatedQuery(const TestConfig &tc, string control_query, string test_quer
 {
     ntest++;
 
+    ResType control_res;
+    ResType test_res;
+
     LOG(test) << "control query: " << control_query;
-    ResType control_res = control->execute(control_query);
+    if (control_query != "") {
+        control_res = control->execute(control_query);
+    } else {
+        control_res = ResType(true);
+    }
 
     LOG(test) << "test query: " << test_query;
-    ResType test_res = test->execute(test_query);
+    if (test_query != "") {
+        test_res = test->execute(test_query);
+    } else {
+        test_res = ResType(true);
+    }
 
     if (control_res.ok != test_res.ok) {
         LOG(warn) << "control " << control_res.ok
@@ -808,34 +826,34 @@ CheckQueryList(const TestConfig &tc, const QueryList &queries) {
 
 static void
 RunTest(const TestConfig &tc) {
-    CheckQueryList(tc, Insert);
-    CheckQueryList(tc, Select);
-    CheckQueryList(tc, Join);
-    CheckQueryList(tc, Update);
-    CheckQueryList(tc, Delete);
-    CheckQueryList(tc, Search);
-    CheckQueryList(tc, Basic);
+    //CheckQueryList(tc, Insert);
+    //CheckQueryList(tc, Select);
+    //CheckQueryList(tc, Join);
+    //CheckQueryList(tc, Update);
+    //CheckQueryList(tc, Delete);
+    //CheckQueryList(tc, Search);
+    //CheckQueryList(tc, Basic);
     if (test_type == 2 || test_type == 5) {
         test->restart();
     }
     if (control_type == 2 || control_type == 5) {
         control->restart();
     }
-    CheckQueryList(tc, PrivMessages);
+    //CheckQueryList(tc, PrivMessages);
     if (test_type == 2 || test_type == 5) {
         test->restart();
     }
     if (control_type == 2 || control_type == 5) {
         control->restart();
     }
-    CheckQueryList(tc, UserGroupForum);
+    //CheckQueryList(tc, UserGroupForum);
     if (test_type == 2 || test_type == 5) {
         test->restart();
     }
     if (control_type == 2 || control_type == 5) {
         control->restart();
     }
-    //CheckQueryList(tc, Auto);
+    CheckQueryList(tc, Auto);
     //TODO: add stuff for multiple connections
 }
 
