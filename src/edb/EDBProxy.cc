@@ -2417,6 +2417,7 @@ throw (CryptDBError)
     //delete associated data from internal data structures
     delete tableMetaMap[tableName];
     tableMetaMap.erase(tableName);
+
     tableNameMap.erase(anonTableName);
 
     list<string> resultList;
@@ -3309,11 +3310,16 @@ EDBProxy::exit()
 
 EDBProxy::~EDBProxy()
 {
+    cerr << "in destructor \n";
     for (auto i = tableMetaMap.begin(); i != tableMetaMap.end(); i++)
         delete i->second;
+    cerr << "A\n";
     delete cm;
+    cerr << "B\n";
     delete mp;
+    cerr << "C\n";
     delete conn;
+    cerr << "D\n";
 }
 
 static string

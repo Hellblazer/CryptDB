@@ -594,13 +594,17 @@ void
 Connection::stop() {
     switch (type) {
     case UNENCRYPTED:
-        if (conn)
+        if (conn) {
             delete conn;
+            conn = NULL;
+        }
         break;
     case SINGLE:
     case MULTI:
-        if (cl)
+        if (cl) {
             delete cl;
+            cl = NULL;
+        }
         break;
     case PROXYPLAIN:
     case PROXYSINGLE:
