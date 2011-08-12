@@ -9,7 +9,6 @@ class WrapperState {
  public:
     EDBProxy *cl;
     string last_query;
-    AutoInc ai;
 
     WrapperState() {
         cl = 0;
@@ -90,7 +89,7 @@ rewrite(lua_State *L)
 
     list<string> new_queries;
     try {
-        new_queries = clients[client]->cl->rewriteEncryptQuery(query, &clients[client]->ai);
+        new_queries = clients[client]->cl->rewriteEncryptQuery(query);
     } catch (CryptDBError &e) {
         LOG(wrapper) << "cannot rewrite " << query << ": " << e.msg;
         lua_pushnil(L);

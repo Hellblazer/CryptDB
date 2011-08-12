@@ -122,7 +122,9 @@ typedef enum fieldType {TYPE_TEXT, TYPE_INTEGER, TYPE_AGG_RESULT_COUNT,
 typedef enum onion {oDET, oOPE, oAGG, oNONE, oSWP, oINVALID} onion;
 
 typedef struct AutoInc {
+    AutoInc(string fieldval=""):incvalue(0), field(fieldval) {}
     my_ulonglong incvalue;
+    string field;
 } AutoInc;
 
 typedef struct ParserMeta {
@@ -211,7 +213,7 @@ typedef struct TableMetadata { //each anonymized field
     map<string, FieldMetadata *> fieldMetaMap;     //map of true field name to
                                                    // field metadata
 
-    string autoIncField;     //name of field that has autoincrement
+    AutoInc ai;     //autoincrement
 
     list<string> primaryKey;
     list<IndexMetadata *> indexes;

@@ -43,8 +43,7 @@ class EDBProxy {
 
     //Mode 2: Only translations
     //query must be \0 terminated
-    list<string> rewriteEncryptQuery(const string &query,
-                                     AutoInc * ai = NULL)
+    list<string> rewriteEncryptQuery(const string &query)
         throw (CryptDBError);
 
     //query should be the original, untranslated query
@@ -111,15 +110,12 @@ class EDBProxy {
         throw (CryptDBError);
 
     //INSERT
-    list<string> rewriteEncryptInsert(const string &query, AutoInc * ai)
+    list<string> rewriteEncryptInsert(const string &query)
         throw (CryptDBError);
     //returns the value to be included in an insert a given value of a
     // field/table
     string processValsToInsert(string field, string table, uint64_t salt,
                                string value, TMKM & tmkm, bool null = false);
-    // returns the value we should insert for a field for which the INSERT
-    // statement does not specify a value
-    pair<string, bool> getInitValue(string field, string table, AutoInc * ai = NULL);
 
     //FILTERS ("WHERE")
     //process where clause

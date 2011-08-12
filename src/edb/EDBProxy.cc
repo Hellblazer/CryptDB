@@ -421,8 +421,8 @@ static void processPostAnnotations(TableMetadata * tm, string field, list<string
     /* This function is implemented ad-hoc.. the generic parser will fix this. */
     while ((wordsIt != words.end()) && (*wordsIt != ")") && (*wordsIt != ",")) {
         if (equalsIgnoreCase(*wordsIt, "auto_increment")) {
-            assert_s(tm->autoIncField == "", " table cannot have two autoincrements");
-            tm->autoIncField = field;
+            assert_s(tm->ai.field == "", " table cannot have two autoincrements");
+            tm->ai.field = field;
             LOG(edb) << "auto_increment field " << field;
             return;
         }
@@ -2585,22 +2585,19 @@ EDBProxy::processValsToInsert(string field, string table, uint64_t salt,
 
 }
 
-pair<string, bool>
-EDBProxy::getInitValue(string field, string table, AutoInc * ai)
+// returns the value we should insert for a field for which the INSERT
+// statement does not specify a value
+static pair<string, bool>
+getInitValue(TableMetadata * tm, string field)
 {
-
-    TableMetadata * tm = tableMetaMap[table];
 
     // FieldMetadata * fm = tm->fieldMetaMap[field];
 
     //check if field has autoinc
-    if (tm->autoIncField == field) {
-        //has autoinc
-        assert_s(
-            ai != NULL,
-            "Current field has autoinc, but the autoincrement value was not supplied ");
-        LOG(edb) << "using autoincrement value" << ai->incvalue;
-        return make_pair(StringFromVal(ai->incvalue + 1), false);
+    if (tm->ai.field == field) {
+        ++tm->ai.incvalue;
+        LOG(edb) << "using autoincrement value" << tm->ai.incvalue;
+        return make_pair(StringFromVal(tm->ai.incvalue), false);
     }
 
     // use the default value
@@ -2609,7 +2606,7 @@ EDBProxy::getInitValue(string field, string table, AutoInc * ai)
 }
 
 list<string>
-EDBProxy::rewriteEncryptInsert(const string &query, AutoInc * ai)
+EDBProxy::rewriteEncryptInsert(const string &query)
 throw (CryptDBError)
 {
 
@@ -2767,7 +2764,7 @@ throw (CryptDBError)
         for (addit = fieldsToAdd.begin(); addit != fieldsToAdd.end();
              addit++) {
             string field = *addit;
-            valnulls.push_back(getInitValue(field, table, ai));
+            valnulls.push_back(getInitValue(tm, field));
         }
         //cerr << "BB\n";
 
@@ -2776,7 +2773,7 @@ throw (CryptDBError)
             for (addit = princsToAdd.begin(); addit != princsToAdd.end();
                  addit++) {
                 string field = *addit;
-                valnulls.push_back(getInitValue(field, table, ai));
+                valnulls.push_back(getInitValue(tm, field));
             }
             //insert any new hasaccessto instances
             LOG(edb_v) << "before insert relations";
@@ -3076,7 +3073,7 @@ considerQuery(command com, const string &query)
 }
 
 list<string>
-EDBProxy::rewriteEncryptQuery(const string &query, AutoInc * ai)
+EDBProxy::rewriteEncryptQuery(const string &query)
 throw (CryptDBError)
 {
     if (!isSecure)
@@ -3098,7 +3095,7 @@ throw (CryptDBError)
     switch (com) {
     case cmd::CREATE: {return rewriteEncryptCreate(query); }
     case cmd::UPDATE: {return rewriteEncryptUpdate(query); }
-    case cmd::INSERT: {return rewriteEncryptInsert(query, ai); }
+    case cmd::INSERT: {return rewriteEncryptInsert(query); }
     case cmd::SELECT: {return rewriteEncryptSelect(query); }
     case cmd::DROP: {return rewriteEncryptDrop(query); }
     case cmd::DELETE: {return rewriteEncryptDelete(query); }
@@ -3222,17 +3219,9 @@ EDBProxy::execute(const string &query)
     //secure
 
     list<string> queries;
-    AutoInc ai;
-
-    if (mp) {
-        if (getCommand(query) == cmd::INSERT) {
-            //need to get last insert id
-            ai.incvalue = conn->last_insert_id();
-        }
-    }
 
     try {
-        queries = rewriteEncryptQuery(query, &ai);
+        queries = rewriteEncryptQuery(query);
     } catch (CryptDBError se) {
         LOG(warn) << "problem with query " << query << ": " << se.msg;
         return ResType(false);
