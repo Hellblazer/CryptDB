@@ -7,18 +7,17 @@
 
 class WrapperState {
  public:
-    EDBProxy *cl;
+
     string last_query;
 
     WrapperState() {
-        cl = 0;
     }
 
     ~WrapperState() {
-        if (cl)
-            delete cl;
     }
 };
+
+static EDBProxy * cl = NULL;
 
 static map<string, WrapperState*> clients;
 
@@ -45,18 +44,21 @@ connect(lua_State *L)
                  << "database = " << dbname;
 
     WrapperState *ws = new WrapperState();
+
     string mode = getenv("CRYPTDB_MODE");
-    if (mode.compare("single") == 0) {
-        ws->cl = new EDBProxy(server, user, psswd, dbname, port, false);
-    } else if (mode.compare("multi") == 0) {
-        cerr << "multi" << endl;
-        ws->cl = new EDBProxy(server, user, psswd, dbname, port, true);
-    } else {
-        ws->cl = new EDBProxy(server, user, psswd, dbname, port);
+
+    if (!cl) {
+        if (mode.compare("single") == 0) {
+            cl = new EDBProxy(server, user, psswd, dbname, port, false);
+        } else if (mode.compare("multi") == 0) {
+            cl = new EDBProxy(server, user, psswd, dbname, port, true);
+        } else {
+            cl = new EDBProxy(server, user, psswd, dbname, port);
+        }
     }
 
     uint64_t mkey = 113341234;  // XXX
-    ws->cl->setMasterKey(BytesFromInt(mkey, AES_KEY_BYTES));
+    cl->setMasterKey(BytesFromInt(mkey, AES_KEY_BYTES));
 
     if (clients.find(client) != clients.end())
         LOG(warn) << "duplicate client entry";
@@ -89,7 +91,7 @@ rewrite(lua_State *L)
 
     list<string> new_queries;
     try {
-        new_queries = clients[client]->cl->rewriteEncryptQuery(query);
+        new_queries = cl->rewriteEncryptQuery(query);
     } catch (CryptDBError &e) {
         LOG(wrapper) << "cannot rewrite " << query << ": " << e.msg;
         lua_pushnil(L);
@@ -164,7 +166,7 @@ decrypt(lua_State *L)
         while (lua_next(L, -2)) {
             string data = xlua_tolstring(L, -1);
             SqlItem item;
-            if (data != "cryptdb_NULL") {
+            if (data != "__cryptdb_NULL") {
                 item.null = false;
                 item.type = MYSQL_TYPE_BLOB;    /* XXX */
                 item.data = data;
@@ -181,7 +183,7 @@ decrypt(lua_State *L)
 
     ResType rd;
     try {
-        rd = clients[client]->cl->decryptResults(clients[client]->last_query, r);
+        rd = cl->decryptResults(clients[client]->last_query, r);
     }
     catch(CryptDBError e) {
         lua_pushnil(L);

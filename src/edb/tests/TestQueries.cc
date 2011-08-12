@@ -611,8 +611,10 @@ Connection::stop() {
     case PROXYMULTI:
         if (proxy_pid > 0)
             kill(proxy_pid, SIGKILL);
-        if (conn)
+        if (conn) {
             delete conn;
+            conn = NULL;
+        }
         break;
     default:
         break;

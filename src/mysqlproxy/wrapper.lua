@@ -111,7 +111,7 @@ function read_query_result_real(inj)
 
         -- mysqlproxy returns nils for NULL, which means #row is the wrong
         --  size; instead, use #inj.resultset.fields, and replace nil with
-        --  more friendly cryptdb_NULL
+        --  more friendly __cryptdb_NULL
         local rows = {}
         if inj.resultset.rows then
             for row in inj.resultset.rows do
@@ -120,7 +120,7 @@ function read_query_result_real(inj)
                      if row[i] then
                         table.insert(lrow, row[i])
                     else
-                        table.insert(lrow, "cryptdb_NULL")
+                        table.insert(lrow, "__cryptdb_NULL")
                     end
                 end
                 table.insert(rows, lrow)
