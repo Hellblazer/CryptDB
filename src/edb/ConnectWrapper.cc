@@ -31,11 +31,7 @@ connect(lua_State *L)
     string psswd = luaL_checkstring(L, 5);
     string dbname = luaL_checkstring(L, 6);
 
-    cerr << "~~" << endl;
-
     cryptdb_logger::setConf(string(getenv("CRYPTDB_LOG")));
-
-    cerr << "env varibales" << endl;
 
     LOG(wrapper) << "connect " << client << "; "
                  << "server = " << server << ":" << port << "; "
@@ -225,7 +221,11 @@ decrypt(lua_State *L)
 
         for (uint j = 0; j < rd.rows[i].size(); j++) {
             lua_pushinteger(L, j+1);
-            xlua_pushlstring(L, rd.rows[i][j].data);    /* XXX type, null */
+            if (rd.rows[i][j].null) {
+                xlua_pushlstring(L, "__cryptdb_NULL");
+            } else {
+                xlua_pushlstring(L, rd.rows[i][j].data);
+            }
             lua_settable(L, t_row);
         }
 

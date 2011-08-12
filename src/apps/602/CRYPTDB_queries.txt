@@ -8,6 +8,4 @@ select vname, value from interaction_items where interaction_items.interactions_
 
 select username, assignment, action, submitter, timestamp, value from xgrades where username=who and assignment=assignment order by timestamp
 
-grades.get(student,{})
-
 insert into xgrades (username, assignment, action, submitter, timestamp, value) values (username, assignment,action,submitter,timestamp,value)

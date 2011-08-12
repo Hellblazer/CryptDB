@@ -473,6 +473,43 @@ static QueryList Auto = QueryList("AutoInc",
       "DROP TABLE u_auto",
       ""} );
 
+static QueryList Null = QueryList("Null",
+    { "CREATE TABLE test_null (uid integer, age integer, address text)",
+      "CREATE TABLE u_null (uid integer, username text)",
+      "CREATE TABLE "+PWD_TABLE_PREFIX+"u_null (username text, password text)"},
+    { "CREATE TABLE test_null (uid integer, age enc integer, address enc text)",
+      "CREATE TABLE u_null (uid integer, username text)",
+      "CREATE TABLE "+PWD_TABLE_PREFIX+"u_null (username text, password enc text)"},
+    //can only handle NULL's on non-principal fields
+    { "CREATE TABLE test_null (uid integer, age integer, address text)",
+      "CREATE TABLE u_null (uid equals test_null.uid integer, username givespsswd uid text)",
+      "COMMIT ANNOTATIONS"},                                  
+    { Query("INSERT INTO "+PWD_TABLE_PREFIX+"u_null (username, password) VALUES ('alice', 'secretA')", false),
+      Query("INSERT INTO u_null VALUES (1, 'alice')",false),
+      Query("INSERT INTO test_null (uid, age) VALUES (1, 20)",false),
+      Query("SELECT * FROM test_null",false),
+      Query("INSERT INTO test_null (uid, address) VALUES (1, 'somewhere over the rainbow')",false),
+      Query("SELECT * FROM test_null",false),
+      Query("INSERT INTO test_null (uid, age) VALUES (1, NULL)", false),
+      Query("SELECT * FROM test_null",false),
+      Query("INSERT INTO test_null (uid, address) VALUES (1, NULL)", false),
+      Query("SELECT * FROM test_null",false),
+      Query("INSERT INTO test_null VALUES (1, 25, 'Australia')",false),
+      Query("SELECT * FROM test_null",false) },
+    { "DROP TABLE test_null",
+      "DROP TABLE u_null",
+      "DROP TABLE "+PWD_TABLE_PREFIX+"u_null" },
+    { "DROP TABLE test_null",
+      "DROP TABLE u_null",
+      "DROP TABLE "+PWD_TABLE_PREFIX+"u_null" },
+    { "DROP TABLE test_null",
+      "DROP TABLE u_null",
+      "" } );
+
+
+
+
+
 //-----------------------------------------------------------------------
 
 Connection::Connection(const TestConfig &input_tc, test_mode input_type) {
@@ -864,6 +901,13 @@ RunTest(const TestConfig &tc) {
         control->restart();
     }
     CheckQueryList(tc, Auto);
+    if (test_type == 2 || test_type == 5) {
+        test->restart();
+    }
+    if (control_type == 2 || control_type == 5) {
+        control->restart();
+    }
+    CheckQueryList(tc, Null);
     test->stop();
     control->stop();
     //TODO: add stuff for multiple connections
