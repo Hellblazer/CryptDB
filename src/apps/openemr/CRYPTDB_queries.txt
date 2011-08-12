@@ -1,0 +1,111 @@
+admin.php
+
+SELECT gl_value FROM globals WHERE gl_name = 'openemr_name' LIMIT 1
+
+SHOW TABLES LIKE 'version'
+
+SELECT * FROM version LIMIT 1
+
+
+---------------------------------------------------------------------------
+ippf_upgrade.php
+
+SELECT COUNT(*) AS count FROM forms WHERE pid = $pid AND encounter = $encounter AND formdir = 'LBFgcac' AND deleted = 0
+
+SHOW CREATE DATABASE $dbase
+
+INSERT INTO lbf_data ( form_id, field_id, field_values ) VALUES ( $newid, $field_id, $value )
+
+SHOW TABLES
+
+ALTER TABLE $value CONVERT TO CHARACTER SET utf8
+
+ALTER DATABASE $dbase CHARACTER SET utf8
+
+SELECT l.pid, l.id, l.type, l.bedgate, l.title, g.client_status, g.in_ab_proc, g.ab_location, g.rec_compl, g.contrameth, g.fol_compl FROM lists AS l JOIN lists_ippf_gcac AS g ON l.type = 'ippf_gcac' AND g.id = l.id ORDER BY l.pid, l.bedgate
+
+SELECT encounter FROM issue_encounter WHERE pid = $patient_id AND list_id = $list_id ORDER BY encounter
+
+INSERT INTO lbf_data ( form_id, field_id, field_value ) VALUES ( $newid, $field_id, $value )
+
+INSERT INTO lbf_data ( field_id, field_value ) VALUES ( $field_id, $value )
+
+
+---------------------------------------------------------------------------
+login.php
+
+select distinct name from groups
+
+
+---------------------------------------------------------------------------
+sl_convert.php
+
+SELECT count(*) AS count FROM ar_activity
+
+SELECT count(*) AS count FROM form_encounter WHERE pid = $pid AND encounter = $encounter
+
+SELECT type FROM insurance_data WHERE pid = $pid AND provider = $last_biller AND date <= invdate ORDER BY date DESC, id ASC LIMIT 1
+
+SELECT sum(fee) AS sum FROM billing WHERE pid = $pid AND encounter = $encounter AND activity = 1 AND billed = 1
+
+UPDATE form_encounter SET last_level_billed = -1
+
+UPDATE billing SET activity = 0 WHERE pid = $pid AND encounter = $encounter AND code_type = 'TAX'
+
+SELECT * FROM billing WHERE pid = $pid AND encounter = $encounter AND activity = 1 AND code_type != 'TAX' AND fee != 0 ORDER BY fee DESC
+
+UPDATE ar_session SET pay_total = pay_total + $dtlinfo['pmt'] WHERE session_id = $session_id
+
+UPDATE form_encounter SET last_level_billed = $last_level_billed, last_level_closed = $last_level_closed, last_stmt_date = $last_stmt_date, stmt_count = $stmt_count WHERE pid = $pid AND encounter = $encounter
+
+UPDATE billing SET activity = 0 WHERE id = $key
+
+SELECT * FROM form_encounter WHERE last_level_billed = -1 ORDER BY pid, encounter
+
+UPDATE form_encounter SET last_level_billed = 0 WHERE id = $ferow['id]
+
+INSERT INTO billing ( date, encounter, code_type, code, code_text, pid, authorized, user, groupname, activity, billed, provider_id, modifier, units, fee, ndc_info, justify ) values ( $svcdate, $encounter, 'TAX', 'TAX', $dtlinfo['dsc'], $pid, 1, $provider_id, 'Default', 1, 1, 0, '', '1', $charge, '', '' )
+
+SELECT id, invnumber, transdate, shipvia, intnores FROM ar WHERE invnumber LIKE '%.%' ORDER BY id
+
+---------------------------------------------------------------------------
+sql_update.php
+
+SHOW TABLE LIKE $tblname
+
+SHOW COLUMNS FROM $tblname LIKE $colname
+
+SELECT COUNT(*) AS count FROM $tblname WHERE $colname LIKE $value
+
+SELECT COUNT(*) AS count FROM $tblname WHERE $colname LIKE $value AND $colname2 LIKE $value2
+
+SELECT COUNT(*) AS count FROM globals WHERE gl_name = $fldid
+
+INSERT INTO globals ( gl_name, gl_index, gl_value ) VALUES ( $fldid, 0, $flddef )
+
+UPDATE version SET v_major = $v_major, v_minor = $v_minor, v_patch = $v_patch, v_tag = $v_tag, v_database = $v_database
+
+---------------------------------------------------------------------------
+library/sql.inc
+
+SHOW COLUMNS FROM $table
+
+SELECT LAST_INSERT_ID()
+
+---------------------------------------------------------------------------
+library/sql-ccr.inc
+
+SELECT prescriptions.date_added, prescriptions.patient_id, prescriptions.start_date, prescriptions.quantity, prescriptions.interval, prescriptions.note, prescriptions.drug, prescriptions.medication, prescriptions.active, prescriptions.provider_id FROM prescriptions WHERE prescriptions.patient_id = $pid
+
+SELECT immunizations.administered_date, immunizations.patient_id, immunizations.vis_date, immunizations.note, immunizations.immunization_id, immunizations.manufacturer, list_options.title FROM immunizations , list_options WHERE immunizations.immunization_id = list_options.option_id and immunizations.patient_id = $pid and list_id = 'immunizations' "
+
+SELECT lists.date, lists.pid, lists.type, lists.title as proc_title, lists.diagnosis, lists.outcome, lists.groupname, form_encounter.onset_date, form_encounter.encounter, lists.comments, facility.city, facility.street, facility.state, users.title, users.fname, users.lname from lists left join issue_encounter on issue_encounter.list_id = lists.id left join form_encounter on form_encounter.encounter = issue_encounter.encounter left join facility on form_encounter.facility_id = facility.id left join users on form_encounter.provider_id = users.id where lists.type = 'surgery' and lists.pid=$pid
+
+select fe.encounter, fe.reason, fe.provider_id, u.title, u.fname, u.lname, fe.facility_id, f.street, f.city, f.state, ie.list_id, l.pid, l.title as prob_title, l.diagnosis, l.outcome, l.groupname, l.begdate, l.enddate, l.type, l.comments , l.date, cd.code_text from lists as l left join issue_encounter as ie on ie.list_id = l.id left join form_encounter as fe on fe.encounter = ie.encounter left join facility as f on fe.facility_id = f.id left join users as u on fe.provider_id = u.id left join codes as cd on cd.code = SUBSTRING(l.diagnosis, LOCATE(':',l.diagnosis)+1) where l.type = 'medical_problem' and l.pid=$pid
+
+select fname, lname, DOB, sex, pid, street, city, state, postal_code, phone_contact from patient_data where pid=$pid
+
+
+
+
+
