@@ -41,7 +41,7 @@ class Connect {
     // returns error message if a query caused error
     string getError();
 
-    uint64_t last_insert_id();
+    my_ulonglong last_insert_id();
 
     ~Connect();
 

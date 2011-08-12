@@ -122,7 +122,7 @@ typedef enum fieldType {TYPE_TEXT, TYPE_INTEGER, TYPE_AGG_RESULT_COUNT,
 typedef enum onion {oDET, oOPE, oAGG, oNONE, oSWP, oINVALID} onion;
 
 typedef struct AutoInc {
-    long incvalue;
+    my_ulonglong incvalue;
 } AutoInc;
 
 typedef struct ParserMeta {
@@ -593,7 +593,7 @@ class SqlItem {
     string to_string() const {
         if (null)
             return "NULL";
-        if (type == MYSQL_TYPE_BLOB || type == MYSQL_TYPE_VAR_STRING)
+        if (type == MYSQL_TYPE_BLOB)
             return marshallBinary(data);
         return data;
     }

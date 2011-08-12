@@ -92,7 +92,7 @@ Connect::getError()
 }
 
 
-uint64_t
+my_ulonglong
 Connect::last_insert_id()
 {
     return mysql_insert_id(conn);
