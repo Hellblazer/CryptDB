@@ -2161,13 +2161,14 @@ EDBProxy::rewriteDecryptSelect(const string &query, const ResType &dbAnswer)
             bool isBin;
             rets.rows[i][index].null = dbAnswer.rows[i][j].null;
             rets.rows[i][index].type = fm->mysql_type;
-            rets.rows[i][index].data =
-                crypt(dbAnswer.rows[i][j].data, fm->type,
-                      fullName(field, table), fullAnonName,
-                      getLevelForOnion(fm, rm.o[j]),
-                      getLevelPlain(rm.o[j]), salt,
-                      tmkm, isBin, dbAnswer.rows[i]);
-
+            if (!rets.rows[i][index].null) {
+                rets.rows[i][index].data =
+                        crypt(dbAnswer.rows[i][j].data, fm->type,
+                                fullName(field, table), fullAnonName,
+                                getLevelForOnion(fm, rm.o[j]),
+                                getLevelPlain(rm.o[j]), salt,
+                                tmkm, isBin, dbAnswer.rows[i]);
+            }
             index++;
         }
     }
@@ -2535,6 +2536,9 @@ EDBProxy::processValsToInsert(string field, string table, uint64_t salt,
     string anonTableName = tableMetaMap[table]->anonTableName;
 
     if (null) {
+        if (mp) {
+            assert_s(!mp->isPrincipal(fullname), "principal in multi-princ should not be null");
+        }
         res += " NULL ";    /* DET */
         if (fm->exists(fm->anonFieldNameOPE)) {
             res += ", NULL ";
@@ -3310,7 +3314,6 @@ EDBProxy::exit()
 
 EDBProxy::~EDBProxy()
 {
-    cerr << "in destructor\n";
     for (auto i = tableMetaMap.begin(); i != tableMetaMap.end(); i++)
         delete i->second;
 
