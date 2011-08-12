@@ -238,7 +238,6 @@ EDBClient::replenishEncryptionTables()
 static void
 setType(list<string>::iterator & it, list<string> & words, FieldMetadata * fm)
 {
-    std::set<string> terms = { ",", ")" };
     string token = *it;
     bool isint = false;
     if (it->find("int") != string::npos) {
@@ -247,10 +246,6 @@ setType(list<string>::iterator & it, list<string> & words, FieldMetadata * fm)
     if (it->find("decimal") != string::npos) {
         isint = true;
     }
-
-    it++;
-
-    mirrorUntilTerm(it, words, terms, 0, 1);
 
     if (isint) {
         fm->type = TYPE_INTEGER;
@@ -421,6 +416,21 @@ processAnnotation(MultiPrinc * mp, list<string>::iterator & wordsIt,
 
 }
 
+static void processPostAnnotations(TableMetadata * tm, string field, list<string>::iterator wordsIt, const list<string> & words) {
+
+    /* This function is implemented ad-hoc.. the generic parser will fix this. */
+    while ((wordsIt != words.end()) && (*wordsIt != ")") && (*wordsIt != ",")) {
+        if (equalsIgnoreCase(*wordsIt, "auto_increment")) {
+            assert_s(tm->autoIncField == "", " table cannot have two autoincrements");
+            tm->autoIncField = field;
+            LOG(edb) << "auto_increment field " << field;
+            return;
+        }
+        wordsIt++;
+    }
+
+}
+
 list<string>
 EDBClient::rewriteEncryptCreate(const string &query)
 throw (CryptDBError)
@@ -524,15 +534,18 @@ throw (CryptDBError)
             tm->hasEncrypted = true;
         } else {
             LOG(edb_v) << "not enc " << fieldName;
+            processPostAnnotations(tm, fieldName, wordsIt, words);
             fieldSeq +=  fieldName + " " +
                         mirrorUntilTerm(wordsIt, words, {","}, 1, 1);
             continue;
         }
 
-        setType(wordsIt, words, fm);
+        setType(wordsIt, words,  fm);
 
         fieldSeq += processCreate(fm->type, fieldName, i, tm,
                                   fm, !!mp) + " ";
+
+        wordsIt++;
 
         fieldSeq +=  mirrorUntilTerm(wordsIt, words, terms);
 
@@ -2147,7 +2160,7 @@ EDBClient::rewriteDecryptSelect(const string &query, const ResType &dbAnswer)
                                            tableMetaMap[table]->anonTableName);
             bool isBin;
             rets.rows[i][index].null = dbAnswer.rows[i][j].null;
-            rets.rows[i][index].type = dbAnswer.rows[i][j].type; /* XXX not always right */
+            rets.rows[i][index].type = fm->mysql_type;
             rets.rows[i][index].data =
                 crypt(dbAnswer.rows[i][j].data, fm->type,
                       fullName(field, table), fullAnonName,
@@ -2586,6 +2599,7 @@ EDBClient::getInitValue(string field, string table, AutoInc * ai)
         assert_s(
             ai != NULL,
             "Current field has autoinc, but the autoincrement value was not supplied ");
+        LOG(edb) << "using autoincrement value" << ai->incvalue;
         return make_pair(StringFromVal(ai->incvalue + 1), false);
     }
 
@@ -2644,6 +2658,19 @@ throw (CryptDBError)
     list<string> overallFieldNames;
 
     size_t noFieldsGiven = 0;
+
+    /***
+     * Fields in insert are of these types:
+     *
+     * Regular fields: -- fields for which a value is provided in the insert
+     * princsToAdd : -- fields for which no value is specified in the insert yet
+     *                  for which some other principal is encrypted and hence cannot be left NULL
+     *               -- these fields must be auto_increment
+     * fieldsToAdd: -- fields for which a value is not specified in the insert, are not principals,
+     *                  and cannot be NULL
+     */
+
+
 
     if (wordsIt->compare("(") == 0) {
         //new order for the fields
@@ -2729,6 +2756,7 @@ throw (CryptDBError)
         list<pair<string, bool> > valnulls;
         list<string>::iterator fieldIt = fields.begin();
 
+        //cerr << "AA\n";
         //add encryptions of the fields
         for (unsigned int i = 0; i < noFieldsGiven; i++) {
             valnulls.push_back(make_pair(*wordsIt, false));
@@ -2741,15 +2769,15 @@ throw (CryptDBError)
             string field = *addit;
             valnulls.push_back(getInitValue(field, table, ai));
         }
+        //cerr << "BB\n";
 
         if (mp) {
             //we now need to add fields from princsToAdd
             for (addit = princsToAdd.begin(); addit != princsToAdd.end();
                  addit++) {
                 string field = *addit;
-                valnulls.push_back(getInitValue(table, field));
+                valnulls.push_back(getInitValue(field, table, ai));
             }
-
             //insert any new hasaccessto instances
             LOG(edb_v) << "before insert relations";
             mp->insertRelations(valnulls, table, fields, tmkm);
@@ -2759,6 +2787,7 @@ throw (CryptDBError)
         LOG(edb_v) << "fiels have " << fields.size();
         LOG(edb_v) << "valnulls have " << valnulls.size();
 
+        //cerr << "CC \n";
         uint64_t salt = 0;
 
         if (!DECRYPTFIRST) {
@@ -3194,6 +3223,13 @@ EDBClient::execute(const string &query)
 
     list<string> queries;
     AutoInc ai;
+
+    if (mp) {
+        if (getCommand(query) == cmd::INSERT) {
+            //need to get last insert id
+            ai.incvalue = conn->last_insert_id();
+        }
+    }
 
     try {
         queries = rewriteEncryptQuery(query, &ai);
