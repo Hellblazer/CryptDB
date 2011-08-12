@@ -1,0 +1,26 @@
+6.02
+Schema
+
+interactions
+  interaction_id integer auto_increment primary key,
+  username varchar(32) not null,
+  assignment char(4) not null,
+  action char(16) not null,
+  submitter varchar(32),
+  timestamp char(14),
+  index username_assignment_index (username,assignment)
+
+interaction_items
+  interaction_id integer references interactions,
+  vname text,
+  value text,
+  index interaction_id_index (interaction_id)
+
+xgrades
+  username varchar(32) not null,
+  assignment char(4) not null,
+  action char(16) not null,
+  submitter varchar(32),
+  timestamp char(14),
+  value varchar(256),
+  index grades_index (username)

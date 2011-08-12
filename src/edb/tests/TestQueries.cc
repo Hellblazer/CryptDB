@@ -485,7 +485,7 @@ Connection::Connection(const TestConfig &input_tc, test_mode input_type) {
     try {
         start();
     } catch (...) {
-        //stop();
+        stop();
         throw;
     }
 }
@@ -830,27 +830,27 @@ CheckQueryList(const TestConfig &tc, const QueryList &queries) {
 
 static void
 RunTest(const TestConfig &tc) {
-    //CheckQueryList(tc, Insert);
-    //CheckQueryList(tc, Select);
-    //CheckQueryList(tc, Join);
-    //CheckQueryList(tc, Update);
-    //CheckQueryList(tc, Delete);
-    //CheckQueryList(tc, Search);
-    //CheckQueryList(tc, Basic);
+    CheckQueryList(tc, Insert);
+    CheckQueryList(tc, Select);
+    CheckQueryList(tc, Join);
+    CheckQueryList(tc, Update);
+    CheckQueryList(tc, Delete);
+    CheckQueryList(tc, Search);
+    CheckQueryList(tc, Basic);
     if (test_type == 2 || test_type == 5) {
         test->restart();
     }
     if (control_type == 2 || control_type == 5) {
         control->restart();
     }
-    //CheckQueryList(tc, PrivMessages);
+    CheckQueryList(tc, PrivMessages);
     if (test_type == 2 || test_type == 5) {
         test->restart();
     }
     if (control_type == 2 || control_type == 5) {
         control->restart();
     }
-    //CheckQueryList(tc, UserGroupForum);
+    CheckQueryList(tc, UserGroupForum);
     if (test_type == 2 || test_type == 5) {
         test->restart();
     }
@@ -858,6 +858,8 @@ RunTest(const TestConfig &tc) {
         control->restart();
     }
     CheckQueryList(tc, Auto);
+    test->stop();
+    control->stop();
     //TODO: add stuff for multiple connections
 }
 
