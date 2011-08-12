@@ -1,0 +1,35 @@
+PHP-Calendar
+Schema
+
+events:
+        "id I NOTNULL PRIMARY,\n" .
+        "uid I,\n" .
+enc        "startdate D,\n" .
+enc        "enddate D,\n" .
+enc        "starttime T,\n" .
+enc        "duration I,\n" .
+enc        "eventtype I,\n" .
+enc        "subject C(255),\n" .
+enc        "description B,\n" .
+        "calendar C(32)\n";
+
+users:
+        "calendar C(32) NOTNULL DEFAULT '0',\n" .
+        "uid I NOTNULL PRIMARY,\n" .
+        "username C(32) NOTNULL,\n" .
+enc        "password C(32) NOTNULL default '',\n" .
+        "admin I1 NOTNULL DEFAULT 0\n";
+
+calendars:
+        "calendar C(32) NOTNULL PRIMARY,\n" .
+        "hours_24 I1 NOTNULL DEFAULT 0,\n" .
+        "start_monday I1 NOTNULL DEFAULT 0,\n" .
+        "translate I1 NOTNULL DEFAULT 0,\n" .
+        "anon_permission I1 NOTNULL DEFAULT 0,\n" .
+        "subject_max I2 NOTNULL DEFAULT 32,\n" .
+enc        "contact_name C(255) NOTNULL DEFAULT '',\n" .
+enc        "contact_email C(255) NOTNULL DEFAULT '',\n" .
+        "calendar_title C(255) NOTNULL DEFAULT '',\n" .
+        "url C(200) NOTNULL DEFAULT ''\n";
+
+

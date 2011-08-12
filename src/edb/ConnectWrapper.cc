@@ -32,7 +32,11 @@ connect(lua_State *L)
     string psswd = luaL_checkstring(L, 5);
     string dbname = luaL_checkstring(L, 6);
 
+    cerr << "~~" << endl;
+
     cryptdb_logger::setConf(string(getenv("CRYPTDB_LOG")));
+
+    cerr << "env varibales" << endl;
 
     LOG(wrapper) << "connect " << client << "; "
                  << "server = " << server << ":" << port << "; "
@@ -161,10 +165,15 @@ decrypt(lua_State *L)
         vector<SqlItem> row;
         lua_pushnil(L);
         while (lua_next(L, -2)) {
+            string data = xlua_tolstring(L, -1);
             SqlItem item;
-            item.null = false;              /* XXX */
-            item.type = MYSQL_TYPE_BLOB;    /* XXX */
-            item.data = xlua_tolstring(L, -1);
+            if (data != "cryptdb_NULL") {
+                item.null = false;
+                item.type = MYSQL_TYPE_BLOB;    /* XXX */
+                item.data = data;
+            } else {
+                item.null = true;
+            }
             row.push_back(item);
             lua_pop(L, 1);
         }

@@ -109,12 +109,19 @@ function read_query_result_real(inj)
                                    name = inj.resultset.fields[i].name })
         end
 
+        -- mysqlproxy returns nils for NULL, which means #row is the wrong
+        --  size; instead, use #inj.resultset.fields, and replace nil with
+        --  more friendly cryptdb_NULL
         local rows = {}
         if inj.resultset.rows then
             for row in inj.resultset.rows do
                 local lrow = {}
-                for i = 1, #row do
-                    table.insert(lrow, row[i])
+                for i = 1, #inj.resultset.fields do
+                     if row[i] then
+                        table.insert(lrow, row[i])
+                    else
+                        table.insert(lrow, "cryptdb_NULL")
+                    end
                 end
                 table.insert(rows, lrow)
             end
