@@ -21,7 +21,7 @@ PrintRes(const ResType &res)
 }
 
 ResType
-myExecute(EDBClient * cl, string query)
+myExecute(EDBProxy * cl, string query)
 {
     if (PLAIN)
         return cl->plain_execute(query);
@@ -30,7 +30,7 @@ myExecute(EDBClient * cl, string query)
 }
 
 ResType
-myCreate(EDBClient *cl, string annotated_query, string plain_query)
+myCreate(EDBProxy *cl, string annotated_query, string plain_query)
 {
     if (PLAIN)
         return cl->plain_execute(plain_query);

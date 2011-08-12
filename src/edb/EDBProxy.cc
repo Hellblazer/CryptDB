@@ -1,4 +1,4 @@
-#include "EDBClient.h"
+#include "EDBProxy.h"
 #include "cryptdb_log.h"
 
 #include <iostream>
@@ -35,7 +35,7 @@
 
 #endif
 
-static bool VERBOSE_V = VERBOSE_EDBCLIENT_VERY;
+static bool VERBOSE_V = VERBOSE_EDBProxy_VERY;
 
 static void
 dropAll(Connect * conn)
@@ -153,11 +153,11 @@ createAll(Connect * conn)
 
 //============== CONSTRUCTORS ==================================//
 
-EDBClient::EDBClient(string server, string user, string psswd, string dbname,
+EDBProxy::EDBProxy(string server, string user, string psswd, string dbname,
                      uint port, bool multiPrinc)
 {
     isSecure = false;
-    VERBOSE = VERBOSE_EDBCLIENT;
+    VERBOSE = VERBOSE_EDBProxy;
     dropOnExit = false;
 
     /* Make a connection to the database */
@@ -180,14 +180,14 @@ EDBClient::EDBClient(string server, string user, string psswd, string dbname,
 }
 
 void
-EDBClient::setMasterKey(const string &mkey)
+EDBProxy::setMasterKey(const string &mkey)
 {
     isSecure = true;
     cm = new CryptoManager(mkey);
 }
 
 ResType
-EDBClient::plain_execute(const string &query)
+EDBProxy::plain_execute(const string &query)
 {
     LOG(edb) << "in plain execute";
     DBResult * reply;
@@ -206,7 +206,7 @@ EDBClient::plain_execute(const string &query)
 //will create encryption tables and will use them
 //noOPE encryptions and noHOM encryptions
 void
-EDBClient::createEncryptionTables(int noOPE, int noHOM)
+EDBProxy::createEncryptionTables(int noOPE, int noHOM)
 {
 
     list<string> fieldsWithOPE;
@@ -230,7 +230,7 @@ EDBClient::createEncryptionTables(int noOPE, int noHOM)
 }
 
 void
-EDBClient::replenishEncryptionTables()
+EDBProxy::replenishEncryptionTables()
 {
     cm->replenishEncryptionTables();
 }
@@ -259,7 +259,7 @@ setType(list<string>::iterator & it, list<string> & words, FieldMetadata * fm)
 }
 
 list<string>
-EDBClient::processIndex(list<string> & words,
+EDBProxy::processIndex(list<string> & words,
                         list<string>::iterator & wordsIt)
 throw (CryptDBError)
 {
@@ -432,7 +432,7 @@ static void processPostAnnotations(TableMetadata * tm, string field, list<string
 }
 
 list<string>
-EDBClient::rewriteEncryptCreate(const string &query)
+EDBProxy::rewriteEncryptCreate(const string &query)
 throw (CryptDBError)
 {
     LOG(edb) << "in create";
@@ -581,7 +581,7 @@ throw (CryptDBError)
 
 //TODO: MULTIPRINC does not have update fully implemented
 list<string>
-EDBClient::rewriteEncryptUpdate(const string &query)
+EDBProxy::rewriteEncryptUpdate(const string &query)
 throw (CryptDBError)
 {
 
@@ -865,7 +865,7 @@ throw (CryptDBError)
 }
 
 list<string>
-EDBClient::processFilters(list<string>::iterator &  wordsIt,
+EDBProxy::processFilters(list<string>::iterator &  wordsIt,
                           list<string> & words, QueryMeta & qm,
                           string resultQuery,
                           FieldsToDecrypt fieldsDec, TMKM & tmkm,
@@ -1069,7 +1069,7 @@ decryptions:
 }
 
 list<string>
-EDBClient::processDecryptions(FieldsToDecrypt fieldsDec, TMKM & tmkm)
+EDBProxy::processDecryptions(FieldsToDecrypt fieldsDec, TMKM & tmkm)
 throw (CryptDBError)
 {
     list<string> result;
@@ -1327,7 +1327,7 @@ getSimpleQ(const string &query)
 }
 
 list<string>
-EDBClient::rewriteEncryptSelect(const string &query)
+EDBProxy::rewriteEncryptSelect(const string &query)
 throw (CryptDBError)
 {
     FieldsToDecrypt fieldsDec;
@@ -1535,7 +1535,7 @@ expandWildCard(list<string> & words, QueryMeta & qm, map<string,
 }
 
 list<string>
-EDBClient::rewriteSelectHelper(list<string> words, bool isSubquery,
+EDBProxy::rewriteSelectHelper(list<string> words, bool isSubquery,
                                list<string> subqueries)
 throw (CryptDBError)
 {
@@ -2057,7 +2057,7 @@ printRes(const ResType &r)
 }
 
 ResType
-EDBClient::rewriteDecryptSelect(const string &query, const ResType &dbAnswer)
+EDBProxy::rewriteDecryptSelect(const string &query, const ResType &dbAnswer)
 {
 
     //cerr << "in decrypt \n";
@@ -2198,7 +2198,7 @@ getLIKEToken(const string &s)
 }
 
 string
-EDBClient::processOperation(string operation, string op1, string op2,
+EDBProxy::processOperation(string operation, string op1, string op2,
                             QueryMeta & qm, string encryptedsubquery,
                             TMKM & tmkm)
 throw (CryptDBError)
@@ -2389,7 +2389,7 @@ throw (CryptDBError)
 }
 
 list<string>
-EDBClient::rewriteEncryptDrop(const string &queryI)
+EDBProxy::rewriteEncryptDrop(const string &queryI)
 throw (CryptDBError)
 {
     //handles queries of the form DROP TABLE tablename;
@@ -2425,7 +2425,7 @@ throw (CryptDBError)
 }
 
 list<string>
-EDBClient::rewriteEncryptDelete(const string &query)
+EDBProxy::rewriteEncryptDelete(const string &query)
 throw (CryptDBError)
 {
 
@@ -2491,7 +2491,7 @@ throw (CryptDBError)
 }
 
 string
-EDBClient::processValsToInsert(string field, string table, uint64_t salt,
+EDBProxy::processValsToInsert(string field, string table, uint64_t salt,
                                string value, TMKM & tmkm, bool null)
 {
 
@@ -2586,7 +2586,7 @@ EDBClient::processValsToInsert(string field, string table, uint64_t salt,
 }
 
 pair<string, bool>
-EDBClient::getInitValue(string field, string table, AutoInc * ai)
+EDBProxy::getInitValue(string field, string table, AutoInc * ai)
 {
 
     TableMetadata * tm = tableMetaMap[table];
@@ -2609,7 +2609,7 @@ EDBClient::getInitValue(string field, string table, AutoInc * ai)
 }
 
 list<string>
-EDBClient::rewriteEncryptInsert(const string &query, AutoInc * ai)
+EDBProxy::rewriteEncryptInsert(const string &query, AutoInc * ai)
 throw (CryptDBError)
 {
 
@@ -2879,7 +2879,7 @@ throw (CryptDBError)
 }
 
 list<string>
-EDBClient::rewriteEncryptCommit(const string &query)
+EDBProxy::rewriteEncryptCommit(const string &query)
 throw (CryptDBError)
 {
 
@@ -2905,14 +2905,14 @@ throw (CryptDBError)
 }
 
 list<string>
-EDBClient::rewriteEncryptBegin(const string &query)
+EDBProxy::rewriteEncryptBegin(const string &query)
 throw (CryptDBError)
 {
     return list<string>(1, "begin;");
 }
 
 list<string>
-EDBClient::rewriteEncryptAlter(const string &query)
+EDBProxy::rewriteEncryptAlter(const string &query)
 throw (CryptDBError)
 {
 
@@ -3076,7 +3076,7 @@ considerQuery(command com, const string &query)
 }
 
 list<string>
-EDBClient::rewriteEncryptQuery(const string &query, AutoInc * ai)
+EDBProxy::rewriteEncryptQuery(const string &query, AutoInc * ai)
 throw (CryptDBError)
 {
     if (!isSecure)
@@ -3133,7 +3133,7 @@ throw (CryptDBError)
 }
 
 ResType
-EDBClient::decryptResults(const string &query, const ResType &dbAnswer)
+EDBProxy::decryptResults(const string &query, const ResType &dbAnswer)
 {
     if (DECRYPTFIRST)
         return dbAnswer;
@@ -3158,7 +3158,7 @@ EDBClient::decryptResults(const string &query, const ResType &dbAnswer)
 }
 
 void
-EDBClient::dropTables()
+EDBProxy::dropTables()
 {
 
     if (dropOnExit) {
@@ -3173,7 +3173,7 @@ EDBClient::dropTables()
 }
 
 ResType
-EDBClient::decryptResultsWrapper(const string &query, DBResult * dbres)
+EDBProxy::decryptResultsWrapper(const string &query, DBResult * dbres)
 {
     command comm = getCommand(query);
 
@@ -3195,7 +3195,7 @@ EDBClient::decryptResultsWrapper(const string &query, DBResult * dbres)
 }
 
 ResType
-EDBClient::execute(const string &query)
+EDBProxy::execute(const string &query)
 {
     DBResult * res = 0;
 
@@ -3302,7 +3302,7 @@ EDBClient::execute(const string &query)
 }
 
 void
-EDBClient::exit()
+EDBProxy::exit()
 {
     LOG(edb_v) << "Exiting..";
 
@@ -3318,7 +3318,7 @@ EDBClient::exit()
     }
 }
 
-EDBClient::~EDBClient()
+EDBProxy::~EDBProxy()
 {
     for (auto i = tableMetaMap.begin(); i != tableMetaMap.end(); i++)
         delete i->second;
@@ -3341,7 +3341,7 @@ getQuery(ifstream & createsFile)
 }
 
 int
-EDBClient::train(string queryFile)
+EDBProxy::train(string queryFile)
 throw (CryptDBError)
 {
     ifstream infile(queryFile.c_str());
@@ -3373,7 +3373,7 @@ throw (CryptDBError)
 }
 
 int
-EDBClient::train_finish()
+EDBProxy::train_finish()
 throw (CryptDBError)
 {
 
@@ -3419,7 +3419,7 @@ throw (CryptDBError)
 }
 
 int
-EDBClient::create_trained_instance(bool submit)
+EDBProxy::create_trained_instance(bool submit)
 throw (CryptDBError)
 {
 
@@ -3570,7 +3570,7 @@ throw (CryptDBError)
 }
 
 void
-EDBClient::outputOnionState()
+EDBProxy::outputOnionState()
 {
     for (map<string, TableMetadata *>::iterator tm = tableMetaMap.begin();
          tm != tableMetaMap.end(); tm++) {
@@ -3592,7 +3592,7 @@ EDBClient::outputOnionState()
 }
 
 string
-EDBClient::dataForQuery(const string &data, fieldType ft,
+EDBProxy::dataForQuery(const string &data, fieldType ft,
                         const string &fullname, const string &anonfullname,
                         SECLEVEL fromlevel, SECLEVEL tolevel, uint64_t salt,
                         //optional, for MULTIPRINC
@@ -3610,7 +3610,7 @@ EDBClient::dataForQuery(const string &data, fieldType ft,
 }
 
 string
-EDBClient::crypt(string data, fieldType ft, string fullname,
+EDBProxy::crypt(string data, fieldType ft, string fullname,
                  string anonfullname,
                  SECLEVEL fromlevel, SECLEVEL tolevel, uint64_t salt,
                  //optional, for MULTIPRINC

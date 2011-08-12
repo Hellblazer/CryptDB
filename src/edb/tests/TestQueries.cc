@@ -510,14 +510,14 @@ Connection::start() {
     case UNENCRYPTED:
         conn = new Connect(tc.host, tc.user, tc.pass, tc.db, tc.port);
         break;
-        //single -- new EDBClient
+        //single -- new EDBProxy
     case SINGLE:
-        cl = new EDBClient(tc.host, tc.user, tc.pass, tc.db, tc.port, false);
+        cl = new EDBProxy(tc.host, tc.user, tc.pass, tc.db, tc.port, false);
         cl->setMasterKey(masterKey);
         break;
-        //multi -- new EDBClient
+        //multi -- new EDBProxy
     case MULTI:
-        cl = new EDBClient(tc.host, tc.user, tc.pass, tc.db, tc.port, true);
+        cl = new EDBProxy(tc.host, tc.user, tc.pass, tc.db, tc.port, true);
         cl->setMasterKey(masterKey);
         assert_s(cl->plain_execute("DROP FUNCTION IF EXISTS test").ok, "dropping test for multi");
         assert_s(cl->plain_execute("CREATE FUNCTION test (optionid integer) RETURNS bool RETURN optionid=20").ok, "creating test function for multi");
@@ -625,7 +625,7 @@ Connection::execute(string query) {
         return executeConn(query);
     case SINGLE:
     case MULTI:
-        return executeEDBClient(query);
+        return executeEDBProxy(query);
     default:
         assert_s(false, "unrecognized type in Connection");
     }
@@ -639,7 +639,7 @@ Connection::executeFail(string query) {
 }
 
 ResType
-Connection::executeEDBClient(string query) {
+Connection::executeEDBProxy(string query) {
     ResType res = cl->execute(query);
     if (!res.ok) {
         executeFail(query);
@@ -925,7 +925,7 @@ TestQueries::run(const TestConfig &tc, int argc, char ** argv) {
              << "    proxy-plain" << endl
              << "    proxy-single" << endl
              << "    proxy-multi" << endl
-             << "single and multi make connections through EDBClient" << endl
+             << "single and multi make connections through EDBProxy" << endl
              << "proxy-* makes connections *'s encryption type through the proxy" << endl
              << "num_conn is the number of conns made to a single db (default 1)" << endl;
         return;

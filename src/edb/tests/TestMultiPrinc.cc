@@ -22,7 +22,7 @@ TestMultiPrinc::~TestMultiPrinc()
 }
 
 static void
-checkQuery(const TestConfig &tc, EDBClient * cl, const string &query,
+checkQuery(const TestConfig &tc, EDBProxy * cl, const string &query,
            const vector<string> &names, const vector<vector<string>> &rows)
 {
     ResType expect;
@@ -69,7 +69,7 @@ checkQuery(const TestConfig &tc, EDBClient * cl, const string &query,
 }
 
 static void
-testNULL(const TestConfig &tc, EDBClient * cl, const string &annotated, const string &plain) {
+testNULL(const TestConfig &tc, EDBProxy * cl, const string &annotated, const string &plain) {
   ntest++;
   if (myCreate(cl, annotated, plain).ok) {
     if (PLAIN) {
@@ -87,7 +87,7 @@ testNULL(const TestConfig &tc, EDBClient * cl, const string &annotated, const st
 }
 
 static void
-BasicFunctionality(const TestConfig &tc, EDBClient * cl)
+BasicFunctionality(const TestConfig &tc, EDBProxy * cl)
 {
     cl->plain_execute(
         "DROP TABLE IF EXISTS u, t1, plain_users, pwdcryptdb__users, cryptdb_publis, cryptdb_initialized_principals, cryptdb0;");
@@ -168,7 +168,7 @@ BasicFunctionality(const TestConfig &tc, EDBClient * cl)
 }
 
 static void
-PrivMessages(const TestConfig &tc, EDBClient * cl)
+PrivMessages(const TestConfig &tc, EDBProxy * cl)
 {
     cl->plain_execute(
         "DROP TABLE IF EXISTS u, msgs, privmsg, plain_users, pwdcryptdb__users, cryptdb_publis, cryptdb_initialized_principals, cryptdb0;");
@@ -228,7 +228,7 @@ PrivMessages(const TestConfig &tc, EDBClient * cl)
 }
 
 static void
-UserGroupForum(const TestConfig &tc, EDBClient * cl) {
+UserGroupForum(const TestConfig &tc, EDBProxy * cl) {
     cl->plain_execute("DROP TABLE IF EXISTS u, usergroup, groupforum, forum, plain_users, pwdcryptdb__users, cryptdb_public, cryptdb_initialized_principals, cryptdb0;");
     assert_res(myCreate(cl,"CREATE TABLE u (userid integer, username givespsswd userid text);",
                       "CREATE TABLE u (userid integer, username text);"),
@@ -372,7 +372,7 @@ UserGroupForum(const TestConfig &tc, EDBClient * cl) {
 
 
 static void
-UserGroupForum_incFunction(const TestConfig &tc, EDBClient * cl) {
+UserGroupForum_incFunction(const TestConfig &tc, EDBProxy * cl) {
     cl->plain_execute("DROP TABLE IF EXISTS u, usergroup, groupforum, forum, plain_users, pwdcryptdb__users, cryptdb_public, cryptdb_initialized_principals, cryptdb0;");
     assert_res(myCreate(cl,"CREATE TABLE u (userid integer, username givespsswd userid text);",
                       "CREATE TABLE u (userid integer, username text);"),
@@ -483,29 +483,29 @@ UserGroupForum_incFunction(const TestConfig &tc, EDBClient * cl) {
 void
 TestMultiPrinc::run(const TestConfig &tc, int argc, char ** argv)
 {
-    EDBClient * cl;
+    EDBProxy * cl;
     uint64_t mkey = 113341234;
     string masterKey = BytesFromInt(mkey, AES_KEY_BYTES);
 
-    cl = new EDBClient(tc.host, tc.user, tc.pass, tc.db, tc.port, true);
+    cl = new EDBProxy(tc.host, tc.user, tc.pass, tc.db, tc.port, true);
     cl->setMasterKey(masterKey);
     cerr << "Test basic..." << endl;
     BasicFunctionality(tc, cl);
     delete cl;
 
-    cl = new EDBClient(tc.host, tc.user, tc.pass, tc.db, tc.port, true);
+    cl = new EDBProxy(tc.host, tc.user, tc.pass, tc.db, tc.port, true);
     cl->setMasterKey(masterKey);
     cerr << "Test private messages..." << endl;
     PrivMessages(tc, cl);
     delete cl;
 
-    cl = new EDBClient(tc.host, tc.user, tc.pass, tc.db, tc.port, true);
+    cl = new EDBProxy(tc.host, tc.user, tc.pass, tc.db, tc.port, true);
     cl->setMasterKey(masterKey);
     cerr << "Test user/group/forum..." << endl;
     UserGroupForum(tc, cl);
     delete cl;
 
-    cl = new EDBClient(tc.host, tc.user, tc.pass, tc.db, tc.port, true);
+    cl = new EDBProxy(tc.host, tc.user, tc.pass, tc.db, tc.port, true);
     cl->setMasterKey(masterKey);
     cerr << "Test user/group/forum including function..." << endl;
     UserGroupForum_incFunction(tc, cl);

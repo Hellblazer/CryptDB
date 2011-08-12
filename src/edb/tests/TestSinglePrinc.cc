@@ -51,7 +51,7 @@ convert(string rows[][N], int num_rows)
 }
 
 static void
-CheckSelectResults(const TestConfig &tc, EDBClient * cl, vector<string> in, vector<ResType> out)
+CheckSelectResults(const TestConfig &tc, EDBProxy * cl, vector<string> in, vector<ResType> out)
 {
     assert_s(
             in.size() == out.size(),
@@ -97,7 +97,7 @@ CheckSelectResults(const TestConfig &tc, EDBClient * cl, vector<string> in, vect
 }
 
 static void
-qUpdateSelect(const TestConfig &tc, EDBClient *cl, const string &update,
+qUpdateSelect(const TestConfig &tc, EDBProxy *cl, const string &update,
               const string &select, const vector<string> &exp_names,
               const vector<vector<string> > &exp_rows)
 {
@@ -146,7 +146,7 @@ qUpdateSelect(const TestConfig &tc, EDBClient *cl, const string &update,
 }
 
 static void
-testCreateDrop(const TestConfig &tc, EDBClient * cl)
+testCreateDrop(const TestConfig &tc, EDBProxy * cl)
 {
     cl->plain_execute("DROP TABLE IF EXISTS table0, table1, table2, table3, table4");
 
@@ -198,7 +198,7 @@ testCreateDrop(const TestConfig &tc, EDBClient * cl)
 
 //assumes Select is working
 static void
-testInsert(const TestConfig &tc, EDBClient * cl)
+testInsert(const TestConfig &tc, EDBProxy * cl)
 {
     cl->plain_execute(
         "DROP TABLE IF EXISTS table0, table1, table2, table3, table4, table5, t1");
@@ -276,7 +276,7 @@ testInsert(const TestConfig &tc, EDBClient * cl)
 
 //assumes Insert is working
 static void
-testSelect(const TestConfig &tc, EDBClient * cl)
+testSelect(const TestConfig &tc, EDBProxy * cl)
 {
     cl->plain_execute(
         "DROP TABLE IF EXISTS table0, table1, table2, table3, table4, table5, table6, t1");
@@ -605,7 +605,7 @@ testSelect(const TestConfig &tc, EDBClient * cl)
 }
 
 static void
-testJoin(const TestConfig &tc, EDBClient * cl)
+testJoin(const TestConfig &tc, EDBProxy * cl)
 {
     cl->plain_execute(
         "DROP TABLE IF EXISTS table0, table1, table2, table3, table4, table5, table6, table7, table8, t1, t2");
@@ -728,7 +728,7 @@ testJoin(const TestConfig &tc, EDBClient * cl)
 
 //assumes Select works
 static void
-testUpdate(const TestConfig &tc, EDBClient * cl)
+testUpdate(const TestConfig &tc, EDBProxy * cl)
 {
     cl->plain_execute(
         "DROP TABLE IF EXISTS table0, table1, table2, table3, table4, table5, table6, table7, table8, table9, table10, t1");
@@ -891,7 +891,7 @@ testUpdate(const TestConfig &tc, EDBClient * cl)
 }
 
 static void
-testDelete(const TestConfig &tc, EDBClient * cl)
+testDelete(const TestConfig &tc, EDBProxy * cl)
 {
     cl->plain_execute(
         "DROP TABLE IF EXISTS table0, table1, table2, table3, table4, table5, table6, table7, table8, table9, table10, table11, t1");
@@ -990,7 +990,7 @@ testDelete(const TestConfig &tc, EDBClient * cl)
 }
 
 static void
-testSearch(const TestConfig &tc, EDBClient * cl)
+testSearch(const TestConfig &tc, EDBProxy * cl)
 {
     cl->plain_execute(
         "DROP TABLE IF EXISTS table0, table1, table2, table3, table4, table5, table6, table7, table8, table9, table10, table11, table12, t3");
@@ -1068,15 +1068,15 @@ testSearch(const TestConfig &tc, EDBClient * cl)
 void
 TestSinglePrinc::run(const TestConfig &tc, int argc, char ** argv)
 {
-    EDBClient * cl;
+    EDBProxy * cl;
     uint64_t mkey = 113341234;
     string masterKey = BytesFromInt(mkey, AES_KEY_BYTES);
-    cl = new EDBClient(tc.host, tc.user, tc.pass, tc.db, tc.port, false);
+    cl = new EDBProxy(tc.host, tc.user, tc.pass, tc.db, tc.port, false);
     cl->setMasterKey(masterKey);
 
     struct {
         const char *name;
-        void (*f)(const TestConfig &, EDBClient *);
+        void (*f)(const TestConfig &, EDBProxy *);
     } tests[] = {
 #define E(x) { #x, &x }
         E(testCreateDrop),

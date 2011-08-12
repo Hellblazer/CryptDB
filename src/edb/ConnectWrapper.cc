@@ -2,12 +2,12 @@
 #include <assert.h>
 #include <lua5.1/lua.hpp>
 
-#include "EDBClient.h"
+#include "EDBProxy.h"
 #include "cryptdb_log.h"
 
 class WrapperState {
  public:
-    EDBClient *cl;
+    EDBProxy *cl;
     string last_query;
     AutoInc ai;
 
@@ -48,12 +48,12 @@ connect(lua_State *L)
     WrapperState *ws = new WrapperState();
     string mode = getenv("CRYPTDB_MODE");
     if (mode.compare("single") == 0) {
-        ws->cl = new EDBClient(server, user, psswd, dbname, port, false);
+        ws->cl = new EDBProxy(server, user, psswd, dbname, port, false);
     } else if (mode.compare("multi") == 0) {
         cerr << "multi" << endl;
-        ws->cl = new EDBClient(server, user, psswd, dbname, port, true);
+        ws->cl = new EDBProxy(server, user, psswd, dbname, port, true);
     } else {
-        ws->cl = new EDBClient(server, user, psswd, dbname, port);
+        ws->cl = new EDBProxy(server, user, psswd, dbname, port);
     }
 
     uint64_t mkey = 113341234;  // XXX

@@ -3,7 +3,7 @@
  *
  */
 
-#include "EDBClient.h"
+#include "EDBProxy.h"
 #include "Connect.h"
 #include "test_utils.h"
 #include <signal.h>
@@ -69,13 +69,13 @@ class Connection {
     test_mode type;
     TestConfig tc;
     //connection objects for encryption test
-    EDBClient * cl;
+    EDBProxy * cl;
     //connection objects for plain and proxy test
     Connect * conn;
     pid_t proxy_pid;
 
     ResType executeConn(string query);
-    ResType executeEDBClient(string query);
+    ResType executeEDBProxy(string query);
 
     void executeFail(string query);
 };

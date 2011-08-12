@@ -5,7 +5,7 @@
  *      Author: raluca
  */
 
-#include "EDBClient.h"
+#include "EDBProxy.h"
 #include "test_utils.h"
 
 #ifndef TESTSINGLEPRINC_H_

@@ -2,7 +2,7 @@
 #include "HGD.h"
 #include "params.h"
 #include "util.h"
-#include "EDBClient.h"
+#include "EDBProxy.h"
 #include <stdio.h>
 #include "unistd.h"
 #include "time.h"
@@ -202,8 +202,8 @@ test_HGD()
     ((double) totalTime * 1000.0) / ((double) tests * CLOCKS_PER_SEC) << "\n";
 }
 /*
-   void test_EDBClient_noSecurity() {
-    EDBClient  e =  EDBClient((char *)"dbname = postgres", false);
+   void test_EDBProxy_noSecurity() {
+    EDBProxy  e =  EDBProxy((char *)"dbname = postgres", false);
 
     PGresult * res = e.execute("SELECT * FROM pg_database ;");
 
@@ -240,7 +240,7 @@ evaluateMetrics(const TestConfig &tc, int argc, char ** argv)
 
     time_t timerStart, timerEnd;
 
-    EDBClient * cl = new EDBClient(tc.host, tc.user, tc.pass, tc.db);
+    EDBProxy * cl = new EDBProxy(tc.host, tc.user, tc.pass, tc.db);
 
     cl->execute(
         "CREATE TABLE testplain (field1 int, field2 int, field3 int);");
@@ -380,10 +380,10 @@ evaluateMetrics(const TestConfig &tc, int argc, char ** argv)
 
 }
 
-//tests protected methods of EDBClient
-class tester : public EDBClient {
+//tests protected methods of EDBProxy
+class tester : public EDBProxy {
  public:
-    tester(const TestConfig &tc, const string &masterKey) : EDBClient(tc.host,
+    tester(const TestConfig &tc, const string &masterKey) : EDBProxy(tc.host,
                                                                       tc.user,
                                                                       tc.pass,
                                                                       tc.db,
@@ -391,11 +391,11 @@ class tester : public EDBClient {
     {
         setMasterKey(masterKey);
     }
-    tester(const TestConfig &tc) : EDBClient(tc.host, tc.user, tc.pass, tc.db)
+    tester(const TestConfig &tc) : EDBProxy(tc.host, tc.user, tc.pass, tc.db)
     {
     };
     void testClientParser();
-    void loadData(EDBClient * cl, string workload, int logFreq);
+    void loadData(EDBProxy * cl, string workload, int logFreq);
 
     //void testMarshallBinary();
 };
@@ -523,7 +523,7 @@ evalImproveSummations(const TestConfig &tc)
     string pwd = tc.pass;
     cerr << "connecting to host " << host << " user " << user << " pwd " <<
     pwd << " db " << db << endl;
-    EDBClient * cl = new EDBClient(host, user, pwd, db);
+    EDBProxy * cl = new EDBProxy(host, user, pwd, db);
     cl->setMasterKey(masterKey);
     cl->VERBOSE = true;
 
@@ -560,7 +560,7 @@ interactiveTest(const TestConfig &tc, int ac, char **av)
     string pwd = tc.pass;
     cerr << "connecting to host " << host << " user " << user << " pwd " <<
     pwd << " db " << db << endl;
-    EDBClient * cl = new EDBClient(host, user, pwd, db);
+    EDBProxy * cl = new EDBProxy(host, user, pwd, db);
     cl->setMasterKey(masterKey);
     cl->VERBOSE = true;
 
@@ -1008,10 +1008,10 @@ microEvaluate(const TestConfig &tc, int argc, char ** argv)
     cout << "\n\n Micro Eval \n------------------- \n \n";
 
     string masterKey =  BytesFromInt(mkey, AES_KEY_BYTES);
-    EDBClient * clsecure =
-        new EDBClient(tc.host, tc.user, tc.pass, tc.db);
+    EDBProxy * clsecure =
+        new EDBProxy(tc.host, tc.user, tc.pass, tc.db);
     clsecure->setMasterKey(masterKey);
-    EDBClient * clplain = new EDBClient(tc.host, tc.user, tc.pass,
+    EDBProxy * clplain = new EDBProxy(tc.host, tc.user, tc.pass,
                                         tc.db);
 
     clsecure->VERBOSE = false;
@@ -1121,12 +1121,12 @@ microEvaluate(const TestConfig &tc, int argc, char ** argv)
 
 //integration test
 static void __attribute__((unused))
-testEDBClient(const TestConfig &tc)
+testEDBProxy(const TestConfig &tc)
 {
     cout << "\n\n Integration Queries \n------------------- \n \n";
 
     string masterKey =  BytesFromInt(mkey, AES_KEY_BYTES);
-    EDBClient * cl = new EDBClient(tc.host, tc.user, tc.pass, tc.db);
+    EDBProxy * cl = new EDBProxy(tc.host, tc.user, tc.pass, tc.db);
     cl->setMasterKey(masterKey);
     cl->VERBOSE = true;
 
@@ -1213,7 +1213,7 @@ testUtils(const TestConfig &tc, int ac, char **av)
 }
 
 static void __attribute__((unused))
-createTables(string file, EDBClient * cl)
+createTables(string file, EDBProxy * cl)
 {
     ifstream createsFile(file);
 
@@ -1347,7 +1347,7 @@ test_train(const TestConfig &tc)
     cerr << "training \n";
     string masterKey =  BytesFromInt(mkey, AES_KEY_BYTES);
 
-    EDBClient * cl = new EDBClient(tc.host, tc.user, tc.pass, tc.db);
+    EDBProxy * cl = new EDBProxy(tc.host, tc.user, tc.pass, tc.db);
     cl->setMasterKey(masterKey);
 
     cl->VERBOSE = true;
@@ -1364,7 +1364,7 @@ test_train(const TestConfig &tc)
 }
 
 /*
-   void createIndexes(string indexF, EDBClient * cl) {
+   void createIndexes(string indexF, EDBProxy * cl) {
         ifstream tracefile(indexF);
 
         string query;
@@ -1444,12 +1444,12 @@ test_train(const TestConfig &tc)
         struct timeval tvstart, tvend;
 
         unsigned char * masterKey =  BytesFromInt(mkey, AES_KEY_BYTES);
-        EDBClient * cl;
+        EDBProxy * cl;
 
         if (isSecure) {
-                cl = new EDBClient("cryptdb", masterKey);
+                cl = new EDBProxy("cryptdb", masterKey);
         } else {
-                cl = new EDBClient(tc.db);
+                cl = new EDBProxy(tc.db);
         }
         cl->VERBOSE = verbose;
 
@@ -1485,7 +1485,7 @@ suffix(int no)
     return res;
 }
 /*
-   void tester::loadData(EDBClient * cl, string workload, int logFreq) {
+   void tester::loadData(EDBProxy * cl, string workload, int logFreq) {
 
         ifstream dataFile(workload);
         ofstream outFile(workload+"answer");
@@ -1567,7 +1567,7 @@ suffix(int no)
         return false;
    }
 
-   void runTrace(EDBClient * cl, int logFreq, string workload, bool isSecure,
+   void runTrace(EDBProxy * cl, int logFreq, string workload, bool isSecure,
       bool hasTransac,
                 int & okinstrCount, int & oktranCount, int & totalInstr, int &
                    totalTran) {
@@ -1875,13 +1875,13 @@ suffix(int no)
         //children:
         dowork:
 
-        EDBClient * cl;
+        EDBProxy * cl;
 
         if (isSecure) {
                 unsigned char * masterKey =  BytesFromInt(mkey,
                    AES_KEY_BYTES);
 
-        cl = new EDBClient("cryptdb", masterKey);
+        cl = new EDBProxy("cryptdb", masterKey);
 
                 cl->train("schema");
                 cl->train("queries");
@@ -1889,7 +1889,7 @@ suffix(int no)
 
 
         } else {
-                 cl = new EDBClient(tc.db);
+                 cl = new EDBProxy(tc.db);
         }
 
         string workload = string("eval/pieces/piece") + suffix(index);
@@ -1938,7 +1938,7 @@ suffix(int no)
    void createInstance() {
         unsigned char * masterKey =  BytesFromInt(mkey, AES_KEY_BYTES);
 
-        EDBClient * cl = new EDBClient("cryptdb", masterKey);
+        EDBProxy * cl = new EDBProxy("cryptdb", masterKey);
 
         cl->train("eval/tpcc/sqlTableCreates");
         cl->train("eval/tpcc/querypatterns.txt");
@@ -1947,7 +1947,7 @@ suffix(int no)
 
         cl->create_trained_instance(true);
 
-        EDBClient * plaincl = new EDBClient(tc.db);
+        EDBProxy * plaincl = new EDBProxy(tc.db);
 
         int res = system("psql < eval/tpcc/sqlTableCreates");
         res = system("psql < eval/tpcc/index.sql");
@@ -1978,7 +1978,7 @@ suffix(int no)
         res  = system(splitComm);
         myassert(res == 0, "split failed");
 
-        EDBClient * cl = new EDBClient("cryptdb", masterKey);
+        EDBProxy * cl = new EDBProxy("cryptdb", masterKey);
 
         cl->train("eval/tpcc/sqlTableCreates");
         cl->train("eval/tpcc/querypatterns.txt");
@@ -2012,7 +2012,7 @@ suffix(int no)
    }
 
 
-   void executeQueries(EDBClient * cl, string workload, string resultFile, int
+   void executeQueries(EDBProxy * cl, string workload, string resultFile, int
       timeInSecs, int logFreq) {
         ifstream tracefile(workload);
         string query;
@@ -2081,14 +2081,14 @@ suffix(int no)
         res  = system(getCStr(splitComm));
         myassert(res == 0, "split failed");
 
-        EDBClient * cl;
+        EDBProxy * cl;
 
         if (isSecure) {
 
                 unsigned char * masterKey =  BytesFromInt(mkey,
                    AES_KEY_BYTES);
 
-                cl = new EDBClient("cryptdb", masterKey);
+                cl = new EDBProxy("cryptdb", masterKey);
 
                 cl->train("eval/tpcc/sqlTableCreates");
                 cl->train("eval/tpcc/querypatterns.txt");
@@ -2097,7 +2097,7 @@ suffix(int no)
 
         }
         else {
-                cl = new EDBClient(tc.db);
+                cl = new EDBProxy(tc.db);
         }
 
         int index = 0;
@@ -2185,7 +2185,7 @@ suffix(int no)
 
         unsigned char * masterKey =  BytesFromInt(mkey, AES_KEY_BYTES);
 
-        EDBClient * cl = new EDBClient("cryptdb", masterKey);
+        EDBProxy * cl = new EDBProxy("cryptdb", masterKey);
 
         cl->train("schema");
         cerr << "done with creates \n";
@@ -2239,14 +2239,14 @@ suffix(int no)
         struct timeval tvstart;
         struct timeval tvend;
 
-        EDBClient * cl;
+        EDBProxy * cl;
 
         if (isSecure) {
 
                 unsigned char * masterKey =  BytesFromInt(mkey,
                    AES_KEY_BYTES);
 
-                cl = new EDBClient("cryptdb", masterKey);
+                cl = new EDBProxy("cryptdb", masterKey);
 
                 if (isVerbose) {
                                 cl->VERBOSE = true;
@@ -2268,7 +2268,7 @@ suffix(int no)
 
         }
         else {
-                cl = new EDBClient(tc.db);
+                cl = new EDBProxy(tc.db);
 
 
         }
@@ -2340,8 +2340,8 @@ suffix(int no)
 static void
 encryptionTablesTest(const TestConfig &tc, int ac, char **av)
 {
-    EDBClient * cl =
-        new EDBClient(tc.host, tc.user, tc.pass, tc.db);
+    EDBProxy * cl =
+        new EDBProxy(tc.host, tc.user, tc.pass, tc.db);
     cl->setMasterKey(randomBytes(AES_KEY_BYTES));
 
     int noHOM = 100;
@@ -2378,7 +2378,7 @@ static void
 testParseAccess(const TestConfig &tc, int ac, char **av)
 {
 
-    EDBClient * cl = new EDBClient(tc.host, tc.user, tc.pass, tc.db);
+    EDBProxy * cl = new EDBProxy(tc.host, tc.user, tc.pass, tc.db);
     cl->setMasterKey(BytesFromInt(mkey, AES_KEY_BYTES));
 
     cl->VERBOSE = true;
@@ -2431,7 +2431,7 @@ autoIncTest(const TestConfig &tc, int ac, char **av)
     string pwd = tc.pass;
     cerr << "connecting to host " << host << " user " << user << " pwd " <<
     pwd << " db " << db << endl;
-    EDBClient * cl = new EDBClient(host, user, pwd, db);
+    EDBProxy * cl = new EDBProxy(host, user, pwd, db);
     cl->setMasterKey(masterKey);
     cl->VERBOSE = true;
 
@@ -3741,9 +3741,9 @@ testTrace(const TestConfig &tc, int argc, char ** argv)
     }
 
     string masterKey =  BytesFromInt(mkey, AES_KEY_BYTES);
-    EDBClient * cl;
+    EDBProxy * cl;
 
-    cl = new EDBClient(tc.host, tc.user, tc.pass, tc.db, tc.port);
+    cl = new EDBProxy(tc.host, tc.user, tc.pass, tc.db, tc.port);
     cl->setMasterKey(masterKey);
     cl->VERBOSE = false;
 
@@ -4048,14 +4048,14 @@ main(int argc, char ** argv)
         }
  */    /*
         if (strcmp(argv[1], "integration") == 0){
-                testEDBClient();
+                testEDBProxy();
                 return 0;
         }
         cerr << "unknown option\n";
 
 
         //testCryptoManager();
-        //testEDBClient();
+        //testEDBProxy();
         //tester t = tester(tc, randomBytes(AES_KEY_BYTES));
         //t.testClientParser();
 
@@ -4065,6 +4065,6 @@ main(int argc, char ** argv)
         //microEvaluate(argc, argv); //microEvaluate
         //test_OPE();
         //test_HGD();
-        //test_EDBClient_noSecurity();
+        //test_EDBProxy_noSecurity();
         //evaluateMetrics(argc, argv);
  */

@@ -1,5 +1,5 @@
-#ifndef _EDBCLIENT_H
-#define _EDBCLIENT_H
+#ifndef _EDBProxy_H
+#define _EDBProxy_H
 
 #include "Translator.h"
 #include "Connect.h"
@@ -10,7 +10,7 @@
 
 using namespace std;
 
-class EDBClient {
+class EDBProxy {
  public:
     bool VERBOSE;
     bool dropOnExit;     //for facilitating debugging, if true, it drops the
@@ -23,7 +23,7 @@ class EDBClient {
      * secure mode (queries are plain).
      */
 
-    EDBClient(string server, string user, string psswd, string dbname,
+    EDBProxy(string server, string user, string psswd, string dbname,
               uint port = 0, bool multiPrinc = false);
     void setMasterKey(const string &mkey);
 
@@ -52,7 +52,7 @@ class EDBClient {
 
     //==== EXIT =================//
 
-    ~EDBClient();
+    ~EDBProxy();
     void exit();     //exists nicely
 
     //============OPTIMIZATION===================//
@@ -202,4 +202,4 @@ class EDBClient {
     //these are protected mostly for testing purposes
 };
 
-#endif   /* _EDBCLIENT_H */
+#endif   /* _EDBProxy_H */

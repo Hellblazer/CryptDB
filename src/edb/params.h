@@ -27,7 +27,7 @@
 const bool VERBOSE_G = false;
 
 const bool VERBOSE_KEYACCESS = true;
-const bool VERBOSE_EDBCLIENT = true;
-const bool VERBOSE_EDBCLIENT_VERY = true;
+const bool VERBOSE_EDBProxy = true;
+const bool VERBOSE_EDBProxy_VERY = true;
 
 #endif   /* _PARAMS_H */

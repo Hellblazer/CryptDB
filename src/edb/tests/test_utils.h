@@ -8,7 +8,7 @@
 #pragma once
 #include <string>
 #include <assert.h>
-#include "EDBClient.h"
+#include "EDBProxy.h"
 
 class TestConfig {
  public:
@@ -51,9 +51,9 @@ void PrintRes(const ResType &res);
 
 template <int N> ResType convert(string rows[][N], int num_rows);
 
-ResType myExecute(EDBClient * cl, string query);
+ResType myExecute(EDBProxy * cl, string query);
 
-ResType myCreate(EDBClient * cl, string annotated_query, string plain_query);
+ResType myCreate(EDBProxy * cl, string annotated_query, string plain_query);
 
 static inline void
 assert_res(const ResType &r, const char *msg)
