@@ -3199,6 +3199,7 @@ EDBProxy::decryptResultsWrapper(const string &query, DBResult * dbres)
 ResType
 EDBProxy::execute(const string &query)
 {
+    Timer t;
     DBResult * res = 0;
 
     LOG(edb_query_plain) << "Query: " << query;
@@ -3227,6 +3228,7 @@ EDBProxy::execute(const string &query)
 
     try {
         queries = rewriteEncryptQuery(query);
+        LOG(edb_perf) << "rewrite latency: " << t.lap();
     } catch (CryptDBError se) {
         LOG(warn) << "problem with query " << query << ": " << se.msg;
         return ResType(false);
@@ -3248,21 +3250,12 @@ EDBProxy::execute(const string &query)
         DBResult * reply;
         reply = NULL;
 
-        struct timeval t0, t1;
-        if (VERBOSE)
-            gettimeofday(&t0, 0);
-
         if (!conn->execute(*queryIt, reply)) {
             LOG(warn) << "query failed: " << *queryIt;
             return ResType(false);
         }
 
-        if (VERBOSE) {
-            gettimeofday(&t1, 0);
-            uint64_t us = t1.tv_usec - t0.tv_usec +
-                          (t1.tv_sec - t0.tv_sec) * 1000000;
-            LOG(edb_v) << "query latency: " << us << " usec";
-        }
+        LOG(edb_perf) << "execute latency: " << t.lap();
 
         if (counter < noQueries) {
             delete reply;
@@ -3283,6 +3276,7 @@ EDBProxy::execute(const string &query)
             }
 
             LOG(edb) << "done with decrypt results";
+            LOG(edb_perf) << "decrypt latency: " << t.lap();
             queries.clear();
             delete reply;
             return rets;
