@@ -150,11 +150,8 @@ decrypt(lua_State *L)
         if (!lua_istable(L, -1))
             LOG(warn) << "mismatch";
 
-        vector<SqlItem> row(r.names.size());
-
         /* initialize all items to NULL, since Lua skips nil array entries */
-        for (uint i = 0; i < row.size(); i++)
-            row[i].null = true;
+        vector<SqlItem> row(r.names.size());
 
         lua_pushnil(L);
         while (lua_next(L, -2)) {
