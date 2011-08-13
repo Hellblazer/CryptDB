@@ -16,7 +16,7 @@ enc  `line2` varchar(255) default NULL,
 enc  `city` varchar(255) default NULL,
 enc  `state` varchar(35) default NULL,
 enc  `zip` varchar(10) default NULL,
-[??]  `plus_four` varchar(4) default NULL,
+enc  `plus_four` varchar(4) default NULL,
 enc  `country` varchar(255) default NULL,
   `foreign_id` int(11) default NULL,
   PRIMARY KEY  (`id`),
@@ -66,9 +66,9 @@ CREATE TABLE `billing` (
 enc  `date` datetime default NULL,
 enc  `code_type` varchar(7) default NULL,
 enc  `code` varchar(9) default NULL,
-?  `pid` int(11) default NULL,
-?  `provider_id` int(11) default NULL,
-  `user` int(11) default NULL,
+  `pid` int(11) default NULL,
+  `provider_id` int(11) default NULL,
+enc all below  `user` int(11) default NULL,
   `groupname` varchar(255) default NULL,
   `authorized` tinyint(1) default NULL,
   `encounter` int(11) default NULL,
@@ -87,6 +87,7 @@ enc  `code` varchar(9) default NULL,
   `target` varchar(30) default NULL,
   `x12_partner_id` int(11) default NULL,
   `ndc_info` varchar(255) default NULL,
+enc all stop
   PRIMARY KEY  (`id`),
   KEY `pid` (`pid`)
 ) ENGINE=MyISAM AUTO_INCREMENT=1 ;
@@ -268,14 +269,14 @@ CREATE TABLE `documents` (
   `id` int(11) NOT NULL default '0',
   `type` enum('file_url','blob','web_url') default NULL,
   `size` int(11) default NULL,
-  `date` datetime default NULL,
-  `url` varchar(255) default NULL,
+enc  `date` datetime default NULL,
+enc  `url` varchar(255) default NULL,
   `mimetype` varchar(255) default NULL,
   `pages` int(11) default NULL,
-  `owner` int(11) default NULL,
+enc  `owner` int(11) default NULL,
   `revision` timestamp NOT NULL,
   `foreign_id` int(11) default NULL,
-  `docdate` date default NULL,
+enc  `docdate` date default NULL,
   `hash` varchar(40) DEFAULT NULL COMMENT '40-character SHA-1 hash of document',
   `list_id` bigint(20) NOT NULL default '0',
   PRIMARY KEY  (`id`),
@@ -325,7 +326,7 @@ CREATE TABLE `drug_sales` (
  enc `user` varchar(255) default NULL,
  enc `sale_date` date NOT NULL,
  enc `quantity` int(11) NOT NULL default '0',
-  `fee` decimal(12,2) NOT NULL default '0.00',
+ enc `fee` decimal(12,2) NOT NULL default '0.00',
   `billed` tinyint(1) NOT NULL default '0' COMMENT 'indicates if the sale is posted to accounting',
   `xfer_inventory_id` int(11) NOT NULL DEFAULT 0,
   `distributor_id` bigint(20) NOT NULL DEFAULT 0 COMMENT 'references users.id',
@@ -510,14 +511,14 @@ INSERT INTO `fee_sheet_options` VALUES ('2Established Patient', '5Comprehensive'
 DROP TABLE IF EXISTS `form_dictation`;
 CREATE TABLE `form_dictation` (
   `id` bigint(20) NOT NULL auto_increment,
-  `date` datetime default NULL,
+enc  `date` datetime default NULL,
   `pid` bigint(20) default NULL,
-  `user` varchar(255) default NULL,
-  `groupname` varchar(255) default NULL,
+enc  `user` varchar(255) default NULL,
+enc  `groupname` varchar(255) default NULL,
   `authorized` tinyint(4) default NULL,
   `activity` tinyint(4) default NULL,
-  `dictation` longtext,
-  `additional_notes` longtext,
+enc  `dictation` longtext,
+enc  `additional_notes` longtext,
   PRIMARY KEY  (`id`)
 ) ENGINE=MyISAM AUTO_INCREMENT=1 ;
 
@@ -530,15 +531,15 @@ CREATE TABLE `form_dictation` (
 DROP TABLE IF EXISTS `form_encounter`;
 CREATE TABLE `form_encounter` (
   `id` bigint(20) NOT NULL auto_increment,
-  `date` datetime default NULL,
-  `reason` longtext,
-  `facility` longtext,
+enc  `date` datetime default NULL,
+enc  `reason` longtext,
+enc  `facility` longtext,
   `facility_id` int(11) NOT NULL default '0',
   `pid` bigint(20) default NULL,
-  `encounter` bigint(20) default NULL,
-  `onset_date` datetime default NULL,
+?  `encounter` bigint(20) default NULL,
+enc  `onset_date` datetime default NULL,
   `sensitivity` varchar(30) default NULL,
-  `billing_note` text,
+enc  `billing_note` text,
   `pc_catid` int(11) NOT NULL default '5' COMMENT 'event category from openemr_postcalendar_categories',
   `last_level_billed` int  NOT NULL DEFAULT 0 COMMENT '0=none, 1=ins1, 2=ins2, etc',
   `last_level_closed` int  NOT NULL DEFAULT 0 COMMENT '0=none, 1=ins1, 2=ins2, etc',
@@ -547,7 +548,7 @@ CREATE TABLE `form_encounter` (
   `provider_id` INT(11) DEFAULT '0' COMMENT 'default and main provider for this visit',
   `supervisor_id` INT(11) DEFAULT '0' COMMENT 'supervising provider, if any, for this visit',
   `invoice_refno` varchar(31) NOT NULL DEFAULT '',
-  `referral_source` varchar(31) NOT NULL DEFAULT '',
+enc  `referral_source` varchar(31) NOT NULL DEFAULT '',
   PRIMARY KEY  (`id`),
   KEY `pid` (`pid`)
 ) ENGINE=MyISAM AUTO_INCREMENT=1 ;
@@ -873,7 +874,7 @@ enc all above
 -- 
 -- Table structure for table `form_soap`
 -- 
-
+?????
 DROP TABLE IF EXISTS `form_soap`;
 CREATE TABLE `form_soap` (
   `id` bigint(20) NOT NULL auto_increment,
@@ -1457,7 +1458,7 @@ stop enc all
 DROP TABLE IF EXISTS `insurance_companies`;
 CREATE TABLE `insurance_companies` (
   `id` int(11) NOT NULL default '0',
-  `name` varchar(255) default NULL,
+enc  `name` varchar(255) default NULL,
   `attn` varchar(255) default NULL,
   `cms_id` varchar(15) default NULL,
   `freeb_type` tinyint(2) default NULL,
@@ -1468,7 +1469,6 @@ CREATE TABLE `insurance_companies` (
 ) ENGINE=MyISAM;
 
 -- --------------------------------------------------------
-[???]
 -- 
 -- Table structure for table `insurance_data`
 -- 
@@ -1476,6 +1476,7 @@ CREATE TABLE `insurance_companies` (
 DROP TABLE IF EXISTS `insurance_data`;
 CREATE TABLE `insurance_data` (
   `id` bigint(20) NOT NULL auto_increment,
+enc all:
   `type` enum('primary','secondary','tertiary') default NULL,
   `provider` varchar(255) default NULL,
   `plan_name` varchar(255) default NULL,
@@ -1504,6 +1505,7 @@ CREATE TABLE `insurance_data` (
   `pid` bigint(20) NOT NULL default '0',
   `subscriber_sex` varchar(25) default NULL,
   `accept_assignment` varchar(5) NOT NULL DEFAULT 'TRUE',
+enc end
   PRIMARY KEY  (`id`),
   UNIQUE KEY `pid_type_date` (`pid`,`type`,`date`)
 ) ENGINE=MyISAM AUTO_INCREMENT=1 ;
@@ -1517,6 +1519,7 @@ CREATE TABLE `insurance_data` (
 DROP TABLE IF EXISTS `insurance_numbers`;
 CREATE TABLE `insurance_numbers` (
   `id` int(11) NOT NULL default '0',
+enc all
   `provider_id` int(11) NOT NULL default '0',
   `insurance_company_id` int(11) default NULL,
   `provider_number` varchar(20) default NULL,
@@ -1524,6 +1527,7 @@ CREATE TABLE `insurance_numbers` (
   `group_number` varchar(20) default NULL,
   `provider_number_type` varchar(4) default NULL,
   `rendering_provider_number_type` varchar(4) default NULL,
+end enc
   PRIMARY KEY  (`id`)
 ) ENGINE=MyISAM;
 
@@ -2231,7 +2235,7 @@ CREATE TABLE `payments` (
   `encounter` bigint(20) NOT NULL default '0',
 enc  `user` varchar(255) default NULL,
   `method` varchar(255) default NULL,
-  `source` varchar(255) default NULL,
+enc  `source` varchar(255) default NULL,
 enc  `amount1` decimal(12,2) NOT NULL default '0.00',
 enc  `amount2` decimal(12,2) NOT NULL default '0.00',
 enc  `posted1` decimal(12,2) NOT NULL default '0.00',
@@ -2410,16 +2414,16 @@ DROP TABLE IF EXISTS `pnotes`;
 CREATE TABLE `pnotes` (
   `id` bigint(20) NOT NULL auto_increment,
   `date` datetime default NULL,
-  `body` longtext,
+enc  `body` longtext,
   `pid` bigint(20) default NULL,
-  `user` varchar(255) default NULL,
-  `groupname` varchar(255) default NULL,
+enc  `user` varchar(255) default NULL,
+enc  `groupname` varchar(255) default NULL,
   `activity` tinyint(4) default NULL,
   `authorized` tinyint(4) default NULL,
-  `title` varchar(255) default NULL,
-  `assigned_to` varchar(255) default NULL,
-  `deleted` tinyint(4) default 0 COMMENT 'flag indicates note is deleted',
-  `message_status` VARCHAR(20) NOT NULL DEFAULT 'New',
+enc  `title` varchar(255) default NULL,
+enc  `assigned_to` varchar(255) default NULL,
+enc  `deleted` tinyint(4) default 0 COMMENT 'flag indicates note is deleted',
+enc  `message_status` VARCHAR(20) NOT NULL DEFAULT 'New',
   PRIMARY KEY  (`id`)
 ) ENGINE=MyISAM AUTO_INCREMENT=1 ;
 
@@ -2433,6 +2437,7 @@ DROP TABLE IF EXISTS `prescriptions`;
 CREATE TABLE `prescriptions` (
   `id` int(11) NOT NULL auto_increment,
   `patient_id` int(11) default NULL,
+enc all:
   `filled_by_id` int(11) default NULL,
   `pharmacy_id` int(11) default NULL,
   `date_added` date default NULL,
@@ -2455,6 +2460,7 @@ CREATE TABLE `prescriptions` (
   `medication` int(11) default NULL,
   `note` text,
   `active` int(11) NOT NULL default '1',
+end enc
   PRIMARY KEY  (`id`)
 ) ENGINE=MyISAM AUTO_INCREMENT=1 ;
 
@@ -2534,10 +2540,11 @@ INSERT INTO `sequences` VALUES (1);
 DROP TABLE IF EXISTS `transactions`;
 CREATE TABLE `transactions` (
   `id`                      bigint(20)   NOT NULL auto_increment,
-  `date`                    datetime     default NULL,
-  `title`                   varchar(255) NOT NULL DEFAULT '',
-  `body`                    longtext     NOT NULL DEFAULT '',
+enc  `date`                    datetime     default NULL,
+enc  `title`                   varchar(255) NOT NULL DEFAULT '',
+enc  `body`                    longtext     NOT NULL DEFAULT '',
   `pid`                     bigint(20)   default NULL,
+enc all:
   `user`                    varchar(255) NOT NULL DEFAULT '',
   `groupname`               varchar(255) NOT NULL DEFAULT '',
   `authorized`              tinyint(4)   default NULL,
@@ -2560,6 +2567,7 @@ CREATE TABLE `transactions` (
   `reply_recommend`         text         NOT NULL DEFAULT '',
   `reply_rx_refer`          text         NOT NULL DEFAULT '',
   `reply_related_code`      varchar(255) NOT NULL DEFAULT '',
+end enc
   PRIMARY KEY  (`id`)
 ) ENGINE=MyISAM AUTO_INCREMENT=1 ;
 
@@ -2572,6 +2580,7 @@ CREATE TABLE `transactions` (
 DROP TABLE IF EXISTS `users`;
 CREATE TABLE `users` (
   `id` bigint(20) NOT NULL auto_increment,
+enc all:
   `username` varchar(255) default NULL,
   `password` longtext,
   `authorized` tinyint(4) default NULL,
@@ -2622,6 +2631,7 @@ CREATE TABLE `users` (
   `pwd_history2` longtext default NULL,
   `default_warehouse` varchar(31) NOT NULL DEFAULT '',
   `irnpool` varchar(31) NOT NULL DEFAULT '',
+end enc
   PRIMARY KEY  (`id`)
 ) ENGINE=MyISAM AUTO_INCREMENT=1 ;
 
@@ -2692,14 +2702,14 @@ DROP TABLE IF EXISTS `automatic_notification`;
 CREATE TABLE `automatic_notification` (
   `notification_id` int(5) NOT NULL auto_increment,
   `sms_gateway_type` varchar(255) NOT NULL,
-  `next_app_date` date NOT NULL,
-  `next_app_time` varchar(10) NOT NULL,
-  `provider_name` varchar(100) NOT NULL,
-  `message` text NOT NULL,
-  `email_sender` varchar(100) NOT NULL,
-  `email_subject` varchar(100) NOT NULL,
-  `type` enum('SMS','Email') NOT NULL default 'SMS',
-  `notification_sent_date` datetime NOT NULL,
+enc  `next_app_date` date NOT NULL,
+enc  `next_app_time` varchar(10) NOT NULL,
+enc  `provider_name` varchar(100) NOT NULL,
+enc  `message` text NOT NULL,
+enc  `email_sender` varchar(100) NOT NULL,
+enc  `email_subject` varchar(100) NOT NULL,
+enc  `type` enum('SMS','Email') NOT NULL default 'SMS',
+enc  `notification_sent_date` datetime NOT NULL,
   PRIMARY KEY  (`notification_id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=3 ;
 
@@ -2720,6 +2730,7 @@ DROP TABLE IF EXISTS `notification_log`;
 CREATE TABLE `notification_log` (
   `iLogId` int(11) NOT NULL auto_increment,
   `pid` int(7) NOT NULL,
+enc all:
   `pc_eid` int(11) unsigned NULL,
   `sms_gateway_type` varchar(50) NOT NULL,
   `smsgateway_info` varchar(255) NOT NULL,
@@ -2733,6 +2744,7 @@ CREATE TABLE `notification_log` (
   `pc_startTime` time NOT NULL,
   `pc_endTime` time NOT NULL,
   `dSentDateTime` datetime NOT NULL,
+end enc
   PRIMARY KEY  (`iLogId`)
 ) ENGINE=InnoDB AUTO_INCREMENT=5 ;
 
@@ -2770,6 +2782,7 @@ CREATE TABLE chart_tracker (
   PRIMARY KEY (ct_pid, ct_when)
 ) ENGINE=MyISAM;
 
+[???]
 CREATE TABLE ar_session (
   session_id     int unsigned  NOT NULL AUTO_INCREMENT,
   payer_id       int(11)       NOT NULL            COMMENT '0=pt else references insurance_companies.id',
@@ -2792,7 +2805,7 @@ CREATE TABLE ar_session (
   KEY user_closed (user_id, closed),
   KEY deposit_date (deposit_date)
 ) ENGINE=MyISAM;
-
+???
 CREATE TABLE ar_activity (
   pid            int(11)       NOT NULL,
   encounter      int(11)       NOT NULL,
@@ -2839,6 +2852,7 @@ CREATE TABLE gprelations (
 
 CREATE TABLE `procedure_type` (
   `procedure_type_id`   bigint(20)   NOT NULL AUTO_INCREMENT,
+enc all:
   `parent`              bigint(20)   NOT NULL DEFAULT 0  COMMENT 'references procedure_type.procedure_type_id',
   `name`                varchar(63)  NOT NULL DEFAULT '' COMMENT 'name for this category, procedure or result type',
   `lab_id`              bigint(20)   NOT NULL DEFAULT 0  COMMENT 'references users.id, 0 means default to parent',
@@ -2854,12 +2868,14 @@ CREATE TABLE `procedure_type` (
   `units`               varchar(31)  NOT NULL DEFAULT '' COMMENT 'default for procedure_result.units',
   `range`               varchar(255) NOT NULL DEFAULT '' COMMENT 'default for procedure_result.range',
   `seq`                 int(11)      NOT NULL default 0  COMMENT 'sequence number for ordering',
+enc end
   PRIMARY KEY (`procedure_type_id`),
   KEY parent (parent)
 ) ENGINE=MyISAM;
 
 CREATE TABLE `procedure_order` (
   `procedure_order_id`     bigint(20)   NOT NULL AUTO_INCREMENT,
+enc all:
   `procedure_type_id`      bigint(20)   NOT NULL            COMMENT 'references procedure_type.procedure_type_id',
   `provider_id`            bigint(20)   NOT NULL DEFAULT 0  COMMENT 'references users.id',
   `patient_id`             bigint(20)   NOT NULL            COMMENT 'references patient_data.pid',
@@ -2871,6 +2887,7 @@ CREATE TABLE `procedure_order` (
   `patient_instructions`   text         NOT NULL DEFAULT '',
   `activity`               tinyint(1)   NOT NULL DEFAULT 1  COMMENT '0 if deleted',
   `control_id`             bigint(20)   NOT NULL            COMMENT 'This is the CONTROL ID that is sent back from lab',
+end enc
   PRIMARY KEY (`procedure_order_id`),
   KEY datepid (date_ordered, patient_id)
 ) ENGINE=MyISAM;
@@ -2878,12 +2895,14 @@ CREATE TABLE `procedure_order` (
 CREATE TABLE `procedure_report` (
   `procedure_report_id` bigint(20)     NOT NULL AUTO_INCREMENT,
   `procedure_order_id`  bigint(20)     DEFAULT NULL   COMMENT 'references procedure_order.procedure_order_id',
+enc all:
   `date_collected`      datetime       DEFAULT NULL,
   `date_report`         date           DEFAULT NULL,
   `source`              bigint(20)     NOT NULL DEFAULT 0  COMMENT 'references users.id, who entered this data',
   `specimen_num`        varchar(63)    NOT NULL DEFAULT '',
   `report_status`       varchar(31)    NOT NULL DEFAULT '' COMMENT 'received,complete,error',
   `review_status`       varchar(31)    NOT NULL DEFAULT 'received' COMMENT 'panding reivew status: received,reviewed',  
+end enc
   PRIMARY KEY (`procedure_report_id`),
   KEY procedure_order_id (procedure_order_id)
 ) ENGINE=MyISAM; 
@@ -2892,6 +2911,7 @@ CREATE TABLE `procedure_result` (
   `procedure_result_id` bigint(20)   NOT NULL AUTO_INCREMENT,
   `procedure_report_id` bigint(20)   NOT NULL            COMMENT 'references procedure_report.procedure_report_id',
   `procedure_type_id`   bigint(20)   NOT NULL            COMMENT 'references procedure_type.procedure_type_id',
+enc all:
   `date`                datetime     DEFAULT NULL        COMMENT 'lab-provided date specific to this result',
   `facility`            varchar(255) NOT NULL DEFAULT '' COMMENT 'lab-provided testing facility ID',
   `units`               varchar(31)  NOT NULL DEFAULT '',
@@ -2901,6 +2921,7 @@ CREATE TABLE `procedure_result` (
   `comments`            text         NOT NULL DEFAULT '' COMMENT 'comments from the lab',
   `document_id`         bigint(20)   NOT NULL DEFAULT 0  COMMENT 'references documents.id if this result is a document',
   `result_status`       varchar(31)  NOT NULL DEFAULT '' COMMENT 'preliminary, cannot be done, final, corrected, incompete...etc.',
+end enc
   PRIMARY KEY (`procedure_result_id`),
   KEY procedure_report_id (procedure_report_id)
 ) ENGINE=MyISAM; 
@@ -2968,12 +2989,14 @@ INSERT INTO list_options ( list_id, option_id, title, seq, is_default ) VALUES (
 DROP TABLE IF EXISTS `extended_log`;
 CREATE TABLE `extended_log` (
   `id` bigint(20) NOT NULL auto_increment,
+enc all:
   `date` datetime default NULL,
   `event` varchar(255) default NULL,
   `user` varchar(255) default NULL,
   `recipient` varchar(255) default NULL,
   `description` longtext,
   `patient_id` bigint(20) default NULL,
+enc end
   PRIMARY KEY  (`id`)
 ) ENGINE=MyISAM AUTO_INCREMENT=1 ;
 
