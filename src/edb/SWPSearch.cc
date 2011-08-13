@@ -172,6 +172,7 @@ SWP::SWPHalfEncrypt(const Binary & key, Binary word, Binary & ciph,
     }
 }
 
+
 Binary
 SWP::SWPencrypt(const Binary & key, Binary word, unsigned int index)
 {
@@ -182,9 +183,13 @@ SWP::SWPencrypt(const Binary & key, Binary word, unsigned int index)
     SWPHalfEncrypt(key, word, ciph, wordKey);
 
     //S_i
-    Binary salt = PRP(key, Binary::toBinary(index));
-    salt = salt.subbinary(salt.len - SWPr, SWPr);
-
+    Binary salt;
+    if (SWP::canDecrypt) {
+        salt = PRP(key, Binary::toBinary(index));
+        salt = salt.subbinary(salt.len - SWPr, SWPr);
+    } else {
+        salt = random(SWPr);
+    }
     //F_{k_i} (S_i)
     Binary func = PRP(wordKey, salt);
 

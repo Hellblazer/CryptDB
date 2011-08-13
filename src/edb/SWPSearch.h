@@ -7,6 +7,13 @@
  *      Implementation of the Song-Wagner-Perrig cryptosystem, 2000
  *
  *      TODO: interpret "%" in searches
+ *      TODO: because of the way we use their protocol, we can simplify their encryption scheme  by
+ *        -- (implemented) no need for Si = PRP_k(i), any random Si is enough (in cases where we do not care of decryption)
+ *        -- the ciphertext can be made shorter as long as it does not cause a collision
+ *            -- Si   and F_ki(Si) being the same for the same word, and Si matching Fki(Si) for an incorrect search matching (false positive in search)
+ *            or SWPCiphertext size making different words encrypted to match to the same deterministic encryption E[W]
+ *            -- suggestion: Si and F each 32bits
+ *        -- removind a layer of PRP/encryption given by the counter
  */
 
 #ifndef SWPSEARCH_H_
