@@ -44,9 +44,9 @@ connect(lua_State *L)
     string mode = getenv("CRYPTDB_MODE");
 
     if (!cl) {
-        if (mode.compare("single") == 0) {
+        if (mode == "single") {
             cl = new EDBProxy(server, user, psswd, dbname, port, false);
-        } else if (mode.compare("multi") == 0) {
+        } else if (mode == "multi") {
             cl = new EDBProxy(server, user, psswd, dbname, port, true);
         } else {
             cl = new EDBProxy(server, user, psswd, dbname, port);
