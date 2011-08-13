@@ -105,8 +105,8 @@ function read_query_result_real(inj)
         -- mysqlproxy doesn't return real lua arrays, so re-package them..
         local fields = {}
         for i = 1, #inj.resultset.fields do
-            table.insert(fields, { type = inj.resultset.fields[i].type,
-                                   name = inj.resultset.fields[i].name })
+            fields[i] = { type = inj.resultset.fields[i].type,
+                          name = inj.resultset.fields[i].name }
         end
 
         -- mysqlproxy returns nils for NULL, which means #row is the wrong
@@ -118,9 +118,9 @@ function read_query_result_real(inj)
                 local lrow = {}
                 for i = 1, #inj.resultset.fields do
                      if row[i] then
-                        table.insert(lrow, row[i])
+                        lrow[i] = row[i]
                     else
-                        table.insert(lrow, "__cryptdb_NULL")
+                        lrow[i] = "__cryptdb_NULL"
                     end
                 end
                 table.insert(rows, lrow)
