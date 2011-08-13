@@ -7,19 +7,26 @@
 
 class WrapperState {
  public:
-
     string last_query;
-
-    WrapperState() {
-    }
-
-    ~WrapperState() {
-    }
 };
 
 static EDBProxy * cl = NULL;
 
 static map<string, WrapperState*> clients;
+
+static string
+xlua_tolstring(lua_State *l, int index)
+{
+    size_t len;
+    const char *s = lua_tolstring(l, index, &len);
+    return string(s, len);
+}
+
+static void
+xlua_pushlstring(lua_State *l, const string &s)
+{
+    lua_pushlstring(l, s.data(), s.length());
+}
 
 static int
 connect(lua_State *L)
@@ -98,27 +105,13 @@ rewrite(lua_State *L)
     int top = lua_gettop(L);
     int index = 1;
     for (auto it = new_queries.begin(); it != new_queries.end(); it++) {
-        lua_pushstring(L, it->c_str());
+        xlua_pushlstring(L, *it);
         lua_rawseti(L, top, index);
         index++;
     }
 
     clients[client]->last_query = query;
     return 1;
-}
-
-static string
-xlua_tolstring(lua_State *l, int index)
-{
-    size_t len;
-    const char *s = lua_tolstring(l, index, &len);
-    return string(s, len);
-}
-
-static void
-xlua_pushlstring(lua_State *l, const string &s)
-{
-    lua_pushlstring(l, s.data(), s.length());
 }
 
 static int
