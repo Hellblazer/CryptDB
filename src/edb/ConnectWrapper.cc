@@ -31,12 +31,12 @@ xlua_pushlstring(lua_State *l, const string &s)
 static int
 connect(lua_State *L)
 {
-    string client = luaL_checkstring(L, 1);
-    string server = luaL_checkstring(L, 2);
+    string client = xlua_tolstring(L, 1);
+    string server = xlua_tolstring(L, 2);
     uint port = luaL_checkint(L, 3);
-    string user = luaL_checkstring(L, 4);
-    string psswd = luaL_checkstring(L, 5);
-    string dbname = luaL_checkstring(L, 6);
+    string user = xlua_tolstring(L, 4);
+    string psswd = xlua_tolstring(L, 5);
+    string dbname = xlua_tolstring(L, 6);
 
     cryptdb_logger::setConf(string(getenv("CRYPTDB_LOG")));
 
@@ -48,9 +48,8 @@ connect(lua_State *L)
 
     WrapperState *ws = new WrapperState();
 
-    string mode = getenv("CRYPTDB_MODE");
-
     if (!cl) {
+        string mode = getenv("CRYPTDB_MODE");
         if (mode == "single") {
             cl = new EDBProxy(server, user, psswd, dbname, port, false);
         } else if (mode == "multi") {
@@ -72,7 +71,7 @@ connect(lua_State *L)
 static int
 disconnect(lua_State *L)
 {
-    string client = luaL_checkstring(L, 1);
+    string client = xlua_tolstring(L, 1);
     if (clients.find(client) == clients.end())
         return 0;
 
@@ -86,11 +85,11 @@ disconnect(lua_State *L)
 static int
 rewrite(lua_State *L)
 {
-    string client = luaL_checkstring(L, 1);
+    string client = xlua_tolstring(L, 1);
     if (clients.find(client) == clients.end())
         return 0;
 
-    string query = luaL_checkstring(L, 2);
+    string query = xlua_tolstring(L, 2);
 
     list<string> new_queries;
     try {
@@ -117,7 +116,7 @@ rewrite(lua_State *L)
 static int
 decrypt(lua_State *L)
 {
-    string client = luaL_checkstring(L, 1);
+    string client = xlua_tolstring(L, 1);
     if (clients.find(client) == clients.end())
         return 0;
 
