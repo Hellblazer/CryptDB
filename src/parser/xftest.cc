@@ -455,7 +455,8 @@ xftest(void)
                 new_join_list.push_back(nt);
             }
             lex.select_lex.top_join_list = new_join_list;
-            lex.select_lex.where = rewrite(lex.select_lex.where);
+            if (lex.select_lex.where)
+                lex.select_lex.where = rewrite(lex.select_lex.where);
 
             cout << "output query: " << lex << endl;
         }
