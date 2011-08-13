@@ -1,0 +1,11 @@
+Folder contains source code and queries for apps.
+
+In all apps, we analyze the schema and knowledge of the app to determine sensitive fields.
+
+We consider that all sensitive fields are encrypted using single principal type encryption, and determine resulting onion level. 
+
+We determine resulting onion level as such:
+
+PHP-Calendar, 6.02:
+-- we extracted all possible query types from the source code
+-- examined what operations are performed on each field
