@@ -69,7 +69,7 @@ function read_query_real(packet)
             return proxy.PROXY_SEND_RESULT
         end
 
-        if #new_queries == 0 then
+        if table.maxn(new_queries) == 0 then
             proxy.response.type = proxy.MYSQLD_PACKET_OK
             return proxy.PROXY_SEND_RESULT
         end
@@ -77,7 +77,7 @@ function read_query_real(packet)
         for i, v in pairs(new_queries) do
             dprint("new queries: " .. v)
             local result_key
-            if i == #new_queries then
+            if i == table.maxn(new_queries) then
                 result_key = RES_DECRYPT
             else
                 result_key = RES_IGNORE
@@ -109,21 +109,10 @@ function read_query_result_real(inj)
                           name = inj.resultset.fields[i].name }
         end
 
-        -- mysqlproxy returns nils for NULL, which means #row is the wrong
-        --  size; instead, use #inj.resultset.fields, and replace nil with
-        --  more friendly __cryptdb_NULL
         local rows = {}
         if inj.resultset.rows then
             for row in inj.resultset.rows do
-                local lrow = {}
-                for i = 1, #inj.resultset.fields do
-                     if row[i] then
-                        lrow[i] = row[i]
-                    else
-                        lrow[i] = "__cryptdb_NULL"
-                    end
-                end
-                table.insert(rows, lrow)
+                table.insert(rows, row)
             end
         end
 
@@ -134,7 +123,7 @@ function read_query_result_real(inj)
             proxy.response.type = proxy.MYSQLD_PACKET_OK
             proxy.response.affected_rows = inj.resultset.affected_rows
             proxy.response.insert_id = inj.resultset.insert_id
-            if #dfields > 0 then
+            if table.maxn(dfields) > 0 then
                 proxy.response.resultset = { fields = dfields, rows = drows }
             end
         else

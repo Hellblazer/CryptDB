@@ -157,19 +157,19 @@ decrypt(lua_State *L)
         if (!lua_istable(L, -1))
             LOG(warn) << "mismatch";
 
-        vector<SqlItem> row;
+        vector<SqlItem> row(r.names.size());
+
+        /* initialize all items to NULL, since Lua skips nil array entries */
+        for (uint i = 0; i < row.size(); i++)
+            row[i].null = true;
+
         lua_pushnil(L);
         while (lua_next(L, -2)) {
+            int key = luaL_checkint(L, -2);
             string data = xlua_tolstring(L, -1);
-            SqlItem item;
-            if (data != "__cryptdb_NULL") {
-                item.null = false;
-                item.type = MYSQL_TYPE_BLOB;    /* XXX */
-                item.data = data;
-            } else {
-                item.null = true;
-            }
-            row.push_back(item);
+            row[key - 1].null = false;
+            row[key - 1].type = MYSQL_TYPE_BLOB;    /* XXX */
+            row[key - 1].data = data;
             lua_pop(L, 1);
         }
 
