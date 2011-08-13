@@ -222,7 +222,7 @@ decrypt(lua_State *L)
         for (uint j = 0; j < rd.rows[i].size(); j++) {
             lua_pushinteger(L, j+1);
             if (rd.rows[i][j].null) {
-                xlua_pushlstring(L, "__cryptdb_NULL");
+                lua_pushnil(L);
             } else {
                 xlua_pushlstring(L, rd.rows[i][j].data);
             }

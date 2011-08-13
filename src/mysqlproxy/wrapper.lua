@@ -129,15 +129,6 @@ function read_query_result_real(inj)
 
         dfields, drows = CryptDB.decrypt(proxy.connection.client.src.name,
                                          fields, rows)
-        
-        -- replace __cryptdb_null with nil in drows
-        for i = 1, #drows do
-            for j = 1, #dfields do
-                if drows[i][j] == "__cryptdb_NULL" then
-                    drows[i][j] = nil
-                end
-            end
-        end
 
         if dfields and drows then
             proxy.response.type = proxy.MYSQLD_PACKET_OK
