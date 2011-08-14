@@ -25,4 +25,10 @@ enc  timestamp char(14), OPE (only order by and no limit)
 enc  value varchar(256), RND
   index grades_index (username)
 
+Overall: 13 fields
+7 at RND
+4 at DET --> DET's are not unique
+2 at OPE --> would be at RND otherwise
+very sensitive value only -- at RND
+
 
