@@ -2675,6 +2675,81 @@ insert into t1 (pid) select patient_id fro prescriptions where start_date >= sta
 ----------------------------------------------------------------------------
 users
 
+SELECT f.name, f.street, f.city, f.state, f.postal_code, f.phone, f.fax, addr FROM users JOIN facility AS f ON f.name = user.facility where users.id = $id
+
+SELECT e.date, e.facility, u.id, u.lname, u.fname, u.mname, u.upin, f.street, f.city, f.state, f.postal_code, f.pos_code, f.domain_identifier AS clia_code FROM form_encounter AS e LEFT OUTER JOIN forms ON forms.formdir = 'newpatient' AND LEFT OUTER JOIN users AS u ON u.username = forms.user LEFT OUTER JOIN facility AS f ON f.name = e.facility WHERE e.pid = $patient_id AND e.encounter = $encounter LIMIT 1
+
+SELECT fname, mname, lname FROM users WHERE id = $ct_userid
+
+SELECT id, fname, mname, lname FROM users WHERE username != '' AND active = 1 ORDER BY lname, fname, mname
+
+SELECT e.pc_eventDate, e.pc_endDate, e.pc_startTime, e.pc_endTime, e.pc_duration, e.pc_recurrtype, e.pc_recurrspec, e.pc_recurrfreq, e.pc_catid, e.pc_eid, e.pc_title, e.pc_hometext, p.fname, p.mname, p.lname, p.pid, p.pubpid, u.fname AS ufname, u.mname AS umname, u.lname AS ulname, u.id AS uprovider_id, c.pc_catname, c.pc_catid FROM openemr_postcalendar_events AS e LEFT OUTER JOIN patient_data AS p ON p.pid = e.pc_pid LEFT OUTER JOIN users AS u ON u.id = e.pc_aid LEFT OUTER JOIN openemr_postcalendar_categories AS c ON c.pc_catid = e.pc_catid WHERE $where ORDER BY $order_by
+
+SELECT * FROM users WHERE id = $provider_id
+
+SELECT * FROM users WHERE id = $referrer_id
+
+SELECT * FROM users WHERE id = $superviser_id
+
+SELECT fname, lname, specialty FROM users WHERE id = $currvalue
+
+SELECT users.id, users.username, users.facility_id FROM integeration_mapping, users WHERE integeration_mapping.foreign_id = $employee_id AND integration_mapping.foreign_table = 'salesman' AND users.id = integration_mapping.local_id
+
+SELECT lists.date, lists.pid, lists.type, lists.title as proc_title, lists.diagnosis, lists.outcome, lists.groupname, form_encounter.onset_date, form_encounter.encounter, lists.comments, facility.city, facility.street, facility.state, users.title, users.fname, users.lname from lists left join issue_encounter on issue_encounter.list_id = lists.id left join form_encounter on form_encounter.encounter = issue_encounter.encounter left join facility on form_encounter.facility_id = facility.id left join users on form_encounter.provider_id = users.id where lists.type = 'surgery' and lists.pid=$pid
+
+SELECT default_warehouse FROM users WHERE username = '$user'
+
+SELECT username, fname, lname FROM users " .
+  "WHERE active = 1 AND ( info IS NULL OR info NOT LIKE '%Inactive%' ) 
+
+SELECT * FROM users WHERE id = ?", array($trow['refer_from'])
+
+SELECT * FROM users WHERE id = '$form_from'
+
+SELECT * FROM users WHERE id = '$form_to'
+
+SELECT id, fname, lname, specialty FROM users " .
+  "WHERE active = 1 AND ( info IS NULL OR info NOT LIKE '%Inactive%' ) " .
+  "ORDER BY lname, fname
+
+SELECT DISTINCT specialty FROM users " .
+  "WHERE active = 1 AND ( info IS NULL OR info NOT LIKE '%Inactive%' ) " .
+  "ORDER BY specialty"
+
+SELECT lo.notes " .
+    "FROM users AS u, list_options AS lo " .
+    "WHERE u.username = '" . $_SESSION['authUser'] . "' AND " .
+    "lo.list_id = 'irnpool' AND lo.option_id = u.irnpool LIMIT 1
+
+//at interface/patien_file/encounter/diagnosis.php
+
 
 ----------------------------------------------------------------------------
 extended_log
+
+select distinct event from  extended_log order by event ASC
+
+select event,recipient,description,date from extended_log where patient_id=? AND event in (select option_id from list_options where list_id='disclosure_type') order by date desc limit 0,$limit", array($pid)
+
+select id,event,recipient,description,date from extended_log where patient_id=? AND event in (select option_id from list_options where list_id='disclosure_type') order by date desc limit 0,$N", array($pid) 
+
+select date,recipient,description,event from extended_log where id=$editlid
+
+SELECT $columns FROM extended_log WHERE date >= '$date1 00:00:00' AND date <= '$date2 23:59:59'
+
+insert into extended_log ( date, event, user, recipient, patien\
+t_id, description) " .
+            "values (" . $adodb->qstr($dates) . "," . $adodb->qstr($event) . ",
+" . $adodb->qstr($user) .
+            "," . $adodb->qstr($recipient) . ",".
+            $adodb->qstr($pid) ."," .
+            $adodb->qstr($description) .")
+
+update extended_log set
+                event=" . $adodb->qstr($event) . ",
+                date=" .  $adodb->qstr($dates) . ",
+                recipient=" . $adodb->qstr($recipient) . ",
+                description=" . $adodb->qstr($description) . "
+                where id=" . $adodb->qstr($disclosure_id) . ""
+
+delete from extended_log where id='$deletelid'
