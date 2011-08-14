@@ -1544,13 +1544,43 @@ pdate lists set activity = 0'
 ----------------------------------------------------------------------------
 log
 
+SELECT $cols FROM log WHERE date >= '$date 00:00:00' AND date <= '$date 23:59:59'
 
-----------------------------------------------------------------------------
-notes
+select distinct LEFT(date,10) as date from log order by date desc limit 30
 
+select distinct event from log order by event ASC
 
-----------------------------------------------------------------------------
-onotes
+select user, date, comments from log where event like 'login' and comments like '%".$ip."' order by date desc limit 1
+
+select distinct LEFT(date,10) as date from log order by date desc limit 30
+
+select distinct event from log order by event ASC
+
+select user, date, comments from log where event like 'login' and comments like '%".$ip."' order by date desc limit 1
+
+insert into log ( date, event, user, groupname, success, comments, \
+crt_user) " .
+            "values ( NOW(), " . $adodb->qstr($event) . "," . $adodb->qstr($user) .
+            "," . $adodb->qstr($groupname) . "," . $adodb->qstr($success) . ", .
+            $adodb->qstr($comments) ."," .
+            $adodb->qstr($crt_user)
+
+--->what is this function?
+stripos($statement, "insert into log") !== FALSE)
+
+stripos($statement, "insert into log")
+
+insert into log (date, event, user, groupname, comments, patient_id\
+, success, checksum,crt_user) " .
+         "values ( NOW(), " .
+         $adodb->qstr($event) . ", " .
+         $adodb->qstr($user) . "," .
+         $adodb->qstr($group) . "," .
+         $adodb->qstr($comments) . "," .
+         $adodb->qstr($pid) . "," .
+         $adodb->qstr($success) . "," .
+         $adodb->qstr($checksum) . "," .
+         $adodb->qstr($_SERVER['SSL_CLIENT_S_DN_CN']) .")";
 
 
 ----------------------------------------------------------------------------
@@ -2594,36 +2624,56 @@ SELECT e.date AS dosdate, " .
       "pd.pid = e.pid
 
 SELECT foreign_id from integration_mapping as im LEFT JOIN patient_\
-data as pd on im.local_id=pd.id where pd.pid = '" . $this->patient_id . "' and \
-im.local_table='patient_data' and im.foreign_table='customer'
-
-
-----------------------------------------------------------------------------
-pnotes
+data as pd on im.local_id=pd.id where pd.pid = '" . $this->patient_id . "' and im.local_table='patient_data' and im.foreign_table='customer'
 
 
 ----------------------------------------------------------------------------
 prescriptions
 
+SELECT pt.pharmacy_id FROM prescriptions AS rx, patient_data AS pt WHERE rx.id = $id AND pt.pid = rx.patient_id
+
+SELECT prescriptions.date_added, prescriptions.patient_id, prescriptions.start_date, prescriptions.quantity, prescriptions.interval, prescriptions.note, prescriptions.drug, prescriptions.medication, prescriptions.active, prescriptions.provider_id FROM prescriptions WHERE prescriptions.patient_id = $pid
+
+SELECT s.sale_id, s.sale_date, s.prescription_id, s.fee, " .
+  "s.quantity, s.encounter, s.drug_id, d.name, r.provider_id " .
+  "FROM drug_sales AS s " .
+  "LEFT JOIN drugs AS d ON d.drug_id = s.drug_id " .
+  "LEFT OUTER JOIN prescriptions AS r ON r.id = s.prescription_id " .
+  "WHERE s.pid = '$patient_id' AND s.billed = 0 " .
+  "ORDER BY s.encounter DESC, s.sale_id ASC
+
+UPDATE prescriptions SET '
+        . 'medication = 0 where patient_id = ' . $thispid
+        . " and upper(trim(drug)) = '" . strtoupper($_POST['form_title']) . "' "
+        . ' and medication = 1'
+
+
+SELECT r.id, r.patient_id, " .
+   "r.date_modified, r.dosage, r.route, r.interval, r.refills, r.drug, " .
+   "d.name, d.ndc_number, d.form, d.size, d.unit, d.reactions, " .
+   "s.sale_id, s.sale_date, s.quantity, " .
+   "i.manufacturer, i.lot_number, i.expiration, " .
+   "p.pubpid, ".
+   "p.fname, p.lname, p.mname, u.facility_id " .
+   "FROM prescriptions AS r " .
+   "LEFT OUTER JOIN drugs AS d ON d.drug_id = r.drug_id " .
+   "LEFT OUTER JOIN drug_sales AS s ON s.prescription_id = r.id " .
+   "LEFT OUTER JOIN drug_inventory AS i ON i.inventory_id = s.inventory_id " .
+   "LEFT OUTER JOIN patient_data AS p ON p.pid = r.patient_id " .
+   "LEFT OUTER JOIN users AS u ON u.id = r.provider_id " .
+   "WHERE $where " .
+   "ORDER BY p.lname, p.fname, p.pubpid, r.id, s.sale_id"
+
+-->clinical_reports
+$sqlstmt=$sqlstmt." left outer join prescriptions AS r on r.patient_id=pd.pid
+
+insert into t1 (pid) select patient_id fro prescriptions where drug = subString and start_date >= startDate and start_date <= endDate
+
+insert into t1 (pid) select patient_id fro prescriptions where start_date >= startDate and start_date <= endDate
+
 
 ----------------------------------------------------------------------------
 users
-
-
-----------------------------------------------------------------------------
-procedute_type
-
-
-----------------------------------------------------------------------------
-procedure_order
-
-
-----------------------------------------------------------------------------
-procedure_report
-
-
-----------------------------------------------------------------------------
-procedure_result
 
 
 ----------------------------------------------------------------------------
