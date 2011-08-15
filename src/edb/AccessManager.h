@@ -249,6 +249,13 @@ class KeyAccess {
     int remove(Prin hasAccess, Prin accessTo);
 
     //returns the symmetric key for the principal Prin, if held
+    //  to discover if key is held (or should be held, in case of orphans)
+    //  getKey checks first the local memory (keys) for online users keys
+    //  if the key is not there, then it checks to see if the key should exist
+    //  if the key should not exist (ie, prin is an orphan), a new key is
+    //  generated and returned
+    //  if prin isn't an orphan, getKey last checks to see if there are unCached
+    //  keys for prin
     //returns keys of length AES_KEY_BYTES
     string getKey(Prin prin);
 
@@ -351,8 +358,7 @@ class KeyAccess {
  public:
 #endif
     //if prin has uncached keys, finds and returns them
-    //if key is found in keys, prints an error message
-    //requres: all keys in uncached_keys to have their principals still logged
+    //requires: all keys in uncached_keys to have their principals still logged
     // on
     //returns: PrinKey for prin is exists
     //         empty PrinKey if prin does not have an accessible key
