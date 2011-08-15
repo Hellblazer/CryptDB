@@ -563,63 +563,78 @@ latency_search(unsigned int notests) {
 	cerr << "SWP encrypt " << timeEnc << "ms SWP decrypt " << timeDec << "ms SWP search " << timeSearch << "ms \n";
 
 }
-/*
+
 static void
-latency_Paillier(unsigned int notests) {
+latency_Paillier(unsigned int notests, unsigned int notestsagg) {
 
-	Binary key("secret key maste");
+	int data = 4389839;
 
-	list<Binary> * words = new list<Binary>();
+	CryptoManager * cm = new CryptoManager("secret key maste");
 
-	for (unsigned int i = 0; i < notests; i++) {
-		words->push_back(Binary(randomBytes(SWPCiphSize-1)));
-	}
-
-
+	string enc;
 	//eval encryption
+
+	unsigned int prevent_compiler_optimiz = 0;
 
 	Timer t = Timer();
 
-	list<Binary> * encs = SWP::encrypt(key, *words);
+	for (unsigned int i = 0; i < notests ; i++) {
+		enc = cm->encrypt_Paillier(data);
+		prevent_compiler_optimiz += enc.size();
+	}
 
 	double timeEnc = t.lap_ms() / notests;
 
+	if (prevent_compiler_optimiz % 297973 == 0) {
+		cerr << "lucky case\n";
+	}
 	//eval decryption
 
+	int dec;
 	t.lap();
 
-	list<Binary> * decs = SWP::decrypt(key, *encs);
+	for (unsigned int i = 0; i < notests ; i++) {
+			dec = cm->decrypt_Paillier(enc);
+			prevent_compiler_optimiz += dec % 100;
+	}
 
 	double timeDec = t.lap_ms() / notests;
 
 	//sanity check
-	assert_s(words->front() == decs->front(), "something went wrong");
+	assert_s(data == dec, "something went wrong");
 
-	//evaluate search
+	//evaluate aggregation
 
-	Token token = SWP::token(key, words->back());
-
+	string res;
 	t.lap();
 
-	list<unsigned int> * search_res = SWP::search(token, *encs);
+	for (unsigned int i = 0; i < notestsagg ; i++) {
+		res = homomorphicAdd(enc, enc, cm->getPKInfo());
+		enc = res;
+		prevent_compiler_optimiz += res.size();
+	}
 
-	double timeSearch = t.lap_ms()/ notests;
 
-	//sanity check
-	assert_s(search_res->size() > 0 && search_res->back() == words->size() - 1, "did not find the word");
+	double timeAdd = t.lap_ms()/ notests;
 
-	cerr << "SWP encrypt " << timeEnc << " SWP decrypt " << timeDec << " SWP search " << timeSearch << "\n";
+	if (prevent_compiler_optimiz % 297973 == 0) {
+		cerr << "lucky case\n";
+	}
+
+
+	cerr << "HOM encrypt " << timeEnc << "ms HOM decrypt " << timeDec << "ms HOM add "
+			<< timeAdd << "ms \n";
 
 }
 
-*/
+
 
 static void
 latency() {
 
 	latency_join(3000);
 	latency_search(10000);
-	//latency_Paillier(100, 10000);
+	latency_Paillier(100, 10000);
 
 }
 
