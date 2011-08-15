@@ -7,4 +7,5 @@
 - fix MySQL UDFs so that invalid invocations do not crash the server,
   e.g. "select searchSWP();"
 
-- BIG TODO: more generic parser and a cell data structure for each data item
+- BIG TODO: more generic parser
+
