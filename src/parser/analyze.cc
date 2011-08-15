@@ -249,6 +249,14 @@ class CItemSubtypeFN : public CItemSubtype<T> {
  */
 static class CItemField : public CItemSubtypeIT<Item_field, Item::Type::FIELD_ITEM> {
     Item *do_rewrite(Item_field *i) const {
+        /*
+         * Look up the fully-qualified name for this field,
+         * using something like find_field_in_tables()..
+         *
+         * Item_field::fix_fields() seems promising, as long as we place
+         * the app-visible schema into a shadow database kept by the proxy
+         * (so that find_field_in_tables works).
+         */
         return i;
     }
 
