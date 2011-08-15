@@ -739,7 +739,7 @@ TestAccessManager::run(const TestConfig &tc, int argc, char ** argv)
 
     ka->~KeyAccess();
     ka = buildTest(new Connect(tc.host, tc.user, tc.pass, tc.db));
-    cerr << "threshold tests..." << endl;
+    cerr << "threshold tests... (this may take a while)" << endl;
     testThreshold(tc, ka);
 
     cerr << "RESULT: " << npass << "/" << ntest << " passed" << endl;

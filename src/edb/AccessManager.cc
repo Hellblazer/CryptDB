@@ -997,8 +997,8 @@ KeyAccess::removeFromOrphans(Prin orphan)
 {
     //remove descendants from orphanToChildren
     if(VERBOSE) {
-        cerr << "   removing " << orphan.gen << "=" << orphan.value <<
-        " from orphans" << endl;
+        LOG(am_v) << "   removing " << orphan.gen << "=" << orphan.value <<
+        " from orphans";
     }
     list<Prin> children;
     std::set<Prin>::iterator it;
@@ -1082,8 +1082,7 @@ KeyAccess::getPrinKey(Prin prin)
 
     if(VERBOSE) {
         LOG(am_v) << "   fetching key for " << prin.gen << " " <<
-        prin.value <<
-        endl;
+        prin.value;
     }
 
     if(keys.find(prin) != keys.end()) {
@@ -1093,10 +1092,7 @@ KeyAccess::getPrinKey(Prin prin)
         return keys[prin];
     }
 
-    PrinKey prinkey = getUncached(prin);
-    if (prinkey.key.length() != 0) {
-        return prinkey;
-    }
+    PrinKey prinkey;
 
     //is orphan
     if (!isInstance(prin)) {
@@ -1113,12 +1109,19 @@ KeyAccess::getPrinKey(Prin prin)
         assert_s(isOrphan(
                      prin),
                  "newly created orphan in getKey is not recognized as an orphan");
+        return prinkey;
     }
-    else {
-        if (VERBOSE)
-            cerr << "asking for a key that exists but is not accessible: "
-                 << prinkey.key.length() << endl;
+
+    prinkey = getUncached(prin);
+    if (prinkey.key.length() != 0) {
+        return prinkey;
     }
+
+    if (VERBOSE) {
+        LOG(am_v) << "asking for a key that exists but is not accessible: "
+             << prinkey.key.length();
+    }
+
     return prinkey;
 }
 
@@ -1126,8 +1129,8 @@ PKCS *
 KeyAccess::getPublicKey(Prin prin)
 {
     if(VERBOSE) {
-        cerr << "   getting public key for " << prin.gen << " " <<
-        prin.value << endl;
+        LOG(am_v) << "   getting public key for " << prin.gen << " " <<
+        prin.value;
     }
     assert_s(isInstance(
                  prin),
@@ -1139,7 +1142,7 @@ KeyAccess::getPublicKey(Prin prin)
                  "'";
     DBResult * dbres;
     if (!conn->execute(sql, dbres)) {
-        cerr << "SQL error from query: " << sql << endl;
+        LOG(am) << "SQL error from query: " << sql;
         return NULL;
     }
 
@@ -1147,7 +1150,7 @@ KeyAccess::getPublicKey(Prin prin)
     delete dbres;
 
     if(res.rows.size() == 0) {
-        cerr << "No public key for input to getPublicKey" << endl;
+        LOG(am) << "No public key for input to getPublicKey";
         return NULL;
     }
 
@@ -1159,7 +1162,7 @@ PrinKey
 KeyAccess::getSecretKey(Prin prin)
 {
     if(VERBOSE) {
-        cerr << "   fetching secret key" << endl;
+        LOG(am_v) << "   fetching secret key";
     }
     assert_s(isInstance(
                  prin),
@@ -1172,7 +1175,7 @@ KeyAccess::getSecretKey(Prin prin)
     DBResult* dbres;
     PrinKey error;
     if (!conn->execute(sql.c_str(), dbres)) {
-        cerr << "SQL error from query: " << sql << endl;
+        LOG(am_v) << "SQL error from query: " << sql;
         return error;
     }
 
@@ -1180,7 +1183,7 @@ KeyAccess::getSecretKey(Prin prin)
     delete dbres;
 
     if(res.rows.size() == 0) {
-        cerr << "No public key for input to getSecretKey" << endl;
+        LOG(am) << "No public key for input to getSecretKey";
         return error;
     }
 
@@ -1255,8 +1258,8 @@ KeyAccess::insertPsswd(Prin gives, const string &psswd)
                 // local memory
                 if (number_keys > THRESHOLD) {
                     if (VERBOSE) {
-                        cerr << "caching " << number_keys << " for " <<
-                        *accessTo << endl;
+                        LOG(am_v) << "caching " << number_keys << " for " <<
+                        *accessTo;
                     }
                     if (uncached_keys.find(*accessTo) !=
                         uncached_keys.end()) {
@@ -1401,8 +1404,7 @@ KeyAccess::addToKeys(Prin prin, PrinKey key)
             return 1;
         }
         else {
-            cerr << "prin input to addToKeys already has a different key" <<
-            endl;
+            LOG(am) << "prin input to addToKeys already has a different key";
             return -1;
         }
     }
@@ -1428,9 +1430,8 @@ KeyAccess::addToKeys(Prin prin, PrinKey key)
         count /= users;
     }
     if (count > THRESHOLD) {
-        cerr << "WARNING: more than " << THRESHOLD <<
-        " keys on average per user of the same type have been added to the local map"
-             << endl;
+        LOG(am) << "WARNING: more than " << THRESHOLD <<
+        " keys on average per user of the same type have been added to the local map";
     }
 
     return 0;
@@ -1444,8 +1445,7 @@ KeyAccess::removeFromKeys(Prin prin)
     }
 
     if(VERBOSE) {
-        cerr << "   removing key for " << prin.gen << " " << prin.value <<
-        endl;
+        LOG(am_v) << "   removing key for " << prin.gen << " " << prin.value;
     }
 
     //remove all this prin's uncached key references
@@ -1470,7 +1470,7 @@ KeyAccess::removeFromKeys(Prin prin)
 
     if (keys.find(prin) == keys.end()) {
         if(VERBOSE) {
-            cerr << "prin input to removeFromKeys does not have key" << endl;
+            LOG(am_v) << "prin input to removeFromKeys does not have key";
         }
         return 1;
     }
@@ -1581,7 +1581,7 @@ KeyAccess::Select(std::set<Prin> & prin_set, string table_name, string column)
     sql += ";";
     DBResult * dbres;
     if(!conn->execute(sql.c_str(), dbres)) {
-        cerr << "SQL error with query: " << sql << endl;
+        LOG(am) << "SQL error with query: " << sql;
         return ResType(false);
     }
     auto res = dbres->unpack();
@@ -1606,7 +1606,7 @@ KeyAccess::SelectCount(std::set<Prin> & prin_set, string table_name)
     sql += ";";
     DBResult * dbres;
     if(!conn->execute(sql, dbres)) {
-        cerr << "SQL error with query: " << sql << endl;
+        LOG(am) << "SQL error with query: " << sql;
         return -1;
     }
 
@@ -1626,7 +1626,7 @@ KeyAccess::RemoveRow(Prin hasAccess, Prin accessTo)
                  hasAccess.value + "' AND " + accessTo.gen + "='" +
                  accessTo.value + "';";
     if(!conn->execute(sql)) {
-        cerr << "SQL error with query: " << sql << endl;
+        LOG(am) << "SQL error with query: " << sql;
         return -1;
     }
     return 0;
@@ -1657,7 +1657,7 @@ KeyAccess::GenerateAsymKeys(Prin prin, PrinKey prin_key)
                  ", " +
                  encrypted_sec_key_string + ", " + salt_string + ");";
     if (!conn->execute(sql)) {
-        cerr << "SQL error on query " << sql << endl;
+        LOG(am) << "SQL error on query " << sql;
         return -1;
     }
     return 0;
@@ -1669,7 +1669,7 @@ KeyAccess::decryptSym(const SqlItem &sql_encrypted_key,
                       const SqlItem &sql_salt)
 {
     if(VERBOSE) {
-        cerr << "\tuse symmetric decryption" << endl;
+        LOG(am) << "\tuse symmetric decryption";
     }
     string encrypted_key = sql_encrypted_key.data;
     uint64_t salt = valFromStr(sql_salt.data);
@@ -1684,7 +1684,7 @@ PrinKey
 KeyAccess::decryptAsym(const SqlItem &sql_encrypted_key, const string &secret_key)
 {
     if(VERBOSE) {
-        cerr << "\tuse asymmetric decryption" << endl;
+        LOG(am) << "\tuse asymmetric decryption";
     }
     PKCS * pk_sec_key = crypt_man->unmarshallKey(secret_key, false);
     string encrypted_key = sql_encrypted_key.data;
