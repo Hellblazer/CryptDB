@@ -130,12 +130,22 @@ operator<<(ostream &out, LEX &lex)
             out << " where " << *lex.select_lex.where;
         break;
 
+    case SQLCOM_CREATE_TABLE:
+    case SQLCOM_DROP_TABLE:
+    case SQLCOM_BEGIN:
     case SQLCOM_COMMIT:
-        out << "commit";
-        break;
-
+    case SQLCOM_ROLLBACK:
     case SQLCOM_SET_OPTION:
-        out << "SET (XXX some option...)";
+    case SQLCOM_SHOW_DATABASES:
+    case SQLCOM_SHOW_TABLES:
+    case SQLCOM_SHOW_FIELDS:
+    case SQLCOM_SHOW_KEYS:
+    case SQLCOM_SHOW_VARIABLES:
+    case SQLCOM_SHOW_STATUS:
+    case SQLCOM_SHOW_COLLATIONS:
+    case SQLCOM_CHANGE_DB:  /* for analysis, assume we never change DB? */
+        /* placeholders to make analysis work.. */
+        out << ".. type " << lex.sql_command << " query ..";
         break;
 
     default:

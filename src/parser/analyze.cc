@@ -339,14 +339,35 @@ class CItemCond : public CItemSubtypeFT<Item_cond, FT> {
 static CItemCond<Item_func::Functype::COND_AND_FUNC, Item_cond_and> ANON;
 static CItemCond<Item_func::Functype::COND_OR_FUNC,  Item_cond_or>  ANON;
 
-extern const char str_plus[] = "+";
-static class CItemPlus : public CItemSubtypeFN<Item_func, str_plus> {
-    Item *do_rewrite(Item_func *i) const {
+template<Item_func::Functype FT>
+class CItemNullcheck : public CItemSubtypeFT<Item_bool_func, FT> {
+    Item *do_rewrite(Item_bool_func *i) const {
+        return i;
+    }
+
+    ColType do_enctype(Item_bool_func *i) const { return DataType::integer; }
+};
+
+static CItemNullcheck<Item_func::Functype::ISNULL_FUNC> ANON;
+static CItemNullcheck<Item_func::Functype::ISNOTNULL_FUNC> ANON;
+
+static class CItemSysvar : public CItemSubtypeFT<Item_func_get_system_var, Item_func::Functype::GSYSVAR_FUNC> {
+    Item *do_rewrite(Item_func_get_system_var *i) const { return i; }
+    ColType do_enctype(Item_func_get_system_var *i) const {
+        return DataType::integer; /* XXX ? */
+    }
+} ANON;
+
+template<const char *NAME>
+class CItemAdditive : public CItemSubtypeFN<Item_func_additive_op, NAME> {
+    Item *do_rewrite(Item_func_additive_op *i) const {
         Item **args = i->arguments();
         return new Item_func_plus(rewrite(args[0]), rewrite(args[1]));
     }
 
-    ColType do_enctype(Item_func *i) const {
+    ColType do_enctype(Item_func_additive_op *i) const {
+        /* what about date +/-? */
+
         Item **args = i->arguments();
         ColType t0 = enctype(args[0]);
         ColType t1 = enctype(args[0]);
@@ -365,7 +386,13 @@ static class CItemPlus : public CItemSubtypeFN<Item_func, str_plus> {
 
         thrower() << "no common HOM type: " << *args[0] << ", " << *args[1];
     }
-} ANON;
+};
+
+extern const char str_plus[] = "+";
+static CItemAdditive<str_plus> ANON;
+
+extern const char str_minus[] = "-";
+static CItemAdditive<str_minus> ANON;
 
 extern const char str_if[] = "if";
 static class CItemIf : public CItemSubtypeFN<Item_func_if, str_if> {
@@ -381,6 +408,23 @@ static class CItemIf : public CItemSubtypeFN<Item_func_if, str_if> {
 } ANON;
 
 template<const char *NAME>
+class CItemStrconv : public CItemSubtypeFN<Item_str_conv, NAME> {
+    Item *do_rewrite(Item_str_conv *i) const {
+        return i;
+    }
+
+    ColType do_enctype(Item_str_conv *i) const {
+        return DataType::string;
+    }
+};
+
+extern const char str_lcase[] = "lcase";
+static CItemStrconv<str_lcase> ANON;
+
+extern const char str_ucase[] = "ucase";
+static CItemStrconv<str_ucase> ANON;
+
+template<const char *NAME>
 class CItemLeafFunc : public CItemSubtypeFN<Item_func, NAME> {
     Item *do_rewrite(Item_func *i) const { return i; }
     ColType do_enctype(Item_func *i) const { return DataType::integer; }
@@ -390,16 +434,50 @@ extern const char str_found_rows[] = "found_rows";
 static CItemLeafFunc<str_found_rows> ANON;
 
 template<const char *NAME>
-class CItemDateFunc : public CItemSubtypeFN<Item_int_func, NAME> {
+class CItemDateExtractFunc : public CItemSubtypeFN<Item_int_func, NAME> {
     Item *do_rewrite(Item_int_func *i) const { return i; }
     ColType do_enctype(Item_int_func *i) const { return DataType::integer; }
 };
 
 extern const char str_year[] = "year";
-static CItemDateFunc<str_year> ANON;
+static CItemDateExtractFunc<str_year> ANON;
 
 extern const char str_month[] = "month";
-static CItemDateFunc<str_month> ANON;
+static CItemDateExtractFunc<str_month> ANON;
+
+extern const char str_dayofmonth[] = "dayofmonth";
+static CItemDateExtractFunc<str_dayofmonth> ANON;
+
+extern const char str_unix_timestamp[] = "unix_timestamp";
+static CItemDateExtractFunc<str_unix_timestamp> ANON;
+
+extern const char str_date_add_interval[] = "date_add_interval";
+static class CItemDateAddInterval : public CItemSubtypeFN<Item_date_add_interval, str_date_add_interval> {
+    Item *do_rewrite(Item_date_add_interval *i) const {
+        /* XXX check if args[0] is a constant, in which case might be OK? */
+        return i;
+    }
+
+    ColType do_enctype(Item_date_add_interval *i) const {
+        /* XXX date? */
+        return DataType::integer;
+    }
+} ANON;
+
+template<const char *NAME>
+class CItemDateNow : public CItemSubtypeFN<Item_func_now, NAME> {
+    Item *do_rewrite(Item_func_now *i) const { return i; }
+    ColType do_enctype(Item_func_now *i) const { return DataType::integer; /* XXX date? */ }
+};
+
+extern const char str_now[] = "now";
+static CItemDateNow<str_now> ANON;
+
+extern const char str_utc_timestamp[] = "utc_timestamp";
+static CItemDateNow<str_utc_timestamp> ANON;
+
+extern const char str_sysdate[] = "sysdate";
+static CItemDateNow<str_sysdate> ANON;
 
 template<const char *NAME>
 class CItemBitfunc : public CItemSubtypeFN<Item_func_bit, NAME> {
@@ -473,6 +551,22 @@ class CItemCount : public CItemSubtypeST<Item_sum_count, SFT> {
 static CItemCount<Item_sum::Sumfunctype::COUNT_FUNC> ANON;
 static CItemCount<Item_sum::Sumfunctype::COUNT_DISTINCT_FUNC> ANON;
 
+template<Item_sum::Sumfunctype SFT>
+class CItemChooseOrder : public CItemSubtypeST<Item_sum_hybrid, SFT> {
+    Item *do_rewrite(Item_sum_hybrid *i) const {
+        /* need OPE */
+        return i;
+    }
+
+    ColType do_enctype(Item_sum_hybrid *i) const {
+        /* OPE of whatever data type args[0] is */
+        return DataType::integer;
+    }
+};
+
+static CItemChooseOrder<Item_sum::Sumfunctype::MIN_FUNC> ANON;
+static CItemChooseOrder<Item_sum::Sumfunctype::MAX_FUNC> ANON;
+
 static class CItemSumBit : public CItemSubtypeST<Item_sum_bit, Item_sum::Sumfunctype::SUM_BIT_FUNC> {
     Item *do_rewrite(Item_sum_bit *i) const {
         /* might not be doable in CryptDB? */
@@ -480,6 +574,18 @@ static class CItemSumBit : public CItemSubtypeST<Item_sum_bit, Item_sum::Sumfunc
     }
 
     ColType do_enctype(Item_sum_bit *i) const { return DataType::integer; }
+} ANON;
+
+class CItemCharcast : public CItemSubtypeFT<Item_char_typecast, Item_func::Functype::CHAR_TYPECAST_FUNC> {
+    Item *do_rewrite(Item_char_typecast *i) const {
+        /* XXX what does this even do? */
+        return i;
+    }
+
+    ColType do_enctype(Item_char_typecast *i) const {
+        /* XXX? */
+        return DataType::integer;
+    }
 } ANON;
 
 
@@ -513,12 +619,12 @@ xftest(const std::string &db, const std::string &q)
         printf("input query: %s\n", buf);
         bool error = parse_sql(t, &ps, 0);
         if (error) {
-            printf("parse error: %d %d %d\n", error, t->is_fatal_error,
-                   t->is_error());
+            printf("parse error: %d %d %d\n", error, t->is_fatal_error, t->is_error());
             printf("parse error: h %p\n", t->get_internal_handler());
             printf("parse error: %d %s\n", t->is_error(), t->stmt_da->message());
         } else {
             //printf("command %d\n", lex.sql_command);
+            cout << "parsed query: " << lex << endl;
 
             // iterate over the entire select statement..
             // based on st_select_lex::print in mysql-server/sql/sql_select.cc
@@ -536,6 +642,10 @@ xftest(const std::string &db, const std::string &q)
             }
             lex.select_lex.item_list = new_item_list;
 
+            /*
+             * XXX handle different joins, e.g.
+             * SELECT g2_ChildEntity.g_id, IF(ai0.g_id IS NULL, 1, 0) AS albumsFirst, g2_Item.g_originationTimestamp FROM g2_ChildEntity LEFT JOIN g2_AlbumItem AS ai0 ON g2_ChildEntity.g_id = ai0.g_id INNER JOIN g2_Item ON g2_ChildEntity.g_id = g2_Item.g_id INNER JOIN g2_AccessSubscriberMap ON g2_ChildEntity.g_id = g2_AccessSubscriberMap.g_itemId ...
+             */
             auto join_it = List_iterator<TABLE_LIST>(
                 lex.select_lex.top_join_list);
             List<TABLE_LIST> new_join_list;
@@ -607,7 +717,7 @@ main(int ac, char **av)
 {
     mysql_glue_init();
 
-    for (;;) {
+    for (uint nquery = 0; ; nquery++) {
         string s;
         getline(cin, s);
         if (cin.eof())
@@ -623,5 +733,6 @@ main(int ac, char **av)
         string q = s.substr(space + 1);
 
         xftest(db, unescape(q));
+        cout << "nquery: " << nquery << "\n";
     }
 }
