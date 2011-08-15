@@ -31,7 +31,7 @@
 #define ANON            CONCAT(__anon_id_, __LINE__)
 
 enum class Cipher   { AES, OPE, Paillier, SWP };
-enum class DataType { integer, string };
+enum class DataType { integer, string, decimal };
 std::set<Cipher> pkCiphers = { Cipher::Paillier };
 
 struct EncKey {
@@ -142,7 +142,7 @@ class CItemTypeDir : public CItemType {
     CItemType *do_lookup(Item *i, T t, const char *errname) const {
         auto x = types.find(t);
         if (x == types.end())
-            thrower() << "missing " << errname << " " << t;
+            thrower() << "missing " << errname << " " << t << " in " << *i;
         return x->second;
     }
 
@@ -182,7 +182,10 @@ static class CItemFuncNameDir : public CItemTypeDir<std::string> {
         return do_lookup(i, ((Item_func *) i)->func_name(), "func name");
     }
  public:
-    CItemFuncNameDir() { funcTypes.reg(Item_func::Functype::UNKNOWN_FUNC, this); }
+    CItemFuncNameDir() {
+        funcTypes.reg(Item_func::Functype::UNKNOWN_FUNC, this);
+        funcTypes.reg(Item_func::Functype::NOW_FUNC, this);
+    }
 } funcNames;
 
 
@@ -282,6 +285,28 @@ static class CItemInt : public CItemSubtypeIT<Item_num, Item::Type::INT_ITEM> {
 
     ColType do_enctype(Item_num *i) const {
         return ColType(DataType::integer, {EncType(true)});
+    }
+} ANON;
+
+static class CItemDecimal : public CItemSubtypeIT<Item_decimal, Item::Type::DECIMAL_ITEM> {
+    Item *do_rewrite(Item_decimal *i) const {
+        /* XXX */
+        return i;
+    }
+
+    ColType do_enctype(Item_decimal *i) const {
+        return DataType::decimal;
+    }
+} ANON;
+
+static class CItemNeg : public CItemSubtypeFT<Item_func_neg, Item_func::Functype::NEG_FUNC> {
+    Item *do_rewrite(Item_func_neg *i) const {
+        rewrite(i->arguments()[0]);
+        return i;
+    }
+
+    ColType do_enctype(Item_func_neg *i) const {
+        return DataType::integer;   /* XXX decimal? */
     }
 } ANON;
 
@@ -393,6 +418,35 @@ static CItemAdditive<str_plus> ANON;
 
 extern const char str_minus[] = "-";
 static CItemAdditive<str_minus> ANON;
+
+template<const char *NAME>
+class CItemMath : public CItemSubtypeFN<Item_func, NAME> {
+    Item *do_rewrite(Item_func *i) const {
+        Item **args = i->arguments();
+        for (uint x = 0; x < i->argument_count(); x++)
+            rewrite(args[x]);
+        return i; /* XXX? */
+    }
+    ColType do_enctype(Item_func *i) const { return DataType::integer; /* XXX? */ }
+};
+
+extern const char str_mul[] = "*";
+static CItemMath<str_mul> ANON;
+
+extern const char str_div[] = "/";
+static CItemMath<str_div> ANON;
+
+extern const char str_idiv[] = "div";
+static CItemMath<str_idiv> ANON;
+
+extern const char str_sqrt[] = "sqrt";
+static CItemMath<str_sqrt> ANON;
+
+extern const char str_pow[] = "pow";
+static CItemMath<str_pow> ANON;
+
+extern const char str_radians[] = "radians";
+static CItemMath<str_radians> ANON;
 
 extern const char str_if[] = "if";
 static class CItemIf : public CItemSubtypeFN<Item_func_if, str_if> {
