@@ -367,6 +367,9 @@ static CItemCond<Item_func::Functype::COND_OR_FUNC,  Item_cond_or>  ANON;
 template<Item_func::Functype FT>
 class CItemNullcheck : public CItemSubtypeFT<Item_bool_func, FT> {
     Item *do_rewrite(Item_bool_func *i) const {
+        Item **args = i->arguments();
+        for (uint x = 0; x < i->argument_count(); x++)
+            rewrite(args[x]);
         return i;
     }
 
@@ -452,6 +455,9 @@ extern const char str_if[] = "if";
 static class CItemIf : public CItemSubtypeFN<Item_func_if, str_if> {
     Item *do_rewrite(Item_func_if *i) const {
         /* ensure args[0] is server-evaluatable */
+        Item **args = i->arguments();
+        for (uint x = 0; x < i->argument_count(); x++)
+            rewrite(args[x]);
         return i;
     }
 
@@ -461,9 +467,27 @@ static class CItemIf : public CItemSubtypeFN<Item_func_if, str_if> {
     }
 } ANON;
 
+extern const char str_nullif[] = "nullif";
+static class CItemNullif : public CItemSubtypeFN<Item_func_nullif, str_nullif> {
+    Item *do_rewrite(Item_func_nullif *i) const {
+        Item **args = i->arguments();
+        for (uint x = 0; x < i->argument_count(); x++)
+            rewrite(args[x]);
+        /* DET for args[0] and args[1] */
+        return i;
+    }
+
+    ColType do_enctype(Item_func_nullif *i) const {
+        return enctype(i->arguments()[0]);
+    }
+} ANON;
+
 template<const char *NAME>
 class CItemStrconv : public CItemSubtypeFN<Item_str_conv, NAME> {
     Item *do_rewrite(Item_str_conv *i) const {
+        Item **args = i->arguments();
+        for (uint x = 0; x < i->argument_count(); x++)
+            rewrite(args[x]);
         return i;
     }
 
@@ -489,7 +513,12 @@ static CItemLeafFunc<str_found_rows> ANON;
 
 template<const char *NAME>
 class CItemDateExtractFunc : public CItemSubtypeFN<Item_int_func, NAME> {
-    Item *do_rewrite(Item_int_func *i) const { return i; }
+    Item *do_rewrite(Item_int_func *i) const {
+        Item **args = i->arguments();
+        for (uint x = 0; x < i->argument_count(); x++)
+            rewrite(args[x]);
+        return i;
+    }
     ColType do_enctype(Item_int_func *i) const { return DataType::integer; }
 };
 
@@ -508,6 +537,9 @@ static CItemDateExtractFunc<str_unix_timestamp> ANON;
 extern const char str_date_add_interval[] = "date_add_interval";
 static class CItemDateAddInterval : public CItemSubtypeFN<Item_date_add_interval, str_date_add_interval> {
     Item *do_rewrite(Item_date_add_interval *i) const {
+        Item **args = i->arguments();
+        for (uint x = 0; x < i->argument_count(); x++)
+            rewrite(args[x]);
         /* XXX check if args[0] is a constant, in which case might be OK? */
         return i;
     }
@@ -536,6 +568,9 @@ static CItemDateNow<str_sysdate> ANON;
 template<const char *NAME>
 class CItemBitfunc : public CItemSubtypeFN<Item_func_bit, NAME> {
     Item *do_rewrite(Item_func_bit *i) const {
+        Item **args = i->arguments();
+        for (uint x = 0; x < i->argument_count(); x++)
+            rewrite(args[x]);
         /* probably cannot do in CryptDB.. */
         return i;
     }
@@ -556,6 +591,9 @@ static CItemBitfunc<str_bit_and> ANON;
 
 static class CItemLike : public CItemSubtypeFT<Item_func_like, Item_func::Functype::LIKE_FUNC> {
     Item *do_rewrite(Item_func_like *i) const {
+        Item **args = i->arguments();
+        for (uint x = 0; x < i->argument_count(); x++)
+            rewrite(args[x]);
         return i;
     }
 
@@ -573,6 +611,10 @@ static class CItemSP : public CItemSubtypeFT<Item_func, Item_func::Functype::FUN
 
 static class CItemIn : public CItemSubtypeFT<Item_func_in, Item_func::Functype::IN_FUNC> {
     Item *do_rewrite(Item_func_in *i) const {
+        Item **args = i->arguments();
+        for (uint x = 0; x < i->argument_count(); x++)
+            rewrite(args[x]);
+
         /* need DET */
         return i;
     }
@@ -582,6 +624,9 @@ static class CItemIn : public CItemSubtypeFT<Item_func_in, Item_func::Functype::
 
 static class CItemBetween : public CItemSubtypeFT<Item_func_in, Item_func::Functype::BETWEEN> {
     Item *do_rewrite(Item_func_in *i) const {
+        Item **args = i->arguments();
+        for (uint x = 0; x < i->argument_count(); x++)
+            rewrite(args[x]);
         /* need OPE */
         return i;
     }
@@ -592,6 +637,8 @@ static class CItemBetween : public CItemSubtypeFT<Item_func_in, Item_func::Funct
 template<Item_sum::Sumfunctype SFT>
 class CItemCount : public CItemSubtypeST<Item_sum_count, SFT> {
     Item *do_rewrite(Item_sum_count *i) const {
+        rewrite(i->get_arg(0));
+
         if (i->has_with_distinct()) {
             /* need DET.. */
         }
@@ -608,6 +655,8 @@ static CItemCount<Item_sum::Sumfunctype::COUNT_DISTINCT_FUNC> ANON;
 template<Item_sum::Sumfunctype SFT>
 class CItemChooseOrder : public CItemSubtypeST<Item_sum_hybrid, SFT> {
     Item *do_rewrite(Item_sum_hybrid *i) const {
+        rewrite(i->get_arg(0));
+
         /* need OPE */
         return i;
     }
@@ -623,6 +672,8 @@ static CItemChooseOrder<Item_sum::Sumfunctype::MAX_FUNC> ANON;
 
 static class CItemSumBit : public CItemSubtypeST<Item_sum_bit, Item_sum::Sumfunctype::SUM_BIT_FUNC> {
     Item *do_rewrite(Item_sum_bit *i) const {
+        rewrite(i->get_arg(0));
+
         /* might not be doable in CryptDB? */
         return i;
     }
