@@ -472,10 +472,10 @@ latency_join(unsigned int notests) {
 		string data = "value";
 
 		//eval encryption
-		unsigned int prevent_compiler_optimiz = 0;
+		size_t prevent_compiler_optimiz = 0;
 		string enc_sk1 = "";
 
-		Timer t = Timer();
+		Timer t;
 
 		for (unsigned int i = 0; i < notests ; i++) {
 			enc_sk1 = ecj->encrypt(sk1, data);
@@ -530,7 +530,7 @@ latency_search(unsigned int notests) {
 
 	//eval encryption
 
-	Timer t = Timer();
+	Timer t;
 
 	list<Binary> * encs = SWP::encrypt(key, *words);
 
@@ -574,9 +574,9 @@ latency_Paillier(unsigned int notests, unsigned int notestsagg) {
 	string enc;
 	//eval encryption
 
-	unsigned int prevent_compiler_optimiz = 0;
+	size_t prevent_compiler_optimiz = 0;
 
-	Timer t = Timer();
+	Timer t;
 
 	for (unsigned int i = 0; i < notests ; i++) {
 		enc = cm->encrypt_Paillier(data);

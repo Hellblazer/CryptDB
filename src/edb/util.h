@@ -610,6 +610,9 @@ class SqlItem {
 };
 
 class Timer {
+ private:
+    Timer(const Timer &t);  /* no reason to copy timer objects */
+
  public:
     Timer() { lap(); }
 
