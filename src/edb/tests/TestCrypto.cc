@@ -371,259 +371,259 @@ testECJoin() {
 
        LOG(test) << "   -- EC setup";
 
-	ECJoin * ecj = new ECJoin();
+    ECJoin * ecj = new ECJoin();
 
-	AES_KEY * baseKey = get_AES_KEY("secret key master");
-	ECJoinSK * sk1 = ecj->getSKey(baseKey, "secret key for col 1");
-	ECJoinSK * sk2 = ecj->getSKey(baseKey, "secret key for col 2");
-	ECJoinSK * sk3 = ecj->getSKey(baseKey, "secret key for col 3");
+    AES_KEY * baseKey = get_AES_KEY("secret key master");
+    ECJoinSK * sk1 = ecj->getSKey(baseKey, "secret key for col 1");
+    ECJoinSK * sk2 = ecj->getSKey(baseKey, "secret key for col 2");
+    ECJoinSK * sk3 = ecj->getSKey(baseKey, "secret key for col 3");
 
-	string data1 = "hello world";
-	string data2 = "data2";
-	string data3 = "hello world";
+    string data1 = "hello world";
+    string data2 = "data2";
+    string data3 = "hello world";
 
-	/** test encryption **/
+    /** test encryption **/
 
         LOG(test) << "   -- test EC encryption";
 
-	string c1sk1 = ecj->encrypt(sk1, data1);
-	string c1sk2 = ecj->encrypt(sk2, data1);
-	string c2sk1 = ecj->encrypt(sk1, data2);
-	string c2sk2 = ecj->encrypt(sk2, data2);
-	string c3sk1 = ecj->encrypt(sk1, data3);
-	string c3sk2 = ecj->encrypt(sk2, data3);
+    string c1sk1 = ecj->encrypt(sk1, data1);
+    string c1sk2 = ecj->encrypt(sk2, data1);
+    string c2sk1 = ecj->encrypt(sk1, data2);
+    string c2sk2 = ecj->encrypt(sk2, data2);
+    string c3sk1 = ecj->encrypt(sk1, data3);
+    string c3sk2 = ecj->encrypt(sk2, data3);
 
-	assert_s(c1sk1 != c1sk2, "encryption returns same thing for two different keys");
-	assert_s(c1sk1 != c2sk1, "encryption the same for two different items");
-	assert_s(c1sk1 == c3sk1, "encryption is different for the same value");
-	assert_s(c1sk2 == c3sk2, "encryption is different for the same value");
-
-
-	/*** test adjustability **/
-
-	LOG(test) << "   -- adjust forward";
-
-	ECDeltaSK * delta = ecj->getDeltaKey(sk1, sk2);
-
-	/* adjust from k1 --> k2 */
-
-	string c1sk1TOsk2 = ECJoin::adjust(delta, c1sk1);
-	string c3sk1TOsk2 = ECJoin::adjust(delta, c3sk1);
-
-	assert_s(c1sk1TOsk2 == c1sk2, "adjusting does not work properly");
-	assert_s(c1sk1TOsk2 != c2sk2, "adjusting is incorrect");
-	assert_s(c1sk1TOsk2 == c3sk2, "adjusting does not work well");
-	assert_s(c3sk1TOsk2 == c1sk2, "adjusting does not work correctly");
+    assert_s(c1sk1 != c1sk2, "encryption returns same thing for two different keys");
+    assert_s(c1sk1 != c2sk1, "encryption the same for two different items");
+    assert_s(c1sk1 == c3sk1, "encryption is different for the same value");
+    assert_s(c1sk2 == c3sk2, "encryption is different for the same value");
 
 
-	/* test backwards adjustability k2 --> k1 */
+    /*** test adjustability **/
+
+    LOG(test) << "   -- adjust forward";
+
+    ECDeltaSK * delta = ecj->getDeltaKey(sk1, sk2);
+
+    /* adjust from k1 --> k2 */
+
+    string c1sk1TOsk2 = ECJoin::adjust(delta, c1sk1);
+    string c3sk1TOsk2 = ECJoin::adjust(delta, c3sk1);
+
+    assert_s(c1sk1TOsk2 == c1sk2, "adjusting does not work properly");
+    assert_s(c1sk1TOsk2 != c2sk2, "adjusting is incorrect");
+    assert_s(c1sk1TOsk2 == c3sk2, "adjusting does not work well");
+    assert_s(c3sk1TOsk2 == c1sk2, "adjusting does not work correctly");
+
+
+    /* test backwards adjustability k2 --> k1 */
 
         LOG(test) << "   -- adjust backward";
 
-	ECDeltaSK * deltaBack = ecj->getDeltaKey(sk2, sk1);
+    ECDeltaSK * deltaBack = ecj->getDeltaKey(sk2, sk1);
 
-	string c1sk2TOsk1 = ECJoin::adjust(deltaBack, c1sk2);
-	string c3sk2TOsk1 = ECJoin::adjust(deltaBack, c3sk2);
-
-
-	assert_s(c1sk2TOsk1 == c1sk1, "adjusting back incorrect");
-	assert_s(c1sk2TOsk1 !=  c1sk2, "adjusting back incorrect");
-	assert_s(c3sk2TOsk1 == c1sk1, "adjusting back is incorrect");
+    string c1sk2TOsk1 = ECJoin::adjust(deltaBack, c1sk2);
+    string c3sk2TOsk1 = ECJoin::adjust(deltaBack, c3sk2);
 
 
-	string c1sk1TOsk2TOsk1 = ECJoin::adjust(deltaBack, c1sk1TOsk2);
-	assert_s(c1sk1 == c1sk1TOsk2TOsk1, "adjusting forward/backward does not cancel");
+    assert_s(c1sk2TOsk1 == c1sk1, "adjusting back incorrect");
+    assert_s(c1sk2TOsk1 !=  c1sk2, "adjusting back incorrect");
+    assert_s(c3sk2TOsk1 == c1sk1, "adjusting back is incorrect");
 
-	/* test composable adjustability k1 -> k2 -> k3 == k1 --> k3 */
+
+    string c1sk1TOsk2TOsk1 = ECJoin::adjust(deltaBack, c1sk1TOsk2);
+    assert_s(c1sk1 == c1sk1TOsk2TOsk1, "adjusting forward/backward does not cancel");
+
+    /* test composable adjustability k1 -> k2 -> k3 == k1 --> k3 */
 
         LOG(test) << "   -- adjust composability";
 
-	ECDeltaSK * deltask1TOsk3 = ecj->getDeltaKey(sk1, sk3);
-	ECDeltaSK * deltask2TOsk3 = ecj->getDeltaKey(sk2, sk3);
+    ECDeltaSK * deltask1TOsk3 = ecj->getDeltaKey(sk1, sk3);
+    ECDeltaSK * deltask2TOsk3 = ecj->getDeltaKey(sk2, sk3);
 
-	string c1sk1TOsk2TOsk3 = ECJoin::adjust(deltask2TOsk3, c1sk1TOsk2);
-	string c2sk1TOsk3 = ECJoin::adjust(deltask1TOsk3, c2sk1);
-	string c3sk1TOsk3 = ECJoin::adjust(deltask1TOsk3, c3sk1);
+    string c1sk1TOsk2TOsk3 = ECJoin::adjust(deltask2TOsk3, c1sk1TOsk2);
+    string c2sk1TOsk3 = ECJoin::adjust(deltask1TOsk3, c2sk1);
+    string c3sk1TOsk3 = ECJoin::adjust(deltask1TOsk3, c3sk1);
 
-	assert_s(c1sk1TOsk2TOsk3 == c3sk1TOsk3, "adjusting not composable");
-	assert_s(c1sk1TOsk2TOsk3 != c2sk1TOsk3, "adjust composability flawed");
+    assert_s(c1sk1TOsk2TOsk3 == c3sk1TOsk3, "adjusting not composable");
+    assert_s(c1sk1TOsk2TOsk3 != c2sk1TOsk3, "adjust composability flawed");
 
-	delete delta;
-	delete deltaBack;
-	delete deltask1TOsk3;
-	delete deltask2TOsk3;
-	delete sk1;
-	delete sk2;
-	delete sk3;
-	delete ecj;
+    delete delta;
+    delete deltaBack;
+    delete deltask1TOsk3;
+    delete deltask2TOsk3;
+    delete sk1;
+    delete sk2;
+    delete sk3;
+    delete ecj;
 
-	LOG(test) << "   -- done!";
+    LOG(test) << "   -- done!";
 
 }
 
 static void
 latency_join(unsigned int notests) {
-	ECJoin * ecj = new ECJoin();
+    ECJoin * ecj = new ECJoin();
 
-		AES_KEY * baseKey = get_AES_KEY("secret key master");
-		ECJoinSK * sk1 = ecj->getSKey(baseKey, "secret key for col 1");
-		ECJoinSK * sk2 = ecj->getSKey(baseKey, "secret key for col 2");
+        AES_KEY * baseKey = get_AES_KEY("secret key master");
+        ECJoinSK * sk1 = ecj->getSKey(baseKey, "secret key for col 1");
+        ECJoinSK * sk2 = ecj->getSKey(baseKey, "secret key for col 2");
 
-		string data = "value";
+        string data = "value";
 
-		//eval encryption
-		size_t prevent_compiler_optimiz = 0;
-		string enc_sk1 = "";
+        //eval encryption
+        size_t prevent_compiler_optimiz = 0;
+        string enc_sk1 = "";
 
-		Timer t;
+        Timer t;
 
-		for (unsigned int i = 0; i < notests ; i++) {
-			enc_sk1 = ecj->encrypt(sk1, data);
-			prevent_compiler_optimiz += enc_sk1.size();
-		}
+        for (unsigned int i = 0; i < notests ; i++) {
+            enc_sk1 = ecj->encrypt(sk1, data);
+            prevent_compiler_optimiz += enc_sk1.size();
+        }
 
-		double timeEnc = t.lap_ms() / notests;
+        double timeEnc = t.lap_ms() / notests;
 
-		if (prevent_compiler_optimiz % 297973 == 0) {
-			cerr << "lucky case\n";
-		}
+        if (prevent_compiler_optimiz % 297973 == 0) {
+            cerr << "lucky case\n";
+        }
 
-		//eval adjusting
+        //eval adjusting
 
-		ECDeltaSK * delta = ecj->getDeltaKey(sk1, sk2);
-		string enc_sk2 = ecj->encrypt(sk2, data);
+        ECDeltaSK * delta = ecj->getDeltaKey(sk1, sk2);
+        string enc_sk2 = ecj->encrypt(sk2, data);
 
-		prevent_compiler_optimiz = 0;
-		string enc_sk1TOsk2 = "";
+        prevent_compiler_optimiz = 0;
+        string enc_sk1TOsk2 = "";
 
-		t.lap();
+        t.lap();
 
-		for (unsigned int i = 0; i < notests ; i++) {
-			enc_sk1TOsk2 = ECJoin::adjust(delta, enc_sk1);
-			prevent_compiler_optimiz += enc_sk1TOsk2.size();
-		}
+        for (unsigned int i = 0; i < notests ; i++) {
+            enc_sk1TOsk2 = ECJoin::adjust(delta, enc_sk1);
+            prevent_compiler_optimiz += enc_sk1TOsk2.size();
+        }
 
-		double timeJoin = t.lap_ms() / notests;
+        double timeJoin = t.lap_ms() / notests;
 
-		if (prevent_compiler_optimiz % 297973 == 0) {
-				cerr << "lucky case\n";
-		}
+        if (prevent_compiler_optimiz % 297973 == 0) {
+                cerr << "lucky case\n";
+        }
 
-		//just making sure everything worked
-		assert_s(enc_sk1TOsk2 == enc_sk2, "something went wrong");
+        //just making sure everything worked
+        assert_s(enc_sk1TOsk2 == enc_sk2, "something went wrong");
 
-		cerr << "join encrypt " << timeEnc << "ms join adjust " << timeJoin << "ms \n";
+        cerr << "join encrypt " << timeEnc << "ms join adjust " << timeJoin << "ms \n";
 
 }
 
 static void
 latency_search(unsigned int notests) {
 
-	Binary key("secret key maste");
+    Binary key("secret key maste");
 
-	list<Binary> * words = new list<Binary>();
+    list<Binary> * words = new list<Binary>();
 
-	for (unsigned int i = 0; i < notests; i++) {
-		words->push_back(Binary(randomBytes(SWPCiphSize-1)));
-	}
+    for (unsigned int i = 0; i < notests; i++) {
+        words->push_back(Binary(randomBytes(SWPCiphSize-1)));
+    }
 
 
-	//eval encryption
+    //eval encryption
 
-	Timer t;
+    Timer t;
 
-	list<Binary> * encs = SWP::encrypt(key, *words);
+    list<Binary> * encs = SWP::encrypt(key, *words);
 
-	double timeEnc = t.lap_ms() / notests;
+    double timeEnc = t.lap_ms() / notests;
 
-	//eval decryption
+    //eval decryption
 
-	t.lap();
+    t.lap();
 
-	list<Binary> * decs = SWP::decrypt(key, *encs);
+    list<Binary> * decs = SWP::decrypt(key, *encs);
 
-	double timeDec = t.lap_ms() / notests;
+    double timeDec = t.lap_ms() / notests;
 
-	//sanity check
-	assert_s(words->front() == decs->front(), "something went wrong");
+    //sanity check
+    assert_s(words->front() == decs->front(), "something went wrong");
 
-	//evaluate search
+    //evaluate search
 
-	Token token = SWP::token(key, words->back());
+    Token token = SWP::token(key, words->back());
 
-	t.lap();
+    t.lap();
 
-	list<unsigned int> * search_res = SWP::search(token, *encs);
+    list<unsigned int> * search_res = SWP::search(token, *encs);
 
-	double timeSearch = t.lap_ms()/ notests;
+    double timeSearch = t.lap_ms()/ notests;
 
-	//sanity check
-	assert_s(search_res->size() > 0 && search_res->back() == words->size() - 1, "did not find the word");
+    //sanity check
+    assert_s(search_res->size() > 0 && search_res->back() == words->size() - 1, "did not find the word");
 
-	cerr << "SWP encrypt " << timeEnc << "ms SWP decrypt " << timeDec << "ms SWP search " << timeSearch << "ms \n";
+    cerr << "SWP encrypt " << timeEnc << "ms SWP decrypt " << timeDec << "ms SWP search " << timeSearch << "ms \n";
 
 }
 
 static void
 latency_Paillier(unsigned int notests, unsigned int notestsagg) {
 
-	int data = 4389839;
+    int data = 4389839;
 
-	CryptoManager * cm = new CryptoManager("secret key maste");
+    CryptoManager * cm = new CryptoManager("secret key maste");
 
-	string enc;
-	//eval encryption
+    string enc;
+    //eval encryption
 
-	size_t prevent_compiler_optimiz = 0;
+    size_t prevent_compiler_optimiz = 0;
 
-	Timer t;
+    Timer t;
 
-	for (unsigned int i = 0; i < notests ; i++) {
-		enc = cm->encrypt_Paillier(data);
-		prevent_compiler_optimiz += enc.size();
-	}
+    for (unsigned int i = 0; i < notests ; i++) {
+        enc = cm->encrypt_Paillier(data);
+        prevent_compiler_optimiz += enc.size();
+    }
 
-	double timeEnc = t.lap_ms() / notests;
+    double timeEnc = t.lap_ms() / notests;
 
-	if (prevent_compiler_optimiz % 297973 == 0) {
-		cerr << "lucky case\n";
-	}
-	//eval decryption
+    if (prevent_compiler_optimiz % 297973 == 0) {
+        cerr << "lucky case\n";
+    }
+    //eval decryption
 
-	int dec;
-	t.lap();
+    int dec;
+    t.lap();
 
-	for (unsigned int i = 0; i < notests ; i++) {
-			dec = cm->decrypt_Paillier(enc);
-			prevent_compiler_optimiz += dec % 100;
-	}
+    for (unsigned int i = 0; i < notests ; i++) {
+            dec = cm->decrypt_Paillier(enc);
+            prevent_compiler_optimiz += dec % 100;
+    }
 
-	double timeDec = t.lap_ms() / notests;
+    double timeDec = t.lap_ms() / notests;
 
-	//sanity check
-	assert_s(data == dec, "something went wrong");
+    //sanity check
+    assert_s(data == dec, "something went wrong");
 
-	//evaluate aggregation
+    //evaluate aggregation
 
-	string res;
-	t.lap();
+    string res;
+    t.lap();
 
-	for (unsigned int i = 0; i < notestsagg ; i++) {
-		res = homomorphicAdd(enc, enc, cm->getPKInfo());
-		enc = res;
-		prevent_compiler_optimiz += res.size();
-	}
-
-
-	double timeAdd = t.lap_ms()/ notests;
-
-	if (prevent_compiler_optimiz % 297973 == 0) {
-		cerr << "lucky case\n";
-	}
+    for (unsigned int i = 0; i < notestsagg ; i++) {
+        res = homomorphicAdd(enc, enc, cm->getPKInfo());
+        enc = res;
+        prevent_compiler_optimiz += res.size();
+    }
 
 
-	cerr << "HOM encrypt " << timeEnc << "ms HOM decrypt " << timeDec << "ms HOM add "
-			<< timeAdd << "ms \n";
+    double timeAdd = t.lap_ms()/ notests;
+
+    if (prevent_compiler_optimiz % 297973 == 0) {
+        cerr << "lucky case\n";
+    }
+
+
+    cerr << "HOM encrypt " << timeEnc << "ms HOM decrypt " << timeDec << "ms HOM add "
+            << timeAdd << "ms \n";
 
 }
 
@@ -632,9 +632,9 @@ latency_Paillier(unsigned int notests, unsigned int notestsagg) {
 static void
 latency() {
 
-	latency_join(3000);
-	latency_search(10000);
-	latency_Paillier(100, 10000);
+    latency_join(3000);
+    latency_search(10000);
+    latency_Paillier(100, 10000);
 
 }
 
@@ -642,12 +642,12 @@ void
 TestCrypto::run(const TestConfig &tc, int argc, char ** argv)
 {
 
-	if (argc == 2) {
-		if (strcmp(argv[1], "latency") == 0) {
-			latency();
-			return;
-		}
-	}
+    if (argc == 2) {
+        if (strcmp(argv[1], "latency") == 0) {
+            latency();
+            return;
+        }
+    }
     cerr << "TESTING CRYPTO" << endl;
     cerr << "Testing OPE..." << endl;
     testOPE();
