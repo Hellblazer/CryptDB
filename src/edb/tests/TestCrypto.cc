@@ -608,19 +608,20 @@ latency_Paillier(unsigned int notests, unsigned int notestsagg) {
     string res;
     t.lap();
 
+    ZZ a = ZZFromString(enc);
+    ZZ b = ZZFromString(enc);
+    ZZ n2 = ZZFromString(cm->getPKInfo());
+
     for (unsigned int i = 0; i < notestsagg ; i++) {
-        res = homomorphicAdd(enc, enc, cm->getPKInfo());
-        enc = res;
-        prevent_compiler_optimiz += res.size();
+        a = MulMod(a, b, n2);
+        prevent_compiler_optimiz += a.size();
     }
 
-
-    double timeAdd = t.lap_ms()/ notests;
+    double timeAdd = t.lap_ms()/ notestsagg;
 
     if (prevent_compiler_optimiz % 297973 == 0) {
         cerr << "lucky case\n";
     }
-
 
     cerr << "HOM encrypt " << timeEnc << "ms HOM decrypt " << timeDec << "ms HOM add "
             << timeAdd << "ms \n";
