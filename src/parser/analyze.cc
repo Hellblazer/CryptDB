@@ -707,6 +707,47 @@ class CItemCharcast : public CItemSubtypeFT<Item_char_typecast, Item_func::Funct
 
 
 /*
+ * Some helper functions.
+ */
+static void
+process_table_list(List<TABLE_LIST> *tll)
+{
+    /*
+     * later, need to rewrite different joins, e.g.
+     * SELECT g2_ChildEntity.g_id, IF(ai0.g_id IS NULL, 1, 0) AS albumsFirst, g2_Item.g_originationTimestamp FROM g2_ChildEntity LEFT JOIN g2_AlbumItem AS ai0 ON g2_ChildEntity.g_id = ai0.g_id INNER JOIN g2_Item ON g2_ChildEntity.g_id = g2_Item.g_id INNER JOIN g2_AccessSubscriberMap ON g2_ChildEntity.g_id = g2_AccessSubscriberMap.g_itemId ...
+     */
+
+    List_iterator<TABLE_LIST> join_it(*tll);
+    for (;;) {
+        TABLE_LIST *t = join_it++;
+        if (!t)
+            break;
+
+        if (t->nested_join) {
+            process_table_list(&t->nested_join->join_list);
+            return;
+        }
+
+        if (t->on_expr) {
+            /* just call rewrite and ignore result, for now.. */
+            rewrite(t->on_expr);
+        }
+
+        std::string db(t->db, t->db_length);
+        std::string table_name(t->table_name, t->table_name_length);
+        std::string alias(t->alias);
+
+        if (t->derived) {
+            // XXX handle sub-selects..
+            cerr << "sub-select derived table...";
+
+            st_select_lex_unit *u = t->derived;
+        }
+    }
+}
+
+
+/*
  * Test harness.
  */
 static void
@@ -759,30 +800,8 @@ xftest(const std::string &db, const std::string &q)
             }
             lex.select_lex.item_list = new_item_list;
 
-            /*
-             * XXX handle different joins, e.g.
-             * SELECT g2_ChildEntity.g_id, IF(ai0.g_id IS NULL, 1, 0) AS albumsFirst, g2_Item.g_originationTimestamp FROM g2_ChildEntity LEFT JOIN g2_AlbumItem AS ai0 ON g2_ChildEntity.g_id = ai0.g_id INNER JOIN g2_Item ON g2_ChildEntity.g_id = g2_Item.g_id INNER JOIN g2_AccessSubscriberMap ON g2_ChildEntity.g_id = g2_AccessSubscriberMap.g_itemId ...
-             */
-            auto join_it = List_iterator<TABLE_LIST>(
-                lex.select_lex.top_join_list);
-            List<TABLE_LIST> new_join_list;
-            for (;; ) {
-                TABLE_LIST *t = join_it++;
-                if (!t)
-                    break;
+            process_table_list(&lex.select_lex.top_join_list);
 
-                TABLE_LIST *nt = new TABLE_LIST();
-                std::string db(t->db, t->db_length);
-                std::string table_name(t->table_name, t->table_name_length);
-                std::string alias(t->alias);
-
-                // XXX handle sub-selects..
-                nt->init_one_table(strdup(db.c_str()), db.size(),
-                                   strdup(table_name.c_str()), table_name.size(),
-                                   strdup(alias.c_str()), t->lock_type);
-                new_join_list.push_back(nt);
-            }
-            lex.select_lex.top_join_list = new_join_list;
             if (lex.select_lex.where)
                 lex.select_lex.where = rewrite(lex.select_lex.where);
 
