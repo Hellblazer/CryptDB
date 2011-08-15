@@ -31,12 +31,13 @@ static Prin u2 = Prin("u.uid","2");
 static Prin u3 = Prin("u.uid","3");
 
 static Prin g5 = Prin("g.gid","5");
-static Prin g50 = Prin("g.gid", "50");
+static Prin g2 = Prin("g.gid", "2");
 
 static Prin f2 = Prin("f.fid","2");
 static Prin f3 = Prin("f.fid","3");
 
 static Prin mlwork = Prin("x.mailing_list","work");
+static Prin ml50 = Prin("x.mailing_list","50");
 
 static Prin a5 = Prin("u.acc","5");
 
@@ -666,40 +667,42 @@ testThreshold(const TestConfig &tc, KeyAccess * am) {
     buildBasic(am);
     am->insertPsswd(chris,secretC);
     am->insert(chris, u3);
-    string g50_key1;
-    string g50_key;
-    for (unsigned int i = 6; i < 110; i++) {
-        Prin group = Prin("g.gid", strFromVal(i));
-        am->insert(u3,group);
+    am->insert(u3,g2);
+    string ml50_key1;
+    string ml50_key;
+    for (unsigned int i = 1; i < 110; i++) {
+        Prin ml = Prin("x.mailing_list", strFromVal(i));
+        am->insert(g2, ml);
         if(i == 50) {
-            g50_key = am->getKey(g50);
-            record(tc, g50_key.length() > 0,
-                     test+"could not access g50 key just after it's inserted");
-            g50_key1 = marshallBinary(g50_key);
+            ml50_key = am->getKey(ml50);
+            record(tc, ml50_key.length() > 0,
+                     test+"could not access ml50 key just after it's inserted");
+            ml50_key1 = marshallBinary(ml50_key);
         }
     }
 
     am->removePsswd(chris);
-    g50_key = am->getKey(g50);
-    record(tc, g50_key.length() == 0, test+"g50 key available after chris logs off");
+    ml50_key = am->getKey(ml50);
+    record(tc, ml50_key.length() == 0, test+"ml50 key available after chris logs off");
     am->insertPsswd(chris, secretC);
-    PrinKey g50_pkey = am->getUncached(g50);
-    record(tc,g50_pkey.key.length() != 0,
-           test+"can't access g50 key after chris logs back on");
-    g50_key = am->getKey(g50);
-    string g50_key2 = marshallBinary(g50_key);
-    record(tc, g50_key1.compare(
-                                g50_key2) == 0,
-           test+"group 50 key is different after chris logs on and off");
+    record(tc, am->getKey(u3).length() != 0, test+"can't access u3 key after chris logs back on");
+    PrinKey ml50_pkey = am->getUncached(ml50);
+    record(tc,ml50_pkey.key.length() != 0,
+           test+"can't access ml50 key after chris logs back on");
+    ml50_key = am->getKey(ml50);
+    string ml50_key2 = marshallBinary(ml50_key);
+    record(tc, ml50_key1.compare(
+                                ml50_key2) == 0,
+           test+"ml 50 key is different after chris logs on and off");
 
     for (unsigned int i = 6; i < 110; i++) {
-        Prin group = Prin("g.gid", strFromVal(i));
-        am->remove(u3,group);
+        Prin ml = Prin("x.mailing_list", strFromVal(i));
+        am->remove(g2,ml);
     }
 
-    g50_key = am->getKey(g50);
-    record(tc, g50_key.length() == 0,
-             "g50 key exists after the hundred group keys have been removed");
+    ml50_key = am->getKey(ml50);
+    record(tc, ml50_key.length() == 0,
+             "ml50 key exists after the hundred group keys have been removed");
 }
 
 void

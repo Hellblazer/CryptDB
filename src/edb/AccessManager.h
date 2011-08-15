@@ -26,6 +26,11 @@ using namespace std;
  *  and/or has other fields encrypted for it
  * a generic principal is a collection of principal that all refer to the same
  *  values
+ *
+ *
+ * ASSUMPTION: only terminal (does not have access to anything) principals 
+ *  have > THRESHOLD keys
+ *
  */
 
 //TODO: fix PRINCVALUE to be application dependent
@@ -271,7 +276,10 @@ class KeyAccess {
 
     //inserts a givesPsswd value
     //if the value has access to other principals, all those keys are accessed
-    // and decrypted
+    // and decrypted if there are fewer of them than THRESHOLD
+    // if there are more keys than THRESHOLD, this Prin.type->Prin.type
+    //   information is stored in uncached_keys
+    //assumption: only terminal principals have > THRESHOLD keys
     //requires: psswd be of length AES_KEY_BYTES
     int insertPsswd(Prin gives, const string &psswd);
 
@@ -286,9 +294,10 @@ class KeyAccess {
     //describes keys currently held by the proxy
     map<Prin, PrinKey> keys;
     //describes uncached keys accessible in the database
-    // string is the gen of the accessTo key; principal Prin has access to the
-    // key
-    map<string, std::set<Prin> > uncached_keys;
+    // the first string is the gen of the accessTo key; the second string is a
+    //  gen which has access to the key, and the int is the number of values
+    //  (Prins) which have uncached keys of the type of the first string
+    map<string, map<string, int> > uncached_keys;
 
     //describe all chains disconnected from a physical principal
     map<Prin, std::set<Prin> > orphanToParents;

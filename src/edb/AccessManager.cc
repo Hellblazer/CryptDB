@@ -1055,10 +1055,10 @@ KeyAccess::removeFromOrphans(Prin orphan)
 string
 KeyAccess::getKey(Prin prin)
 {
-    LOG(am_v) << "getKey (" << prin.type << ", " << prin.value << ") \n";
     if(prin.gen == "") {
         prin.gen = meta->getGenericPublic(prin.type);
     }
+    LOG(am_v) << "getKey (" << prin.gen << ", " << prin.value << ") \n";
     PrinKey prinkey = getPrinKey(prin);
     if(VERBOSE) {
         LOG(am_v) << "     " << prin.gen  << "=" << prin.value
@@ -1262,10 +1262,10 @@ KeyAccess::insertPsswd(Prin gives, const string &psswd)
                         *accessTo;
                     }
                     if (uncached_keys.find(*accessTo) !=
-                        uncached_keys.end()) {
-                        uncached_keys[*accessTo].insert(hasAccess_prin);
+                        uncached_keys.end() && uncached_keys[*accessTo].find(hasAccess_prin.gen) != uncached_keys[*accessTo].end()) {
+                        uncached_keys[*accessTo][hasAccess_prin.gen]++;
                     } else {
-                        uncached_keys[*accessTo] = prin_set;
+                        uncached_keys[*accessTo][hasAccess_prin.gen] = 1;
                     }
                     continue;
                 }
@@ -1337,7 +1337,6 @@ KeyAccess::removePsswd(Prin prin)
     std::set<Prin> remove_set;
     remove_set.insert(prin);
     std::set<Prin>::iterator set_it;
-    map<string, std::set<Prin> >::iterator map_it;
 
     for (hasAccessTo_gen = hasAccessTo.begin();
          hasAccessTo_gen != hasAccessTo.end(); hasAccessTo_gen++) {
@@ -1358,12 +1357,26 @@ KeyAccess::removePsswd(Prin prin)
         }
     }
 
+    std::set<string> remove_uncached;
     for(set_it = remove_set.begin(); set_it != remove_set.end(); set_it++) {
-        for(map_it = uncached_keys.begin(); map_it != uncached_keys.end();
+        for(auto map_it = uncached_keys.begin(); map_it != uncached_keys.end();
             map_it++) {
-            map_it->second.erase(*set_it);
+            auto rem_it = map_it->second.find(set_it->gen);
+            if (rem_it != map_it->second.end()) {
+                if (rem_it->second <= 1) {
+                    map_it->second.erase(set_it->gen);
+                } else {
+                    rem_it->second--;
+                }
+            }
+            if (map_it->second.size() <= 1) {
+                remove_uncached.insert(map_it->first);
+            }
         }
         removeFromKeys(*set_it);
+    }
+    for (auto rem = remove_uncached.begin(); rem != remove_uncached.end(); rem++) {
+        uncached_keys.erase(*rem);
     }
 
     return 0;
@@ -1450,17 +1463,21 @@ KeyAccess::removeFromKeys(Prin prin)
 
     //remove all this prin's uncached key references
     if (uncached_keys.find(prin.gen) != uncached_keys.end()) {
-        std::set<Prin> prinHasAccess = uncached_keys.find(prin.gen)->second;
-        std::set<Prin>::iterator set_it;
-        for (set_it = prinHasAccess.begin(); set_it != prinHasAccess.end();
+        map<string, int> typeHasAccess = uncached_keys.find(prin.gen)->second;
+        std::set<Prin> prin_set;
+        //prin_set.insert(*set_it);
+        prin_set.insert(prin);
+        for (auto set_it = typeHasAccess.begin(); set_it != typeHasAccess.end();
              set_it++) {
-            std::set<Prin> prin_set;
-            prin_set.insert(*set_it);
-            prin_set.insert(prin);
-            int count =
-                SelectCount(prin_set, meta->getTable(set_it->gen, prin.gen));
-            if (count > 0) {
-                uncached_keys[prin.gen].erase(*set_it);
+            ResType res = Select(prin_set, meta->getTable(set_it->first, prin.gen), "*");
+            bool erase = true;
+            for (auto row = res.rows.begin(); row != res.rows.end(); row++) {
+                if (row->at(0).data != set_it->first) {
+                    erase = false;
+                }
+            }
+            if (erase) {
+                uncached_keys[prin.gen].erase(set_it->first);
             }
         }
         if (uncached_keys[prin.gen].empty()) {
@@ -1755,26 +1772,25 @@ KeyAccess::getUncached(Prin prin)
     }
 
     //key could still be in db
-    std::set<Prin> prinHasAccess = uncached_keys.find(prin.gen)->second;
+    map<string, int> typeHasAccess = uncached_keys.find(prin.gen)->second;
     ResType res;
-    string hasAccess;
-    for (auto set_it = prinHasAccess.begin(); set_it != prinHasAccess.end();
+    for (auto set_it = typeHasAccess.begin(); set_it != typeHasAccess.end();
          set_it++) {
         std::set<Prin> prin_set;
         prin_set.insert(prin);
-        if (set_it->gen != hasAccess) {
-            res = Select(prin_set, meta->getTable(set_it->gen, prin.gen), "*");
-            hasAccess = set_it->gen;
-        }
+        res = Select(prin_set, meta->getTable(set_it->first, prin.gen), "*");
         for (auto row = res.rows.begin(); row != res.rows.end(); row++) {
-            if (row->at(0).data == set_it->value) {
+            Prin hasAccess;
+            hasAccess.gen = set_it->first;
+            hasAccess.value = row->at(0).data;
+            if (keys.find(hasAccess) != keys.end()) {
                 PrinKey new_prin_key;
                 if (row->at(4).null || row->at(4).data.size() == 0) {
                     // symmetric key okay
-                    new_prin_key = decryptSym(row->at(2), getKey(*set_it), row->at(3));
+                    new_prin_key = decryptSym(row->at(2), getKey(hasAccess), row->at(3));
                 } else {
                     // use asymmetric
-                    PrinKey sec_key = getSecretKey(*set_it);
+                    PrinKey sec_key = getSecretKey(hasAccess);
                     new_prin_key = decryptAsym(row->at(4), sec_key.key);
                 }
                 return new_prin_key;
