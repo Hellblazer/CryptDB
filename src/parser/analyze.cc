@@ -320,6 +320,10 @@ static class CItemNeg : public CItemSubtypeFT<Item_func_neg, Item_func::Functype
 
 static class CItemSubselect : public CItemSubtypeIT<Item_subselect, Item::Type::SUBSELECT_ITEM> {
     Item *do_rewrite(Item_subselect *i) const {
+        static int count = 0;
+        count++;
+        cerr << "sub-select " << count << endl;
+
         // XXX handle sub-selects
         return i;
     }
