@@ -613,11 +613,17 @@ class Timer {
  public:
     Timer() { lap(); }
 
+    //microseconds
     uint64_t lap() {
         uint64_t t0 = start;
         uint64_t t1 = cur_usec();
         start = t1;
         return t1 - t0;
+    }
+
+    //milliseconds
+    double lap_ms() {
+    	return ((double)lap()) / 1000.0;
     }
 
  private:

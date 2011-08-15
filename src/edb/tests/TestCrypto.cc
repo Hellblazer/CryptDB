@@ -461,9 +461,178 @@ testECJoin() {
 
 }
 
+static void
+latency_join(unsigned int notests) {
+	ECJoin * ecj = new ECJoin();
+
+		AES_KEY * baseKey = get_AES_KEY("secret key master");
+		ECJoinSK * sk1 = ecj->getSKey(baseKey, "secret key for col 1");
+		ECJoinSK * sk2 = ecj->getSKey(baseKey, "secret key for col 2");
+
+		string data = "value";
+
+		//eval encryption
+		unsigned int prevent_compiler_optimiz = 0;
+		string enc_sk1 = "";
+
+		Timer t = Timer();
+
+		for (unsigned int i = 0; i < notests ; i++) {
+			enc_sk1 = ecj->encrypt(sk1, data);
+			prevent_compiler_optimiz += enc_sk1.size();
+		}
+
+		double timeEnc = t.lap_ms() / notests;
+
+		if (prevent_compiler_optimiz % 297973 == 0) {
+			cerr << "lucky case\n";
+		}
+
+		//eval adjusting
+
+		ECDeltaSK * delta = ecj->getDeltaKey(sk1, sk2);
+		string enc_sk2 = ecj->encrypt(sk2, data);
+
+		prevent_compiler_optimiz = 0;
+		string enc_sk1TOsk2 = "";
+
+		t.lap();
+
+		for (unsigned int i = 0; i < notests ; i++) {
+			enc_sk1TOsk2 = ECJoin::adjust(delta, enc_sk1);
+			prevent_compiler_optimiz += enc_sk1TOsk2.size();
+		}
+
+		double timeJoin = t.lap_ms() / notests;
+
+		if (prevent_compiler_optimiz % 297973 == 0) {
+				cerr << "lucky case\n";
+		}
+
+		//just making sure everything worked
+		assert_s(enc_sk1TOsk2 == enc_sk2, "something went wrong");
+
+		cerr << "join encrypt " << timeEnc << "ms join adjust " << timeJoin << "ms \n";
+
+}
+
+static void
+latency_search(unsigned int notests) {
+
+	Binary key("secret key maste");
+
+	list<Binary> * words = new list<Binary>();
+
+	for (unsigned int i = 0; i < notests; i++) {
+		words->push_back(Binary(randomBytes(SWPCiphSize-1)));
+	}
+
+
+	//eval encryption
+
+	Timer t = Timer();
+
+	list<Binary> * encs = SWP::encrypt(key, *words);
+
+	double timeEnc = t.lap_ms() / notests;
+
+	//eval decryption
+
+	t.lap();
+
+	list<Binary> * decs = SWP::decrypt(key, *encs);
+
+	double timeDec = t.lap_ms() / notests;
+
+	//sanity check
+	assert_s(words->front() == decs->front(), "something went wrong");
+
+	//evaluate search
+
+	Token token = SWP::token(key, words->back());
+
+	t.lap();
+
+	list<unsigned int> * search_res = SWP::search(token, *encs);
+
+	double timeSearch = t.lap_ms()/ notests;
+
+	//sanity check
+	assert_s(search_res->size() > 0 && search_res->back() == words->size() - 1, "did not find the word");
+
+	cerr << "SWP encrypt " << timeEnc << "ms SWP decrypt " << timeDec << "ms SWP search " << timeSearch << "ms \n";
+
+}
+/*
+static void
+latency_Paillier(unsigned int notests) {
+
+	Binary key("secret key maste");
+
+	list<Binary> * words = new list<Binary>();
+
+	for (unsigned int i = 0; i < notests; i++) {
+		words->push_back(Binary(randomBytes(SWPCiphSize-1)));
+	}
+
+
+	//eval encryption
+
+	Timer t = Timer();
+
+	list<Binary> * encs = SWP::encrypt(key, *words);
+
+	double timeEnc = t.lap_ms() / notests;
+
+	//eval decryption
+
+	t.lap();
+
+	list<Binary> * decs = SWP::decrypt(key, *encs);
+
+	double timeDec = t.lap_ms() / notests;
+
+	//sanity check
+	assert_s(words->front() == decs->front(), "something went wrong");
+
+	//evaluate search
+
+	Token token = SWP::token(key, words->back());
+
+	t.lap();
+
+	list<unsigned int> * search_res = SWP::search(token, *encs);
+
+	double timeSearch = t.lap_ms()/ notests;
+
+	//sanity check
+	assert_s(search_res->size() > 0 && search_res->back() == words->size() - 1, "did not find the word");
+
+	cerr << "SWP encrypt " << timeEnc << " SWP decrypt " << timeDec << " SWP search " << timeSearch << "\n";
+
+}
+
+*/
+
+static void
+latency() {
+
+	latency_join(3000);
+	latency_search(10000);
+	//latency_Paillier(100, 10000);
+
+}
+
 void
 TestCrypto::run(const TestConfig &tc, int argc, char ** argv)
 {
+
+	if (argc == 2) {
+		if (strcmp(argv[1], "latency") == 0) {
+			latency();
+			return;
+		}
+	}
     cerr << "TESTING CRYPTO" << endl;
     cerr << "Testing OPE..." << endl;
     testOPE();
