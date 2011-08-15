@@ -1821,18 +1821,18 @@ DROP TABLE IF EXISTS `lists`;
 CREATE TABLE `lists` (
   `id` bigint(20) NOT NULL auto_increment,
 enc all below:
-  `date` datetime default NULL,
-  `type` varchar(255) default NULL,
-  `title` varchar(255) default NULL,
-  `begdate` date default NULL,
-  `enddate` date default NULL,
+OPE  `date` datetime default NULL,
+DET OPE `type` varchar(255) default NULL,
+SEARCH NOTSUP (some upper(trim)) string manip) `title` varchar(255) default NULL,
+OPE  `begdate` date default NULL,
+OPE  `enddate` date default NULL,
   `returndate` date default NULL,
   `occurrence` int(11) default '0',
   `classification` int(11) default '0',
   `referredby` varchar(255) default NULL,
   `extrainfo` varchar(255) default NULL,
-  `diagnosis` varchar(255) default NULL,
-  `activity` tinyint(4) default NULL,
+NOT SUPPORTED substring  `diagnosis` varchar(255) default NULL,
+DET SEARCH  `activity` tinyint(4) default NULL,
   `comments` longtext,
   `pid` bigint(20) default NULL,
   `user` varchar(255) default NULL,
@@ -1847,7 +1847,7 @@ enc all below:
 stop enc all
   PRIMARY KEY  (`id`)
 ) ENGINE=MyISAM AUTO_INCREMENT=1 ;
-
+very sensitive: type, title, classification, extrainfo, diagnosis, comments, outcome, injury*, reaction: 11 , 9 supported, 8 at high
 -- --------------------------------------------------------
 
 -- 
@@ -1858,20 +1858,20 @@ DROP TABLE IF EXISTS `log`;
 CREATE TABLE `log` (
   `id` bigint(20) NOT NULL auto_increment,
 enc all below:
-  `date` datetime default NULL,
-  `event` varchar(255) default NULL,
+OPE not supported string op LEFT  `date` datetime default NULL,
+DET SEARCH  `event` varchar(255) default NULL,
   `user` varchar(255) default NULL,
   `groupname` varchar(255) default NULL,
-  `comments` longtext,
+SEARCH  `comments` longtext,
   `user_notes` longtext,
-  `patient_id` bigint(20) default NULL,
-  `success` tinyint(1) default 1,
+stop enc all 
+ `patient_id` bigint(20) default NULL,
+enc  `success` tinyint(1) default 1,
   `checksum` longtext default NULL,
-  `crt_user` varchar(255) default NULL,
-stop enc all;
+enc  `crt_user` varchar(255) default NULL,
   PRIMARY KEY  (`id`)
 ) ENGINE=MyISAM AUTO_INCREMENT=1 ;
-
+sensitive total: 8, not supported 1, 0 OPE, 1  DET, 1 SEARCH, 5 RND, 2 HAVE SEARCH; very sensitive 6/7
 -- --------------------------------------------------------
 
 -- 
@@ -2139,9 +2139,9 @@ CREATE TABLE `patient_data` (
   `id` bigint(20) NOT NULL auto_increment,
 enc all below:
   `title` varchar(255) NOT NULL default '',
-  `language` varchar(255) NOT NULL default '',
+not supported lower  `language` varchar(255) NOT NULL default '',
   `financial` varchar(255) NOT NULL default '',
-  `fname` varchar(255) NOT NULL default '',
+Not supp lower `fname` varchar(255) NOT NULL default '',
   `lname` varchar(255) NOT NULL default '',
   `mname` varchar(255) NOT NULL default '',
   `DOB` date default NULL,
@@ -2157,16 +2157,16 @@ enc all below:
   `phone_biz` varchar(255) NOT NULL default '',
   `phone_contact` varchar(255) NOT NULL default '',
   `phone_cell` varchar(255) NOT NULL default '',
-  `pharmacy_id` int(11) NOT NULL default '0',
+not enc  `pharmacy_id` int(11) NOT NULL default '0',
   `status` varchar(255) NOT NULL default '',
   `contact_relationship` varchar(255) NOT NULL default '',
   `date` datetime default NULL,
   `sex` varchar(255) NOT NULL default '',
   `referrer` varchar(255) NOT NULL default '',
-  `referrerID` varchar(255) NOT NULL default '',
-  `providerID` int(11) default NULL,
+not enc  `referrerID` varchar(255) NOT NULL default '',
+not enc  `providerID` int(11) default NULL,
   `email` varchar(255) NOT NULL default '',
-  `ethnoracial` varchar(255) NOT NULL default '',
+ NOT supp lower `ethnoracial` varchar(255) NOT NULL default '',
   `race` varchar(255) NOT NULL default '',
   `ethnicity` varchar(255) NOT NULL default '',
   `interpretter` varchar(255) NOT NULL default '',
@@ -2175,8 +2175,8 @@ enc all below:
   `monthly_income` varchar(255) NOT NULL default '',
   `homeless` varchar(255) NOT NULL default '',
   `financial_review` datetime default NULL,
-  `pubpid` varchar(255) NOT NULL default '',
-  `pid` bigint(20) NOT NULL default '0',
+not enc  `pubpid` varchar(255) NOT NULL default '',
+not enc  `pid` bigint(20) NOT NULL default '0',
   `genericname1` varchar(255) NOT NULL default '',
   `genericval1` varchar(255) NOT NULL default '',
   `genericname2` varchar(255) NOT NULL default '',
@@ -2205,7 +2205,7 @@ enc all below:
   `userlist5` varchar(255) NOT NULL DEFAULT '',
   `userlist6` varchar(255) NOT NULL DEFAULT '',
   `userlist7` varchar(255) NOT NULL DEFAULT '',
-  `pricelevel` varchar(255) NOT NULL default 'standard',
+DET JOIN  `pricelevel` varchar(255) NOT NULL default 'standard',
   `regdate`     date DEFAULT NULL COMMENT 'Registration Date',
   `contrastart` date DEFAULT NULL COMMENT 'Date contraceptives initially used',
   `completed_ad` VARCHAR(3) NOT NULL DEFAULT 'NO',
@@ -2220,7 +2220,7 @@ end enc all
   UNIQUE KEY `pid` (`pid`),
   KEY `id` (`id`)
 ) ENGINE=MyISAM AUTO_INCREMENT=1 ;
-
+72 sensitive fields, 3 not supported due to lower string, 1 DET 
 -- --------------------------------------------------------
 
 -- 
@@ -2437,14 +2437,14 @@ DROP TABLE IF EXISTS `prescriptions`;
 CREATE TABLE `prescriptions` (
   `id` int(11) NOT NULL auto_increment,
   `patient_id` int(11) default NULL,
-enc all:
   `filled_by_id` int(11) default NULL,
   `pharmacy_id` int(11) default NULL,
+enc all:
   `date_added` date default NULL,
   `date_modified` date default NULL,
-  `provider_id` int(11) default NULL,
-  `start_date` date default NULL,
-  `drug` varchar(150) default NULL,
+not enc  `provider_id` int(11) default NULL,
+OPE  `start_date` date default NULL,
+DET  `drug` varchar(150) default NULL,
   `drug_id` int(11) NOT NULL default '0',
   `form` int(3) default NULL,
   `dosage` varchar(100) default NULL,
@@ -2463,7 +2463,7 @@ enc all:
 end enc
   PRIMARY KEY  (`id`)
 ) ENGINE=MyISAM AUTO_INCREMENT=1 ;
-
+19 sensitive, 1 DET, 1 OPE
 -- --------------------------------------------------------
 
 -- 
