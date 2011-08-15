@@ -36,3 +36,13 @@ enc        "calendar_title C(255) NOTNULL DEFAULT '',\n" . DET
 
 Rationale for choosing sensitive fields:
 -- there is one calendar per user so its identifier "calendar" is not encrypted
+
+Overall: 12 encrypted fields
+ 2 not supported
+ RND: 3
+ DET: 4 (3 unique)
+ OPE: 1 (only ORDER, no LIMIT)
+ SEARCH: 2 
+
+very sensitive: subject, description, uname, password, 
+SEARCH on subject not considered in HIGH as it is a small text

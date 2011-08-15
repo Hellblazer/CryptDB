@@ -22,6 +22,7 @@
 #include "Equation.h"
 #include "cryptdb_log.h"
 
+#include "test_utils.h"
 #include "TestSinglePrinc.h"
 #include "TestMultiPrinc.h"
 #include "TestCrypto.h"
@@ -31,7 +32,16 @@
 
 using namespace std;
 
-clock_t timeStart;
+static string __attribute__((unused))
+padPasswd(const string &s)
+{
+    string r = s;
+    r.resize(AES_KEY_BYTES, '0');
+    return r;
+}
+
+
+static clock_t timeStart;
 
 static void
 startTimer ()
@@ -39,23 +49,12 @@ startTimer ()
     timeStart = time(NULL);
 }
 
-// in msecs
 static double
 readTimer()
 {
     clock_t currentTime = time(NULL);
-    //cout << "curr time " << currentTime << "timeStart " <<timeStart << "\n";
-    //cout << "clocks per sec " << CLOCKS_PER_SEC << "\n";
     double res = (double) (currentTime - timeStart) * 1000.0;
     return res;
-}
-
-static string __attribute__((unused))
-padPasswd(const string &s)
-{
-    string r = s;
-    r.resize(AES_KEY_BYTES, '0');
-    return r;
 }
 
 static void __attribute__((unused))
