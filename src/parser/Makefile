@@ -23,12 +23,15 @@ LDFLAGS  := -L$(MYBUILD)/sql -lsql -lpartition \
 	    -L$(MYBUILD)/strings -lstrings \
 	    -lpthread -lrt -ldl -lz -lcrypt -lbsd
 
-all:	parsetest xftest
+all:	parsetest xftest analyze
 
 parsetest: parsetest.o mysql_glue.o
 	$(CXX) $^ -o $@ $(LDFLAGS)
 
 xftest: xftest.o mysql_glue.o
+	$(CXX) $^ -o $@ $(LDFLAGS)
+
+analyze: analyze.o mysql_glue.o
 	$(CXX) $^ -o $@ $(LDFLAGS)
 
 %.o: %.cc $(wildcard *.h)

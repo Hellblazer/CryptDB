@@ -1,4 +1,5 @@
 /config.mk
 /parsetest
 /xftest
+/analyze
 /*.o

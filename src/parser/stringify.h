@@ -121,6 +121,23 @@ operator<<(ostream &out, LEX &lex)
             out << " values " << noparen(lex.many_values);
         break;
 
+    case SQLCOM_DELETE:
+        {
+            lex.query_tables->print(t, &s, QT_ORDINARY);
+            out << "delete from " << s;
+        }
+        if (lex.select_lex.where)
+            out << " where " << *lex.select_lex.where;
+        break;
+
+    case SQLCOM_COMMIT:
+        out << "commit";
+        break;
+
+    case SQLCOM_SET_OPTION:
+        out << "SET (XXX some option...)";
+        break;
+
     default:
         for (stringstream ss;;) {
             ss << "unhandled sql command " << lex.sql_command;
