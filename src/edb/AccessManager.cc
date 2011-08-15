@@ -1756,26 +1756,29 @@ KeyAccess::getUncached(Prin prin)
 
     //key could still be in db
     std::set<Prin> prinHasAccess = uncached_keys.find(prin.gen)->second;
-    std::set<Prin>::iterator set_it;
-    for (set_it = prinHasAccess.begin(); set_it != prinHasAccess.end();
+    ResType res;
+    string hasAccess;
+    for (auto set_it = prinHasAccess.begin(); set_it != prinHasAccess.end();
          set_it++) {
         std::set<Prin> prin_set;
-        prin_set.insert(*set_it);
         prin_set.insert(prin);
-        ResType res =
-            Select(prin_set, meta->getTable(set_it->gen, prin.gen), "*");
-        if (res.rows.size() > 0) {
-            PrinKey new_prin_key;
-            if (res.rows[0][4].null || res.rows[0][4].data.size() == 0) {
-                // symmetric key okay
-                new_prin_key = decryptSym(res.rows[0][2],
-                                          getKey(*set_it), res.rows[0][3]);
-            } else {
-                // use asymmetric
-                PrinKey sec_key = getSecretKey(*set_it);
-                new_prin_key = decryptAsym(res.rows[0][4], sec_key.key);
+        if (set_it->gen != hasAccess) {
+            res = Select(prin_set, meta->getTable(set_it->gen, prin.gen), "*");
+            hasAccess = set_it->gen;
+        }
+        for (auto row = res.rows.begin(); row != res.rows.end(); row++) {
+            if (row->at(0).data == set_it->value) {
+                PrinKey new_prin_key;
+                if (row->at(4).null || row->at(4).data.size() == 0) {
+                    // symmetric key okay
+                    new_prin_key = decryptSym(row->at(2), getKey(*set_it), row->at(3));
+                } else {
+                    // use asymmetric
+                    PrinKey sec_key = getSecretKey(*set_it);
+                    new_prin_key = decryptAsym(row->at(4), sec_key.key);
+                }
+                return new_prin_key;
             }
-            return new_prin_key;
         }
     }
     return empty;
