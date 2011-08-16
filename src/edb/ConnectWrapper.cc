@@ -173,7 +173,8 @@ decrypt(lua_State *L)
     catch(CryptDBError e) {
         lua_pushnil(L);
         lua_pushnil(L);
-        return 2;
+        lua_pushnil(L);
+        return 3;
     }
 
     /* return autoinc value for this query */

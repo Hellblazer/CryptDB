@@ -529,7 +529,6 @@ static QueryList ManyConnections = QueryList("Multiple connections",
       Query("INSERT INTO "+PWD_TABLE_PREFIX+"u_conn (username, psswd) VALUES ('bob','secretB')",false),
       Query("INSERT INTO u_conn VALUES (1, 'alice')",false),
       Query("INSERT INTO u_conn VALUES (2, 'bob')",false),
-      Query("SELECT LAST_INSERT_ID()",false),
       Query("INSERT INTO privmsg (msgid, recid, senderid) VALUES (9, 1, 2)", false),
       Query("SELECT LAST_INSERT_ID()",false),
       Query("INSERT INTO forum (title) VALUES ('my first forum')", false),
@@ -556,7 +555,7 @@ static QueryList ManyConnections = QueryList("Multiple connections",
       Query("SELECT post.* FROM post, forum WHERE post.forumid = forum.forumid AND forum.title = 'two fish'",false),
       Query("SELECT msgtext FROM msgs, privmsg, u_conn WHERE username = 'alice' AND userid = recid AND msgs.msgid = privmsg.msgid", false),
       Query("INSERT INTO msgs VALUES (9, 'message for alice from bob')", false),
-      Query("SELECT LAST_INSERT_ID()",false),
+            //Query("SELECT LAST_INSERT_ID()",false),
       Query("SELECT msgtext FROM msgs, privmsg, u_conn WHERE username = 'alice' AND userid = recid AND msgs.msgid = privmsg.msgid", false) },
     { "DROP TABLE msgs",
       "DROP TABLE privmsg",
@@ -995,12 +994,9 @@ RunTest(const TestConfig &tc) {
         control->restart();
     }
     CheckQueryList(tc, Null);
-    if (test_type == PROXYMULTI || test_type == MULTI) {
-        test->restart();
-    }
-    if (control_type == PROXYMULTI) {
-        control->restart();
-    }
+    //everything has to restart so that last_insert_id() are lined up
+    test->restart();
+    control->restart();
     CheckQueryList(tc, ManyConnections);
 
     test->stop();
