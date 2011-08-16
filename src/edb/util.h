@@ -98,6 +98,12 @@ typedef PGresult DBResult_native;
 
 class SqlItem;
 
+typedef struct AutoInc {
+    AutoInc(string fieldval=""):incvalue(0), field(fieldval) {}
+    my_ulonglong incvalue;
+    string field;
+} AutoInc;
+
 class ResType {
  public:
     explicit ResType(bool okflag = true) : ok(okflag) {}
@@ -106,6 +112,7 @@ class ResType {
     vector<string> names;
     vector<enum_field_types> types;
     vector<vector<SqlItem> > rows;
+    AutoInc ai;
 };
 
 typedef struct CryptDBError {
@@ -120,12 +127,6 @@ typedef enum fieldType {TYPE_TEXT, TYPE_INTEGER, TYPE_AGG_RESULT_COUNT,
                         TYPE_AGG_RESULT_SUM, TYPE_AGG_RESULT_SET,
                         TYPE_OPE} fieldType;
 typedef enum onion {oDET, oOPE, oAGG, oNONE, oSWP, oINVALID} onion;
-
-typedef struct AutoInc {
-    AutoInc(string fieldval=""):incvalue(0), field(fieldval) {}
-    my_ulonglong incvalue;
-    string field;
-} AutoInc;
 
 typedef struct ParserMeta {
     std::set<string> clauseKeywords_p;

@@ -176,6 +176,8 @@ decrypt(lua_State *L)
         return 2;
     }
 
+    /* return autoinc value for this query */
+    lua_pushinteger(L,rd.ai.incvalue);
 
     /* return decrypted result set */
     lua_newtable(L);
@@ -221,7 +223,7 @@ decrypt(lua_State *L)
         lua_settable(L, t_rows);
     }
 
-    return 2;
+    return 3;
 }
 
 static const struct luaL_reg

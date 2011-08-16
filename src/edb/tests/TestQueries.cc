@@ -1069,9 +1069,34 @@ TestQueries::run(const TestConfig &tc, int argc, char ** argv) {
              << "    proxy-multi" << endl
              << "single and multi make connections through EDBProxy" << endl
              << "proxy-* makes connections *'s encryption type through the proxy" << endl
-             << "num_conn is the number of conns made to a single db (default 1)" << endl;
+             << "num_conn is the number of conns made to a single db (default 1)" << endl
+             << "    for num_conn > 1, control and test should both be proxy-* for valid results" << endl;
         return;
     }        
+
+    if (no_conn > 1) {
+        switch(test_type) {
+        case UNENCRYPTED:
+        case SINGLE:
+        case MULTI:
+            if (control_type == PROXYPLAIN || control_type == PROXYSINGLE || control_type == PROXYMULTI) {
+                cerr << "cannot compare proxy-* vs non-proxy-* when there are multiple connections" << endl;
+                return;
+            }
+            break;
+        case PROXYPLAIN:
+        case PROXYSINGLE:
+        case PROXYMULTI:
+            if (control_type == UNENCRYPTED || control_type == SINGLE || control_type == MULTI) {
+                cerr << "cannot compare proxy-* vs non-proxy-* when there are multiple connections" << endl;
+                return;
+            }
+            break;
+        default:
+            cerr << "test_type does not exist" << endl;
+        }
+    }
+
 
     TestConfig control_tc = TestConfig();
     control_tc.db = control_tc.db+"_control";

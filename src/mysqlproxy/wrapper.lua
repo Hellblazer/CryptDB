@@ -116,13 +116,13 @@ function read_query_result_real(inj)
             end
         end
 
-        dfields, drows = CryptDB.decrypt(proxy.connection.client.src.name,
+        ai, dfields, drows = CryptDB.decrypt(proxy.connection.client.src.name,
                                          fields, rows)
 
         if dfields and drows then
             proxy.response.type = proxy.MYSQLD_PACKET_OK
             proxy.response.affected_rows = inj.resultset.affected_rows
-            proxy.response.insert_id = inj.resultset.insert_id
+            proxy.response.insert_id = ai
             if table.maxn(dfields) > 0 then
                 proxy.response.resultset = { fields = dfields, rows = drows }
             end
