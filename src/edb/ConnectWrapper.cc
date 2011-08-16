@@ -177,7 +177,7 @@ decrypt(lua_State *L)
     }
 
     /* return autoinc value for this query */
-    lua_pushinteger(L,rd.ai.incvalue);
+    lua_pushinteger(L,(lua_Integer)rd.ai.incvalue);
 
     /* return decrypted result set */
     lua_newtable(L);

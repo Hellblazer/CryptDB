@@ -3153,11 +3153,32 @@ EDBProxy::decryptResults(const string &query, const ResType &dbAnswer)
     switch (com) {
     case cmd::SELECT:
         return rewriteDecryptSelect(query, dbAnswer);
+    case cmd::INSERT:
+        return rewriteDecryptInsert(query, dbAnswer);
 
     default:
         return dbAnswer;
     }
 }
+
+ResType
+EDBProxy::rewriteDecryptInsert(const string &query, const ResType &dbAnswer) {
+    //parse
+    list<string> words = getSQLWords(query);
+
+    //get Table
+    list<string>::iterator it = itAtKeyword(words, "from");
+
+    it++;
+    string table = *it;
+
+    ResType res = dbAnswer;
+    res.ai = tableMetaMap[table]->ai;
+
+    return res;
+
+}
+
 
 void
 EDBProxy::dropTables()

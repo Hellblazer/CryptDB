@@ -117,6 +117,8 @@ class EDBProxy {
     string processValsToInsert(string field, string table, uint64_t salt,
                                string value, TMKM & tmkm, bool null = false);
 
+    ResType rewriteDecryptInsert(const string &query, const ResType &dbAnswer);
+
     //FILTERS ("WHERE")
     //process where clause
     list<string>

@@ -1,4 +1,4 @@
-This folder contains source code and queries for various applications.
+This folder contains source code and queries for various applications for our security analysis.
 
 In all apps, we analyze the schema and knowledge of the app to determine sensitive fields.
 
