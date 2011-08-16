@@ -2492,12 +2492,24 @@ throw (CryptDBError)
     return res;
 }
 
+static my_ulonglong max (my_ulonglong a, my_ulonglong b) {
+	if (a>b) {
+		return a;
+	}
+	return b;
+}
+
 string
 EDBProxy::processValsToInsert(string field, string table, uint64_t salt,
                                string value, TMKM & tmkm, bool null)
 {
 
-    FieldMetadata * fm = tableMetaMap[table]->fieldMetaMap[field];
+    TableMetadata * tm = tableMetaMap[table];
+	FieldMetadata * fm = tm->fieldMetaMap[field];
+
+	if (tm->ai.field == field) {
+		tm->ai.incvalue = max(tm->ai.incvalue, valFromStr(value));
+	}
 
     if (!fm->isEncrypted) {
         return value;
@@ -2595,7 +2607,6 @@ EDBProxy::processValsToInsert(string field, string table, uint64_t salt,
 static pair<string, bool>
 getInitValue(TableMetadata * tm, string field)
 {
-
     // FieldMetadata * fm = tm->fieldMetaMap[field];
 
     //check if field has autoinc
@@ -3174,6 +3185,8 @@ EDBProxy::rewriteDecryptInsert(const string &query, const ResType &dbAnswer) {
 
     ResType res = dbAnswer;
     res.ai = tableMetaMap[table]->ai;
+
+    cerr << "returning with insert inc val " << res.ai.incvalue << "\n";
 
     return res;
 

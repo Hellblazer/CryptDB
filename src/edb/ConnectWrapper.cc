@@ -177,6 +177,7 @@ decrypt(lua_State *L)
         return 3;
     }
 
+    cerr << "ConnectWrapper ai " << rd.ai.incvalue << endl;
     /* return autoinc value for this query */
     lua_pushinteger(L,(lua_Integer)rd.ai.incvalue);
 

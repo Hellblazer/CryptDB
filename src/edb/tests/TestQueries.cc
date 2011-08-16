@@ -533,18 +533,19 @@ static QueryList ManyConnections = QueryList("Multiple connections",
       Query("SELECT LAST_INSERT_ID()",false),
       Query("INSERT INTO forum (title) VALUES ('my first forum')", false),
       Query("SELECT LAST_INSERT_ID()",false),
+      Query("INSERT INTO forum VALUES (11, 'testtest')",false),
       Query("INSERT INTO post (forumid, posttext, author) VALUES (1,'first post in first forum!', 1)",false),
       Query("SELECT LAST_INSERT_ID()",false),
       Query("INSERT INTO msgs (msgtext) VALUES ('hello world')", false),
       Query("SELECT LAST_INSERT_ID()",false),
       Query("INSERT INTO forum (title) VALUES ('two fish')", false),
-      Query("INSERT INTO post (forumid, posttext, author) VALUES (2,'red fish',2)", false),
-      Query("INSERT INTO post (forumid, posttext, author) VALUES (2,'blue fish',1)", false),
+      Query("INSERT INTO post (forumid, posttext, author) VALUES (12,'red fish',2)", false),
+      Query("INSERT INTO post (forumid, posttext, author) VALUES (12,'blue fish',1)", false),
       Query("SELECT LAST_INSERT_ID()",false),
       Query("INSERT INTO msgs (msgtext) VALUES ('hello world2')", false),
       Query("SELECT LAST_INSERT_ID()",false),
-      Query("INSERT INTO post (forumid, posttext, author) VALUES (2,'black fish, blue fish',1)", false),
-      Query("INSERT INTO post (forumid, posttext, author) VALUES (2,'old fish, new fish',2)", false),
+      Query("INSERT INTO post (forumid, posttext, author) VALUES (12,'black fish, blue fish',1)", false),
+      Query("INSERT INTO post (forumid, posttext, author) VALUES (12,'old fish, new fish',2)", false),
       Query("SELECT LAST_INSERT_ID()",false),
       Query("INSERT INTO msgs (msgtext) VALUES ('hello world3')", false),
       Query("SELECT LAST_INSERT_ID()",false),
@@ -659,7 +660,8 @@ Connection::start() {
             } else {
                 setenv("CRYPTDB_MODE", "plain", 1);
             }
-            //setenv("CRYPTDB_PROXY_DEBUG","true",1);
+            if (PROXYMULTI)
+                setenv("CRYPTDB_PROXY_DEBUG","true",1);
 
             stringstream script_path, address;
             script_path << "--proxy-lua-script=" << tc.edbdir << "/../mysqlproxy/wrapper.lua";
@@ -789,10 +791,10 @@ Connection::executeConn(string query) {
 my_ulonglong
 Connection::executeLast() {
     switch(type) {
-    case UNENCRYPTED:
     case SINGLE:
     case MULTI:
         return executeLastEDB();
+    case UNENCRYPTED:
     case PROXYPLAIN:
     case PROXYSINGLE:
     case PROXYMULTI:
@@ -889,6 +891,11 @@ CheckQuery(const TestConfig &tc, string query) {
         test_res = test->executeLast();
         control_res = control->executeLast();
         if (test_res != control_res) {
+            if (tc.stop_if_fail) {
+                LOG(test) << "test last insert: " << test_res;
+                LOG(test) << "control last insert: " << control_res;
+                assert_s(false, "last insert id failed to match");
+            }
             return;
         }
         npass++;
