@@ -2605,14 +2605,16 @@ EDBProxy::processValsToInsert(string field, string table, uint64_t salt,
 // returns the value we should insert for a field for which the INSERT
 // statement does not specify a value
 static pair<string, bool>
-getInitValue(TableMetadata * tm, string field)
+getInitValue(TableMetadata * tm, string field, string & insid_query)
 {
+    insid_query = "";
     // FieldMetadata * fm = tm->fieldMetaMap[field];
 
     //check if field has autoinc
     if (tm->ai.field == field) {
         ++tm->ai.incvalue;
         LOG(edb) << "using autoincrement value" << tm->ai.incvalue;
+        insid_query = "SELECT last_insert_id("+ StringFromVal(tm->ai.incvalue) + ");";
         return make_pair(StringFromVal(tm->ai.incvalue), false);
     }
 
@@ -2625,6 +2627,8 @@ list<string>
 EDBProxy::rewriteEncryptInsert(const string &query)
 throw (CryptDBError)
 {
+
+    list<string> queries;
 
     list<string> words = getSQLWords(query);
 
@@ -2780,7 +2784,11 @@ throw (CryptDBError)
         for (addit = fieldsToAdd.begin(); addit != fieldsToAdd.end();
              addit++) {
             string field = *addit;
-            valnulls.push_back(getInitValue(tm, field));
+            string insid_query;
+            valnulls.push_back(getInitValue(tm, field, insid_query));
+            if (insid_query != "") {
+                queries.push_back(insid_query);
+            }
         }
         //cerr << "BB\n";
 
@@ -2789,7 +2797,11 @@ throw (CryptDBError)
             for (addit = princsToAdd.begin(); addit != princsToAdd.end();
                  addit++) {
                 string field = *addit;
-                valnulls.push_back(getInitValue(tm, field));
+                string insid_query;
+                valnulls.push_back(getInitValue(tm, field, insid_query));
+                if (insid_query != "") {
+                    queries.push_back(insid_query);
+                }
             }
             //insert any new hasaccessto instances
             LOG(edb_v) << "before insert relations";
@@ -2888,7 +2900,8 @@ throw (CryptDBError)
 
     resultQuery = resultQuery + ";";
 
-    return list<string>(1, resultQuery);
+    queries.push_back(resultQuery);
+    return queries;
 }
 
 list<string>
@@ -3164,32 +3177,10 @@ EDBProxy::decryptResults(const string &query, const ResType &dbAnswer)
     switch (com) {
     case cmd::SELECT:
         return rewriteDecryptSelect(query, dbAnswer);
-    case cmd::INSERT:
-        return rewriteDecryptInsert(query, dbAnswer);
 
     default:
         return dbAnswer;
     }
-}
-
-ResType
-EDBProxy::rewriteDecryptInsert(const string &query, const ResType &dbAnswer) {
-    //parse
-    list<string> words = getSQLWords(query);
-
-    //get Table
-    list<string>::iterator it = itAtKeyword(words, "from");
-
-    it++;
-    string table = *it;
-
-    ResType res = dbAnswer;
-    res.ai = tableMetaMap[table]->ai;
-
-    cerr << "returning with insert inc val " << res.ai.incvalue << "\n";
-
-    return res;
-
 }
 
 
