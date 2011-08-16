@@ -995,12 +995,9 @@ RunTest(const TestConfig &tc) {
         control->restart();
     }
     CheckQueryList(tc, Null);
-    if (test_type == PROXYMULTI || test_type == MULTI) {
-        test->restart();
-    }
-    if (control_type == PROXYMULTI) {
-        control->restart();
-    }
+    test->restart();
+    control->restart();
+   
     CheckQueryList(tc, ManyConnections);
 
     test->stop();
