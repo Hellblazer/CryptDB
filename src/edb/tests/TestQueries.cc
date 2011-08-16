@@ -607,11 +607,17 @@ Connection::restart() {
     start();
 }
 
+static uint
+alloc_port()
+{
+    static uint port = 5121;
+    return port++;
+}
+
 void
 Connection::start() {
     uint64_t mkey = 1133421234;
     string masterKey = BytesFromInt(mkey, AES_KEY_BYTES); 
-    string address = "--proxy-address=localhost:";
     switch (type) {
         //plain -- new connection straight to the DB
     case UNENCRYPTED:
@@ -635,18 +641,10 @@ Connection::start() {
         break;
         //proxy -- start proxy in separate process and initialize connection
     case PROXYPLAIN:
-        address = address + "5121";
-        this->tc.port = 5121;
     case PROXYSINGLE:
-        if (type == PROXYSINGLE) {
-            this->tc.port = 5122;
-            address = address + "5122";
-        }
     case PROXYMULTI:
-        if (type == PROXYMULTI) {
-            this->tc.port = 5123;
-            address = address + "5123";
-        }
+        tc.port = alloc_port();
+
         proxy_pid = fork();
         if (proxy_pid == 0) {
             LOG(test) << "starting proxy, pid " << getpid();
@@ -663,13 +661,16 @@ Connection::start() {
                 setenv("CRYPTDB_MODE", "plain", 1);
             }
             //setenv("CRYPTDB_PROXY_DEBUG","true",1);
-            string script_path = "--proxy-lua-script=" + tc.edbdir
-                                                       + "/../mysqlproxy/wrapper.lua";
+
+            stringstream script_path, address;
+            script_path << "--proxy-lua-script=" << tc.edbdir << "/../mysqlproxy/wrapper.lua";
+            address << "--proxy-address=localhost:" << tc.port;
+
             execlp("mysql-proxy",
                    "mysql-proxy", "--plugins=proxy",
                                   "--max-open-files=1024",
-                                  script_path.c_str(),
-                                  address.c_str(),
+                                  script_path.str().c_str(),
+                                  address.str().c_str(),
                                   "--proxy-backend-addresses=localhost:3306",
                                   (char *) 0);
             LOG(warn) << "could not execlp: " << strerror(errno);
