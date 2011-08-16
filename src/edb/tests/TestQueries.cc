@@ -533,6 +533,8 @@ static QueryList ManyConnections = QueryList("Multiple connections",
       Query("SELECT LAST_INSERT_ID()",false),
       Query("INSERT INTO forum (title) VALUES ('my first forum')", false),
       Query("SELECT LAST_INSERT_ID()",false),
+      Query("INSERT INTO forum (title) VALUES ('my first forum')", false),
+      Query("SELECT LAST_INSERT_ID()",false),
       Query("INSERT INTO forum VALUES (11, 'testtest')",false),
       Query("INSERT INTO post (forumid, posttext, author) VALUES (1,'first post in first forum!', 1)",false),
       Query("SELECT LAST_INSERT_ID()",false),
@@ -660,8 +662,7 @@ Connection::start() {
             } else {
                 setenv("CRYPTDB_MODE", "plain", 1);
             }
-            if (PROXYMULTI)
-                setenv("CRYPTDB_PROXY_DEBUG","true",1);
+            //setenv("CRYPTDB_PROXY_DEBUG","true",1);
 
             stringstream script_path, address;
             script_path << "--proxy-lua-script=" << tc.edbdir << "/../mysqlproxy/wrapper.lua";

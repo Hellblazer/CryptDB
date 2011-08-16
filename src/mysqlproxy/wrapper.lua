@@ -4,6 +4,10 @@ assert(package.loadlib(os.getenv("EDBDIR").."/libexecute.so",
 --
 -- Interception points provided by mysqlproxy
 --
+-- Note on AUTO_INCREMENT and LAST_INSERT_ID():
+--   We assume that applications call the connection's last_insert_id() 
+--   rather than using the query SELECT LAST_INSERT_ID()
+--
 
 function read_auth()
     -- Use this instead of connect_server(), to get server name
@@ -116,16 +120,13 @@ function read_query_result_real(inj)
             end
         end
 
-        ai, dfields, drows = CryptDB.decrypt(proxy.connection.client.src.name,
+        dfields, drows = CryptDB.decrypt(proxy.connection.client.src.name,
                                          fields, rows)
-        dprint("ai"..ai)
-        if (inj.resultset.insert_id) then
-            dprint("insert_id"..inj.resultset.insert_id)
-        end
+
         if dfields and drows then
             proxy.response.type = proxy.MYSQLD_PACKET_OK
             proxy.response.affected_rows = inj.resultset.affected_rows
-            proxy.response.insert_id = ai
+            proxy.response.insert_id = inj.resultset.insert_id
             if table.maxn(dfields) > 0 then
                 proxy.response.resultset = { fields = dfields, rows = drows }
             end

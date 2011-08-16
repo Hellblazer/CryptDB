@@ -173,13 +173,8 @@ decrypt(lua_State *L)
     catch(CryptDBError e) {
         lua_pushnil(L);
         lua_pushnil(L);
-        lua_pushnil(L);
-        return 3;
+        return 2;
     }
-
-    cerr << "ConnectWrapper ai " << rd.ai.incvalue << endl;
-    /* return autoinc value for this query */
-    lua_pushinteger(L,(lua_Integer)rd.ai.incvalue);
 
     /* return decrypted result set */
     lua_newtable(L);
@@ -225,7 +220,7 @@ decrypt(lua_State *L)
         lua_settable(L, t_rows);
     }
 
-    return 3;
+    return 2;
 }
 
 static const struct luaL_reg
