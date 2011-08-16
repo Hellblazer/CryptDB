@@ -60,6 +60,7 @@ class Connection {
     ~Connection();
 
     ResType execute(string query);
+    my_ulonglong executeLast();
 
     void restart();
     void start();
@@ -78,6 +79,9 @@ class Connection {
 
     ResType executeConn(string query);
     ResType executeEDBProxy(string query);
+
+    my_ulonglong executeLastConn();
+    my_ulonglong executeLastEDB();
 
     void executeFail(string query);
 };

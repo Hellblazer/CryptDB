@@ -14,7 +14,7 @@ static int ntest = 0;
 static int npass = 0;
 static test_mode control_type;
 static test_mode test_type;
-static int no_conn = 1;
+static uint64_t no_conn = 1;
 static Connection * control;
 static Connection * test;
 
@@ -697,7 +697,7 @@ Connection::start() {
                     break;
             }
 
-            for (int i = 0; i < no_conn; i++) {
+            for (uint64_t i = 0; i < no_conn; i++) {
                 Connect * c = new Connect(tc.host, tc.user, tc.pass, tc.db, tc.port);
                 conn_set.insert(c);
                 if (type == PROXYMULTI) {
@@ -785,7 +785,39 @@ Connection::executeConn(string query) {
     }
     return dbres->unpack();
 }
- 
+
+my_ulonglong
+Connection::executeLast() {
+    switch(type) {
+    case UNENCRYPTED:
+    case SINGLE:
+    case MULTI:
+        return executeLastEDB();
+    case PROXYPLAIN:
+    case PROXYSINGLE:
+    case PROXYMULTI:
+        return executeLastConn();
+    default:
+        assert_s(false, "type does not exist");
+    }
+    return 0;
+}
+
+my_ulonglong
+Connection::executeLastConn() {
+    conn++;
+    if (conn == conn_set.end()) {
+        conn = conn_set.begin();
+    }
+    return (*conn)->last_insert_id();
+} 
+
+my_ulonglong
+Connection::executeLastEDB() {
+    cerr << "No functionality for LAST_INSERT_ID() without proxy" << endl;
+    return 0;
+}
+
 //----------------------------------------------------------------------
 
 static void
@@ -806,7 +838,6 @@ CheckNULL(const TestConfig &tc, string test_query) {
     npass++;
 }
 
-
 static void
 CheckAnnotatedQuery(const TestConfig &tc, string control_query, string test_query)
 {
@@ -816,10 +847,10 @@ CheckAnnotatedQuery(const TestConfig &tc, string control_query, string test_quer
     ResType test_res;
 
     LOG(test) << "control query: " << control_query;
-    if (control_query != "") {
-        control_res = control->execute(control_query);
-    } else {
+    if (control_query == "") {
         control_res = ResType(true);
+    } else {
+        control_res = control->execute(control_query);
     }
 
     LOG(test) << "test query: " << test_query;
@@ -850,6 +881,19 @@ CheckAnnotatedQuery(const TestConfig &tc, string control_query, string test_quer
 
 static void
 CheckQuery(const TestConfig &tc, string query) {
+    my_ulonglong test_res;
+    my_ulonglong control_res;
+    //TODO: should be case insensitive
+    if (query == "SELECT LAST_INSERT_ID()") {
+        ntest++;
+        test_res = test->executeLast();
+        control_res = control->executeLast();
+        if (test_res != control_res) {
+            return;
+        }
+        npass++;
+        return;
+    }
     CheckAnnotatedQuery(tc, query, query);
 }
 
@@ -1017,7 +1061,7 @@ TestQueries::run(const TestConfig &tc, int argc, char ** argv) {
     switch(argc) {
     case 4:
         //TODO check that argv[3] is a proper int-string
-        no_conn = atoi(argv[3]);
+        no_conn = valFromStr(argv[3]);
     case 3:
         if (strncmp(argv[1],"plain",5) == 0) {
             control_type = UNENCRYPTED;
