@@ -71,7 +71,9 @@ class Connection {
     //connection objects for encryption test
     EDBProxy * cl;
     //connection objects for plain and proxy test
-    Connect * conn;
+    std::set<Connect *> conn_set;
+    //current connection we are on, for multiple connections
+    std::set<Connect *>::iterator conn;
     pid_t proxy_pid;
 
     ResType executeConn(string query);

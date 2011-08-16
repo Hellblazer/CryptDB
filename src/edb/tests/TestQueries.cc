@@ -506,7 +506,77 @@ static QueryList Null = QueryList("Null",
       "DROP TABLE u_null",
       "" } );
 
-
+static QueryList ManyConnections = QueryList("Multiple connections",
+    { "CREATE TABLE msgs (msgid integer PRIMARY KEY AUTO_INCREMENT, msgtext text)",
+      "CREATE TABLE privmsg (msgid integer, recid integer, senderid integer)",
+      "CREATE TABLE forum (forumid integer AUTO_INCREMENT PRIMARY KEY, title text)",
+      "CREATE TABLE post (postid integer AUTO_INCREMENT PRIMARY KEY, forumid integer, posttext text, author integer)",
+      "CREATE TABLE u_conn (userid integer, username text)",
+      "CREATE TABLE "+PWD_TABLE_PREFIX+"u_conn (username text, psswd text)" },
+    { "CREATE TABLE msgs (msgid integer PRIMARY KEY AUTO_INCREMENT, msgtext enc text)",
+      "CREATE TABLE privmsg (msgid integer, recid enc integer, senderid enc integer)",
+      "CREATE TABLE forum (forumid integer AUTO_INCREMENT PRIMARY KEY, title enc text)",
+      "CREATE TABLE post (postid integer AUTO_INCREMENT PRIMARY KEY, forumid integer, posttext enc text, author integer)",
+      "CREATE TABLE u_conn (userid enc integer, username enc text)",
+      "CREATE TABLE "+PWD_TABLE_PREFIX+"u_conn (username text, psswd text)" },
+    { "CREATE TABLE msgs (msgid equals privmsg.msgid integer AUTO_INCREMENT PRIMARY KEY , msgtext encfor msgid text)",
+      "CREATE TABLE privmsg (msgid integer, recid equals u_conn.userid hasaccessto msgid integer, senderid hasaccessto msgid integer)",
+      "CREATE TABLE forum (forumid integer AUTO_INCREMENT PRIMARY KEY, title text)",
+      "CREATE TABLE post (postid integer AUTO_INCREMENT PRIMARY KEY, forumid equals forum.forumid integer, posttext encfor forumid text, author equals u_conn.userid hasaccessto forumid integer)",
+      "CREATE TABLE u_conn (userid equals privmsg.senderid integer, username givespsswd userid text)",
+      "COMMIT ANNOTATIONS" },
+    { Query("INSERT INTO "+PWD_TABLE_PREFIX+"u_conn (username, psswd) VALUES ('alice','secretA')",false),
+      Query("INSERT INTO "+PWD_TABLE_PREFIX+"u_conn (username, psswd) VALUES ('bob','secretB')",false),
+      Query("INSERT INTO u_conn VALUES (1, 'alice')",false),
+      Query("INSERT INTO u_conn VALUES (2, 'bob')",false),
+      Query("SELECT LAST_INSERT_ID()",false),
+      Query("INSERT INTO privmsg (msgid, recid, senderid) VALUES (9, 1, 2)", false),
+      Query("SELECT LAST_INSERT_ID()",false),
+      Query("INSERT INTO forum (title) VALUES ('my first forum')", false),
+      Query("SELECT LAST_INSERT_ID()",false),
+      Query("INSERT INTO post (forumid, posttext, author) VALUES (1,'first post in first forum!', 1)",false),
+      Query("SELECT LAST_INSERT_ID()",false),
+      Query("INSERT INTO msgs (msgtext) VALUES ('hello world')", false),
+      Query("SELECT LAST_INSERT_ID()",false),
+      Query("INSERT INTO forum (title) VALUES ('two fish')", false),
+      Query("INSERT INTO post (forumid, posttext, author) VALUES (2,'red fish',2)", false),
+      Query("INSERT INTO post (forumid, posttext, author) VALUES (2,'blue fish',1)", false),
+      Query("SELECT LAST_INSERT_ID()",false),
+      Query("INSERT INTO msgs (msgtext) VALUES ('hello world2')", false),
+      Query("SELECT LAST_INSERT_ID()",false),
+      Query("INSERT INTO post (forumid, posttext, author) VALUES (2,'black fish, blue fish',1)", false),
+      Query("INSERT INTO post (forumid, posttext, author) VALUES (2,'old fish, new fish',2)", false),
+      Query("SELECT LAST_INSERT_ID()",false),
+      Query("INSERT INTO msgs (msgtext) VALUES ('hello world3')", false),
+      Query("SELECT LAST_INSERT_ID()",false),
+      Query("SELECT msgtext FROM msgs WHERE msgid=1", false),
+      Query("SELECT * FROM forum",false),
+      Query("SELECT msgtext FROM msgs WHERE msgid=2", false),
+      Query("SELECT msgtext FROM msgs WHERE msgid=3", false),
+      Query("SELECT post.* FROM post, forum WHERE post.forumid = forum.forumid AND forum.title = 'two fish'",false),
+      Query("SELECT msgtext FROM msgs, privmsg, u_conn WHERE username = 'alice' AND userid = recid AND msgs.msgid = privmsg.msgid", false),
+      Query("INSERT INTO msgs VALUES (9, 'message for alice from bob')", false),
+      Query("SELECT LAST_INSERT_ID()",false),
+      Query("SELECT msgtext FROM msgs, privmsg, u_conn WHERE username = 'alice' AND userid = recid AND msgs.msgid = privmsg.msgid", false) },
+    { "DROP TABLE msgs",
+      "DROP TABLE privmsg",
+      "DROP TABLE forum",
+      "DROP TABLE post",
+      "DROP TABLE u_conn",
+      "DROP TABLE "+PWD_TABLE_PREFIX+"u_conn" },
+    { "DROP TABLE msgs",
+      "DROP TABLE privmsg",
+      "DROP TABLE forum",
+      "DROP TABLE post",
+      "DROP TABLE u_conn",
+      "DROP TABLE "+PWD_TABLE_PREFIX+"u_conn" },
+    { "DROP TABLE msgs",
+      "DROP TABLE privmsg",
+      "DROP TABLE forum",
+      "DROP TABLE post",
+      "DROP TABLE u_conn",
+      ""} );
+    
 
 
 
@@ -515,7 +585,6 @@ static QueryList Null = QueryList("Null",
 Connection::Connection(const TestConfig &input_tc, test_mode input_type) {
     tc = input_tc;
     type = input_type;
-    conn = 0;
     cl = 0;
     proxy_pid = -1;
 
@@ -542,11 +611,16 @@ void
 Connection::start() {
     uint64_t mkey = 1133421234;
     string masterKey = BytesFromInt(mkey, AES_KEY_BYTES); 
+    string address = "--proxy-address=localhost:";
     switch (type) {
         //plain -- new connection straight to the DB
     case UNENCRYPTED:
-        conn = new Connect(tc.host, tc.user, tc.pass, tc.db, tc.port);
+    {
+        Connect * c = new Connect(tc.host, tc.user, tc.pass, tc.db, tc.port);
+        conn_set.insert(c);
+        this->conn = conn_set.begin();
         break;
+    }
         //single -- new EDBProxy
     case SINGLE:
         cl = new EDBProxy(tc.host, tc.user, tc.pass, tc.db, tc.port, false);
@@ -561,9 +635,18 @@ Connection::start() {
         break;
         //proxy -- start proxy in separate process and initialize connection
     case PROXYPLAIN:
+        address = address + "5121";
+        this->tc.port = 5121;
     case PROXYSINGLE:
+        if (type == PROXYSINGLE) {
+            this->tc.port = 5122;
+            address = address + "5122";
+        }
     case PROXYMULTI:
-        this->tc.port = 5123;
+        if (type == PROXYMULTI) {
+            this->tc.port = 5123;
+            address = address + "5123";
+        }
         proxy_pid = fork();
         if (proxy_pid == 0) {
             LOG(test) << "starting proxy, pid " << getpid();
@@ -582,12 +665,11 @@ Connection::start() {
             //setenv("CRYPTDB_PROXY_DEBUG","true",1);
             string script_path = "--proxy-lua-script=" + tc.edbdir
                                                        + "/../mysqlproxy/wrapper.lua";
-
             execlp("mysql-proxy",
                    "mysql-proxy", "--plugins=proxy",
                                   "--max-open-files=1024",
                                   script_path.c_str(),
-                                  "--proxy-address=localhost:5123",
+                                  address.c_str(),
                                   "--proxy-backend-addresses=localhost:3306",
                                   (char *) 0);
             LOG(warn) << "could not execlp: " << strerror(errno);
@@ -615,11 +697,15 @@ Connection::start() {
                     break;
             }
 
-            conn = new Connect(tc.host, tc.user, tc.pass, tc.db, tc.port);
-            if (type == PROXYMULTI) {
-                assert_s(conn->execute("DROP FUNCTION IF EXISTS test"),"dropping function test for proxy-multi");
-                assert_s(conn->execute("CREATE FUNCTION test (optionid integer) RETURNS bool RETURN optionid=20"),"creating function test for proxy-multi");
+            for (int i = 0; i < no_conn; i++) {
+                Connect * c = new Connect(tc.host, tc.user, tc.pass, tc.db, tc.port);
+                conn_set.insert(c);
+                if (type == PROXYMULTI) {
+                    assert_s(c->execute("DROP FUNCTION IF EXISTS test"),"dropping function test for proxy-multi");
+                    assert_s(c->execute("CREATE FUNCTION test (optionid integer) RETURNS bool RETURN optionid=20"),"creating function test for proxy-multi");
+                }
             }
+            this->conn = conn_set.begin();
         }
         break;
     default:
@@ -630,12 +716,6 @@ Connection::start() {
 void
 Connection::stop() {
     switch (type) {
-    case UNENCRYPTED:
-        if (conn) {
-            delete conn;
-            conn = NULL;
-        }
-        break;
     case SINGLE:
     case MULTI:
         if (cl) {
@@ -648,10 +728,11 @@ Connection::stop() {
     case PROXYMULTI:
         if (proxy_pid > 0)
             kill(proxy_pid, SIGKILL);
-        if (conn) {
-            delete conn;
-            conn = NULL;
+    case UNENCRYPTED:
+        for (auto c = conn_set.begin(); c != conn_set.end(); c++) {
+            delete *c;
         }
+        conn_set.clear();
         break;
     default:
         break;
@@ -677,7 +758,7 @@ Connection::execute(string query) {
 
 void
 Connection::executeFail(string query) {
-    cerr << type << " " << query << endl;
+    //cerr << type << " " << query << endl;
     LOG(test) << "Query: " << query << " could not execute" << endl;
 }
 
@@ -693,7 +774,12 @@ Connection::executeEDBProxy(string query) {
 ResType
 Connection::executeConn(string query) {
     DBResult * dbres;
-    if (!conn->execute(query, dbres)) {
+    //cycle through connections of which should execute query
+    conn++;
+    if (conn == conn_set.end()) {
+        conn = conn_set.begin();
+    }
+    if (!(*conn)->execute(query, dbres)) {
         executeFail(query);
         return ResType(false);
     }
@@ -880,37 +966,44 @@ RunTest(const TestConfig &tc) {
     CheckQueryList(tc, Delete);
     CheckQueryList(tc, Search);
     CheckQueryList(tc, Basic);
-    if (test_type == 2 || test_type == 5) {
+    if (test_type == MULTI || test_type == PROXYMULTI) {
         test->restart();
     }
-    if (control_type == 2 || control_type == 5) {
+    if (control_type == MULTI || control_type == PROXYMULTI) {
         control->restart();
     }
     CheckQueryList(tc, PrivMessages);
-    if (test_type == 2 || test_type == 5) {
+    if (test_type == MULTI || test_type == PROXYMULTI) {
         test->restart();
     }
-    if (control_type == 2 || control_type == 5) {
+    if (control_type == MULTI || control_type == PROXYMULTI) {
         control->restart();
     }
     CheckQueryList(tc, UserGroupForum);
-    if (test_type == 2 || test_type == 5) {
+    if (test_type == MULTI || test_type == PROXYMULTI) {
         test->restart();
     }
-    if (control_type == 2 || control_type == 5) {
+    if (control_type == MULTI || control_type == PROXYMULTI) {
         control->restart();
     }
     CheckQueryList(tc, Auto);
-    if (test_type == 2 || test_type == 5) {
+    if (test_type == MULTI || test_type == PROXYMULTI) {
         test->restart();
     }
-    if (control_type == 2 || control_type == 5) {
+    if (control_type == MULTI || control_type == PROXYMULTI) {
         control->restart();
     }
     CheckQueryList(tc, Null);
+    if (test_type == PROXYMULTI || test_type == MULTI) {
+        test->restart();
+    }
+    if (control_type == PROXYMULTI) {
+        control->restart();
+    }
+    CheckQueryList(tc, ManyConnections);
+
     test->stop();
     control->stop();
-    //TODO: add stuff for multiple connections
 }
 
 
@@ -926,9 +1019,8 @@ void
 TestQueries::run(const TestConfig &tc, int argc, char ** argv) {
     switch(argc) {
     case 4:
-        //TODO: set no_conn from argv[3]
-        cerr << "currently we only support one connection" << endl;
-        no_conn = 1;
+        //TODO check that argv[3] is a proper int-string
+        no_conn = atoi(argv[3]);
     case 3:
         if (strncmp(argv[1],"plain",5) == 0) {
             control_type = UNENCRYPTED;
@@ -981,7 +1073,6 @@ TestQueries::run(const TestConfig &tc, int argc, char ** argv) {
         return;
     }        
 
-    //query: do they need their own tc? yes!  different dbs
     TestConfig control_tc = TestConfig();
     control_tc.db = control_tc.db+"_control";
     
