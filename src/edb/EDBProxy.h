@@ -68,13 +68,10 @@ class EDBProxy {
 
     // trains client on queries from given file and adjusts schema and
     // security level
-    int train(string queryFile)
-        throw (CryptDBError);
-    // creates tables and indexes at the server based on queries seen
-    int train_finish()
-        throw (CryptDBError);
-    int create_trained_instance(bool submit = true)
-        throw (CryptDBError);
+    void
+    runQueries(string queryFile, bool execute=false) throw (CryptDBError);
+    void
+    setOnionsFromTraining();
 
     //=========== DEBUGGING AND INFO ==============================//
 
@@ -85,7 +82,6 @@ class EDBProxy {
 
  private:
     bool isSecure;
-    bool isTraining;
 
     Connect * conn;     // to connect to the DBMs
     CryptoManager * cm;     // for cryptography
@@ -108,6 +104,7 @@ class EDBProxy {
     //the Decrypt functions decrypt the result from the server
     list<string> rewriteEncryptCreate(const string &query)
         throw (CryptDBError);
+    bool overwrite_creates;
 
     //INSERT
     list<string> rewriteEncryptInsert(const string &query)
@@ -117,7 +114,6 @@ class EDBProxy {
     string processValsToInsert(string field, string table, uint64_t salt,
                                string value, TMKM & tmkm, bool null = false);
 
-    ResType rewriteDecryptInsert(const string &query, const ResType &dbAnswer);
 
     //FILTERS ("WHERE")
     //process where clause
@@ -195,6 +191,10 @@ class EDBProxy {
     // OTHER
 
     void dropTables();
+
+
+    //syntax: train createsfile indexfile queryfile
+    list<string> rewriteEncryptTrain(const string & query);
 
  protected:
     //these are protected mostly for testing purposes

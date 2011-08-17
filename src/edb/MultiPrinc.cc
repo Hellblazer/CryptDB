@@ -82,6 +82,12 @@ MultiPrinc::processAnnotation(list<string>::iterator & wordsIt,
         mkm.reverseEncFor[fullName(field2, tablename)] = true;
         encryptfield = true;
 
+        FieldMetadata * fm = tm[tablename]->fieldMetaMap[currentField];
+
+        // in multi-princ mode, these are false by default, unless explicitly requested
+        fm->has_ope = false;
+        fm->has_agg = false;
+
         //check if there is any annotation for security level
         std::set<string> secAnns =
             { levelnames[(int) SECLEVEL::DET],
@@ -91,7 +97,7 @@ MultiPrinc::processAnnotation(list<string>::iterator & wordsIt,
             };
         while ((wordsIt != words.end()) &&
                contains(*wordsIt, secAnns)) {
-            FieldMetadata * fm = tm[tablename]->fieldMetaMap[currentField];
+
 
             if (equalsIgnoreCase(levelnames[(int) SECLEVEL::DET], *wordsIt)) {
                 if (VERBOSE_G) { LOG(mp) << "at det"; }
@@ -110,7 +116,7 @@ MultiPrinc::processAnnotation(list<string>::iterator & wordsIt,
                 if (VERBOSE_G) { LOG(mp) << "at det and opeself"; }
                 fm->secLevelOPE = SECLEVEL::OPE;
                 fm->secLevelDET = SECLEVEL::DET;
-                fm->ope_used = true;
+                fm->has_ope = true;
                 wordsIt++;
                 continue;
             }

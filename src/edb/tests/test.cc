@@ -1338,7 +1338,7 @@ convertQueries()
     secondfile.close();
 
 }
-
+/*
 static void __attribute__((unused))
 test_train(const TestConfig &tc)
 {
@@ -1361,7 +1361,7 @@ test_train(const TestConfig &tc)
     cl->exit();
 
 }
-
+*/
 /*
    void createIndexes(string indexF, EDBProxy * cl) {
         ifstream tracefile(indexF);

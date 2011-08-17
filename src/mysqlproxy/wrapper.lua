@@ -4,10 +4,7 @@ assert(package.loadlib(os.getenv("EDBDIR").."/libexecute.so",
 --
 -- Interception points provided by mysqlproxy
 --
--- Note on AUTO_INCREMENT and LAST_INSERT_ID():
---   We assume that applications call the connection's last_insert_id() 
---   rather than using the query SELECT LAST_INSERT_ID()
---
+
 
 function read_auth()
     -- Use this instead of connect_server(), to get server name

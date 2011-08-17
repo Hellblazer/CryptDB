@@ -58,6 +58,38 @@ ParserMeta::ParserMeta() : clauseKeywords_p(), querySeparators_p()
         querySeparators_p.insert(querySeparators[i]);
 }
 
+FieldMetadata::FieldMetadata()
+{
+    isEncrypted = false;
+    type = TYPE_TEXT;
+
+    //by default, all onions are at maximum security
+    secLevelDET = SECLEVEL::SEMANTIC_DET;
+    secLevelOPE = SECLEVEL::SEMANTIC_OPE;
+
+
+    INCREMENT_HAPPENED = false;
+
+    //onions used by default
+    has_ope = true;
+    has_agg = true;
+    has_search = false;
+
+    //none of the onions used yet
+    ope_used = false;
+    agg_used = false;
+    search_used = false;
+
+}
+
+TableMetadata::~TableMetadata()
+{
+    for (auto i = fieldMetaMap.begin(); i != fieldMetaMap.end(); i++)
+        delete i->second;
+    for (auto i = indexes.begin(); i != indexes.end(); i++)
+        delete *i;
+}
+
 double
 timeInSec(struct timeval tvstart, struct timeval tvend)
 {
@@ -667,6 +699,7 @@ throw (CryptDBError)
       { "commit", cmd::COMMIT },
       { "begin",  cmd::BEGIN  },
       { "alter",  cmd::ALTER  },
+      { "train",  cmd::TRAIN  },
       { 0,        cmd::OTHER  } };
 
     string cmds = query.substr(0, query.find_first_of(" ,;()"));

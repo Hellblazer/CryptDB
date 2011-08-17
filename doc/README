@@ -4,13 +4,21 @@ How to use CryptDB:
 
     ./tests/test help
 	-- this command shows you the various tests you can run
+	
+    The option -v allows you to control verbosity and -s whether to stop if a test failed
 
-   - EDBClient constructor takes as argument a flag indicating if we run in single or multi principal mode
+    For example, ./tests/test -v all queries plain proxy-multi
+    runs queries and compares results between an unencrypted database and our encrypted database with our proxy in multiprincipal mode
+
+
+   - EDBProxy constructor takes as argument a flag indicating if we run in single or multi principal mode
     1. single principal	
     - refer to tests/TestSinglePrinc.cc for examples of how to use it
     2. multi principal
     - refer to tests/TestMultiPrinc.cc for examples on usage
 
+
+    ./tests/test gives you a shell to CryptDB
 
 ===============================================================================
 
