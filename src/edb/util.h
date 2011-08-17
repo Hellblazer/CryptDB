@@ -167,7 +167,7 @@ SECLEVELS(__temp_m)
 
 typedef enum class cmd {
     CREATE, UPDATE, INSERT, SELECT, DROP, DELETE, BEGIN,
-    COMMIT, ALTER, OTHER
+    COMMIT, ALTER, TRAIN, OTHER
 } command;
 
 typedef struct FieldMetadata {
@@ -184,15 +184,22 @@ typedef struct FieldMetadata {
     string anonFieldNameAGG;
     string anonFieldNameSWP;
 
+    //true if the onions are used
+    bool has_ope;
+    bool has_agg;
+    bool has_search;
+
+
     FieldMetadata();
 
     enum SECLEVEL secLevelOPE, secLevelDET;
 
     bool INCREMENT_HAPPENED;
 
+    //records if some onion was used for training
     bool ope_used;
     bool agg_used;
-    bool has_search;
+    bool search_used;
 
     //returns true if the given field exists in the database
     static bool exists(const string &field);

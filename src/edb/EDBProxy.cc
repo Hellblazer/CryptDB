@@ -177,6 +177,8 @@ EDBProxy::EDBProxy(string server, string user, string psswd, string dbname,
         LOG(edb) << "single princ mode";
         mp = NULL;
     }
+
+    overwrite_creates = false;
 }
 
 void
@@ -380,7 +382,7 @@ processAnnotation(MultiPrinc * mp, list<string>::iterator & wordsIt,
         return;
     }
 
-    fm->isEncrypted = false;
+    fm->isEncrypted = ALL_ENCRYPTED;
 
     while (annotations.find(*wordsIt) != annotations.end()) {
         string annot = toLowerCase(*wordsIt);
@@ -388,10 +390,7 @@ processAnnotation(MultiPrinc * mp, list<string>::iterator & wordsIt,
        // cerr << "current ann " << annot << "\n";
         if (annot == "enc") {
             fm->isEncrypted = true;
-            if (!mp) {
-                fm->ope_used = true;
-                fm->agg_used = true;
-            }
+
             wordsIt++;
             continue;
         }
@@ -463,9 +462,17 @@ throw (CryptDBError)
     //get table name
     string tableName = *wordsIt;
 
-    assert_s(tableMetaMap.find(
-                 tableName) == tableMetaMap.end(),"table already exists: " +
-             tableName );
+    bool already_exists = false;
+
+    if (!overwrite_creates) {
+        assert_s(tableMetaMap.find(
+                tableName) == tableMetaMap.end(),"table already exists: " +
+                tableName );
+    } else {
+        if (tableMetaMap.find(tableName) != tableMetaMap.end()) {
+            already_exists = true;
+        }
+    }
 
     unsigned int tableNo = totalTables;
     totalTables++;
@@ -475,20 +482,25 @@ throw (CryptDBError)
     tableNameMap[anonTableName] = tableName;
 
     //create new table structure
-    TableMetadata * tm = new TableMetadata;
-    tableMetaMap[tableName] = tm;
+    TableMetadata * tm;
+
+    if (already_exists) {
+        tm = tableMetaMap[tableName];
+    } else {
+        tm = new TableMetadata();
+        tableMetaMap[tableName] = tm;
+        tm->fieldNameMap = map<string, string>();
+        tm->fieldNames = list<string>();
+        tm->tableNo = tableNo;
+        tm->anonTableName = anonTableName;
+        tm->fieldMetaMap = map<string, FieldMetadata *>();
+        tm->hasEncrypted = false;
+    }
 
     //populate table structure
-    tm->fieldNames = list<string>();
-    tm->tableNo = tableNo;
-    tm->anonTableName = anonTableName;
-    tm->fieldNameMap = map<string, string>();
-    tm->fieldMetaMap = map<string, FieldMetadata *>();
-    tm->hasEncrypted = false;
     //fill the fieldNameMap and fieldMetaMap and prepare the anonymized query
 
     string resultQuery = "CREATE TABLE ";
-
 
     roll<string>(wordsIt, 2);
     unsigned int i = 0;
@@ -508,23 +520,30 @@ throw (CryptDBError)
             continue;
         }
 
-        assert_s(tm->fieldMetaMap.find(
-                     fieldName) == tm->fieldMetaMap.end(),
-                 "field %s already exists in table " +  fieldName + " " +
-                 tableName);
+        if (!already_exists) {
+            assert_s(tm->fieldMetaMap.find(
+                    fieldName) == tm->fieldMetaMap.end(),
+                    "field %s already exists in table " +  fieldName + " " +
+                    tableName);
+        }
 
         tm->fieldNames.push_back(fieldName);
 
-        FieldMetadata * fm = new FieldMetadata();
+        FieldMetadata * fm;
 
+        if (already_exists) {
+            fm = tm->fieldMetaMap[fieldName];
+        } else {
+            fm = new FieldMetadata();
+            tm->fieldMetaMap[fieldName] =  fm;
+        }
         fm->fieldName = fieldName;
         wordsIt++;
-
-        tm->fieldMetaMap[fieldName] =  fm;
 
         LOG(edb_v) << "fieldname " << fieldName;
 
         //decides if this field is encrypted or not
+        //also decides which onions to create
         processAnnotation(mp, wordsIt, words, tableName, fieldName,
                           fm,
                           tableMetaMap);
@@ -676,33 +695,32 @@ throw (CryptDBError)
             fm2->agg_used = true;
 
             if (isEncrypted1) {
-                fm1->agg_used = false;
-                fm2->agg_used = false;
+
                 if (DECRYPTFIRST) {
                     resultQuery += field + " =  encrypt_int_det( "+
-                                   fieldNameForQuery(
-                        tableMetaMap[table]->anonTableName,
-                        table, field2,
-                        fm2, qm) +  " + " +
-                                   *wordsIt + ", "+
-                                   CryptoManager::marshallKey(
-                        dec_first_key) + ") ";
+                            fieldNameForQuery(
+                                    tableMetaMap[table]->anonTableName,
+                                    table, field2,
+                                    fm2, qm) +  " + " +
+                                    *wordsIt + ", "+
+                                    CryptoManager::marshallKey(
+                                            dec_first_key) + ") ";
                 } else {
                     resultQuery += anonFieldName + " =  func_add_set (" +
-                                   anonName2 +  ", "
-                                   + dataForQuery(*wordsIt, ft,
-                                           fullName(field,
-                                                    table),
-                                           fullName(anonFieldName,
+                            anonName2 +  ", "
+                            + dataForQuery(*wordsIt, ft,
+                                    fullName(field,
+                                            table),
+                                            fullName(anonFieldName,
                                                     tableMetaMap[table]->
                                                     anonTableName),
-                                           SECLEVEL::PLAIN_AGG, SECLEVEL::SEMANTIC_AGG, 0,
-                                           tmkm) + ", "
-                                   + marshallBinary(cm->getPKInfo()) + ") ";
+                                                    SECLEVEL::PLAIN_AGG, SECLEVEL::SEMANTIC_AGG, 0,
+                                                    tmkm) + ", "
+                                                    + marshallBinary(cm->getPKInfo()) + ") ";
                 }
             } else {
                 resultQuery = resultQuery + anonFieldName + " = " +
-                              anonName2 + op + " " + *wordsIt;
+                        anonName2 + op + " " + *wordsIt;
             }
 
             wordsIt++;
@@ -1763,6 +1781,7 @@ throw (CryptDBError)
 
             TableMetadata * tm = tableMetaMap[table2];
             FieldMetadata * fm = tm->fieldMetaMap[field2];
+            fm->ope_used = true;
 
             string anonName =
                 getOnionName(fm,oOPE);
@@ -2552,10 +2571,10 @@ EDBProxy::processValsToInsert(string field, string table, uint64_t salt,
             assert_s(!mp->isPrincipal(fullname), "principal in multi-princ should not be null");
         }
         res += " NULL ";    /* DET */
-        if (fm->exists(fm->anonFieldNameOPE)) {
+        if (fm->has_ope) {
             res += ", NULL ";
         }
-        if (fm->exists(fm->anonFieldNameAGG)) {
+        if (fm->has_agg) {
             res += ", NULL ";
         }
         if (fm->has_search) {
@@ -2571,7 +2590,7 @@ EDBProxy::processValsToInsert(string field, string table, uint64_t salt,
 
         LOG(edb_v) << "just added key from crypt";
 
-        if (fm->exists(fm->anonFieldNameOPE)) {
+        if (fm->has_ope) {
             res += ", " +
                    dataForQuery(value, fm->type, fullname,
                          fullName(fm->anonFieldNameOPE,
@@ -2580,7 +2599,7 @@ EDBProxy::processValsToInsert(string field, string table, uint64_t salt,
 
         }
 
-        if (fm->exists(fm->anonFieldNameAGG)) {
+        if (fm->has_agg) {
             res += ", " +
                    dataForQuery(value, fm->type, fullname,
                          fullName(fm->anonFieldNameAGG,
@@ -3047,8 +3066,7 @@ considerQuery(command com, const string &query)
     case cmd::SELECT: {
         list<string> words = getSQLWords(query);
         //for speed
-        if ((!contains("from", words)) && (!contains("FROM", words))) {
-                //if (VERBOSE_V) { cerr << "does not contain from";}
+        if (!contains("from", words) && !contains("onions", words)) {
                 return false;
         }
         break;
@@ -3082,6 +3100,10 @@ considerQuery(command com, const string &query)
         }
         LOG(edb_v) << "commit";
         return false;
+    }
+    case cmd::TRAIN: {
+        LOG(edb_v) << "training";
+        return true;
     }
     case cmd::ALTER: {
         LOG(edb_v) << "alter";
@@ -3128,6 +3150,7 @@ throw (CryptDBError)
     case cmd::SELECT: {return rewriteEncryptSelect(query); }
     case cmd::DROP: {return rewriteEncryptDrop(query); }
     case cmd::DELETE: {return rewriteEncryptDelete(query); }
+    case cmd::TRAIN: {return rewriteEncryptTrain(query);}
     case cmd::BEGIN: {
         if (DECRYPTFIRST)
             return list<string>(1, query);
@@ -3342,30 +3365,57 @@ EDBProxy::~EDBProxy()
 }
 
 static string
-getQuery(ifstream & createsFile)
+getQuery(ifstream & qFile)
 {
     string line = "";
     string query = "";
-    while ((!createsFile.eof()) && (line.find(';') == string::npos)) {
-        getline(createsFile, line);
+    while ((!qFile.eof()) && (line.find(';') == string::npos)) {
+        getline(qFile, line);
         query = query + line;
     }
     return query;
 
 }
 
-int
-EDBProxy::train(string queryFile)
+
+
+void
+EDBProxy::outputOnionState()
+{
+    for (map<string, TableMetadata *>::iterator tm = tableMetaMap.begin();
+         tm != tableMetaMap.end(); tm++) {
+        cerr<<"table: " << tm->first << "\n";
+        if (tm->second->hasEncrypted) {
+            for (map<string, FieldMetadata *>::iterator fm =
+                     tm->second->fieldMetaMap.begin();
+                 fm != tm->second->fieldMetaMap.end(); fm++) {
+                FieldMetadata * f = fm->second;
+                if (f->isEncrypted) {
+                    printf("%-36s", fullName(f->fieldName, tm->first).c_str());
+                    printf(" %-14s", levelnames[(int) f->secLevelDET].c_str());
+                    if (f->has_ope)
+                        printf(" %-14s", levelnames[(int) f->secLevelOPE].c_str());
+                    if (f->has_agg) {
+                        printf(" %-14s", levelnames[(int) SECLEVEL::SEMANTIC_AGG].c_str());
+                    }
+                    if (f->has_search) {
+                        printf(" %-14s", levelnames[(int) SECLEVEL::SWP].c_str());
+                    }
+                    cout << "\n";
+                }
+            }
+        }
+    }
+}
+
+
+void
+EDBProxy::runQueries(string queryFile, bool execquery)
 throw (CryptDBError)
 {
     ifstream infile(queryFile.c_str());
 
-    if (!infile.is_open()) {
-        cerr << "could not open file " << queryFile << "\n";
-        return -1;
-    }
-
-    isTraining = true;
+    assert_s(infile.is_open(), "cannot open file " + queryFile);
 
     string query;
     list<string> queries;
@@ -3377,232 +3427,66 @@ throw (CryptDBError)
         }
 
         if (query.length() > 0) {
-            queries = rewriteEncryptQuery(string(query+";"));
+            queries = rewriteEncryptQuery(query+";");
+            if (execquery) {
+                for (auto it = queries.begin(); it != queries.end(); it++) {
+                    assert_s(conn->execute(*it), "failed to execute query " + *it);
+                }
+            }
         }
     }
 
-    isTraining = false;
-
-    return 0;
-}
-
-int
-EDBProxy::train_finish()
-throw (CryptDBError)
-{
-
-    map<string, TableMetadata *>::iterator it = tableMetaMap.begin();
-    map<string, FieldMetadata *>::iterator fieldIt;
-
-    for (; it != tableMetaMap.end(); it++) {
-        TableMetadata * tm = it->second;
-
-        for (fieldIt = tm->fieldMetaMap.begin();
-             fieldIt != tm->fieldMetaMap.end(); fieldIt++) {
-            FieldMetadata * fm = fieldIt->second;
-
-            cerr << fieldIt->first << " ";
-
-            if (!fm->ope_used) {
-                tm->fieldNameMap.erase(fm->anonFieldNameOPE);
-                fm->anonFieldNameOPE = "";
-            } else {
-                cerr << " OPE ";
-
-            }
-            if (!fm->agg_used) {
-                tm->fieldNameMap.erase(fm->anonFieldNameAGG);
-                fm->anonFieldNameAGG = "";
-            } else {
-                cerr << " AGG ";
-            }
-
-            if (fm->secLevelDET == SECLEVEL::SEMANTIC_DET) {
-                cerr << " sem ";
-            } else {
-                cerr << " det ";
-            }
-
-            cerr << "\n";
-
-        }
-
-    }
-    return 0;
-
-}
-
-int
-EDBProxy::create_trained_instance(bool submit)
-throw (CryptDBError)
-{
-
-    string query;
-
-    //===========CREATE TABLES =================//
-
-    map<string, TableMetadata *>::iterator it = tableMetaMap.begin();
-
-    for (; it != tableMetaMap.end(); it++) {
-        TableMetadata * tm = it->second;
-
-        query = "CREATE TABLE " + tm->anonTableName + " ( salt "+ TN_I64 +
-                ", ";
-
-        list<string>::iterator fieldIt = tm->fieldNames.begin();
-
-        for (; fieldIt != tm->fieldNames.end(); fieldIt++) {
-            FieldMetadata * fm = tm->fieldMetaMap[*fieldIt];
-            switch (fm->type) {
-            case TYPE_INTEGER: {
-                query = query + " " + fm->anonFieldNameDET + " "+ TN_I64 +
-                        ",";
-                if (fm->exists(fm->anonFieldNameOPE)) {
-                    query = query + " " + fm->anonFieldNameOPE + " "+
-                            TN_I64 + ",";
-                }
-                if (fm->exists(fm->anonFieldNameAGG)) {
-                    query = query + " " + fm->anonFieldNameAGG + " "+TN_HOM+
-                            " ,";
-                }
-                break;
-            }
-            case TYPE_TEXT: {
-                query = query + " " + fm->anonFieldNameDET + "  "+TN_TEXT +
-                        " ,";
-                if (fm->exists(fm->anonFieldNameOPE)) {
-                    query = query + " " + fm->anonFieldNameOPE + " "+
-                            TN_I64 + ",";
-                }
-
-                break;
-            }
-            default: {assert_s(false,
-                               "invalid type in create_trained_instance"); }
-            }
-        }
-        query[query.length()-1] = ' ';
-        query = query + ");";
-
-        cerr << query << "\n";
-        if (submit)
-            conn->execute(query);
-    }
-
-    //============CREATE INDEXES AND KEYS ================//
-
-    it = tableMetaMap.begin();
-
-    for (; it != tableMetaMap.end(); it++) {
-        TableMetadata * tm = it->second;
-
-        //primary keys
-        if (tm->primaryKey.size() > 0) {
-
-            list<string>::iterator primIt = tm->primaryKey.begin();
-
-            string detlist = "";
-            string opelist = "";
-
-            for (; primIt != tm->primaryKey.end(); primIt++) {
-                FieldMetadata * fm = tm->fieldMetaMap[*primIt];
-
-                if (fm->exists(fm->anonFieldNameOPE)) {
-                    if (opelist.length() > 0) {
-                        cerr << "second ope in primary key for table " +
-                        it->first + " \n";
-                        opelist = opelist + fm->anonFieldNameDET + " ,";
-                    } else {
-                        opelist = detlist + fm->anonFieldNameOPE + " ,";
-                    }
-                } else {
-                    if (opelist.length() > 0) {
-                        opelist = opelist +  fm->anonFieldNameDET + " ,";
-                    }
-                }
-                detlist = detlist +  fm->anonFieldNameDET + " ,";
-            }
-
-            detlist[detlist.length() - 1] = ' ';
-            string pk_query = "ALTER TABLE " + tm->anonTableName +
-                              " add constraint con_" + tm->anonTableName +
-                              " primary key ( " +
-                              detlist + ");";
-            cerr << pk_query << "\n";
-            if (submit)
-                conn->execute(pk_query);
-
-            if (opelist.length() > 0) {
-                opelist[opelist.length() - 1] = ' ';
-                string pk_ope_query = "CREATE INDEX inpk_" +
-                                      tm->anonTableName +  " on " +
-                                      tm->anonTableName + " (" +
-                                      opelist + ");";
-                if (submit)
-                    conn->execute(pk_ope_query);
-
-                cerr << pk_ope_query << "\n";
-            }
-
-        }
-
-        //indexes
-        if (tm->indexes.size() > 0) {
-
-            list<IndexMetadata *>::iterator indexIt = tm->indexes.begin();
-
-            for (; indexIt != tm->indexes.end(); indexIt++) {
-                IndexMetadata * im = *indexIt;
-
-                string index_query = "create ";
-                if (im->isUnique) {
-                    index_query = index_query + " unique ";
-                }
-
-                index_query = index_query + " index " + im->anonIndexName +
-                              " on " + tm->anonTableName + " ( ";
-
-                list<string>::iterator fieldIt = im->fields.begin();
-                for (; fieldIt != im->fields.end(); fieldIt++) {
-                    index_query = index_query +
-                                  tm->fieldMetaMap[*fieldIt]->
-                                  anonFieldNameDET + " ,";
-                }
-
-                index_query[index_query.length()-1] = ' ';
-                index_query = index_query + ");";
-                cerr << index_query << "\n";
-                if (submit)
-                    conn->execute(index_query);
-            }
-        }
-
-    }
-
-    return 0;
+    infile.close();
 
 }
 
 void
-EDBProxy::outputOnionState()
-{
-    for (map<string, TableMetadata *>::iterator tm = tableMetaMap.begin();
-         tm != tableMetaMap.end(); tm++) {
-        if (tm->second->hasEncrypted) {
-            for (map<string, FieldMetadata *>::iterator fm =
-                     tm->second->fieldMetaMap.begin();
-                 fm != tm->second->fieldMetaMap.end(); fm++) {
-                FieldMetadata * f = fm->second;
-                if (f->isEncrypted) {
-                    printf("%-36s", fullName(f->fieldName, tm->first).c_str());
-                    printf(" %-14s", levelnames[(int) f->secLevelDET].c_str());
-                    if (FieldMetadata::exists(f->anonFieldNameOPE))
-                        printf(" %-14s", levelnames[(int) f->secLevelOPE].c_str());
-                    cout << "\n";
-                }
-            }
+EDBProxy::setOnionsFromTraining() {
+    //go through all tables and all fields, and set "has_[onion]" to false if "used_[onion]" is false except for DET
+
+    for (auto tit = tableMetaMap.begin(); tit != tableMetaMap.end(); tit++) {
+        TableMetadata * tm = tit->second;
+        for (auto fit = tm->fieldMetaMap.begin(); fit != tm->fieldMetaMap.end(); fit++) {
+            FieldMetadata * fm = fit->second;
+            fm->has_ope = fm->ope_used;
+            fm->has_search = fm->search_used;
+            fm->has_agg = fm->agg_used;
         }
     }
+}
+
+list<string>
+EDBProxy::rewriteEncryptTrain(const string & query) {
+    //parse query
+    list<string> words = getSQLWords(query);
+
+    assert_s(words.size() == 4, "invalid number of inputs to train, expecting: TRAIN createsfile indexfile queryfile ");
+
+    list<string>::iterator it = words.begin();
+    string createsfile = *(++it);
+    string indexfile = *(++it);
+    string queryfile = *(++it);
+
+    //create tables
+    runQueries(createsfile, 0);
+
+    //train on query file
+    runQueries(queryfile, 0);
+
+    //update onion state
+    setOnionsFromTraining();
+
+    //recreate tables
+    overwrite_creates = true;
+    runQueries(createsfile, 1);
+    overwrite_creates = false;
+
+    //create indexes
+    runQueries(indexfile, 1);
+
+    outputOnionState();
+
+    return list<string>();
 }
 
 string

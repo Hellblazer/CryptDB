@@ -58,28 +58,7 @@ FieldMetadata::exists(const string &val)
     return (val.length() > 0);
 }
 
-FieldMetadata::FieldMetadata()
-{
-    isEncrypted = false;
-    type = TYPE_TEXT;
 
-    secLevelOPE = SECLEVEL::SEMANTIC_OPE;
-    secLevelDET = SECLEVEL::SEMANTIC_DET;
-
-    INCREMENT_HAPPENED = false;
-
-    ope_used = false;
-    agg_used = false;
-    has_search = false;
-}
-
-TableMetadata::~TableMetadata()
-{
-    for (auto i = fieldMetaMap.begin(); i != fieldMetaMap.end(); i++)
-        delete i->second;
-    for (auto i = indexes.begin(); i != indexes.end(); i++)
-        delete *i;
-}
 
 string
 processInsert(string field, string table, TableMetadata * tm)
@@ -98,16 +77,16 @@ processInsert(string field, string table, TableMetadata * tm)
     if (fm->type == TYPE_INTEGER) {
         res =  fm->anonFieldNameDET;
 
-        if (fm->exists(fm->anonFieldNameOPE)) {
+        if (fm->has_ope) {
             res += +", " + fm->anonFieldNameOPE;
         }
-        if (fm->exists(fm->anonFieldNameAGG)) {
+        if (fm->has_agg) {
             res +=  ", " +fm->anonFieldNameAGG;
         }
     } else {
         if (fm->type == TYPE_TEXT) {
             res =   " " + fm->anonFieldNameDET;
-            if (fm->exists(fm->anonFieldNameOPE)) {
+            if (fm->has_ope) {
                 res += ",  " + fm->anonFieldNameOPE;
             }
             if (fm->has_search) {
@@ -167,7 +146,7 @@ throw (CryptDBError)
 
             res = res  + anonFieldNameDET + " "+ TN_I64;
 
-            if (fm->ope_used) {
+            if (fm->has_ope) {
                 //create field for OPE encryption
                 string anonFieldNameOPE = anonymizeFieldName(index, oOPE,
                                                              fieldName, multiPrinc);
@@ -181,7 +160,7 @@ throw (CryptDBError)
                 fm->anonFieldNameOPE = "";
             }
 
-            if (fm->agg_used) {
+            if (fm->has_agg) {
                 string anonFieldNameAGG = anonymizeFieldName(index, oAGG,
                                                              fieldName, multiPrinc);
                 fm->anonFieldNameAGG = anonFieldNameAGG;
@@ -217,7 +196,7 @@ throw (CryptDBError)
 
             res = res + " " + anonFieldNameDET + "  "+TN_TEXT+" ";
 
-            if (fm->ope_used) {
+            if (fm->has_ope) {
                 string anonFieldNameOPE = anonymizeFieldName(index, oOPE,
                                                              fieldName, multiPrinc);
 
@@ -231,7 +210,7 @@ throw (CryptDBError)
             }
 
             fm->anonFieldNameAGG = "";
-            fm->agg_used = false;
+            fm->has_agg = false;
 
             if (fm->has_search) {
                 fm->anonFieldNameSWP = anonymizeFieldName(index, oSWP,
@@ -273,15 +252,23 @@ throw (CryptDBError)
 
     string firstTable, firstField, secondTable, secondField;
 
-    if (isField(firstToken) && isField(secondToken)) {     //JOIN
+    FieldMetadata * fmfirst = NULL;
+    TableMetadata * tmfirst = NULL;
+    FieldMetadata * fmsecond = NULL;
+    TableMetadata * tmsecond = NULL;
 
+    if (isField(firstToken)) {
         getTableField(firstToken, firstTable, firstField, qm, tableMetaMap);
-        getTableField(secondToken, secondTable, secondField, qm, tableMetaMap);
+        tmfirst = tableMetaMap[firstTable];
+        fmfirst = tmfirst->fieldMetaMap[firstField];
+    }
+    if (isField(secondToken)) {
+            getTableField(secondToken, secondTable, secondField, qm, tableMetaMap);
+            tmsecond = tableMetaMap[secondTable];
+            fmsecond = tmsecond->fieldMetaMap[secondField];
+    }
 
-        FieldMetadata * fmfirst =
-            tableMetaMap[firstTable]->fieldMetaMap[firstField];
-        FieldMetadata * fmsecond =
-            tableMetaMap[secondTable]->fieldMetaMap[secondField];
+    if (fmfirst && fmsecond) {     //JOIN
 
         assert_s(fmfirst->isEncrypted == fmsecond->isEncrypted,
                  string(
@@ -306,26 +293,26 @@ throw (CryptDBError)
 
             //if any of the fields are in the semantic state must decrypt
             if (fmfirst->secLevelDET == SECLEVEL::SEMANTIC_DET) {
-                addIfNotContained(fullName(firstToken,
+                addIfNotContained(fullName(firstField,
                                            firstTable), fieldsDec.DETFields);
-                addIfNotContained(fullName(firstToken,
+                addIfNotContained(fullName(firstField,
                                            firstTable),
                                   fieldsDec.DETJoinFields);
             }
             if (fmsecond->secLevelDET == SECLEVEL::SEMANTIC_DET) {
-                addIfNotContained(fullName(secondToken,
+                addIfNotContained(fullName(secondField,
                                            secondTable), fieldsDec.DETFields);
-                addIfNotContained(fullName(secondToken,
+                addIfNotContained(fullName(secondField,
                                            secondTable),
                                   fieldsDec.DETJoinFields);
             }
             if (fmfirst->secLevelDET == SECLEVEL::DET) {
-                addIfNotContained(fullName(firstToken,
+                addIfNotContained(fullName(firstField,
                                            firstTable),
                                   fieldsDec.DETJoinFields);
             }
             if (fmsecond->secLevelDET == SECLEVEL::DET) {
-                addIfNotContained(fullName(secondToken,
+                addIfNotContained(fullName(secondField,
                                            secondTable),
                                   fieldsDec.DETJoinFields);
             }
@@ -340,21 +327,21 @@ throw (CryptDBError)
 
         //must bring both to joinable level
         if (fmfirst->secLevelOPE == SECLEVEL::SEMANTIC_OPE) {
-            addIfNotContained(fullName(firstToken,
+            addIfNotContained(fullName(firstField,
                     firstTable), fieldsDec.OPEFields);
         }
         if (fmsecond->secLevelOPE == SECLEVEL::SEMANTIC_OPE) {
-            addIfNotContained(fullName(secondToken,
+            addIfNotContained(fullName(secondField,
                     secondTable), fieldsDec.OPEFields);
         }
         if (fmfirst->secLevelOPE == SECLEVEL::OPE) {
-            addIfNotContained(fullName(firstToken,
+            addIfNotContained(fullName(firstField,
                     firstTable),
                     fieldsDec.OPEJoinFields);
         }
 
         if (fmsecond->secLevelOPE == SECLEVEL::OPE) {
-            addIfNotContained(fullName(secondToken,
+            addIfNotContained(fullName(secondField,
                     secondTable),
                     fieldsDec.OPEJoinFields);
         }
@@ -366,26 +353,24 @@ throw (CryptDBError)
     // It is not join
 
     if (Operation::isILIKE(operation)) {
+        fmfirst->search_used = true;
         return;
     }
 
-    if (Operation::isIN(operation) && (isField(firstToken))) {
-        getTableField(firstToken, firstTable, firstField, qm, tableMetaMap);
-        if (!tableMetaMap[firstTable]->fieldMetaMap[firstToken]->isEncrypted)
+    if (Operation::isIN(operation) && (fmfirst)) {
+        if (!fmfirst->isEncrypted)
         {
             return;
         }
 
-        if (tableMetaMap[firstTable]->fieldMetaMap[firstToken]->secLevelDET
-            == SECLEVEL::SEMANTIC_DET) {
-            addIfNotContained(fullName(firstToken,
+        if (fmfirst->secLevelDET == SECLEVEL::SEMANTIC_DET) {
+            addIfNotContained(fullName(firstField,
                                        firstTable), fieldsDec.DETFields);
-            addIfNotContained(fullName(firstToken,
+            addIfNotContained(fullName(firstField,
                                        firstTable), fieldsDec.DETJoinFields);
         }
-        if (tableMetaMap[firstTable]->fieldMetaMap[firstToken]->secLevelDET
-            == SECLEVEL::DET) {
-            addIfNotContained(fullName(firstToken,
+        if (fmfirst->secLevelDET == SECLEVEL::DET) {
+            addIfNotContained(fullName(firstField,
                                        firstTable), fieldsDec.DETFields);
         }
         return;
@@ -397,17 +382,13 @@ throw (CryptDBError)
     FieldMetadata * fmField;
     string tableField;
 
-    if (isField(firstToken)) {
-        string table, field;
-        getTableField(firstToken, table, field, qm, tableMetaMap);
-        fmField = tableMetaMap[table]->fieldMetaMap[field];
-        tableField = fullName(firstToken, table);
+    if (fmfirst) {
+        fmField = fmfirst;
+        tableField = fullName(firstField, firstTable);
     } else {
         assert_s(isField(secondToken), " invalid token ");
-        string table, field;
-        getTableField(secondToken, table, field,qm, tableMetaMap);
-        fmField = tableMetaMap[table]->fieldMetaMap[field];
-        tableField = fullName(secondToken, table);
+        fmField = fmsecond;
+        tableField = fullName(secondField, secondTable);
     }
 
     if (!fmField->isEncrypted) {
@@ -415,7 +396,7 @@ throw (CryptDBError)
         return;
     }
 
-    if (Operation::isDET(operation) || (Operation::isILIKE("ILIKE") == 0)) {
+    if (Operation::isDET(operation)) {
 
         assert_s(fmField->INCREMENT_HAPPENED == false,
                  "cannot perform comparison on field that was incremented \n");
