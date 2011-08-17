@@ -889,15 +889,27 @@ CheckQuery(const TestConfig &tc, string query) {
     //TODO: should be case insensitive
     if (query == "SELECT LAST_INSERT_ID()") {
         ntest++;
-        test_res = test->executeLast();
-        control_res = control->executeLast();
-        if (test_res != control_res) {
-            if (tc.stop_if_fail) {
-                LOG(test) << "test last insert: " << test_res;
-                LOG(test) << "control last insert: " << control_res;
-                assert_s(false, "last insert id failed to match");
+        switch(test_type) {
+        case UNENCRYPTED:
+        case PROXYPLAIN:
+        case PROXYSINGLE:
+        case PROXYMULTI:
+            if (control_type != SINGLE && control_type != MULTI) {
+                test_res = test->executeLast();
+                control_res = control->executeLast();
+                if (test_res != control_res) {
+                    if (tc.stop_if_fail) {
+                        LOG(test) << "test last insert: " << test_res;
+                        LOG(test) << "control last insert: " << control_res;
+                        assert_s(false, "last insert id failed to match");
+                    }
+                    return;
+                }
             }
-            return;
+            break;
+        default:
+            LOG(test) << "not a valid case of this test; skipped";
+            break;
         }
         npass++;
         return;
