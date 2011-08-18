@@ -19,6 +19,10 @@
 #include <vector>
 #include <set>
 #include "Equation.h"
+#include <fstream>
+#include <iostream>
+
+
 
 #include "NTL/ZZ.h"
 using namespace NTL;
@@ -616,6 +620,12 @@ class SqlItem {
                data == other.data;
     }
 };
+
+/**** HELPERS FOR EVAL **************/
+
+string
+getQuery(ifstream & qFile);
+
 
 class Timer {
  private:

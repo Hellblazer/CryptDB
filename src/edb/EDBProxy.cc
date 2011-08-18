@@ -154,7 +154,7 @@ createAll(Connect * conn)
 //============== CONSTRUCTORS ==================================//
 
 EDBProxy::EDBProxy(string server, string user, string psswd, string dbname,
-                     uint port, bool multiPrinc)
+                     uint port, bool multiPrinc, bool defaultEnc)
 {
     isSecure = false;
     VERBOSE = VERBOSE_EDBProxy;
@@ -179,6 +179,9 @@ EDBProxy::EDBProxy(string server, string user, string psswd, string dbname,
     }
 
     overwrite_creates = false;
+
+    assert_s (!(multiPrinc && defaultEnc), "cannot have fields encrypted by default in multiprinc because we need to know encfor princ");
+    this->allDefaultEncrypted = defaultEnc;
 }
 
 void
@@ -345,19 +348,20 @@ throw (CryptDBError)
  */
 
 static string
-getNameForFilter(FieldMetadata * fm, onion o)
+getAnonNameForFilter(FieldMetadata * fm, onion o)
 {
     if (!fm->isEncrypted) {
         return fm->fieldName;
     }
     if (o == oDET) {
         //for equality type operations use OPE if you can
-        if (fm->exists(fm->anonFieldNameOPE) &&
+      /*  if (fm->has_ope &&
             (fm->secLevelOPE != SECLEVEL::SEMANTIC_OPE)) {
             return fm->anonFieldNameOPE;
         } else {
             return fm->anonFieldNameDET;
-        }
+        }*/
+    	return fm->anonFieldNameDET;
     }
     if (o == oOPE) {
         return fm->anonFieldNameOPE;
@@ -372,7 +376,7 @@ getNameForFilter(FieldMetadata * fm, onion o)
 static void
 processAnnotation(MultiPrinc * mp, list<string>::iterator & wordsIt,
                   list<string> & words, string tableName, string fieldName,
-                  FieldMetadata * fm, map<string, TableMetadata *> & tm)
+                  FieldMetadata * fm, map<string, TableMetadata *> & tm, bool defaultEnc)
 {
     if (DECRYPTFIRST) {
         tm[tableName]->fieldMetaMap[fieldName]->secLevelDET = SECLEVEL::DETJOIN;
@@ -382,7 +386,7 @@ processAnnotation(MultiPrinc * mp, list<string>::iterator & wordsIt,
         return;
     }
 
-    fm->isEncrypted = ALL_ENCRYPTED;
+    fm->isEncrypted = defaultEnc;
 
     while (annotations.find(*wordsIt) != annotations.end()) {
         string annot = toLowerCase(*wordsIt);
@@ -546,7 +550,7 @@ throw (CryptDBError)
         //also decides which onions to create
         processAnnotation(mp, wordsIt, words, tableName, fieldName,
                           fm,
-                          tableMetaMap);
+                          tableMetaMap, allDefaultEncrypted);
 
         if (fm->isEncrypted) {
             LOG(edb_v) << "encrypted field";
@@ -1031,10 +1035,10 @@ groupings:
             }
 
             if (comm.compare("group") == 0) {
-                anonField = getNameForFilter(fm, oDET);
+                anonField = getAnonNameForFilter(fm, oDET);
             } else {
                 //order by
-                anonField = getNameForFilter(fm, oOPE);
+                anonField = getAnonNameForFilter(fm, oOPE);
 
             }
 
@@ -1204,7 +1208,7 @@ throw (CryptDBError)
 
         tm->fieldMetaMap[field]->secLevelOPE = SECLEVEL::OPE;
 
-        tm->fieldMetaMap[field]->ope_used = true;
+
 
     }
 
@@ -1268,6 +1272,7 @@ throw (CryptDBError)
          it != fieldsDec.OPEJoinFields.end(); it++) {
         string table, field;
         getTableField(*it, table, field, qm, tableMetaMap);
+        assert_s(false, "this is not fully impl");
 
         //for now, do nothing
         //result.push_back(getCStr(string("UPDATE ") +
@@ -1716,7 +1721,7 @@ throw (CryptDBError)
                                     fieldNameForQuery(
                         tableMetaMap[tableD]->anonTableName,
                         tableD,
-                        getNameForFilter(fmd,
+                        getAnonNameForFilter(fmd,
                                          oDET),
                         fmd, qm);
                 }
@@ -1740,7 +1745,7 @@ throw (CryptDBError)
                         tableMetaMap[tableD]->fieldMetaMap[fieldD];
                     resultQuery +=
                         fieldNameForQuery(tableMetaMap[tableD]->anonTableName,
-                                          tableD, getNameForFilter(fmd,
+                                          tableD, getAnonNameForFilter(fmd,
                                                                    oDET),
                                           fmd, qm);
                     wordsIt++;
@@ -2956,6 +2961,21 @@ throw (CryptDBError)
     return list<string>(1, "begin;");
 }
 
+/******
+ *
+ *      INDEX CREATION POLICY
+ *
+ *
+ *  -- If field does not use OPE, create index on DET
+ *  -- If field uses OPE:
+ *     -- if index is requested solely on this field
+ *               -- if field has equijoin, create index on both OPE and DET
+ *               -- if field does not have equijoin, create index on OPE only
+ *    -- if index is requested on a list of fields, including this field
+ *               -- if field has equijoin,
+ *
+ */
+
 list<string>
 EDBProxy::rewriteEncryptAlter(const string &query)
 throw (CryptDBError)
@@ -3415,18 +3435,6 @@ EDBProxy::~EDBProxy()
     delete conn;
 }
 
-static string
-getQuery(ifstream & qFile)
-{
-    string line = "";
-    string query = "";
-    while ((!qFile.eof()) && (line.find(';') == string::npos)) {
-        getline(qFile, line);
-        query = query + line;
-    }
-    return query;
-
-}
 
 
 
@@ -3511,9 +3519,13 @@ EDBProxy::rewriteEncryptTrain(const string & query) {
     //parse query
     list<string> words = getSQLWords(query);
 
-    assert_s(words.size() == 4, "invalid number of inputs to train, expecting: TRAIN createsfile indexfile queryfile ");
+    assert_s(words.size() == 5, "invalid number of inputs to train, expecting: TRAIN are_all_fields_encrypted createsfile indexfile queryfile ");
 
     list<string>::iterator it = words.begin();
+    string enc = *(++it);
+    if (enc != "0") {
+        allDefaultEncrypted = true;
+    }
     string createsfile = *(++it);
     string indexfile = *(++it);
     string queryfile = *(++it);
