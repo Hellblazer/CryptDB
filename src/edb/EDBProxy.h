@@ -24,7 +24,7 @@ class EDBProxy {
      */
 
     EDBProxy(string server, string user, string psswd, string dbname,
-              uint port = 0, bool multiPrinc = false);
+              uint port = 0, bool multiPrinc = false, bool allDefaultEncrypted = false);
     void setMasterKey(const string &mkey);
 
     // ========= QUERIES ===== //
@@ -82,6 +82,7 @@ class EDBProxy {
 
  private:
     bool isSecure;
+    bool allDefaultEncrypted;
 
     Connect * conn;     // to connect to the DBMs
     CryptoManager * cm;     // for cryptography
@@ -193,7 +194,7 @@ class EDBProxy {
     void dropTables();
 
 
-    //syntax: train createsfile indexfile queryfile
+    //syntax: train are_all_fields_encrypted createsfile indexfile queryfile
     list<string> rewriteEncryptTrain(const string & query);
 
  protected:
