@@ -499,6 +499,7 @@ throw (CryptDBError)
         tm->anonTableName = anonTableName;
         tm->fieldMetaMap = map<string, FieldMetadata *>();
         tm->hasEncrypted = false;
+        tm->hasSensitive = false;
     }
 
     //populate table structure
