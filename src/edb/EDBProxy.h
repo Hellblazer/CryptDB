@@ -99,6 +99,11 @@ class EDBProxy {
 
     //**************** HELPER FUNCTIONS *******************************/
 
+    //returns true if this query has to do with cryptdb
+    // e.g. SET NAMES 'utf8' is a negative example
+    // also ignores queries that apply only to non-sensitive tables
+    bool considerQuery(command com, const string &query);
+
     //CREATE
     //the Encrypt functions rewrite a query by anonymizing, encrypting, and
     // translating it; they also generate decryption queries

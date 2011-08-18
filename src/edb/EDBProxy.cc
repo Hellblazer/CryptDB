@@ -3060,8 +3060,8 @@ throw (CryptDBError)
 
 //returns true if this query has to do with cryptdb
 // e.g. SET NAMES 'utf8' is a negative example
-static bool
-considerQuery(command com, const string &query)
+bool
+EDBProxy::considerQuery(command com, const string &query)
 {
     switch (com) {
     case cmd::CREATE: {
@@ -3081,7 +3081,7 @@ considerQuery(command com, const string &query)
         auto table_info = tableMetaMap.find(table_name);
         //if we can't find this table in the map, or none of its fields are encrypted
         // don't consider
-        if (table_info == tableMetaMap.end() || !table_info->second.hasEncrypted) {
+        if (table_info == tableMetaMap.end() || !table_info->second.hasSensitive) {
             LOG(edb_v) << "don't consider " << query << endl;
             return false;
         }        
@@ -3096,11 +3096,14 @@ considerQuery(command com, const string &query)
         auto it_update = itAtKeyword(words, "delete");
         it_update++;
         string table_name = *it_update;
-        //TODO: is active users table in tableMetaMap???
+        //if active_users, must consider
+        if (table_name.find(PWD_TABLE_PREFIX) != -1) {
+            break;
+        }
         auto table_info = tableMetaMap.find(table_name);
         //if we can't find this table in the map, or none of its fields are encrypted
         // don't consider
-        if (table_info == tableMetaMap.end() || !table_info->second.hasEncrypted) {
+        if (table_info == tableMetaMap.end() || !table_info->second.hasSensitive) {
             LOG(edb_v) << "don't consider " << query << endl;
             return false;
         }        
@@ -3142,11 +3145,14 @@ considerQuery(command com, const string &query)
         auto it_update = itAtKeyword(words, "delete");
         it_update++;
         string table_name = *it_update;
-        //TODO: is active users table in tableMetaMap???
+        //if active_users, must consider
+        if (table_name.find(PWD_TABLE_PREFIX) != -1) {
+            break;
+        }
         auto table_info = tableMetaMap.find(table_name);
         //if we can't find this table in the map, or none of its fields are encrypted
         // don't consider
-        if (table_info == tableMetaMap.end() || !table_info->second.hasEncrypted) {
+        if (table_info == tableMetaMap.end() || !table_info->second.hasSensitive) {
             LOG(edb_v) << "don't consider " << query << endl;
             return false;
         }        
