@@ -3043,7 +3043,6 @@ throw (CryptDBError)
 static bool
 considerQuery(command com, const string &query)
 {
-
     switch (com) {
     case cmd::CREATE: {
         list<string> words = getSQLWords(query);
@@ -3054,20 +3053,58 @@ considerQuery(command com, const string &query)
         }
         break;
     }
-    case cmd::UPDATE: {break; }
+    case cmd::UPDATE: {
+        list<string> words = getSQLWords(query);
+        auto it_update = itAtKeyword(words, "update");
+        it_update++;
+        string table_name = *it_update;
+        auto table_info = tableMetaMap.find(table_name);
+        //if we can't find this table in the map, or none of its fields are encrypted
+        // don't consider
+        if (table_info == tableMetaMap.end() || !table_info->second.hasEncrypted) {
+            LOG(edb_v) << "don't consider " << query << endl;
+            return false;
+        }        
+        break; 
+    }
     case cmd::INSERT: {
         list<string> words = getSQLWords(query);
         if (contains("select", words)) {
             LOG(warn) << "given nested query!";
             return false;
         }
-        break;
+        auto it_update = itAtKeyword(words, "delete");
+        it_update++;
+        string table_name = *it_update;
+        //TODO: is active users table in tableMetaMap???
+        auto table_info = tableMetaMap.find(table_name);
+        //if we can't find this table in the map, or none of its fields are encrypted
+        // don't consider
+        if (table_info == tableMetaMap.end() || !table_info->second.hasEncrypted) {
+            LOG(edb_v) << "don't consider " << query << endl;
+            return false;
+        }        
+        break; 
     }
     case cmd::SELECT: {
         list<string> words = getSQLWords(query);
         //for speed
-        if (!contains("from", words) && !contains("onions", words)) {
+        if (!contains("from", words)) {
                 return false;
+        }
+        auto it_from = itAtKeyword(words, "from");
+        it_from++;
+        auto it_where = itAtKeyword(words, "where");
+        bool table_sense = false;
+        for (it_from; it_from != it_where; it_from++) {
+            auto table_info = tableMetaMap.find(*it_from);
+            if (table_info != tableMetaMap.end() && table_info->second.hasSensitive) {
+                table_sense = true;
+            }
+        }
+        //it none of the tables selected from are sensitive, ignore the query
+        if (!table_sense) {
+            return false;
         }
         break;
     }
@@ -3080,7 +3117,21 @@ considerQuery(command com, const string &query)
         }
         break;
     }
-    case cmd::DELETE: {break; }
+    case cmd::DELETE: {
+        list<string> words = getSQLWords(query);
+        auto it_update = itAtKeyword(words, "delete");
+        it_update++;
+        string table_name = *it_update;
+        //TODO: is active users table in tableMetaMap???
+        auto table_info = tableMetaMap.find(table_name);
+        //if we can't find this table in the map, or none of its fields are encrypted
+        // don't consider
+        if (table_info == tableMetaMap.end() || !table_info->second.hasEncrypted) {
+            LOG(edb_v) << "don't consider " << query << endl;
+            return false;
+        }        
+        break; 
+    }
     case cmd::BEGIN: {
         LOG(edb_v) << "begin";
         if (DECRYPTFIRST) {

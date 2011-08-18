@@ -29,6 +29,7 @@
 #include "TestAccessManager.h"
 #include "TestProxy.h"
 #include "TestQueries.h"
+#include "TestEquation.h"
 
 using namespace std;
 
@@ -3883,6 +3884,7 @@ static struct {
     { "aes",            "",                             &evaluate_AES },
     { "autoinc",        "",                             &autoIncTest },
     { "crypto",         "crypto functions",             &TestCrypto::run },
+    { "eqn",            "",                             &TestEquation::run },
     { "multi",          "integration multi principal",  &TestMultiPrinc::run },
     { "paillier",       "",                             &testPaillier },
     { "parseaccess",    "",                             &testParseAccess },
