@@ -10,6 +10,8 @@
 
 using namespace std;
 
+#define TESTING 1
+
 class EDBProxy {
  public:
     bool VERBOSE;
@@ -101,6 +103,15 @@ class EDBProxy {
     bool EXECUTE_QUERIES;
 
     //**************** HELPER FUNCTIONS *******************************/
+
+    //returns true if this query has to do with cryptdb
+    // e.g. SET NAMES 'utf8' is a negative example
+    // also ignores queries that apply only to non-sensitive tables
+#if TESTING
+ public:
+#endif
+    bool considerQuery(command com, const string &query);
+
 
     //CREATE
     //the Encrypt functions rewrite a query by anonymizing, encrypting, and

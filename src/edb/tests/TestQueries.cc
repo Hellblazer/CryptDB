@@ -972,7 +972,7 @@ CheckQueryList(const TestConfig &tc, const QueryList &queries) {
             break;
         case 2:
         case 5:
-            if (q->multi_null) {
+            if (q->test_res) {
                 CheckNULL(tc, q->query);
             } else {
                 CheckQuery(tc, q->query);

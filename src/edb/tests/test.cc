@@ -29,6 +29,7 @@
 #include "TestAccessManager.h"
 #include "TestProxy.h"
 #include "TestQueries.h"
+#include "TestNotConsider.h"
 
 using namespace std;
 
@@ -4235,6 +4236,7 @@ static struct {
 		{ "access_old",     "",                             &accessManagerTest },
 		{ "aes",            "",                             &evaluate_AES },
 		{ "autoinc",        "",                             &autoIncTest },
+        { "consider",       "consider queries (or not)",    &TestNotConsider::run },
 		{ "crypto",         "crypto functions",             &TestCrypto::run },
 		{ "multi",          "integration multi principal",  &TestMultiPrinc::run },
 		{ "paillier",       "",                             &testPaillier },
