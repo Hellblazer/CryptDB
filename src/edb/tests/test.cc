@@ -3807,8 +3807,9 @@ dotrain(EDBProxy * cl, string createsfile, string querypatterns, string exec) {
 static string * workloads;
 
 static void
-assignWork(string queryfile, int noWorkers, int totalLines, int noRepeats, bool split) {
-	int res = system("rm pieces/*");
+assignWork(string queryfile, int noWorkers,   int totalLines, int noRepeats, bool split) {
+	int res = system("mkdir pieces");
+        res = system("rm pieces/*");
 
 	ifstream infile(queryfile);
 
@@ -3817,6 +3818,7 @@ assignWork(string queryfile, int noWorkers, int totalLines, int noRepeats, bool 
 
 
 	int linesPerWorker = totalLines / noWorkers;
+	int linesPerLastWorker = totalLines - (noWorkers-1)*linesPerWorker;
 
 	string query;
 
@@ -3834,7 +3836,7 @@ assignWork(string queryfile, int noWorkers, int totalLines, int noRepeats, bool 
 
 		} else {
 
-			workload = string("pieces/piece") + suffix(i);
+			workload = string("pieces/piece") + StringFromVal(i);
 
 			ofstream outfile(workload);
 
@@ -3844,15 +3846,19 @@ assignWork(string queryfile, int noWorkers, int totalLines, int noRepeats, bool 
 				exit(1);
 			}
 
-			getline(infile, query);
-
-			for (int j = 0; j < linesPerWorker; j++) {
-				outfile << query << "\n";
-				if (j < linesPerWorker-1) {getline(infile, query);}
+			int lines = 0;
+			if (i == noWorkers-1) {
+			    lines = linesPerLastWorker;
+			} else {
+			    lines = linesPerWorker;
 			}
-
+			for (int j = 0; j < lines; j++) {
+				getline(infile, query);
+				if (query != "") {
+				    outfile << query << "\n";
+				}
+			}
 			outfile.close();
-
 		}
 
 		workloads[i] = workload;
@@ -3987,15 +3993,50 @@ testTrace(const TestConfig &tc, int argc, char ** argv)
 
 
 	if (string(argv[1]) == "encrypt_queries") {
-		if (argc != 7) {
-			cerr << "trace encrypt_queries createsfile indexfile queriestotrainfile queriestotranslate outputfile";
+		if (argc != 9) {
+			cerr << "trace encrypt_queries createsfile indexfile queriestotrainfile queriestotranslate baseoutputfile totallines"
+			        " noWorkers \n";
+			return;
 		}
 
 		string queriestotranslate = argv[5];
-		string outputfile = argv[6];
+		string baseoutputfile = argv[6];
+		int totalLines = atoi(argv[7]);
+		int noWorkers = atoi(argv[8]);
 
 		dotrain(cl, argv[2], argv[4], "1");
-		runQueriesFromFile(cl, queriestotranslate, false, false, outputfile, false);
+		assignWork(queriestotranslate, noWorkers, totalLines, 1, true);
+
+		pid_t pids[noWorkers];
+		for (int i = 0; i < noWorkers; i++) {
+		    int index = i;
+		    string work = workloads[index];
+		    string outputfile = baseoutputfile + StringFromVal(index);
+		    assert_s(system(("rm -f " + outputfile).c_str()) >= 0, "failed to remove " + outputfile);
+		    pid_t pid = fork();
+		    if (pid == 0) {
+		        runQueriesFromFile(cl, work, false, false, outputfile, false);
+		        cerr << "worker " << i << "finished\n";
+		        exit(1);
+		    } else if (pid < 0) {
+		        cerr << "failed to fork \n";
+		        exit(1);
+		    } else { // in parent
+		        pids[i] = pid;
+		    }
+
+
+		}
+
+		int childstatus;
+		for (int i = 0; i < noWorkers; i++) {
+		    if (waitpid(pids[i], &childstatus, 0) == -1) {
+		        cerr << "there were problems with process " << pids[i]
+		                                                            << "\n";
+		    }
+		}
+
+
 
 
 		return;
