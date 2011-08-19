@@ -3808,8 +3808,8 @@ static string * workloads;
 
 static void
 assignWork(string queryfile, int noWorkers,   int totalLines, int noRepeats, bool split) {
-	int res = system("mkdir pieces");
-        res = system("rm pieces/*");
+        system("mkdir pieces");
+        assert_s(system("rm -f pieces/*") >= 0, "problem when removing pieces/*");
 
 	ifstream infile(queryfile);
 
@@ -3865,12 +3865,12 @@ assignWork(string queryfile, int noWorkers,   int totalLines, int noRepeats, boo
 
 		//we need to concatenate the outfile with itself noRepeats
 
-		res = system("touch temp;");
+		assert_s(system("touch temp;") >= 0, "problem when creating temp");
 		for (int j = 0; j < noRepeats; j++) {
-			res = system((string("cat temp ") + workload + " > temp2;").c_str());
-			res = system("mv temp2 temp");
+		  assert_s(system((string("cat temp ") + workload + " > temp2;").c_str()) >= 0,  "problem when cat");
+		  assert_s(system("mv temp2 temp") >= 0, "problem when moving");
 		}
-		res = system(("mv temp " + workload).c_str());
+		assert_s(system(("mv temp " + workload).c_str()) >= 0, "problem wehn moving");
 
 	}
 
@@ -3900,8 +3900,8 @@ workerJob(EDBProxy * cl, int index, ofstream & resultFile) {
 
 static void runExp(EDBProxy * cl, int noWorkers) {
 
-	int res = system("rm pieces/result;");
-	res = system("touch pieces/result;");
+        assert_s(system("rm -f pieces/result;") >= 0, "problem removing pieces/result");
+        assert_s(system("touch pieces/result;") >= 0, "problem creating pieces/result");
 
 	ofstream resultFile("pieces/result");
 	ifstream resultFileIn;
@@ -3972,7 +3972,8 @@ static void runExp(EDBProxy * cl, int noWorkers) {
 	}
 
 	cerr <<"overall:  throughput " << querytput << " queries/sec latency " << querylat/noWorkers << " sec/query \n";
-	resultFileIn.close();
+	cerr << "some other vars " << trantput << tranlat << allInstr << allInstrOK << allTran << allTranOK << "\n";
+        resultFileIn.close();
 
 
 
