@@ -97,6 +97,9 @@ class EDBProxy {
     unsigned int totalTables;
     unsigned int totalIndexes;
 
+    //hack, remove
+    bool EXECUTE_QUERIES;
+
     //**************** HELPER FUNCTIONS *******************************/
 
     //CREATE

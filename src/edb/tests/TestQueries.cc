@@ -668,6 +668,7 @@ Connection::start() {
             script_path << "--proxy-lua-script=" << tc.edbdir << "/../mysqlproxy/wrapper.lua";
             address << "--proxy-address=localhost:" << tc.port;
 
+            cerr << "starting on port " << tc.port << "\n";
             execlp("mysql-proxy",
                    "mysql-proxy", "--plugins=proxy",
                                   "--max-open-files=1024",
