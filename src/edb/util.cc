@@ -688,12 +688,16 @@ getSQLWords(const string &query)
 string
 getQuery(ifstream & qFile)
 {
-    string line = "";
+
     string query = "";
+    string line = "";
+
     while ((!qFile.eof()) && (line.find(';') == string::npos)) {
         getline(qFile, line);
         query = query + line;
     }
+
+
     return query;
 
 }

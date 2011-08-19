@@ -171,7 +171,7 @@ MultiPrinc::processAnnotation(list<string>::iterator & wordsIt,
                 Predicate * pred = new Predicate();
                 pred->name = *wordsIt;
                 roll<string>(wordsIt, 2);                 //go over name and (
-                while (wordsIt->compare(")")) {
+                while ((wordsIt != words.end()) && (wordsIt->compare(")"))) {
                     pred->fields.push_back(*wordsIt);
                     wordsIt++;
                     checkStr(wordsIt, words, ",", ")");

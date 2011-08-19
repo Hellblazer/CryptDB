@@ -2667,6 +2667,8 @@ EDBProxy::rewriteEncryptInsert(const string &query)
 throw (CryptDBError)
 {
 
+    LOG(edb_v) << "Query: " << query;
+
     list<string> queries;
 
     list<string> words = getSQLWords(query);
@@ -3171,7 +3173,7 @@ throw (CryptDBError)
 
     //some queries do not need to be encrypted
     if (!considerQuery(com, query)) {
-        if (VERBOSE) { LOG(edb_v) << "query not considered: " << query; }
+        LOG(edb_v) << "query not considered: " << query;
         list<string> res;
         res.push_back(query);
         return res;
@@ -3487,7 +3489,7 @@ EDBProxy::rewriteEncryptTrain(const string & query) {
     //parse query
     list<string> words = getSQLWords(query);
 
-    assert_s(words.size() == 4, "invalid number of inputs to train, expecting: TRAIN are_all_fields_encrypted createsfile queryfile ");
+    assert_s(words.size() == 5, "invalid number of inputs to train, expecting: TRAIN are_all_fields_encrypted createsfile queryfile execute?");
 
     list<string>::iterator it = words.begin();
     string enc = *(++it);
@@ -3495,8 +3497,8 @@ EDBProxy::rewriteEncryptTrain(const string & query) {
         allDefaultEncrypted = true;
     }
     string createsfile = *(++it);
-    string indexfile = *(++it);
     string queryfile = *(++it);
+    bool doexec = (valFromStr(*(++it)) != 0);
 
     //create tables
     runQueries(createsfile, 0);
@@ -3509,7 +3511,7 @@ EDBProxy::rewriteEncryptTrain(const string & query) {
 
     //recreate tables
     overwrite_creates = true;
-    runQueries(createsfile, 1);
+    runQueries(createsfile, doexec);
     overwrite_creates = false;
 
 

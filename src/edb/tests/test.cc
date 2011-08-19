@@ -3799,8 +3799,8 @@ throw (CryptDBError)
 
 
 static void
-dotrain(EDBProxy * cl, string createsfile, string indexfile, string querypatterns) {
-	cl->execute(string("train ") + " 1 " + createsfile + " " + indexfile + " " + querypatterns);
+dotrain(EDBProxy * cl, string createsfile, string querypatterns, string exec) {
+	cl->execute(string("train ") + " 1 " + createsfile + " " + querypatterns + " " + exec);
 }
 
 static string * workloads;
@@ -3925,16 +3925,18 @@ static void runExp(EDBProxy * cl, int noWorkers) {
 		}
 	}
 
-	//parent
-	for (i = 0; i < noWorkers; i++) {
+	//wait until any child finishes
 
-		if (waitpid(pids[i], &childstatus, 0) == -1) {
-			cerr << "there were problems with process " << pids[i]
-			                                                    << "\n";
-		}
+	pid_t firstchild = waitpid(-1, &childstatus,0);
 
+	assert_s(WIFEXITED(childstatus), "the first child returning terminated abnormally\n");
+
+	//signal the other children to stop
+	for (int j = 0; j < noWorkers; j++) {
+	    if (pids[j] != firstchild) {
+	        //signal(SIGTERM);
+	    }
 	}
-
 	resultFile.close();
 
 	resultFileIn.open("pieces/result", ifstream::in);
@@ -3991,7 +3993,7 @@ testTrace(const TestConfig &tc, int argc, char ** argv)
 		string queriestotranslate = argv[5];
 		string outputfile = argv[6];
 
-		dotrain(cl, argv[2], argv[3], argv[4]);
+		dotrain(cl, argv[2], argv[4], "1");
 		runQueriesFromFile(cl, queriestotranslate, false, false, outputfile, false);
 
 
@@ -4078,7 +4080,7 @@ testBench(const TestConfig & tc, int argc, char ** argv)
             "loadData.sh",
              "mysqlproxy.properties",
              "numWarehouses",
-             "1",
+             "4",
              (char *) 0
              );
     LOG(warn) << "could not execlp bench: " << strerror(errno);
