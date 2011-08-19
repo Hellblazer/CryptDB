@@ -45,6 +45,20 @@ class TestConfig {
     std::string edbdir;
 };
 
+struct Query {
+    string query;
+    bool test_res;
+
+    Query()
+    {
+    }
+
+    Query(string q, bool res) {
+        query = q;
+        test_res = res;
+    }
+};
+
 #define PLAIN 0
 
 void PrintRes(const ResType &res);

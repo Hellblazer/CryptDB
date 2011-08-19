@@ -4,7 +4,6 @@
  */
 
 #include "EDBProxy.h"
-#include "TestQueries.h"
 #include "test_utils.h"
 
 #ifndef TESTNOTCONSIDER_H_

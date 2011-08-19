@@ -79,10 +79,10 @@ Check(const TestConfig &tc, const vector<Query> &queries, EDBProxy * cl, bool cr
     for (auto q = queries.begin(); q != queries.end(); q++) {
         ntest++;
         command com = getCommand(q->query);
-        if (cl->considerQuery(com, q->query) == q->multi_null) {
+        if (cl->considerQuery(com, q->query) == q->test_res) {
             npass++;
         } else {
-            LOG(test) << q->query << " had consider " << q->multi_null;
+            LOG(test) << q->query << " had consider " << q->test_res;
             if (tc.stop_if_fail) {
                 assert_s(false, "failed!");
             }

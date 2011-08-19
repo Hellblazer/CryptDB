@@ -12,20 +12,6 @@
 #ifndef TESTQUERIES_H_
 #define TESTQUERIES_H_
 
-struct Query {
-    string query;
-    bool multi_null;
-
-    Query()
-    {
-    }
-
-    Query(string q, bool returns_null_multi) {
-        query = q;
-        multi_null = returns_null_multi;
-    }
-};
-
 struct QueryList {
     string name;
     vector<string> plain_create;
