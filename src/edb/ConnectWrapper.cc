@@ -4,6 +4,7 @@
 
 #include "EDBProxy.h"
 #include "cryptdb_log.h"
+#include <fstream>
 
 class WrapperState {
  public:
@@ -11,6 +12,15 @@ class WrapperState {
 };
 
 static EDBProxy * cl = NULL;
+
+static string TRAIN_QUERY ="";
+
+
+static bool LOG_PLAIN_QUERIES = false;
+static ofstream * PLAIN_LOG = NULL;
+
+static bool LOG_ENCRYPT_QUERIES = false;
+static ofstream * ENCRYPT_LOG = NULL;
 
 static map<string, WrapperState*> clients;
 
@@ -49,6 +59,7 @@ connect(lua_State *L)
     WrapperState *ws = new WrapperState();
 
     if (!cl) {
+
         string mode = getenv("CRYPTDB_MODE");
         if (mode == "single") {
             cl = new EDBProxy(server, user, psswd, dbname, port, false);
@@ -57,9 +68,50 @@ connect(lua_State *L)
         } else {
             cl = new EDBProxy(server, user, psswd, dbname, port);
         }
+
+        //may need to do training
+        char * ev = getenv("TRAIN_QUERY");
+        if (ev) {
+            string trainQuery = ev;
+            LOG(wrapper) << "proxy trains using " << ev;
+            if (trainQuery != "") {
+                cl->execute(trainQuery);
+            }
+        }
+
+        ev = getenv("LOG_PLAIN_QUERIES");
+        if (ev) {
+            string logPlainQueries = string(ev);
+            if (logPlainQueries != "") {
+                LOG_PLAIN_QUERIES = true;
+                int res = system(("rm -f" + logPlainQueries + "; touch " + logPlainQueries).c_str());
+                assert_s(res >= 0, "failed to rm -f and touch " + logPlainQueries);
+                PLAIN_LOG = new ofstream(logPlainQueries, ios_base::app);
+                LOG(wrapper) << "proxy logs plain queries at " << logPlainQueries;
+                assert_s(PLAIN_LOG != NULL, "could not create file " + logPlainQueries);
+            } else {
+                LOG_PLAIN_QUERIES = false;
+            }
+        }
+
+        ev = getenv("LOG_ENCRYPT_QUERIES");
+        if (ev) {
+            string logEncryptQueries = string(ev);
+            if (logEncryptQueries != "") {
+                LOG_ENCRYPT_QUERIES = true;
+                LOG(wrapper) << "proxy logs encrypted queries ";
+                ENCRYPT_LOG = new ofstream(logEncryptQueries, ios_base::app);
+                assert_s(ENCRYPT_LOG != NULL, "could not create file " + logEncryptQueries);
+            } else {
+                LOG_ENCRYPT_QUERIES = false;
+            }
+        }
+
+
+
     }
 
-    uint64_t mkey = 113341234;  // XXX
+    uint64_t mkey = 113341234;  // XXX do not change as it's used for tpcc exps
     cl->setMasterKey(BytesFromInt(mkey, AES_KEY_BYTES));
 
     if (clients.find(client) != clients.end())
@@ -100,6 +152,17 @@ rewrite(lua_State *L)
         return 1;
     }
 
+    if (LOG_PLAIN_QUERIES) {
+        *PLAIN_LOG << query << "\n";
+    }
+
+    if (LOG_ENCRYPT_QUERIES) {
+        for (auto it = new_queries.begin(); it != new_queries.end(); it++) {
+            *ENCRYPT_LOG << *it << "\n";
+        }
+    }
+
+
     lua_createtable(L, (int) new_queries.size(), 0);
     int top = lua_gettop(L);
     int index = 1;
@@ -107,6 +170,7 @@ rewrite(lua_State *L)
         xlua_pushlstring(L, *it);
         lua_rawseti(L, top, index);
         index++;
+
     }
 
     clients[client]->last_query = query;
