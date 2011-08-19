@@ -230,6 +230,7 @@ typedef struct TableMetadata { //each anonymized field
     list<string> primaryKey;
     list<IndexMetadata *> indexes;
     bool hasEncrypted;     //true if the table contains an encrypted field
+    bool hasSensitive;    //true if any field is involved in access control of mp
 
     ~TableMetadata();
 } TableMetadata;

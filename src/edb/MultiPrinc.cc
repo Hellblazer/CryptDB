@@ -61,7 +61,7 @@ MultiPrinc::processAnnotation(list<string>::iterator & wordsIt,
     cerr << "in process ann in mp\n";
 
     if (equalsIgnoreCase(*wordsIt, "encfor")) {
-
+        tm[tablename]->hasSensitive = true;
         LOG(mp) << "encfor";
         wordsIt++;
         cerr << "b\n";
@@ -142,6 +142,7 @@ MultiPrinc::processAnnotation(list<string>::iterator & wordsIt,
                                              tablename),
                                     fullName(field2, tablename));
         assert_s(resacc >=0, "access manager addaccessto failed");
+        tm[tablename]->hasSensitive = true;
         encryptfield = false;
         return;
     }
@@ -149,6 +150,7 @@ MultiPrinc::processAnnotation(list<string>::iterator & wordsIt,
     int countaccessto = 0;
     while (true) {
         if (equalsIgnoreCase(*wordsIt,"hasaccessto")) {
+            tm[tablename]->hasSensitive = true;
             wordsIt++;
             if (countaccessto > 0) {
                 assert_s(
@@ -182,6 +184,7 @@ MultiPrinc::processAnnotation(list<string>::iterator & wordsIt,
         }
 
         if (equalsIgnoreCase(*wordsIt, "equals")) {
+            tm[tablename]->hasSensitive = true;
             wordsIt++;
             string field2 = *wordsIt;
             wordsIt++;

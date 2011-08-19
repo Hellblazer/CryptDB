@@ -182,6 +182,20 @@ EDBProxy::EDBProxy(string server, string user, string psswd, string dbname,
 
     assert_s (!(multiPrinc && defaultEnc), "cannot have fields encrypted by default in multiprinc because we need to know encfor princ");
     this->allDefaultEncrypted = defaultEnc;
+
+    //hack, remove
+    EXECUTE_QUERIES = true;
+    char * ev = getenv("EXECUTE_QUERIES");
+    if (ev) {
+        string executeQueries = string(ev);
+        if (executeQueries == "false") {
+            LOG(wrapper) << "not executing queries";
+            EXECUTE_QUERIES = false;
+        } else {
+            LOG(wrapper) << "executing queries";
+        }
+    }
+
 }
 
 void
@@ -508,6 +522,7 @@ throw (CryptDBError)
         tm->anonTableName = anonTableName;
         tm->fieldMetaMap = map<string, FieldMetadata *>();
         tm->hasEncrypted = false;
+        tm->hasSensitive = false;
     }
 
     //populate table structure
@@ -3070,10 +3085,9 @@ throw (CryptDBError)
 
 //returns true if this query has to do with cryptdb
 // e.g. SET NAMES 'utf8' is a negative example
-static bool
-considerQuery(command com, const string &query)
+bool
+EDBProxy::considerQuery(command com, const string &query)
 {
-
     switch (com) {
     case cmd::CREATE: {
         list<string> words = getSQLWords(query);
@@ -3084,23 +3098,72 @@ considerQuery(command com, const string &query)
         }
         break;
     }
-    case cmd::UPDATE: {break; }
+    case cmd::UPDATE: {
+        if (mp) {
+            list<string> words = getSQLWords(query);
+            auto it_update = itAtKeyword(words, "update");
+            it_update++;
+            string table_name = *it_update;
+            auto table_info = tableMetaMap.find(table_name);
+            //if we can't find this table in the map, or none of its fields are encrypted
+            // don't consider
+            if (table_info == tableMetaMap.end() || !table_info->second->hasSensitive) {
+                LOG(edb_v) << "don't consider " << query << endl;
+                return false;
+            }
+        }
+        break; 
+    }
     case cmd::INSERT: {
         list<string> words = getSQLWords(query);
         if (contains("select", words)) {
             LOG(warn) << "given nested query!";
             return false;
         }
-        break;
+        if (mp) {
+            auto it_insert = itAtKeyword(words, "insert");
+            it_insert++;
+            it_insert++;
+            string table_name = *it_insert;
+            //if active_users, must consider
+            if (table_name.find(PWD_TABLE_PREFIX) != string::npos) {
+                break;
+            }
+            auto table_info = tableMetaMap.find(table_name);
+            //if we can't find this table in the map, or none of its fields are encrypted
+            // don't consider
+            if (table_info == tableMetaMap.end() || !table_info->second->hasSensitive) {
+                LOG(edb_v) << "don't consider " << query << endl;
+                return false;
+            }
+        }
+        break; 
     }
     case cmd::SELECT: {
-        list<string> words = getSQLWords(query);
-        //for speed
-        if (!contains("from", words) && !contains("onions", words)) {
-                return false;
-        }
+    	list<string> words = getSQLWords(query);
+    	//for speed
+    	if (!contains("from", words)) {
+    		return false;
+    	}
 
-        break;
+    	if (mp) {
+    		auto it_from = itAtKeyword(words, "from");
+    		it_from++;
+    		bool table_sense = false;
+    		while(it_from != words.end() && !isKeyword(*it_from)) {
+    			auto table_info = tableMetaMap.find(*it_from);
+    			if (table_info != tableMetaMap.end() && table_info->second->hasSensitive) {
+    				table_sense = true;
+    			}
+    			it_from++;
+    		}
+    		//it none of the tables selected from are sensitive, ignore the query
+    		if (!table_sense) {
+    			return false;
+    		}
+
+    		break;
+    	}
     }
     case cmd::DROP: {
         list<string> words = getSQLWords(query);
@@ -3111,7 +3174,27 @@ considerQuery(command com, const string &query)
         }
         break;
     }
-    case cmd::DELETE: {break; }
+    case cmd::DELETE: {
+        if (mp) {
+            list<string> words = getSQLWords(query);
+            auto it_delete = itAtKeyword(words, "delete");
+            it_delete++;
+            it_delete++;
+            string table_name = *it_delete;
+            //if active_users, must consider
+            if (table_name.find(PWD_TABLE_PREFIX) != string::npos) {
+                break;
+            }
+            auto table_info = tableMetaMap.find(table_name);
+            //if we can't find this table in the map, or none of its fields are encrypted
+            // don't consider
+            if (table_info == tableMetaMap.end() || !table_info->second->hasSensitive) {
+                LOG(edb_v) << "don't consider " << query << endl;
+                return false;
+            }
+        }
+        break; 
+    }
     case cmd::BEGIN: {
         LOG(edb_v) << "begin";
         if (DECRYPTFIRST) {
@@ -3171,6 +3254,10 @@ throw (CryptDBError)
         list<string> res;
         res.push_back(query);
         return res;
+    }
+
+    if (!EXECUTE_QUERIES && (com != cmd::TRAIN)) {
+        return list<string>();
     }
 
     //dispatch query to the appropriate rewriterEncryptor
@@ -3479,7 +3566,7 @@ EDBProxy::rewriteEncryptTrain(const string & query) {
     //parse query
     list<string> words = getSQLWords(query);
 
-    assert_s(words.size() == 5, "invalid number of inputs to train, expecting: TRAIN are_all_fields_encrypted createsfile indexfile queryfile ");
+    assert_s(words.size() == 4, "invalid number of inputs to train, expecting: TRAIN are_all_fields_encrypted createsfile queryfile ");
 
     list<string>::iterator it = words.begin();
     string enc = *(++it);
@@ -3504,8 +3591,6 @@ EDBProxy::rewriteEncryptTrain(const string & query) {
     runQueries(createsfile, 1);
     overwrite_creates = false;
 
-    //create indexes
-    runQueries(indexfile, 1);
 
     outputOnionState();
 

@@ -29,6 +29,7 @@
 #include "TestAccessManager.h"
 #include "TestProxy.h"
 #include "TestQueries.h"
+#include "TestNotConsider.h"
 
 using namespace std;
 
@@ -4024,6 +4025,69 @@ testTrace(const TestConfig &tc, int argc, char ** argv)
 }
 
 
+static void
+testBench(const TestConfig & tc, int argc, char ** argv)
+{
+    setenv("EDBDIR", tc.edbdir.c_str(), 1);
+    setenv("CRYPTDB_LOG", cryptdb_logger::getConf().c_str(), 1);
+
+
+    //configure proxy
+    //setenv("TRAIN_QUERY", "train 1 /u/raluca/cryptdb/src/eval/offtrace/sqlTableCreates /u/raluca/cryptdb/src/eval/offtrace/querypatterns_bench", 1);
+
+    setenv("LOG_PLAIN_QUERIES", (tc.edbdir+"/../eval/offtrace/bench_plain_insert").c_str(), 1);
+    setenv("EXECUTE_QUERIES", "false", 1);
+    //static bool LOG_ENCRYPT_QUERIES = false;
+
+    //static bool EXECUTE_QUERIES = true;
+
+    //start proxy
+    pid_t proxy_pid = fork();
+    if (proxy_pid == 0) {
+        LOG(test) << "starting proxy, pid " << getpid();
+        setenv("CRYPTDB_MODE", "single", 1);
+
+        stringstream script_path, address;
+        script_path << "--proxy-lua-script=" << tc.edbdir << "/../mysqlproxy/wrapper.lua";
+        uint port = 5123;
+        address << "--proxy-address=localhost:" << port;
+
+        cerr << "starting on port " << port << "\n";
+
+        execlp("mysql-proxy",
+                "mysql-proxy", "--plugins=proxy",
+                "--max-open-files=1024",
+                script_path.str().c_str(),
+                address.str().c_str(),
+                "--proxy-backend-addresses=localhost:3306",
+                (char *) 0);
+        LOG(warn) << "could not execlp: " << strerror(errno);
+        exit(-1);
+    } else if (proxy_pid < 0) {
+        assert_s(false,"failed to fork");
+    }
+
+    //wait for proxy to start
+    cerr << "waiting for proxy to start\n";
+    sleep(3);
+
+    //point benchmark data load to proxy
+    string path = tc.edbdir + "/../eval/bench/run/";
+
+    cerr << "trying to execute " << (path+"loadData.sh") << " " << "mysqlproxy.properties" << "\n";
+    execlp((path+"loadData.sh").c_str(),
+            "loadData.sh",
+             "mysqlproxy.properties",
+             "numWarehouses",
+             "1",
+             (char *) 0
+             );
+    LOG(warn) << "could not execlp bench: " << strerror(errno);
+
+    //don't forget to create indexes!
+
+}
+
 
 
 /*
@@ -4170,6 +4234,7 @@ static struct {
 		{ "access_old",     "",                             &accessManagerTest },
 		{ "aes",            "",                             &evaluate_AES },
 		{ "autoinc",        "",                             &autoIncTest },
+        { "consider",       "consider queries (or not)",    &TestNotConsider::run },
 		{ "crypto",         "crypto functions",             &TestCrypto::run },
 		{ "multi",          "integration multi principal",  &TestMultiPrinc::run },
 		{ "paillier",       "",                             &testPaillier },
@@ -4180,7 +4245,8 @@ static struct {
 		{ "shell",          "interactive shell",            &interactiveTest },
 		{ "single",         "integration - single principal",&TestSinglePrinc::run },
 		{ "tables",         "",                             &encryptionTablesTest },
-		{ "trace",          "",                             &testTrace },
+		{ "trace",          "TPC-C trace eval",             &testTrace },
+		{ "bench",          "TPC-C benchmark eval",         &testBench },
 		{ "utils",          "",                             &testUtils },
 
 		{ "help",  "",      &help },

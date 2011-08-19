@@ -668,6 +668,7 @@ Connection::start() {
             script_path << "--proxy-lua-script=" << tc.edbdir << "/../mysqlproxy/wrapper.lua";
             address << "--proxy-address=localhost:" << tc.port;
 
+            cerr << "starting on port " << tc.port << "\n";
             execlp("mysql-proxy",
                    "mysql-proxy", "--plugins=proxy",
                                   "--max-open-files=1024",
@@ -971,7 +972,7 @@ CheckQueryList(const TestConfig &tc, const QueryList &queries) {
             break;
         case 2:
         case 5:
-            if (q->multi_null) {
+            if (q->test_res) {
                 CheckNULL(tc, q->query);
             } else {
                 CheckQuery(tc, q->query);
