@@ -3075,17 +3075,19 @@ EDBProxy::considerQuery(command com, const string &query)
         break;
     }
     case cmd::UPDATE: {
-        list<string> words = getSQLWords(query);
-        auto it_update = itAtKeyword(words, "update");
-        it_update++;
-        string table_name = *it_update;
-        auto table_info = tableMetaMap.find(table_name);
-        //if we can't find this table in the map, or none of its fields are encrypted
-        // don't consider
-        if (table_info == tableMetaMap.end() || !table_info->second.hasSensitive) {
-            LOG(edb_v) << "don't consider " << query << endl;
-            return false;
-        }        
+        if (mp) {
+            list<string> words = getSQLWords(query);
+            auto it_update = itAtKeyword(words, "update");
+            it_update++;
+            string table_name = *it_update;
+            auto table_info = tableMetaMap.find(table_name);
+            //if we can't find this table in the map, or none of its fields are encrypted
+            // don't consider
+            if (table_info == tableMetaMap.end() || !table_info->second->hasSensitive) {
+                LOG(edb_v) << "don't consider " << query << endl;
+                return false;
+            }
+        }
         break; 
     }
     case cmd::INSERT: {
@@ -3094,20 +3096,23 @@ EDBProxy::considerQuery(command com, const string &query)
             LOG(warn) << "given nested query!";
             return false;
         }
-        auto it_update = itAtKeyword(words, "delete");
-        it_update++;
-        string table_name = *it_update;
-        //if active_users, must consider
-        if (table_name.find(PWD_TABLE_PREFIX) != -1) {
-            break;
+        if (mp) {
+            auto it_insert = itAtKeyword(words, "insert");
+            it_insert++;
+            it_insert++;
+            string table_name = *it_insert;
+            //if active_users, must consider
+            if (table_name.find(PWD_TABLE_PREFIX) != string::npos) {
+                break;
+            }
+            auto table_info = tableMetaMap.find(table_name);
+            //if we can't find this table in the map, or none of its fields are encrypted
+            // don't consider
+            if (table_info == tableMetaMap.end() || !table_info->second->hasSensitive) {
+                LOG(edb_v) << "don't consider " << query << endl;
+                return false;
+            }
         }
-        auto table_info = tableMetaMap.find(table_name);
-        //if we can't find this table in the map, or none of its fields are encrypted
-        // don't consider
-        if (table_info == tableMetaMap.end() || !table_info->second.hasSensitive) {
-            LOG(edb_v) << "don't consider " << query << endl;
-            return false;
-        }        
         break; 
     }
     case cmd::SELECT: {
@@ -3116,19 +3121,21 @@ EDBProxy::considerQuery(command com, const string &query)
         if (!contains("from", words)) {
                 return false;
         }
-        auto it_from = itAtKeyword(words, "from");
-        it_from++;
-        auto it_where = itAtKeyword(words, "where");
-        bool table_sense = false;
-        for (it_from; it_from != it_where; it_from++) {
-            auto table_info = tableMetaMap.find(*it_from);
-            if (table_info != tableMetaMap.end() && table_info->second.hasSensitive) {
-                table_sense = true;
+        if (mp) {
+            auto it_from = itAtKeyword(words, "from");
+            it_from++;
+            bool table_sense = false;
+            while(it_from != words.end() && !isKeyword(*it_from)) {
+                auto table_info = tableMetaMap.find(*it_from);
+                if (table_info != tableMetaMap.end() && table_info->second->hasSensitive) {
+                    table_sense = true;
+                }
+                it_from++;
             }
-        }
-        //it none of the tables selected from are sensitive, ignore the query
-        if (!table_sense) {
-            return false;
+            //it none of the tables selected from are sensitive, ignore the query
+            if (!table_sense) {
+                return false;
+            }
         }
         break;
     }
@@ -3142,21 +3149,24 @@ EDBProxy::considerQuery(command com, const string &query)
         break;
     }
     case cmd::DELETE: {
-        list<string> words = getSQLWords(query);
-        auto it_update = itAtKeyword(words, "delete");
-        it_update++;
-        string table_name = *it_update;
-        //if active_users, must consider
-        if (table_name.find(PWD_TABLE_PREFIX) != -1) {
-            break;
+        if (mp) {
+            list<string> words = getSQLWords(query);
+            auto it_delete = itAtKeyword(words, "delete");
+            it_delete++;
+            it_delete++;
+            string table_name = *it_delete;
+            //if active_users, must consider
+            if (table_name.find(PWD_TABLE_PREFIX) != string::npos) {
+                break;
+            }
+            auto table_info = tableMetaMap.find(table_name);
+            //if we can't find this table in the map, or none of its fields are encrypted
+            // don't consider
+            if (table_info == tableMetaMap.end() || !table_info->second->hasSensitive) {
+                LOG(edb_v) << "don't consider " << query << endl;
+                return false;
+            }
         }
-        auto table_info = tableMetaMap.find(table_name);
-        //if we can't find this table in the map, or none of its fields are encrypted
-        // don't consider
-        if (table_info == tableMetaMap.end() || !table_info->second.hasSensitive) {
-            LOG(edb_v) << "don't consider " << query << endl;
-            return false;
-        }        
         break; 
     }
     case cmd::BEGIN: {
