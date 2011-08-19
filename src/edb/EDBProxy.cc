@@ -240,9 +240,14 @@ EDBProxy::replenishEncryptionTables()
     cm->replenishEncryptionTables();
 }
 
-static void
+// it must point to first word of type
+// advances it after the last part of type
+// returns the type string from the query
+// sets the type of the field in fm to either integer or string
+static string
 setType(list<string>::iterator & it, list<string> & words, FieldMetadata * fm)
 {
+
     string token = *it;
     bool isint = false;
     if (it->find("int") != string::npos) {
@@ -260,7 +265,11 @@ setType(list<string>::iterator & it, list<string> & words, FieldMetadata * fm)
         fm->mysql_type = MYSQL_TYPE_STRING;
     }
 
+    string res = *it;
+    it++;
+	res += processParen(it, words);
 
+	return res;
 }
 
 list<string>
@@ -563,12 +572,13 @@ throw (CryptDBError)
             continue;
         }
 
+
         setType(wordsIt, words,  fm);
+        //now wordsIt points to first word after type
 
         fieldSeq += processCreate(fm->type, fieldName, i, tm,
                                   fm, !!mp) + " ";
 
-        wordsIt++;
 
         fieldSeq +=  mirrorUntilTerm(wordsIt, words, terms);
 
@@ -3089,6 +3099,7 @@ considerQuery(command com, const string &query)
         if (!contains("from", words) && !contains("onions", words)) {
                 return false;
         }
+
         break;
     }
     case cmd::DROP: {
