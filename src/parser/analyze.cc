@@ -1,6 +1,7 @@
 #include <string>
 #include <map>
 #include <iostream>
+#include <fstream>
 #include <sstream>
 #include <stdexcept>
 #include <vector>
@@ -842,6 +843,55 @@ unescape(string s)
     return ss.str();
 }
 
+static void
+read_schema(const std::string &filename)
+{
+    ifstream f(filename);
+
+    MYSQL *m = mysql_init(0);
+    if (!m)
+        fatal() << "mysql_init";
+
+    mysql_options(m, MYSQL_OPT_USE_EMBEDDED_CONNECTION, 0);
+
+    if (!mysql_real_connect(m, 0, 0, 0, 0, 0, 0, CLIENT_MULTI_STATEMENTS))
+        fatal() << "mysql_real_connect: " << mysql_error(m);
+
+    stringstream ss;
+    for (;;) {
+        string s;
+        getline(f, s);
+        if (!f.good())
+            break;
+
+        ss << s << endl;
+    }
+
+    if (mysql_query(m, ss.str().c_str()))
+        fatal() << "mysql_query: " << mysql_error(m);
+
+    for (;;) {
+        MYSQL_RES *r = mysql_store_result(m);
+        if (r) {
+            // cout << "got result.." << endl;
+            mysql_free_result(r);
+        } else if (mysql_field_count(m) == 0) {
+            // cout << "rows affected: " << mysql_affected_rows(m) << endl;
+        } else {
+            fatal() << "could not retrieve result set";
+        }
+
+        int s = mysql_next_result(m);
+        if (s > 0)
+            fatal() << "mysql_next_result: " << mysql_error(m);
+
+        if (s < 0)
+            break;
+    }
+
+    cout << "done with schema" << endl;
+}
+
 int
 main(int ac, char **av)
 {
@@ -850,14 +900,21 @@ main(int ac, char **av)
         exit(1);
     }
 
+    assert(0 == system("rm -rf /tmp/analyze.db"));
+    assert(0 == system("mkdir /tmp/analyze.db"));
+
     const char *mysql_av[] =
         { "progname",
-          "--skip-innodb",
           "--skip-grant-tables",
+          /* "--skip-innodb", */
+          /* "--default-storage-engine=MEMORY", */
+          "--datadir=/tmp/analyze.db",
           "--language=" MYSQL_BUILD_DIR "/sql/share/"
         };
     assert(0 == mysql_server_init(sizeof(mysql_av) / sizeof(mysql_av[0]),
                                   (char**) mysql_av, 0));
+
+    read_schema(av[1]);
 
     for (uint nquery = 0; ; nquery++) {
         string s;
