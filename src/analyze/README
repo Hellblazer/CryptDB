@@ -1,2 +1,8 @@
-./extract-query.sh .../pcapfile | ./tag-db.py
+mkdir ./data/sqldb
+zcat ./data/sql.mit.edu-schemata-201108111643.sql.gz \
+  | ../parser/load-schema ./data/sqldb
+
+./extract-query.sh ./data/out.1313204583.15205.log \
+  | ./tag-db.py \
+  | ../parser/analyze ./data/sqldb /dev/fd/0
 
