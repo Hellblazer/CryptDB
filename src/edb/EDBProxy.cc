@@ -595,11 +595,7 @@ throw (CryptDBError)
                                   fm, !!mp) + " ";
 
 
-        string fieldproperties =  mirrorUntilTerm(wordsIt, words, terms);
-
-        if (!fm->isEncrypted) {
-            fieldSeq += fieldproperties;
-        }
+        fieldSeq +=  mirrorUntilTerm(wordsIt, words, terms);
 
         i++;
     }
