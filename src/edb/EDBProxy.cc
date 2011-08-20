@@ -3492,14 +3492,14 @@ EDBProxy::outputOnionState()
 {
     for (map<string, TableMetadata *>::iterator tm = tableMetaMap.begin();
          tm != tableMetaMap.end(); tm++) {
-        cerr<<"table: " << tm->first << "\n";
+        cerr<<"table: " << tm->first << " " << tm->second->anonTableName << "\n";
         if (tm->second->hasEncrypted) {
             for (map<string, FieldMetadata *>::iterator fm =
                      tm->second->fieldMetaMap.begin();
                  fm != tm->second->fieldMetaMap.end(); fm++) {
                 FieldMetadata * f = fm->second;
                 if (f->isEncrypted) {
-                    printf("%-36s", fullName(f->fieldName, tm->first).c_str());
+                    printf("%-26s DET:%-20s", fullName(f->fieldName, tm->first).c_str(), f->anonFieldNameDET.c_str());
                     printf(" %-14s", levelnames[(int) f->secLevelDET].c_str());
                     if (f->has_ope)
                         printf(" %-14s", levelnames[(int) f->secLevelOPE].c_str());

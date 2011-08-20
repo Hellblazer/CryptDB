@@ -48,17 +48,16 @@ connect(lua_State *L)
     string psswd = xlua_tolstring(L, 5);
     string dbname = xlua_tolstring(L, 6);
 
-    cryptdb_logger::setConf(string(getenv("CRYPTDB_LOG")));
-
-    LOG(wrapper) << "connect " << client << "; "
-                 << "server = " << server << ":" << port << "; "
-                 << "user = " << user << "; "
-                 << "password = " << psswd << "; "
-                 << "database = " << dbname;
-
     WrapperState *ws = new WrapperState();
 
     if (!cl) {
+        cryptdb_logger::setConf(string(getenv("CRYPTDB_LOG")));
+
+        LOG(wrapper) << "connect " << client << "; "
+                     << "server = " << server << ":" << port << "; "
+                     << "user = " << user << "; "
+                     << "password = " << psswd << "; "
+                     << "database = " << dbname;
 
         string mode = getenv("CRYPTDB_MODE");
         if (mode == "single") {

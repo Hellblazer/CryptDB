@@ -3808,8 +3808,11 @@ static string * workloads;
 
 static void
 assignWork(string queryfile, int noWorkers,   int totalLines, int noRepeats, bool split) {
-        system("mkdir pieces");
-        assert_s(system("rm -f pieces/*") >= 0, "problem when removing pieces/*");
+    int blah = system("mkdir pieces");
+    assert_s(system("rm -f pieces/*") >= 0, "problem when removing pieces/*");
+    if (false) {
+        LOG(test) << blah;
+    }
 
 	ifstream infile(queryfile);
 
@@ -4005,7 +4008,7 @@ testTrace(const TestConfig &tc, int argc, char ** argv)
 		int totalLines = atoi(argv[7]);
 		int noWorkers = atoi(argv[8]);
 
-		dotrain(cl, argv[2], argv[4], "1");
+		dotrain(cl, argv[2], argv[4], "0");
 		assignWork(queriestotranslate, noWorkers, totalLines, 1, true);
 
 		pid_t pids[noWorkers];

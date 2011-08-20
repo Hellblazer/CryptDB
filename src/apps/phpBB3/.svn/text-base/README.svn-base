@@ -1,0 +1,7 @@
+Changes to phpBB for evaluation:
+
+posting.php : L33 --> turned off timer to minimize the possible ammount of time between posts
+	      	      delete 0; and uncomment to revert
+includes/ucp/ucp_pm_compose : L47 --> turned off timer to minimize the possible ammount of time between messages
+			      	      delete 0; and uncomment to revert
+			      L487 --> turned off max users you can send pms to; uncomment function to reverse
