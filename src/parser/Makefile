@@ -7,7 +7,7 @@ CXXFLAGS := -I. \
 	    -I$(MYSRC)/regex \
 	    -I$(MYBUILD)/sql \
 	    -Wall -Wno-unused-parameter -fno-rtti -g -O2 \
-	    -DHAVE_CONFIG_H -DMYSQL_SERVER -DHAVE_EVENT_SCHEDULER -DDBUG_OFF \
+	    -DHAVE_CONFIG_H -DMYSQL_SERVER -DEMBEDDED_LIBRARY -DDBUG_OFF \
 	    -DMYSQL_BUILD_DIR=\"$(MYBUILD)\" \
 	    -std=c++0x
 
