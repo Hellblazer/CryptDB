@@ -23,7 +23,7 @@ LDFLAGS  := -L$(MYBUILD)/libmysqld -lsql_embedded \
 	    -L$(MYBUILD)/regex -lregex \
 	    -L$(MYBUILD)/mysys -lmysys \
 	    -L$(MYBUILD)/strings -lstrings \
-	    -lpthread -lrt -ldl -lz -lcrypt -lbsd
+	    -lpthread -lrt -ldl -lz -lcrypt
 
 all:	parsetest xftest analyze load-schema
 
