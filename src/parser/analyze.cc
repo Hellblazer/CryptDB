@@ -1,6 +1,7 @@
 #include <string>
 #include <map>
 #include <iostream>
+#include <fstream>
 #include <sstream>
 #include <stdexcept>
 #include <vector>
@@ -11,7 +12,6 @@
 #include <bsd/string.h>
 
 #include "errstream.h"
-#include "mysql_glue.h"
 #include "stringify.h"
 
 #include "sql_priv.h"
@@ -741,7 +741,7 @@ process_table_list(List<TABLE_LIST> *tll)
             // XXX handle sub-selects..
             cerr << "sub-select derived table...";
 
-            st_select_lex_unit *u = t->derived;
+            st_select_lex_unit *u __attribute__((unused)) = t->derived;
         }
     }
 }
@@ -750,12 +750,14 @@ process_table_list(List<TABLE_LIST> *tll)
 /*
  * Test harness.
  */
+extern "C" void *create_embedded_thd(int client_flag);
+
 static void
 xftest(const std::string &db, const std::string &q)
 {
-    THD *t = new THD;
-    if (t->store_globals())
-        printf("store_globals error\n");
+    mysql_thread_init();
+
+    THD *t = (THD *) create_embedded_thd(0);
 
     char buf[q.size() + 1];
     memcpy(buf, q.c_str(), q.size());
@@ -766,10 +768,6 @@ xftest(const std::string &db, const std::string &q)
 
     Parser_state ps;
     if (!ps.init(t, buf, len)) {
-        LEX lex;
-        t->lex = &lex;
-
-        lex_start(t);
         mysql_reset_thd_for_next_command(t);
 
         t->set_db(db.data(), db.length());
@@ -781,31 +779,28 @@ xftest(const std::string &db, const std::string &q)
             printf("parse error: h %p\n", t->get_internal_handler());
             printf("parse error: %d %s\n", t->is_error(), t->stmt_da->message());
         } else {
-            //printf("command %d\n", lex.sql_command);
-            cout << "parsed query: " << lex << endl;
+            LEX *lex = t->lex;
+
+            //printf("command %d\n", lex->sql_command);
+            cout << "parsed query: " << *lex << endl;
 
             // iterate over the entire select statement..
             // based on st_select_lex::print in mysql-server/sql/sql_select.cc
 
             // iterate over the items that select will actually return
-            List<Item> new_item_list;
-            auto item_it = List_iterator<Item>(lex.select_lex.item_list);
+            auto item_it = List_iterator<Item>(lex->select_lex.item_list);
             for (;; ) {
                 Item *item = item_it++;
                 if (!item)
                     break;
 
-                Item *newitem = rewrite(item);
-                new_item_list.push_back(newitem);
+                rewrite(item);
             }
-            lex.select_lex.item_list = new_item_list;
 
-            process_table_list(&lex.select_lex.top_join_list);
+            process_table_list(&lex->select_lex.top_join_list);
 
-            if (lex.select_lex.where)
-                lex.select_lex.where = rewrite(lex.select_lex.where);
-
-            cout << "output query: " << lex << endl;
+            if (lex->select_lex.where)
+                rewrite(lex->select_lex.where);
         }
 
         t->end_statement();
@@ -814,7 +809,7 @@ xftest(const std::string &db, const std::string &q)
     }
 
     t->cleanup_after_query();
-    delete t;
+    /* de-allocate t somehow? */
 }
 
 static string
@@ -848,10 +843,78 @@ unescape(string s)
     return ss.str();
 }
 
+static void
+read_schema(const std::string &filename)
+{
+    ifstream f(filename);
+
+    MYSQL *m = mysql_init(0);
+    if (!m)
+        fatal() << "mysql_init";
+
+    mysql_options(m, MYSQL_OPT_USE_EMBEDDED_CONNECTION, 0);
+
+    if (!mysql_real_connect(m, 0, 0, 0, 0, 0, 0, CLIENT_MULTI_STATEMENTS))
+        fatal() << "mysql_real_connect: " << mysql_error(m);
+
+    stringstream ss;
+    for (;;) {
+        string s;
+        getline(f, s);
+        if (!f.good())
+            break;
+
+        ss << s << endl;
+    }
+
+    if (mysql_query(m, ss.str().c_str()))
+        fatal() << "mysql_query: " << mysql_error(m);
+
+    for (;;) {
+        MYSQL_RES *r = mysql_store_result(m);
+        if (r) {
+            // cout << "got result.." << endl;
+            mysql_free_result(r);
+        } else if (mysql_field_count(m) == 0) {
+            // cout << "rows affected: " << mysql_affected_rows(m) << endl;
+        } else {
+            fatal() << "could not retrieve result set";
+        }
+
+        int s = mysql_next_result(m);
+        if (s > 0)
+            fatal() << "mysql_next_result: " << mysql_error(m);
+
+        if (s < 0)
+            break;
+    }
+
+    cout << "done with schema" << endl;
+}
+
 int
 main(int ac, char **av)
 {
-    mysql_glue_init();
+    if (ac != 2) {
+        cerr << "Usage: " << av[0] << " schema-file" << endl;
+        exit(1);
+    }
+
+    assert(0 == system("rm -rf /tmp/analyze.db"));
+    assert(0 == system("mkdir /tmp/analyze.db"));
+
+    const char *mysql_av[] =
+        { "progname",
+          "--skip-grant-tables",
+          /* "--skip-innodb", */
+          /* "--default-storage-engine=MEMORY", */
+          "--datadir=/tmp/analyze.db",
+          "--language=" MYSQL_BUILD_DIR "/sql/share/"
+        };
+    assert(0 == mysql_server_init(sizeof(mysql_av) / sizeof(mysql_av[0]),
+                                  (char**) mysql_av, 0));
+
+    read_schema(av[1]);
 
     for (uint nquery = 0; ; nquery++) {
         string s;

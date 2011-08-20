@@ -109,7 +109,7 @@ class OPEInternals {
 
         string concat = lowDBytes + highDBytes + yBytes;
         unsigned char shaDigest[SHA_DIGEST_LENGTH];
-        SHA1((const uint8_t *) concat.c_str(), concat.length(), shaDigest);
+        SHA1((const uint8_t *) concat.data(), concat.length(), shaDigest);
 
         unsigned char seed[AES_BLOCK_BYTES];
         AES_encrypt(shaDigest, seed, &key);
@@ -121,7 +121,7 @@ class OPEInternals {
             // cerr << "\n";
             string seed_s((char *) seed, AES_BLOCK_BYTES);
             seed_s.resize(desiredBytes, 0);
-            return ZZFromBytes((const uint8_t *) seed_s.c_str(), desiredBytes);
+            return ZZFromString(seed_s);
         }
 
         //need to generate more randomness using a PRG
@@ -237,7 +237,7 @@ OPE::OPE(const string &key, unsigned int OPEPlaintextSize,
     iOPE->OPEPlaintextSize = OPEPlaintextSize;
     iOPE->OPECiphertextSize = OPECiphertextSize;
 
-    if (AES_set_encrypt_key((const uint8_t *) key.c_str(), OPE_KEY_SIZE,
+    if (AES_set_encrypt_key((const uint8_t *) key.data(), OPE_KEY_SIZE,
                             &iOPE->key) <0) {
         myassert(false, "problem with AES set encrypt ");
     }
@@ -257,7 +257,7 @@ string
 OPE::encrypt(const string &plaintext)
 {
     //transford plaintext to ZZ
-    ZZ m = ZZFromBytes((const uint8_t *) plaintext.c_str(),
+    ZZ m = ZZFromBytes((const uint8_t *) plaintext.data(),
                        iOPE->OPEPlaintextSize/bitsPerByte);
 
     //cerr  << "TO ENCRYPT: " << m << "\n";
@@ -313,7 +313,7 @@ string
 OPE::decrypt(const string &ciphertext)
 {
     //transform plaintext to ZZ
-    ZZ c = ZZFromBytes((const uint8_t *) ciphertext.c_str(),
+    ZZ c = ZZFromBytes((const uint8_t *) ciphertext.data(),
                        iOPE->OPECiphertextSize/bitsPerByte);
 
     //cerr << "TO DECRYPT " << c << "\n";

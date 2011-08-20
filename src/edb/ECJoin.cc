@@ -124,7 +124,7 @@ mul(const EC_GROUP * group, const BIGNUM * ZeroBN, const EC_POINT * Point, const
 
 static BIGNUM *
 my_BN_bin2bn(string data) {
-    BIGNUM * res = BN_bin2bn((unsigned char *) data.c_str(), (int) data.length(), NULL);
+    BIGNUM * res = BN_bin2bn((unsigned char *) data.data(), (int) data.length(), NULL);
     assert_s(res, "could not convert from binary to BIGNUM ");
 
     return res;

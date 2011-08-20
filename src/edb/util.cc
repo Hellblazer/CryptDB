@@ -195,7 +195,7 @@ StringFromZZ(const ZZ &x)
 ZZ
 ZZFromString(const string &s)
 {
-    return ZZFromBytes((const uint8_t *) s.c_str(), s.length());
+    return ZZFromBytes((const uint8_t *) s.data(), s.length());
 }
 
 string

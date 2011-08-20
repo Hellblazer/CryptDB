@@ -556,7 +556,7 @@ MultiPrinc::checkPredicate(const AccessRelation & accRel, map<string, string> & 
         DBResult * dbres;
         LOG(mp) << "Check predicate: " << query << "\n";
         assert_s(conn->execute(
-                     query.c_str(),
+                     query,
                      dbres), "failure while executing query " + query);
         ResType result = dbres->unpack();
         delete dbres;

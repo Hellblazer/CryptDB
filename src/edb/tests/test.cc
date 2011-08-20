@@ -255,7 +255,7 @@ evaluateMetrics(const TestConfig &tc, int argc, char ** argv)
 		commandPlain = commandPlain + value + ", " + value + "," + value +
 				");";
 
-		cl->execute(commandPlain.c_str());
+		cl->execute(commandPlain);
 
 	}
 	timerEnd = time(NULL);
@@ -271,7 +271,7 @@ evaluateMetrics(const TestConfig &tc, int argc, char ** argv)
 
 		commandCipher = commandCipher + valueBytes + ", " + valueBytes +
 				", " + valueBytes+ ");";
-		cl->execute(commandCipher.c_str());
+		cl->execute(commandCipher);
 
 	}
 	timerEnd = time(NULL);
@@ -292,7 +292,7 @@ evaluateMetrics(const TestConfig &tc, int argc, char ** argv)
 		string value = StringFromVal(j);
 		commandPlain += value  + ";";
 		//cout << "CL " << clock() << "\n";
-		cl->execute(commandPlain.c_str());
+		cl->execute(commandPlain);
 
 	}
 	timerEnd = time(NULL);
@@ -310,7 +310,7 @@ evaluateMetrics(const TestConfig &tc, int argc, char ** argv)
 						bitsPerByte) + "'";
 
 		commandCipher = commandCipher + valueBytes + ";";
-		cl->execute(commandCipher.c_str());
+		cl->execute(commandCipher);
 
 	}
 	timerEnd = time(NULL);
@@ -339,7 +339,7 @@ evaluateMetrics(const TestConfig &tc, int argc, char ** argv)
        commandPlain = commandPlain + leftJBytes + " AND field1 < " +
           rightJBytes + ";";
 
-       cl->execute(commandPlain.c_str());
+       cl->execute(commandPlain);
        }
        timerEnd = time(NULL);
        printf("range select plain %f ms \n",
@@ -368,7 +368,7 @@ evaluateMetrics(const TestConfig &tc, int argc, char ** argv)
        commandCipher = commandCipher + leftJBytes + " AND field1 < " +
           rightJBytes + ";";
 
-       cl->execute(commandCipher.c_str());
+       cl->execute(commandCipher);
        }
        timerEnd = time(NULL);
        printf("range select cipher %f ms \n",
@@ -702,13 +702,13 @@ interactiveTest(const TestConfig &tc, int ac, char **av)
                   creating tables");
                assert_res(cl->execute((string("INSERT INTO ") + PWD_TABLE_PREFIX
              + "users (username, psswd) VALUES ('alice',
-                  'secretalice');").c_str()), "failed to log in user");
+                  'secretalice');")), "failed to log in user");
                assert_res(cl->execute((string("DELETE FROM ") + PWD_TABLE_PREFIX
-             + "users  WHERE username = 'alice';").c_str()), "failed to
+             + "users  WHERE username = 'alice';")), "failed to
                   logout user");
                assert_res(cl->execute((string("INSERT INTO ") + PWD_TABLE_PREFIX
              + "users (username, psswd) VALUES ('alice',
-                  'secretalice');").c_str()), "failed to log in user");
+                  'secretalice');")), "failed to log in user");
                assert_res(cl->execute("INSERT INTO users VALUES (1, 'alice');"),
                   "failed to add alice in users table");
                assert_res(cl->execute("INSERT INTO t1 VALUES (1, 'there you go',
@@ -721,7 +721,7 @@ interactiveTest(const TestConfig &tc, int ac, char **av)
                   22 AND id = 1;"), "failed");
                assert_res(cl->execute((string("INSERT INTO ") + PWD_TABLE_PREFIX
              + "users (username, psswd) VALUES ('raluca',
-                  'secretraluca');").c_str()), "failed to log in user");
+                  'secretraluca');")), "failed to log in user");
                assert_res(cl->execute("INSERT INTO users VALUES (2,
                   'raluca');"), "failed");
                assert_res(cl->execute("INSERT INTO t1 VALUES (2, 'my text',
@@ -744,11 +744,11 @@ interactiveTest(const TestConfig &tc, int ac, char **av)
                        creating tables");
                     assert_res(cl->execute((string("INSERT INTO ") +
                        PWD_TABLE_PREFIX + "users (username, psswd) VALUES
-                       ('alice', 'secretalice');").c_str()), "failed to log in
+                       ('alice', 'secretalice');")), "failed to log in
                        user");
                     assert_res(cl->execute((string("INSERT INTO ") +
                        PWD_TABLE_PREFIX + "users (username, psswd) VALUES
-                       ('bob', 'secretbob');").c_str()), "failed to log in
+                       ('bob', 'secretbob');")), "failed to log in
                        user");
                     assert_res(cl->execute("INSERT INTO users VALUES (1,
                        'alice');"), "failed");
@@ -780,10 +780,10 @@ interactiveTest(const TestConfig &tc, int ac, char **av)
                   creating tables");
                assert_res(cl->execute((string("INSERT INTO ") + PWD_TABLE_PREFIX
              + "users (username, psswd) VALUES ('alice',
-                  'secretalice');").c_str()), "failed to log in user");
+                  'secretalice');")), "failed to log in user");
                assert_res(cl->execute((string("INSERT INTO ") + PWD_TABLE_PREFIX
              + "users (username, psswd) VALUES ('bob',
-                  'secretbob');").c_str()), "failed to log in user");
+                  'secretbob');")), "failed to log in user");
                assert_res(cl->execute("INSERT INTO users VALUES (1, 'alice');"),
                   "failed");
                assert_res(cl->execute("INSERT INTO users VALUES (2, 'bob');"),
@@ -3741,7 +3741,7 @@ static Stats
 runQueriesFromFile(EDBProxy * cl, string queryFile, bool execquery, bool plainexec, string outputfile, bool allowfailures)
 throw (CryptDBError)
 {
-	ifstream infile(queryFile.c_str());
+	ifstream infile(queryFile);
 	ofstream * outfile = NULL;
 
 	assert_s(infile.is_open(), "cannot open file " + queryFile);

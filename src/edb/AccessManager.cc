@@ -1174,7 +1174,7 @@ KeyAccess::getSecretKey(Prin prin)
                  "'";
     DBResult* dbres;
     PrinKey error;
-    if (!conn->execute(sql.c_str(), dbres)) {
+    if (!conn->execute(sql, dbres)) {
         LOG(am_v) << "SQL error from query: " << sql;
         return error;
     }
@@ -1597,7 +1597,7 @@ KeyAccess::Select(std::set<Prin> & prin_set, string table_name, string column)
     }
     sql += ";";
     DBResult * dbres;
-    if(!conn->execute(sql.c_str(), dbres)) {
+    if(!conn->execute(sql, dbres)) {
         LOG(am) << "SQL error with query: " << sql;
         return ResType(false);
     }

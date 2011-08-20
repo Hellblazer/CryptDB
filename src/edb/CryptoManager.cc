@@ -89,7 +89,7 @@ tokenize(string text)
             LOG(crypto) << "token <"  << token << ">";
             search_tokens.insert(token);
             res->push_back(Binary((uint) it->length(),
-                                  (unsigned char *) token.c_str()));
+                                  (unsigned char *) token.data()));
         }
     }
 
@@ -673,7 +673,7 @@ CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft,
             fromlevel = increaseLevel(fromlevel, ft, oSWP);
             string key = getKey(mkey, fullfieldname, fromlevel);
 
-            Binary keyB = Binary(AES_KEY_BYTES, (unsigned char *)key.c_str());
+            Binary keyB = Binary(AES_KEY_BYTES, (unsigned char *)key.data());
             LOG(crypto) << "tokenizing " << data;
             list<Binary> * tokens = tokenize(data);
             Binary ovciph = CryptoManager::encryptSWP(keyB, *tokens);
@@ -778,7 +778,7 @@ CryptoManager::marshallKey(const string &key)
 string
 CryptoManager::unmarshallKey(const string &key)
 {
-    list<string> words = parse((key).c_str(),"", ", );", "");
+    list<string> words = parse(key, "", ", );", "");
 
     myassert(
         words.size() == AES_KEY_BYTES, "the given key string " + key +
@@ -883,8 +883,7 @@ CryptoManager::setMasterKey(const string &masterKeyArg)
     RAND_seed((const uint8_t *) masterKeyArg.c_str(),
               (int) masterKeyArg.size());
 
-    SetSeed(ZZFromBytes((const uint8_t *) masterKeyArg.c_str(),
-                        (int) masterKeyArg.size()));
+    SetSeed(ZZFromString(masterKeyArg));
 }
 
 /*
@@ -1242,7 +1241,7 @@ CryptoManager::decrypt_Paillier(const string &ciphertext)
     //cerr << "to Paillier decrypt "; myPrint(ciphertext, Paillier_len_bytes);
     // cerr << "\n";
     //cerr << "N2 is " << Paillier_n2 << "\n";
-    ZZ c = ZZFromBytes((uint8_t*)ciphertext.c_str(), Paillier_len_bytes);
+    ZZ c = ZZFromBytes((uint8_t*) ciphertext.data(), Paillier_len_bytes);
     //cerr << "zz to decrypt " << c << "\n";
     //myassert(c < Paillier_n2, "error: c > Paillier_n2");
     ZZ m =
@@ -1356,7 +1355,7 @@ DER_encode_RSA_public(RSA *rsa)
 static RSA *
 DER_decode_RSA_public(const string &s)
 {
-    const uint8_t *buf = (const uint8_t*) s.c_str();
+    const uint8_t *buf = (const uint8_t*) s.data();
     return d2i_RSAPublicKey(0, &buf, s.length());
 }
 
@@ -1375,7 +1374,7 @@ DER_encode_RSA_private(RSA *rsa)
 static RSA *
 DER_decode_RSA_private(const string &s)
 {
-    const uint8_t *buf = (const uint8_t*) s.c_str();
+    const uint8_t *buf = (const uint8_t*) s.data();
     return d2i_RSAPrivateKey(0, &buf, s.length());
 }
 
@@ -1434,7 +1433,7 @@ CryptoManager::encrypt(PKCS * key, const string &s)
     tocipher.resize(RSA_size(key));
 
     RSA_public_encrypt((int) s.length(),
-                       (const uint8_t*) s.c_str(), (uint8_t*) &tocipher[0],
+                       (const uint8_t*) s.data(), (uint8_t*) &tocipher[0],
                        key,
                        RSA_PKCS1_OAEP_PADDING);
 
@@ -1450,7 +1449,7 @@ CryptoManager::decrypt(PKCS * key, const string &s)
 
     uint len =
         RSA_private_decrypt((int) s.length(),
-                            (const uint8_t*) s.c_str(),
+                            (const uint8_t*) s.data(),
                             (uint8_t*) &toplain[0], key,
                             RSA_PKCS1_OAEP_PADDING);
     toplain.resize(len);
