@@ -446,6 +446,9 @@ static void processPostAnnotations(TableMetadata * tm, string field, list<string
 
     /* This function is implemented ad-hoc.. the generic parser will fix this. */
     while ((wordsIt != words.end()) && (*wordsIt != ")") && (*wordsIt != ",")) {
+    	if (equalsIgnoreCase(*wordsIt, "(")) {
+    		processParen(wordsIt, words);
+    	}
         if (equalsIgnoreCase(*wordsIt, "auto_increment")) {
             assert_s(tm->ai.field == "", " table cannot have two autoincrements");
             tm->ai.field = field;
@@ -2554,19 +2557,20 @@ EDBProxy::processValsToInsert(string field, string table, uint64_t salt,
 {
 
     TableMetadata * tm = tableMetaMap[table];
-	FieldMetadata * fm = tm->fieldMetaMap[field];
+    FieldMetadata * fm = tm->fieldMetaMap[field];
 
-	if (tm->ai.field == field) {
-		tm->ai.incvalue = max(tm->ai.incvalue, valFromStr(value));
-	}
+    if (tm->ai.field == field) {
+        tm->ai.incvalue = max(tm->ai.incvalue, valFromStr(value));
+    }
 
     if (!fm->isEncrypted) {
         return value;
     }
 
     /* XXX */
-    if (equalsIgnoreCase(value, "null"))
+    if (equalsIgnoreCase(value, "null")) {
         null = true;
+    }
 
     if (DECRYPTFIRST) {
         string fullname = fullName(field, table);
@@ -2578,8 +2582,8 @@ EDBProxy::processValsToInsert(string field, string table, uint64_t salt,
         if (type == TYPE_INTEGER) {
             AES_KEY * key = CryptoManager::get_key_DET(dec_first_key);
             string res =
-                strFromVal(CryptoManager::encrypt_DET(valFromStr(value),
-                                                       key));
+                    strFromVal(CryptoManager::encrypt_DET(valFromStr(value),
+                            key));
             return res;
         } else {
             assert_s(type == TYPE_TEXT, "given unexpected type");
@@ -2720,7 +2724,7 @@ throw (CryptDBError)
 
     std::set<string> fieldsIncluded;
     list<string> fields;
-    list<string> fieldsToAdd;
+    list<string> encFieldsToAdd;
     list<string> princsToAdd;
     list<string>::iterator addit;
     list<string> overallFieldNames;
@@ -2732,14 +2736,14 @@ throw (CryptDBError)
      *
      * Regular fields: -- fields for which a value is provided in the insert
      * princsToAdd : -- fields for which no value is specified in the insert yet
-     *                  for which some other principal is encrypted and hence cannot be left NULL
-     *               -- these fields must be auto_increment
-     * fieldsToAdd: -- fields for which a value is not specified in the insert, are not principals,
+     *               -- they are principals (in particular, not encrypted) and hence cannot be left NULL
+     *               -- these fields must be auto_increment if they are not specified
+     * encFieldsToAdd: -- fields for which a value is not specified in the insert, are encrypted,
      *                  and cannot be NULL
      */
 
 
-
+    // a list of fields is specified
     if (wordsIt->compare("(") == 0) {
         //new order for the fields
         resultQuery = resultQuery + " (  ";
@@ -2752,6 +2756,7 @@ throw (CryptDBError)
 
         wordsIt++;
 
+        // add all regular fields to be inserted
         while (wordsIt->compare(")") != 0) {
             fields.push_back(*wordsIt);
             fieldsIncluded.insert(*wordsIt);
@@ -2769,25 +2774,27 @@ throw (CryptDBError)
         // increment value
         noFieldsGiven = fields.size();
 
+        //check if we need to add any principal or encrypted field
         for (addit = tm->fieldNames.begin(); addit!=tm->fieldNames.end();
              addit++) {
             if (fieldsIncluded.find(*addit) == fieldsIncluded.end()) {
                 if (tm->fieldMetaMap[*addit]->isEncrypted)  {
-                    fieldsToAdd.push_back(*addit);
-                }
-                if (mp) {
+                    encFieldsToAdd.push_back(*addit);
+                } else {
+                    if (mp) {
 
-                    if (mp->isPrincipal(fullName(*addit, table))) {
-                        LOG(edb_v) << "add to princs " << *addit;
-                        princsToAdd.push_back(*addit);
+                        if (mp->isPrincipal(fullName(*addit, table))) {
+                            LOG(edb_v) << "add to princs " << *addit;
+                            princsToAdd.push_back(*addit);
+                        }
                     }
                 }
 
             }
         }
 
-        //add fields names from fieldsToAdd
-        for (addit = fieldsToAdd.begin(); addit != fieldsToAdd.end();
+        //add fields names from encFieldsToAdd
+        for (addit = encFieldsToAdd.begin(); addit != encFieldsToAdd.end();
              addit++) {
             resultQuery += ", " + processInsert(*addit, table, tm);
             fields.push_back(*addit);
@@ -2815,6 +2822,7 @@ throw (CryptDBError)
     wordsIt++;
     resultQuery = resultQuery + " VALUES ";
 
+    //create list of all values to add
     while (wordsIt != words.end()) {
         wordsIt++;
         resultQuery += " ( ";
@@ -2824,15 +2832,14 @@ throw (CryptDBError)
         list<pair<string, bool> > valnulls;
         list<string>::iterator fieldIt = fields.begin();
 
-        //cerr << "AA\n";
         //add encryptions of the fields
         for (unsigned int i = 0; i < noFieldsGiven; i++) {
             valnulls.push_back(make_pair(*wordsIt, false));
             wordsIt++;
             checkStr(wordsIt, words, ",",")");
         }
-        //we now need to add fields from fieldsToAdd
-        for (addit = fieldsToAdd.begin(); addit != fieldsToAdd.end();
+        //we now need to add fields from encFieldsToAdd
+        for (addit = encFieldsToAdd.begin(); addit != encFieldsToAdd.end();
              addit++) {
             string field = *addit;
             string insid_query;
@@ -2866,41 +2873,19 @@ throw (CryptDBError)
         //cerr << "CC \n";
         uint64_t salt = 0;
 
-        if (!DECRYPTFIRST) {
-            if (tableMetaMap[table]->hasEncrypted) {
-                //rand field
-                salt =  randomValue();
-                resultQuery =  resultQuery + strFromVal(salt) + ", ";
-            }
+        if (tableMetaMap[table]->hasEncrypted) {
+            //rand field
+            salt =  randomValue();
+            resultQuery =  resultQuery + strFromVal(salt) + ", ";
         }
 
         auto valIt = valnulls.begin();
         fieldIt = fields.begin();
 
-        //add encryptions of the fields
+        //now add all values encrypted
         for (unsigned int i = 0; i < noFieldsGiven; i++) {
             string fieldName = *fieldIt;
             string value = removeApostrophe(valIt->first);
-
-            if (mp) {
-                string fullname = fullName(fieldName, table);
-                //FIX AUTOINC
-                /*if (isPrincipal(fullname, accMan, mkm)) {
-                        if (autoInc.find(fullname) == autoInc.end()) {
-                                LOG(edb_v) << "before unmarshallVal";
-                                autoInc[fullname] = unmarshallVal(value);
-                                rb.autoinc = marshallVal(autoInc[fullname]);
-                                LOG(edb_v) << "after unmar val";
-                        } else {
-                                LOG(edb_v) << "before unmar val";
-                                autoInc[fullname] = max(autoInc[fullname],
-                                   unmarshallVal(value));
-                                rb.autoinc = marshallVal(autoInc[fullname]);
-                                LOG(edb_v) << "rb autoinc is now " <<
-                                   rb.autoinc;
-                        }
-                   }*/
-            }
 
             //cerr << "processing for field " << *fieldIt << " with given
             // value " << *valIt << "\n";
@@ -2913,8 +2898,8 @@ throw (CryptDBError)
             }
         }
 
-        //we now need to add fields from fieldsToAdd
-        for (addit = fieldsToAdd.begin(); addit != fieldsToAdd.end();
+        //we now need to add fields from encFieldsToAdd
+        for (addit = encFieldsToAdd.begin(); addit != encFieldsToAdd.end();
              addit++) {
             string field = *addit;
             resultQuery += ", " + processValsToInsert(field, table, salt,

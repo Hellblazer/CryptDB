@@ -1,8 +1,9 @@
 alter table table0 add constraint pk_warehouse primary key (field0DET);
+
 alter table table1 add constraint pk_district primary key (field0DET, field1DET);
 
 alter table table2 add constraint pk_customer primary key (field0DET, field1DET, field2DET);
-create index ndx_customer_name on table2 (field0DET, field1DET, field5DET(16), field6OPE(16));
+create index ndx_customer_name on table2 (field0DET, field1DET, field5DET(16), field6OPE);
 
 alter table table4 add constraint pk_oorder primary key (field0DET, field1DET, field2DET);
 create unique index ndx_oorder_c_id on table4 (field0DET, field1DET, field3DET, field2OPE);

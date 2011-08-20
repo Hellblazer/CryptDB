@@ -1,5 +1,4 @@
 #include <stdio.h>
-#include <bsd/string.h>
 
 #include "sql_priv.h"
 #include "unireg.h"
