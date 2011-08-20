@@ -446,6 +446,9 @@ static void processPostAnnotations(TableMetadata * tm, string field, list<string
 
     /* This function is implemented ad-hoc.. the generic parser will fix this. */
     while ((wordsIt != words.end()) && (*wordsIt != ")") && (*wordsIt != ",")) {
+    	if (equalsIgnoreCase(*wordsIt, "(")) {
+    		processParen(wordsIt, words);
+    	}
         if (equalsIgnoreCase(*wordsIt, "auto_increment")) {
             assert_s(tm->ai.field == "", " table cannot have two autoincrements");
             tm->ai.field = field;
