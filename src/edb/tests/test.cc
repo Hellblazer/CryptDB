@@ -3808,8 +3808,11 @@ static string * workloads;
 
 static void
 assignWork(string queryfile, int noWorkers,   int totalLines, int noRepeats, bool split) {
-        system("mkdir pieces");
-        assert_s(system("rm -f pieces/*") >= 0, "problem when removing pieces/*");
+    int blah = system("mkdir pieces");
+    assert_s(system("rm -f pieces/*") >= 0, "problem when removing pieces/*");
+    if (false) {
+        LOG(test) << blah;
+    }
 
 	ifstream infile(queryfile);
 

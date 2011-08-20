@@ -743,7 +743,7 @@ KeyAccess::insert(Prin hasAccess, Prin accessTo)
 {
     if (VERBOSE) {
         LOG(am_v) << "insert(" << hasAccess.type << "=" << hasAccess.value <<
-        "," << accessTo.type << "=" << hasAccess.value << ")";
+        "," << accessTo.type << "=" << accessTo.value << ")";
     }
 
     //check that we're not trying to generate a
