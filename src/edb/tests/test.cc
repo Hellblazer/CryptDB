@@ -561,9 +561,19 @@ interactiveTest(const TestConfig &tc, int ac, char **av)
 	string pwd = tc.pass;
 	cerr << "connecting to host " << host << " user " << user << " pwd " <<
 			pwd << " db " << db << endl;
-	EDBProxy * cl = new EDBProxy(host, user, pwd, db);
+	EDBProxy * cl;
+
+	if (ac >= 2 && string(av[1]) == "multi") {
+		cl = new EDBProxy(host, user, pwd, db, 0, true);
+	} else {
+		cl = new EDBProxy(host, user, pwd, db,0, false);
+	}
 	cl->setMasterKey(masterKey);
 	cl->VERBOSE = true;
+
+	//cl->execute("CREATE TABLE phpbb_forums (forum_id mediumint(8) UNSIGNED NOT NULL auto_increment, parent_id mediumint(8) UNSIGNED DEFAULT '0' NOT NULL, left_id mediumint(8) UNSIGNED DEFAULT '0' NOT NULL,  right_id mediumint(8) UNSIGNED DEFAULT '0' NOT NULL, forum_parents mediumtext NOT NULL, forum_name encfor forum_id varchar(255) NOT NULL, forum_desc text NOT NULL, forum_desc_bitfield varchar(255) DEFAULT '' NOT NULL, forum_desc_options int(11) UNSIGNED DEFAULT '7' NOT NULL, forum_desc_uid varchar(8) DEFAULT '' NOT NULL, forum_link varchar(255) DEFAULT '' NOT NULL, forum_password varchar(40) DEFAULT '' NOT NULL, forum_style mediumint(8) UNSIGNED DEFAULT '0' NOT NULL, forum_image encfor forum_id varchar(255) NOT NULL, forum_rules text NOT NULL, forum_rules_link varchar(255) DEFAULT '' NOT NULL, forum_rules_bitfield varchar(255) DEFAULT '' NOT NULL, forum_rules_options int(11) UNSIGNED DEFAULT '7' NOT NULL, forum_rules_uid varchar(8) DEFAULT '' NOT NULL, forum_topics_per_page tinyint(4) DEFAULT '0' NOT NULL, forum_type tinyint(4) DEFAULT '0' NOT NULL, forum_status tinyint(4) DEFAULT '0' NOT NULL, forum_posts mediumint(8) UNSIGNED DEFAULT '0' NOT NULL, forum_topics mediumint(8) UNSIGNED DEFAULT '0' NOT NULL, forum_topics_real mediumint(8) UNSIGNED DEFAULT '0' NOT NULL, forum_last_post_id mediumint(8) UNSIGNED DEFAULT '0' NOT NULL, forum_last_poster_id mediumint(8) UNSIGNED DEFAULT '0' NOT NULL, forum_last_post_subject encfor forum_id det varchar(255) NOT NULL, forum_last_post_time int(11) UNSIGNED DEFAULT '0' NOT NULL, forum_last_poster_name varchar(255) DEFAULT '' NOT NULL, forum_last_poster_colour varchar(6) DEFAULT '' NOT NULL, forum_flags tinyint(4) DEFAULT '32' NOT NULL, forum_options int(20) UNSIGNED DEFAULT '0' NOT NULL, display_subforum_list tinyint(1) UNSIGNED DEFAULT '1' NOT NULL, display_on_index tinyint(1) UNSIGNED DEFAULT '1' NOT NULL, enable_indexing tinyint(1) UNSIGNED DEFAULT '1' NOT NULL, enable_icons tinyint(1) UNSIGNED DEFAULT '1' NOT NULL, enable_prune tinyint(1) UNSIGNED DEFAULT '0' NOT NULL, prune_next int(11) UNSIGNED DEFAULT '0' NOT NULL, prune_days mediumint(8) UNSIGNED DEFAULT '0' NOT NULL, prune_viewed mediumint(8) UNSIGNED DEFAULT '0' NOT NULL, prune_freq mediumint(8) UNSIGNED DEFAULT '0' NOT NULL, PRIMARY KEY (forum_id), KEY left_right_id (left_id, right_id), KEY forum_lastpost_id (forum_last_post_id));");
+	//cl->execute("INSERT INTO phpbb_forums (forum_name, forum_desc, left_id, right_id, parent_id, forum_type, forum_posts, forum_topics, forum_topics_real, forum_last_post_id, forum_last_poster_id, forum_last_poster_name, forum_last_poster_colour, forum_last_post_time, forum_link, forum_password, forum_image, forum_rules, forum_rules_link, forum_rules_uid, forum_desc_uid, prune_days, prune_viewed, forum_parents) VALUES ('Your first category', '', 1, 4, 0, 0, 1, 1, 1, 1, 2, 'Admin', 'AA0000', 972086460, '', '', '', '', '', '', '', 0, 0, '');");
+
 
 	streamsize len = 100;
 	char *cmd = new char[len];
@@ -576,6 +586,9 @@ interactiveTest(const TestConfig &tc, int ac, char **av)
 			break;
 
 		string commandS = string(cmd);
+		if (commandS == "") {
+			break;
+		}
 
 		if (commandS.compare("\\q") == 0) {
 			break;
@@ -3995,6 +4008,10 @@ testTrace(const TestConfig &tc, int argc, char ** argv)
 	cl = new EDBProxy(tc.host, tc.user, tc.pass, tc.db, tc.port);
 	cl->setMasterKey(masterKey);
 
+	if (argc < 2) {
+		cerr << "usage: test trace encrypt_queries/eval\n";
+		return;
+	}
 
 	if (string(argv[1]) == "encrypt_queries") {
 		if (argc != 9) {
@@ -4067,7 +4084,7 @@ testTrace(const TestConfig &tc, int argc, char ** argv)
 		return;
 	}
 
-	cerr << "usage: test trace encrypt_queries/eval";
+
 	return;
 }
 
@@ -4292,7 +4309,7 @@ static struct {
 		{ "shell",          "interactive shell",            &interactiveTest },
 		{ "single",         "integration - single principal",&TestSinglePrinc::run },
 		{ "tables",         "",                             &encryptionTablesTest },
-		{ "trace",          "TPC-C trace eval",             &testTrace },
+		{ "trace",          "trace eval",             		&testTrace },
 		{ "bench",          "TPC-C benchmark eval",         &testBench },
 		{ "utils",          "",                             &testUtils },
 
