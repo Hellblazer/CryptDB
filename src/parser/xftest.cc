@@ -8,7 +8,6 @@
 #include <algorithm>
 
 #include <stdio.h>
-#include <bsd/string.h>
 
 #include "errstream.h"
 #include "mysql_glue.h"
@@ -390,7 +389,7 @@ xftest(void)
         "yy2.cc = 9 AND yy2.gg = (SELECT COUNT(*) FROM xxc) AND "
         "yy2.ss LIKE '%foo%'";
     char buf[1024];
-    strlcpy(buf, q, sizeof(buf));
+    snprintf(buf, sizeof(buf), "%s", q);
     size_t len = strlen(buf);
 
     alloc_query(t, buf, len + 1);

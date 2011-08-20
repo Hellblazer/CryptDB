@@ -9,7 +9,6 @@
 #include <algorithm>
 
 #include <stdio.h>
-#include <bsd/string.h>
 
 #include "errstream.h"
 #include "stringify.h"

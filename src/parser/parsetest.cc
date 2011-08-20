@@ -1,7 +1,6 @@
 #include <iostream>
 
 #include <stdio.h>
-#include <bsd/string.h>
 
 #include "mysql_glue.h"
 #include "stringify.h"
@@ -27,7 +26,7 @@ parse(const char *q)
         printf("store_globals error\n");
 
     char buf[1024];
-    strlcpy(buf, q, sizeof(buf));
+    snprintf(buf, sizeof(buf), "%s", q);
     size_t len = strlen(buf);
 
     alloc_query(t, buf, len + 1);
