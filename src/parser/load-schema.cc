@@ -30,7 +30,7 @@ int
 main(int ac, char **av)
 {
     if (ac != 2) {
-        cerr << "Usage: " << av[0] << " db-dir < queries-file" << endl;
+        cout << "Usage: " << av[0] << " db-dir < queries-file" << endl;
         exit(1);
     }
 
@@ -65,7 +65,7 @@ main(int ac, char **av)
         if (!cin.good())
             break;
 
-        if (s.substr(0, 15) == "CREATE DATABASE") {
+        if (s.substr(0, 4) == "USE ") {
             queries.push_back(ss.str());
             ss.str("");
         }
@@ -90,15 +90,20 @@ main(int ac, char **av)
             }
 
             int s = mysql_next_result(m);
-            if (s > 0)
-                fatal() << "mysql_next_result: " << mysql_error(m);
+            if (s > 0) {
+                cout << "mysql_next_result: " << mysql_error(m) << endl
+                     << "in batch: " << q << endl;
+                break;
+            }
 
             if (s < 0)
                 break;
         }
 
         ndb++;
-        cout << "processed " << ndb << " query batches" << endl;
+        if (!(ndb % 100))
+            cout << "processed " << ndb << "/" << queries.size()
+                 << " batches" << endl;
     }
 
     cout << "done" << endl;
