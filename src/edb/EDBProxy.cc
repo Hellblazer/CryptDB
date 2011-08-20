@@ -2471,7 +2471,7 @@ throw (CryptDBError)
     tableNameMap.erase(anonTableName);
 
     list<string> resultList;
-    resultList.push_back(result.c_str());
+    resultList.push_back(result);
     return resultList;
 }
 
@@ -3521,7 +3521,7 @@ void
 EDBProxy::runQueries(string queryFile, bool execquery)
 throw (CryptDBError)
 {
-    ifstream infile(queryFile.c_str());
+    ifstream infile(queryFile);
 
     assert_s(infile.is_open(), "cannot open file " + queryFile);
 

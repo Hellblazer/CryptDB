@@ -32,7 +32,7 @@ Binary::Binary(const string & s)
     len = (uint) s.length();
     content = new unsigned char[len];
 
-    memcpy(content, s.c_str(), len);
+    memcpy(content, s.data(), len);
 }
 
 Binary::Binary(unsigned int leng)
@@ -177,7 +177,7 @@ Binary
 Binary::toBinary(string val)
 {
     Binary res((uint) val.length());
-    memcpy(res.content, val.c_str(), res.len);
+    memcpy(res.content, val.data(), res.len);
     return res;
 }
 

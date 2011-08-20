@@ -366,7 +366,7 @@ decrypt_text_sem(PG_FUNCTION_ARGS)
 #if MYSQL_S
     unsigned char * res = new unsigned char[value.length()];
     initid->ptr = (char *) res;
-    memcpy(res, value.c_str(), value.length());
+    memcpy(res, value.data(), value.length());
     *length =  value.length();
     return (char*) initid->ptr;
 #else
@@ -423,7 +423,7 @@ decrypt_text_det(PG_FUNCTION_ARGS)
 #if MYSQL_S
     unsigned char * res = new unsigned char[value.length()];
     initid->ptr = (char *) res;
-    memcpy(res, value.c_str(), value.length());
+    memcpy(res, value.data(), value.length());
     *length =  value.length();
     return (char*) initid->ptr;
 #else
