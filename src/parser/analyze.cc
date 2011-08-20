@@ -728,7 +728,7 @@ process_table_list(List<TABLE_LIST> *tll)
         }
 
         if (t->on_expr) {
-            /* just call rewrite and ignore result, for now.. */
+            t->on_expr->fix_fields(current_thd, &t->on_expr);
             rewrite(t->on_expr);
         }
 
@@ -754,9 +754,10 @@ extern "C" void *create_embedded_thd(int client_flag);
 static void
 xftest(const std::string &db, const std::string &q)
 {
-    mysql_thread_init();
-
-    THD *t = (THD *) create_embedded_thd(0);
+    assert(create_embedded_thd(0));
+    THD *t = current_thd;
+    t->set_db(db.data(), db.length());
+    mysql_reset_thd_for_next_command(t);
 
     char buf[q.size() + 1];
     memcpy(buf, q.c_str(), q.size());
@@ -767,39 +768,52 @@ xftest(const std::string &db, const std::string &q)
 
     Parser_state ps;
     if (!ps.init(t, buf, len)) {
-        mysql_reset_thd_for_next_command(t);
-
-        t->set_db(db.data(), db.length());
-
-        printf("input query: %s\n", buf);
+        printf("input  query: %s\n", buf);
         bool error = parse_sql(t, &ps, 0);
         if (error) {
-            printf("parse error: %d %d %d\n", error, t->is_fatal_error, t->is_error());
-            printf("parse error: h %p\n", t->get_internal_handler());
             printf("parse error: %d %s\n", t->is_error(), t->stmt_da->message());
         } else {
             LEX *lex = t->lex;
 
-            //printf("command %d\n", lex->sql_command);
             cout << "parsed query: " << *lex << endl;
+
+            uint open_count;
+            if (open_tables(current_thd, &lex->query_tables, &open_count, 0))
+                fatal() << "open_tables error: " << t->stmt_da->message() << endl;
+
+            TABLE_LIST *leaves_tmp= NULL;
+            if (setup_tables(current_thd, &lex->select_lex.context,
+                             &lex->select_lex.top_join_list,
+                             lex->query_tables,
+                             &leaves_tmp, /* &lex->select_lex.leaf_tables, */
+                             lex->sql_command == SQLCOM_INSERT_SELECT))
+                fatal() << "setup_tables error: " << t->stmt_da->message() << endl;
+
+            if (setup_fields(current_thd, 0, lex->value_list,
+                             MARK_COLUMNS_NONE, 0, 0))
+                fatal() << "setup_fields error: " << t->stmt_da->message() << endl;
 
             // iterate over the entire select statement..
             // based on st_select_lex::print in mysql-server/sql/sql_select.cc
 
-            // iterate over the items that select will actually return
             auto item_it = List_iterator<Item>(lex->select_lex.item_list);
-            for (;; ) {
+            for (;;) {
                 Item *item = item_it++;
                 if (!item)
                     break;
 
+                item->fix_fields(current_thd, item_it.ref());
                 rewrite(item);
             }
 
+            if (lex->select_lex.where) {
+                lex->select_lex.where->fix_fields(current_thd,
+                                                  (Item**) &(lex->select_lex.where));
+                rewrite(lex->select_lex.where);
+            }
             process_table_list(&lex->select_lex.top_join_list);
 
-            if (lex->select_lex.where)
-                rewrite(lex->select_lex.where);
+            cout << "fixed  query: " << *lex << endl;
         }
 
         t->end_statement();
@@ -808,7 +822,7 @@ xftest(const std::string &db, const std::string &q)
     }
 
     t->cleanup_after_query();
-    /* de-allocate t somehow? */
+    delete t;
 }
 
 static string
@@ -842,96 +856,34 @@ unescape(string s)
     return ss.str();
 }
 
-static void
-read_schema(const std::string &filename)
-{
-    ifstream f(filename);
-
-    MYSQL *m = mysql_init(0);
-    if (!m)
-        fatal() << "mysql_init";
-
-    mysql_options(m, MYSQL_OPT_USE_EMBEDDED_CONNECTION, 0);
-
-    if (!mysql_real_connect(m, 0, 0, 0, 0, 0, 0, CLIENT_MULTI_STATEMENTS))
-        fatal() << "mysql_real_connect: " << mysql_error(m);
-
-    stringstream ss;
-    vector<string> queries;
-
-    for (;;) {
-        string s;
-        getline(f, s);
-        if (!f.good())
-            break;
-
-        if (s.substr(0, 15) == "CREATE DATABASE") {
-            queries.push_back(ss.str());
-            ss.str("");
-        }
-        ss << s << endl;
-    }
-    queries.push_back(ss.str());
-
-    uint ndb = 0;
-    for (const string &q: queries) {
-        if (mysql_query(m, q.c_str()))
-            fatal() << "mysql_query: " << mysql_error(m);
-
-        for (;;) {
-            MYSQL_RES *r = mysql_store_result(m);
-            if (r) {
-                // cout << "got result.." << endl;
-                mysql_free_result(r);
-            } else if (mysql_field_count(m) == 0) {
-                // cout << "rows affected: " << mysql_affected_rows(m) << endl;
-            } else {
-                fatal() << "could not retrieve result set";
-            }
-
-            int s = mysql_next_result(m);
-            if (s > 0)
-                fatal() << "mysql_next_result: " << mysql_error(m);
-
-            if (s < 0)
-                break;
-        }
-
-        ndb++;
-        cout << "processed " << ndb << " query batches" << endl;
-    }
-
-    cout << "done with schema" << endl;
-}
-
 int
 main(int ac, char **av)
 {
-    if (ac != 2) {
-        cerr << "Usage: " << av[0] << " schema-file" << endl;
+    if (ac != 3) {
+        cerr << "Usage: " << av[0] << " schema-db trace-file" << endl;
         exit(1);
     }
 
-    assert(0 == system("rm -rf ./db"));
-    assert(0 == system("mkdir ./db"));
+    char dir_arg[1024];
+    snprintf(dir_arg, sizeof(dir_arg), "--datadir=%s", av[1]);
 
     const char *mysql_av[] =
         { "progname",
           "--skip-grant-tables",
+          dir_arg,
           /* "--skip-innodb", */
           /* "--default-storage-engine=MEMORY", */
-          "--datadir=/tmp/db",
           "--language=" MYSQL_BUILD_DIR "/sql/share/"
         };
     assert(0 == mysql_server_init(sizeof(mysql_av) / sizeof(mysql_av[0]),
                                   (char**) mysql_av, 0));
+    assert(0 == mysql_thread_init());
 
-    read_schema(av[1]);
-
+    ifstream f(av[2]);
     for (uint nquery = 0; ; nquery++) {
         string s;
-        getline(cin, s);
-        if (cin.eof())
+        getline(f, s);
+        if (f.eof())
             break;
 
         size_t space = s.find_first_of(' ');
@@ -943,7 +895,8 @@ main(int ac, char **av)
         string db = s.substr(0, space);
         string q = s.substr(space + 1);
 
-        xftest(db, unescape(q));
+        if (db != "")
+            xftest(db, unescape(q));
         cout << "nquery: " << nquery << "\n";
     }
 }
