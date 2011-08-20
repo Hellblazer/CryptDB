@@ -8,9 +8,11 @@ CXXFLAGS := -I. \
 	    -I$(MYBUILD)/sql \
 	    -Wall -Wno-unused-parameter -fno-rtti -g -O2 \
 	    -DHAVE_CONFIG_H -DMYSQL_SERVER -DHAVE_EVENT_SCHEDULER -DDBUG_OFF \
+	    -DMYSQL_BUILD_DIR=\"$(MYBUILD)\" \
 	    -std=c++0x
 
-LDFLAGS  := -L$(MYBUILD)/sql -lsql -lpartition \
+LDFLAGS  := -L$(MYBUILD)/libmysqld -lsql_embedded \
+	    -L$(MYBUILD)/sql -lpartition \
 	    -L$(MYBUILD)/storage/perfschema -lperfschema \
 	    -L$(MYBUILD)/storage/myisam -lmyisam \
 	    -L$(MYBUILD)/storage/myisammrg -lmyisammrg \
@@ -31,14 +33,14 @@ parsetest: parsetest.o mysql_glue.o
 xftest: xftest.o mysql_glue.o
 	$(CXX) $^ -o $@ $(LDFLAGS)
 
-analyze: analyze.o mysql_glue.o
+analyze: analyze.o
 	$(CXX) $^ -o $@ $(LDFLAGS)
 
 %.o: %.cc $(wildcard *.h)
 	$(CXX) $(CXXFLAGS) $< -c -o $@
 
 clean:
-	rm -f *.o parsetest xftest
+	rm -f *.o parsetest xftest analyze
 
 indent:
 	uncrustify --no-backup -c ../.uncrustify.cfg $(wildcard *.cc)
