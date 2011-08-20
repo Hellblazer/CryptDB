@@ -11,18 +11,7 @@ CXXFLAGS := -I. \
 	    -DMYSQL_BUILD_DIR=\"$(MYBUILD)\" \
 	    -std=c++0x
 
-LDFLAGS  := -L$(MYBUILD)/libmysqld -lsql_embedded \
-	    -L$(MYBUILD)/sql -lpartition \
-	    -L$(MYBUILD)/storage/perfschema -lperfschema \
-	    -L$(MYBUILD)/storage/myisam -lmyisam \
-	    -L$(MYBUILD)/storage/myisammrg -lmyisammrg \
-	    -L$(MYBUILD)/storage/heap -lheap \
-	    -L$(MYBUILD)/storage/csv -lcsv \
-	    -L$(MYBUILD)/storage/innobase -linnobase \
-	    -L$(MYBUILD)/vio -lvio \
-	    -L$(MYBUILD)/regex -lregex \
-	    -L$(MYBUILD)/mysys -lmysys \
-	    -L$(MYBUILD)/strings -lstrings \
+LDFLAGS  := -L$(MYBUILD)/libmysqld -lmysqld \
 	    -lpthread -lrt -ldl -lz -lcrypt
 
 all:	parsetest xftest analyze load-schema
