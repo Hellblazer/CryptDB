@@ -752,7 +752,7 @@ process_table_list(List<TABLE_LIST> *tll)
 extern "C" void *create_embedded_thd(int client_flag);
 
 static void
-xftest(const std::string &db, const std::string &q)
+analyze(const std::string &db, const std::string &q)
 {
     assert(create_embedded_thd(0));
     THD *t = current_thd;
@@ -779,7 +779,7 @@ xftest(const std::string &db, const std::string &q)
 
             uint open_count;
             if (open_tables(current_thd, &lex->query_tables, &open_count, 0))
-                fatal() << "open_tables error: " << t->stmt_da->message() << endl;
+                thrower() << "open_tables error: " << t->stmt_da->message() << endl;
 
             TABLE_LIST *leaves_tmp= NULL;
             if (setup_tables(current_thd, &lex->select_lex.context,
@@ -787,11 +787,11 @@ xftest(const std::string &db, const std::string &q)
                              lex->query_tables,
                              &leaves_tmp, /* &lex->select_lex.leaf_tables, */
                              lex->sql_command == SQLCOM_INSERT_SELECT))
-                fatal() << "setup_tables error: " << t->stmt_da->message() << endl;
+                thrower() << "setup_tables error: " << t->stmt_da->message() << endl;
 
             if (setup_fields(current_thd, 0, lex->value_list,
                              MARK_COLUMNS_NONE, 0, 0))
-                fatal() << "setup_fields error: " << t->stmt_da->message() << endl;
+                thrower() << "setup_fields error: " << t->stmt_da->message() << endl;
 
             // iterate over the entire select statement..
             // based on st_select_lex::print in mysql-server/sql/sql_select.cc
@@ -822,6 +822,7 @@ xftest(const std::string &db, const std::string &q)
     }
 
     t->cleanup_after_query();
+    close_thread_tables(t);
     delete t;
 }
 
@@ -895,8 +896,13 @@ main(int ac, char **av)
         string db = s.substr(0, space);
         string q = s.substr(space + 1);
 
-        if (db != "")
-            xftest(db, unescape(q));
+        if (db != "") {
+            try {
+                analyze(db, unescape(q));
+            } catch (std::runtime_error &e) {
+                cout << "ERROR: " << e.what() << endl;
+            }
+        }
         cout << "nquery: " << nquery << "\n";
     }
 }
