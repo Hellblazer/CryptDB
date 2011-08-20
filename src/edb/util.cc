@@ -685,6 +685,25 @@ getSQLWords(const string &query)
     return words;
 }
 
+string
+getQuery(ifstream & qFile)
+{
+
+    string query = "";
+    string line = "";
+
+    while ((!qFile.eof()) && (line.find(';') == string::npos)) {
+        getline(qFile, line);
+        query = query + line;
+    }
+
+
+    return query;
+
+}
+
+
+
 command
 getCommand(const string &query)
 throw (CryptDBError)

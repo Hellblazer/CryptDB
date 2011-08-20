@@ -151,13 +151,13 @@ decreaseLevel(SECLEVEL l, fieldType ft,  onion o)
         switch (l) {
         case SECLEVEL::SEMANTIC_OPE: {return SECLEVEL::OPE; }
         case SECLEVEL::OPE: {
-            if (ft == TYPE_TEXT) {
-                return SECLEVEL::PLAIN_OPE;
-            } else {
-                return SECLEVEL::OPEJOIN;
-            }
+        	if (ft == TYPE_INTEGER) {
+        		return SECLEVEL::OPEJOIN;
+        	} else {
+        		return SECLEVEL::PLAIN_OPE;
+        	}
         }
-        case SECLEVEL::OPEJOIN: {return SECLEVEL::PLAIN_OPE; }
+        case SECLEVEL::OPEJOIN: {return SECLEVEL::PLAIN_OPE;}
         default: {
             assert_s(false, "cannot decrease level");
             return SECLEVEL::INVALID;
@@ -203,15 +203,14 @@ increaseLevel(SECLEVEL l, fieldType ft, onion o)
     case oOPE: {
         switch (l) {
         case SECLEVEL::OPE: {return SECLEVEL::SEMANTIC_OPE; }
-        case SECLEVEL::OPEJOIN: {return SECLEVEL::OPE; }
         case SECLEVEL::PLAIN_OPE: {
-            if (ft == TYPE_TEXT) {
-                return SECLEVEL::OPE;
-            } else {
-                return SECLEVEL::OPEJOIN;
-            }
+        	if (ft == TYPE_INTEGER) {
+        		return SECLEVEL::OPEJOIN;
+        	} else {
+        		return SECLEVEL::OPE;
+        	}
         }
-
+        case SECLEVEL::OPEJOIN: {return SECLEVEL::OPE;}
         default: {
             assert_s(false, "cannot increase level");
             return SECLEVEL::INVALID;
@@ -341,7 +340,7 @@ CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft,
                 }
 
                 if (fromlevel == SECLEVEL::OPEJOIN) {
-                    fromlevel = decreaseLevel(fromlevel, ft, oOPE);
+                	fromlevel = decreaseLevel(fromlevel, ft, oOPE);
                     if (fromlevel == tolevel) {
                         return strFromVal(val);
                     }
@@ -523,7 +522,8 @@ CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft,
             }
 
             if (fromlevel == SECLEVEL::OPEJOIN) {
-                fromlevel = increaseLevel(fromlevel, ft, oOPE);
+
+            	fromlevel = increaseLevel(fromlevel, ft, oOPE);
                 OPE * key = get_key_OPE(getKey(mkey, fullfieldname, fromlevel));
                 val = encrypt_OPE((uint32_t)val, key);
                 delete key;
@@ -533,7 +533,6 @@ CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft,
             }
 
             if (fromlevel == SECLEVEL::OPE) {
-
                 fromlevel  = increaseLevel(fromlevel, ft, oOPE);
                 AES_KEY * key =
                     get_key_SEM(getKey(mkey, fullfieldname, fromlevel));

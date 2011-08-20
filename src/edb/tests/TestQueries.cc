@@ -78,8 +78,8 @@ static QueryList Select = QueryList("SingleSelect",
       Query("SELECT * FROM test_select ORDER BY salary", false),
       Query("SELECT * FROM test_select ORDER BY name", false),
       Query("SELECT * FROM test_select ORDER BY address", false),
-      Query("SELECT sum(age) FROM test_select GROUP BY address", false),
-      Query("SELECT salary, max(id) FROM test_select GROUP BY salary", false),
+      Query("SELECT sum(age) FROM test_select GROUP BY address ORDER BY address", false),
+      Query("SELECT salary, max(id) FROM test_select GROUP BY salary ORDER BY salary", false),
       Query("SELECT * FROM test_select GROUP BY age ORDER BY age", false),
       Query("SELECT * FROM test_select ORDER BY age ASC", false),
       Query("SELECT * FROM test_select ORDER BY address DESC", false),
@@ -668,6 +668,7 @@ Connection::start() {
             script_path << "--proxy-lua-script=" << tc.edbdir << "/../mysqlproxy/wrapper.lua";
             address << "--proxy-address=localhost:" << tc.port;
 
+            cerr << "starting on port " << tc.port << "\n";
             execlp("mysql-proxy",
                    "mysql-proxy", "--plugins=proxy",
                                   "--max-open-files=1024",
@@ -889,15 +890,27 @@ CheckQuery(const TestConfig &tc, string query) {
     //TODO: should be case insensitive
     if (query == "SELECT LAST_INSERT_ID()") {
         ntest++;
-        test_res = test->executeLast();
-        control_res = control->executeLast();
-        if (test_res != control_res) {
-            if (tc.stop_if_fail) {
-                LOG(test) << "test last insert: " << test_res;
-                LOG(test) << "control last insert: " << control_res;
-                assert_s(false, "last insert id failed to match");
+        switch(test_type) {
+        case UNENCRYPTED:
+        case PROXYPLAIN:
+        case PROXYSINGLE:
+        case PROXYMULTI:
+            if (control_type != SINGLE && control_type != MULTI) {
+                test_res = test->executeLast();
+                control_res = control->executeLast();
+                if (test_res != control_res) {
+                    if (tc.stop_if_fail) {
+                        LOG(test) << "test last insert: " << test_res;
+                        LOG(test) << "control last insert: " << control_res;
+                        assert_s(false, "last insert id failed to match");
+                    }
+                    return;
+                }
             }
-            return;
+            break;
+        default:
+            LOG(test) << "not a valid case of this test; skipped";
+            break;
         }
         npass++;
         return;
@@ -959,7 +972,7 @@ CheckQueryList(const TestConfig &tc, const QueryList &queries) {
             break;
         case 2:
         case 5:
-            if (q->multi_null) {
+            if (q->test_res) {
                 CheckNULL(tc, q->query);
             } else {
                 CheckQuery(tc, q->query);

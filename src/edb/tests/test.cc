@@ -29,15 +29,16 @@
 #include "TestAccessManager.h"
 #include "TestProxy.h"
 #include "TestQueries.h"
+#include "TestNotConsider.h"
 
 using namespace std;
 
 static string __attribute__((unused))
 padPasswd(const string &s)
 {
-    string r = s;
-    r.resize(AES_KEY_BYTES, '0');
-    return r;
+	string r = s;
+	r.resize(AES_KEY_BYTES, '0');
+	return r;
 }
 
 
@@ -46,159 +47,159 @@ static clock_t timeStart;
 static void
 startTimer ()
 {
-    timeStart = time(NULL);
+	timeStart = time(NULL);
 }
 
 static double
 readTimer()
 {
-    clock_t currentTime = time(NULL);
-    double res = (double) (currentTime - timeStart) * 1000.0;
-    return res;
+	clock_t currentTime = time(NULL);
+	double res = (double) (currentTime - timeStart) * 1000.0;
+	return res;
 }
 
 static void __attribute__((unused))
 test_OPE()
 {
 
-    cerr << "\n OPE test started \n";
+	cerr << "\n OPE test started \n";
 
-    const unsigned int OPEPlaintextSize = 32;
-    const unsigned int OPECiphertextSize = 128;
+	const unsigned int OPEPlaintextSize = 32;
+	const unsigned int OPECiphertextSize = 128;
 
-    unsigned char key[AES_KEY_SIZE/
-                      bitsPerByte] =
-    {158, 242, 169, 240, 255, 166, 39, 177, 149, 166, 190, 237, 178, 254, 187,
-     40};
+	unsigned char key[AES_KEY_SIZE/
+	                  bitsPerByte] =
+	                  {158, 242, 169, 240, 255, 166, 39, 177, 149, 166, 190, 237, 178, 254, 187,
+	                		  40};
 
-    cerr <<"Key is " << stringToByteInts(string((char *) key,
-                                                AES_KEY_SIZE/bitsPerByte)) << "\n";
+	cerr <<"Key is " << stringToByteInts(string((char *) key,
+			AES_KEY_SIZE/bitsPerByte)) << "\n";
 
-    OPE * ope = new OPE((const char *) key, OPEPlaintextSize,
-                        OPECiphertextSize);
+	OPE * ope = new OPE((const char *) key, OPEPlaintextSize,
+			OPECiphertextSize);
 
-    unsigned char plaintext[OPEPlaintextSize/bitsPerByte] = {74, 95, 221, 84};
-    string plaintext_s = string((char *) plaintext,
-                                OPEPlaintextSize/bitsPerByte);
+	unsigned char plaintext[OPEPlaintextSize/bitsPerByte] = {74, 95, 221, 84};
+	string plaintext_s = string((char *) plaintext,
+			OPEPlaintextSize/bitsPerByte);
 
-    string ciphertext = ope->encrypt(plaintext_s);
-    string decryption = ope->decrypt(ciphertext);
+	string ciphertext = ope->encrypt(plaintext_s);
+	string decryption = ope->decrypt(ciphertext);
 
-    LOG(test) << "Plaintext is " << stringToByteInts(plaintext_s);
-    LOG(test) << "Ciphertext is " << stringToByteInts(ciphertext);
-    LOG(test) << "Decryption is " << stringToByteInts(decryption);
+	LOG(test) << "Plaintext is " << stringToByteInts(plaintext_s);
+	LOG(test) << "Ciphertext is " << stringToByteInts(ciphertext);
+	LOG(test) << "Decryption is " << stringToByteInts(decryption);
 
-    myassert(plaintext_s == decryption, "OPE test failed \n");
+	myassert(plaintext_s == decryption, "OPE test failed \n");
 
-    cerr << "OPE Test Succeeded \n";
+	cerr << "OPE Test Succeeded \n";
 
-    unsigned int tests = 100;
-    cerr << "Started " << tests << " tests \n ";
+	unsigned int tests = 100;
+	cerr << "Started " << tests << " tests \n ";
 
-    clock_t encTime = 0;
-    clock_t decTime = 0;
-    clock_t currTime;
-    time_t startTime = time(NULL);
-    for (unsigned int i = 0; i < tests; i++) {
+	clock_t encTime = 0;
+	clock_t decTime = 0;
+	clock_t currTime;
+	time_t startTime = time(NULL);
+	for (unsigned int i = 0; i < tests; i++) {
 
-        string ptext = randomBytes(OPEPlaintextSize/bitsPerByte);
-        currTime = clock();
-        string ctext =  ope->encrypt(ptext);
-        encTime += clock() - currTime;
-        currTime = clock();
-        ope->decrypt(ctext);
-        decTime += clock() - currTime;
-    }
-    time_t endTime = time(NULL);
-    cout << "(time): encrypt/decrypt take  " <<
-    (1.0 * (double) (endTime-startTime))/(2.0*tests) << "s \n";
-    cout << "encrypt takes on average " <<
-    ((double) encTime*1000.0)/(1.0*CLOCKS_PER_SEC*tests) << "ms \n";
-    cout << "decrypt takes on average " <<
-    ((double) decTime*1000.0)/(1.0*CLOCKS_PER_SEC*tests) << "ms \n";
+		string ptext = randomBytes(OPEPlaintextSize/bitsPerByte);
+		currTime = clock();
+		string ctext =  ope->encrypt(ptext);
+		encTime += clock() - currTime;
+		currTime = clock();
+		ope->decrypt(ctext);
+		decTime += clock() - currTime;
+	}
+	time_t endTime = time(NULL);
+	cout << "(time): encrypt/decrypt take  " <<
+			(1.0 * (double) (endTime-startTime))/(2.0*tests) << "s \n";
+	cout << "encrypt takes on average " <<
+			((double) encTime*1000.0)/(1.0*CLOCKS_PER_SEC*tests) << "ms \n";
+	cout << "decrypt takes on average " <<
+			((double) decTime*1000.0)/(1.0*CLOCKS_PER_SEC*tests) << "ms \n";
 
 }
 
-static void
+static void __attribute__((unused))
 evaluate_AES(const TestConfig &tc, int argc, char ** argv)
 {
 
-    if (argc!=2) {
-        cout << "usage ./test noTests \n";
-        exit(1);
-    }
+	if (argc!=2) {
+		cout << "usage ./test noTests \n";
+		exit(1);
+	}
 
-    unsigned int notests = 10;
+	unsigned int notests = 10;
 
-    string key = randomBytes(AES_KEY_SIZE/bitsPerByte);
-    string ptext = randomBytes(AES_BLOCK_SIZE/bitsPerByte);
+	string key = randomBytes(AES_KEY_SIZE/bitsPerByte);
+	string ptext = randomBytes(AES_BLOCK_SIZE/bitsPerByte);
 
-    AES_KEY aesKey;
-    AES_set_encrypt_key((const uint8_t *) key.c_str(), AES_KEY_SIZE, &aesKey);
+	AES_KEY aesKey;
+	AES_set_encrypt_key((const uint8_t *) key.c_str(), AES_KEY_SIZE, &aesKey);
 
-    timeval startTime, endTime;
+	timeval startTime, endTime;
 
-    unsigned int tests = 1024*1024;
+	unsigned int tests = 1024*1024;
 
-    for (unsigned int j = 0; j < notests; j++) {
-        gettimeofday(&startTime, NULL);
+	for (unsigned int j = 0; j < notests; j++) {
+		gettimeofday(&startTime, NULL);
 
-        for (unsigned int i = 0; i < tests; i++) {
-            unsigned char ctext[AES_BLOCK_SIZE/bitsPerByte];
-            AES_encrypt((const uint8_t *) ptext.c_str(), ctext, &aesKey);
-            ptext = string((char *) ctext, AES_BLOCK_BYTES);
-        }
+		for (unsigned int i = 0; i < tests; i++) {
+			unsigned char ctext[AES_BLOCK_SIZE/bitsPerByte];
+			AES_encrypt((const uint8_t *) ptext.c_str(), ctext, &aesKey);
+			ptext = string((char *) ctext, AES_BLOCK_BYTES);
+		}
 
-        gettimeofday(&endTime, NULL);
+		gettimeofday(&endTime, NULL);
 
-        cerr << (tests*16.0)/(1024*1024) << "  "
-             << timeInSec(startTime, endTime) << "\n";
-        tests = (uint) ((double) tests * 1.2);
-    }
-    cout << "result " << ptext  << "\n";
+		cerr << (tests*16.0)/(1024*1024) << "  "
+				<< timeInSec(startTime, endTime) << "\n";
+		tests = (uint) ((double) tests * 1.2);
+	}
+	cout << "result " << ptext  << "\n";
 
 }
 
 static void __attribute__((unused))
 test_HGD()
 {
-    unsigned int len = 16;     //bytes
-    unsigned int bitsPrecision = len * bitsPerByte + 10;
-    ZZ K = ZZFromString(randomBytes(len));
-    ZZ N1 = ZZFromString(randomBytes(len));
-    ZZ N2 = ZZFromString(randomBytes(len));
-    ZZ SEED = ZZFromString(randomBytes(len));
+	unsigned int len = 16;     //bytes
+	unsigned int bitsPrecision = len * bitsPerByte + 10;
+	ZZ K = ZZFromString(randomBytes(len));
+	ZZ N1 = ZZFromString(randomBytes(len));
+	ZZ N2 = ZZFromString(randomBytes(len));
+	ZZ SEED = ZZFromString(randomBytes(len));
 
-    ZZ sample = HGD(K, N1, N2, SEED, len*bitsPerByte, bitsPrecision);
+	ZZ sample = HGD(K, N1, N2, SEED, len*bitsPerByte, bitsPrecision);
 
-    LOG(test) << "N1 is " << stringToByteInts(StringFromZZ(N1));
-    LOG(test) << "N2 is " << stringToByteInts(StringFromZZ(N2));
-    LOG(test) << "K is " << stringToByteInts(StringFromZZ(K));
-    LOG(test) << "HGD sample is " << stringToByteInts(StringFromZZ(sample));
+	LOG(test) << "N1 is " << stringToByteInts(StringFromZZ(N1));
+	LOG(test) << "N2 is " << stringToByteInts(StringFromZZ(N2));
+	LOG(test) << "K is " << stringToByteInts(StringFromZZ(K));
+	LOG(test) << "HGD sample is " << stringToByteInts(StringFromZZ(sample));
 
-    unsigned int tests = 1000;
-    cerr << " Started " << tests << " tests \n";
+	unsigned int tests = 1000;
+	cerr << " Started " << tests << " tests \n";
 
-    clock_t totalTime = 0;     //in clock ticks
+	clock_t totalTime = 0;     //in clock ticks
 
-    for (unsigned int i = 0; i< tests; i++) {
-        K = N1+ N2+1;
-        while (K > N1+N2) {
-            cerr << "test " << i << "\n";
-            K = ZZFromString(randomBytes(len));
-            N1 = ZZFromString(randomBytes(len));
-            N2 = ZZFromString(randomBytes(len));
-            SEED = ZZFromString(randomBytes(len));
-        }
+	for (unsigned int i = 0; i< tests; i++) {
+		K = N1+ N2+1;
+		while (K > N1+N2) {
+			cerr << "test " << i << "\n";
+			K = ZZFromString(randomBytes(len));
+			N1 = ZZFromString(randomBytes(len));
+			N2 = ZZFromString(randomBytes(len));
+			SEED = ZZFromString(randomBytes(len));
+		}
 
-        clock_t currentTime = clock();
-        sample = HGD(K, N1, N2, SEED, len*bitsPerByte, bitsPrecision);
+		clock_t currentTime = clock();
+		sample = HGD(K, N1, N2, SEED, len*bitsPerByte, bitsPrecision);
 
-        totalTime += clock() - currentTime;
-    }
+		totalTime += clock() - currentTime;
+	}
 
-    cerr << "average milliseconds per test is " <<
-    ((double) totalTime * 1000.0) / ((double) tests * CLOCKS_PER_SEC) << "\n";
+	cerr << "average milliseconds per test is " <<
+			((double) totalTime * 1000.0) / ((double) tests * CLOCKS_PER_SEC) << "\n";
 }
 /*
    void test_EDBProxy_noSecurity() {
@@ -229,95 +230,95 @@ static void __attribute__((unused))
 evaluateMetrics(const TestConfig &tc, int argc, char ** argv)
 {
 
-    if (argc != 4) {
-        printf("usage: ./test noRecords tests haveindex?(0/1) ");
-        exit(1);
-    }
+	if (argc != 4) {
+		printf("usage: ./test noRecords tests haveindex?(0/1) ");
+		exit(1);
+	}
 
-    unsigned int noRecords = atoi(argv[1]);
-    unsigned int tests = atoi(argv[2]);
+	unsigned int noRecords = atoi(argv[1]);
+	unsigned int tests = atoi(argv[2]);
 
-    time_t timerStart, timerEnd;
+	time_t timerStart, timerEnd;
 
-    EDBProxy * cl = new EDBProxy(tc.host, tc.user, tc.pass, tc.db);
+	EDBProxy * cl = new EDBProxy(tc.host, tc.user, tc.pass, tc.db);
 
-    cl->execute(
-        "CREATE TABLE testplain (field1 int, field2 int, field3 int);");
-    cl->execute(
-        "CREATE TABLE testcipher (field1 varchar(16), field2 varchar(16), field3 varchar(16));");
+	cl->execute(
+			"CREATE TABLE testplain (field1 int, field2 int, field3 int);");
+	cl->execute(
+			"CREATE TABLE testcipher (field1 varchar(16), field2 varchar(16), field3 varchar(16));");
 
-    timerStart = time(NULL);
-    //populate both tables with increasing values
-    for (unsigned int i = 0; i < noRecords; i++) {
-        string commandPlain = "INSERT INTO testplain VALUES (";
-        string value = StringFromVal(i);
-        commandPlain = commandPlain + value + ", " + value + "," + value +
-                       ");";
+	timerStart = time(NULL);
+	//populate both tables with increasing values
+	for (unsigned int i = 0; i < noRecords; i++) {
+		string commandPlain = "INSERT INTO testplain VALUES (";
+		string value = StringFromVal(i);
+		commandPlain = commandPlain + value + ", " + value + "," + value +
+				");";
 
-        cl->execute(commandPlain.c_str());
+		cl->execute(commandPlain.c_str());
 
-    }
-    timerEnd = time(NULL);
-    printf("insert plain average time %f ms \n",
-           (1000.0 * (double) (timerEnd-timerStart))/(noRecords*1.0));
+	}
+	timerEnd = time(NULL);
+	printf("insert plain average time %f ms \n",
+			(1000.0 * (double) (timerEnd-timerStart))/(noRecords*1.0));
 
-    timerStart = time(NULL);
-    for (unsigned int i = 0; i < noRecords; i++) {
-        string commandCipher = "INSERT INTO testcipher VALUES (";
-        string valueBytes ="'" +
-                            StringFromVal(i, AES_BLOCK_BITS/
-                                          bitsPerByte) + "'";
+	timerStart = time(NULL);
+	for (unsigned int i = 0; i < noRecords; i++) {
+		string commandCipher = "INSERT INTO testcipher VALUES (";
+		string valueBytes ="'" +
+				StringFromVal(i, AES_BLOCK_BITS/
+						bitsPerByte) + "'";
 
-        commandCipher = commandCipher + valueBytes + ", " + valueBytes +
-                        ", " + valueBytes+ ");";
-        cl->execute(commandCipher.c_str());
+		commandCipher = commandCipher + valueBytes + ", " + valueBytes +
+				", " + valueBytes+ ");";
+		cl->execute(commandCipher.c_str());
 
-    }
-    timerEnd = time(NULL);
-    printf("insert cipher average time %f ms \n",
-           (1000.0 * (double) (timerEnd-timerStart))/(noRecords*1.0));
+	}
+	timerEnd = time(NULL);
+	printf("insert cipher average time %f ms \n",
+			(1000.0 * (double) (timerEnd-timerStart))/(noRecords*1.0));
 
-    if (atoi(argv[3]) == 1) {
-        cout << "create index";
-        cl->execute("CREATE INDEX indplain ON testplain (field1) ;");
-        cl->execute("CREATE INDEX indcipher ON testcipher (field1) ;");
-    }
+	if (atoi(argv[3]) == 1) {
+		cout << "create index";
+		cl->execute("CREATE INDEX indplain ON testplain (field1) ;");
+		cl->execute("CREATE INDEX indcipher ON testcipher (field1) ;");
+	}
 
-    timerStart = time(NULL);
-    //equality selection
-    for (unsigned int i = 0; i < tests; i++) {
-        int j = rand() % noRecords;
-        string commandPlain = "SELECT * FROM testplain WHERE field1 = ";
-        string value = StringFromVal(j);
-        commandPlain += value  + ";";
-        //cout << "CL " << clock() << "\n";
-        cl->execute(commandPlain.c_str());
+	timerStart = time(NULL);
+	//equality selection
+	for (unsigned int i = 0; i < tests; i++) {
+		int j = rand() % noRecords;
+		string commandPlain = "SELECT * FROM testplain WHERE field1 = ";
+		string value = StringFromVal(j);
+		commandPlain += value  + ";";
+		//cout << "CL " << clock() << "\n";
+		cl->execute(commandPlain.c_str());
 
-    }
-    timerEnd = time(NULL);
+	}
+	timerEnd = time(NULL);
 
-    printf("select plain time %f ms \n",
-           (1000.0 * (double) (timerEnd-timerStart))/(tests*1.0));
+	printf("select plain time %f ms \n",
+			(1000.0 * (double) (timerEnd-timerStart))/(tests*1.0));
 
-    timerStart = time(NULL);
-    //equality selection
-    for (unsigned int i = 0; i < tests; i++) {
-        int j = rand() % noRecords;
-        string commandCipher = "SELECT * FROM testcipher WHERE field1 = ";
-        string valueBytes = "'" +
-                            StringFromVal(j, AES_BLOCK_BITS/
-                                          bitsPerByte) + "'";
+	timerStart = time(NULL);
+	//equality selection
+	for (unsigned int i = 0; i < tests; i++) {
+		int j = rand() % noRecords;
+		string commandCipher = "SELECT * FROM testcipher WHERE field1 = ";
+		string valueBytes = "'" +
+				StringFromVal(j, AES_BLOCK_BITS/
+						bitsPerByte) + "'";
 
-        commandCipher = commandCipher + valueBytes + ";";
-        cl->execute(commandCipher.c_str());
+		commandCipher = commandCipher + valueBytes + ";";
+		cl->execute(commandCipher.c_str());
 
-    }
-    timerEnd = time(NULL);
+	}
+	timerEnd = time(NULL);
 
-    printf("cipher average time %f ms \n",
-           (1000.0* (double) (timerEnd-timerStart))/(tests*1.0));
+	printf("cipher average time %f ms \n",
+			(1000.0* (double) (timerEnd-timerStart))/(tests*1.0));
 
-    /*
+	/*
        timerStart = time(NULL);
        //inequality selection
        for (int i = 0; i < tests; i++) {
@@ -343,8 +344,8 @@ evaluateMetrics(const TestConfig &tc, int argc, char ** argv)
        timerEnd = time(NULL);
        printf("range select plain %f ms \n",
           (1000.0*(timerEnd-timerStart))/(tests*1.0));
-     */
-    /*
+	 */
+	/*
        timerStart = time(NULL);
        //inequality selection
        for (int i = 0; i < tests; i++) {
@@ -372,290 +373,291 @@ evaluateMetrics(const TestConfig &tc, int argc, char ** argv)
        timerEnd = time(NULL);
        printf("range select cipher %f ms \n",
           (1000.0*(timerEnd-timerStart))/(tests*1.0));
-     */
+	 */
 
-    cl->execute("DROP TABLE testplain;");
-    cl->execute("DROP TABLE testcipher;");
+	cl->execute("DROP TABLE testplain;");
+	cl->execute("DROP TABLE testcipher;");
 
 }
 
 //tests protected methods of EDBProxy
 class tester : public EDBProxy {
- public:
-    tester(const TestConfig &tc, const string &masterKey) : EDBProxy(tc.host,
-                                                                      tc.user,
-                                                                      tc.pass,
-                                                                      tc.db,
-                                                                      0, false)
-    {
-        setMasterKey(masterKey);
-    }
-    tester(const TestConfig &tc) : EDBProxy(tc.host, tc.user, tc.pass, tc.db)
-    {
-    };
-    void testClientParser();
-    void loadData(EDBProxy * cl, string workload, int logFreq);
+public:
+	tester(const TestConfig &tc, const string &masterKey) : EDBProxy(tc.host,
+			tc.user,
+			tc.pass,
+			tc.db,
+			0, false)
+	{
+		setMasterKey(masterKey);
+	}
+	tester(const TestConfig &tc) : EDBProxy(tc.host, tc.user, tc.pass, tc.db)
+	{
+	};
+	void testClientParser();
+	void loadData(EDBProxy * cl, string workload, int logFreq);
 
-    //void testMarshallBinary();
+	//void testMarshallBinary();
 };
 
 void
 tester::testClientParser()
 {
 
-    list<string> queries = list<string>();
-    //queries.push_back(string("CREATE TABLE people (id integer, age integer,
-    // name integer);"));
-    queries.push_back(string(
-                          "CREATE TABLE city (name integer, citizen integer);"));
-    queries.push_back(string(
-                          "CREATE TABLE emp (id integer, name text, age integer, job text);"));
-    //queries.push_back(string("SELECT city.citizen FROM people, city WHERE
-    // city.citizen = people.name ; "));
-    //queries.push_back(string("INSERT INTO people VALUES (5, 23, 34);"));
-    //queries.push_back(string("INSERT INTO city VALUES (34, 24);"));
-    //queries.push_back(string("SELECT people.id FROM people WHERE people.id =
-    // 5 AND people.id = people.age ;"));
-    //queries.push_back(string("DROP TABLE people;"));
+	list<string> queries = list<string>();
+	//queries.push_back(string("CREATE TABLE people (id integer, age integer,
+			// name integer);"));
+	queries.push_back(string(
+			"CREATE TABLE city (name integer, citizen integer);"));
+	queries.push_back(string(
+			"CREATE TABLE emp (id integer, name text, age integer, job text);"));
+	//queries.push_back(string("SELECT city.citizen FROM people, city WHERE
+	// city.citizen = people.name ; "));
+	//queries.push_back(string("INSERT INTO people VALUES (5, 23, 34);"));
+	//queries.push_back(string("INSERT INTO city VALUES (34, 24);"));
+	//queries.push_back(string("SELECT people.id FROM people WHERE people.id =
+	// 5 AND people.id = people.age ;"));
+	//queries.push_back(string("DROP TABLE people;"));
 
-    list<int> expectedCount = list<int>();
-    expectedCount.push_back(1);
-    expectedCount.push_back(1);
-    expectedCount.push_back(4);
-    expectedCount.push_back(2);
-    expectedCount.push_back(4);
-    expectedCount.push_back(1);
+	list<int> expectedCount = list<int>();
+	expectedCount.push_back(1);
+	expectedCount.push_back(1);
+	expectedCount.push_back(4);
+	expectedCount.push_back(2);
+	expectedCount.push_back(4);
+	expectedCount.push_back(1);
 
-    list<string> expected = list<string>();
+	list<string> expected = list<string>();
 
-    expected.push_back("CREATE TABLE table0 (  field0DET integer, field0OPE bigint, field1DET integer, field1OPE bigint, field2DET integer, field2OPE bigint );");
-    expected.push_back("CREATE TABLE table1 (  field0DET integer, field0OPE bigint, field1DET integer, field1OPE bigint );");
-    expected.push_back("UPDATE table1 SET field1DET = DECRYPT(0);");
-    expected.push_back("UPDATE table0 SET field2DET = DECRYPT(0);");
-    expected.push_back("UPDATE table1 SET field1DET = EQUALIZE(0);");
-    expected.push_back("SELECT  table1.field1DET FROM  table0, table1 WHERE  table1.field1DET  =  table0.field2DET ;");
-    expected.push_back("UPDATE table1 SET field1DET = 5;");
-    expected.push_back("UPDATE table1 SET field1OPE = 5;");
-    expected.push_back("UPDATE table0 SET field0DET = DECRYPT(0);");
-    expected.push_back("UPDATE table0 SET field1DET = DECRYPT(0);");
-    expected.push_back("UPDATE table0 SET field0DET = EQUALIZE(0);");
-    expected.push_back("SELECT  table0.field0DET FROM  table0 WHERE  table0.field0DET  = 5 AND  table0.field0DET  =  table0.field1DET ;");
-    expected.push_back("DROP TABLE table0;");
+	expected.push_back("CREATE TABLE table0 (  field0DET integer, field0OPE bigint, field1DET integer, field1OPE bigint, field2DET integer, field2OPE bigint );");
+	expected.push_back("CREATE TABLE table1 (  field0DET integer, field0OPE bigint, field1DET integer, field1OPE bigint );");
+	expected.push_back("UPDATE table1 SET field1DET = DECRYPT(0);");
+	expected.push_back("UPDATE table0 SET field2DET = DECRYPT(0);");
+	expected.push_back("UPDATE table1 SET field1DET = EQUALIZE(0);");
+	expected.push_back("SELECT  table1.field1DET FROM  table0, table1 WHERE  table1.field1DET  =  table0.field2DET ;");
+	expected.push_back("UPDATE table1 SET field1DET = 5;");
+	expected.push_back("UPDATE table1 SET field1OPE = 5;");
+	expected.push_back("UPDATE table0 SET field0DET = DECRYPT(0);");
+	expected.push_back("UPDATE table0 SET field1DET = DECRYPT(0);");
+	expected.push_back("UPDATE table0 SET field0DET = EQUALIZE(0);");
+	expected.push_back("SELECT  table0.field0DET FROM  table0 WHERE  table0.field0DET  = 5 AND  table0.field0DET  =  table0.field1DET ;");
+	expected.push_back("DROP TABLE table0;");
 
-    list<string>::iterator it = queries.begin();
+	list<string>::iterator it = queries.begin();
 
-    for (; it != queries.end(); it++) {   //TODO: check against expected...at
-                                          // this point is more of a manual
-                                          // check
-        list<string> response = rewriteEncryptQuery(it->c_str());
-        LOG(test) << "query issued/response: " << *it << ", " << toString(response, stringToByteInts);
-    }
+	for (; it != queries.end(); it++) {   //TODO: check against expected...at
+		// this point is more of a manual
+		// check
+		list<string> response = rewriteEncryptQuery(it->c_str());
+		LOG(test) << "query issued/response: " << *it << ", " << toString(response, stringToByteInts);
+	}
 
-    exit();
-    cerr << "TEST TRANSLATOR PASSED \n";
+	exit();
+	cerr << "TEST TRANSLATOR PASSED \n";
 }
 
 static void __attribute__((unused))
 testCryptoManager()
 {
 
-    string masterKey = randomBytes(AES_KEY_BYTES);
-    CryptoManager * cm = new CryptoManager(masterKey);
+	string masterKey = randomBytes(AES_KEY_BYTES);
+	CryptoManager * cm = new CryptoManager(masterKey);
 
-    cerr << "TEST CRYPTO MANAGER \n";
+	cerr << "TEST CRYPTO MANAGER \n";
 
-    //test marshall and unmarshall key
-    string m = cm->marshallKey(masterKey);
-    LOG(test) << "master key is " << stringToByteInts(masterKey);
-    LOG(test) << "marshall is " << m;
-    string masterKey2 = cm->unmarshallKey(m);
+	//test marshall and unmarshall key
+	string m = cm->marshallKey(masterKey);
+	LOG(test) << "master key is " << stringToByteInts(masterKey);
+	LOG(test) << "marshall is " << m;
+	string masterKey2 = cm->unmarshallKey(m);
 
-    myassert(masterKey == masterKey2, "marshall test failed");
+	myassert(masterKey == masterKey2, "marshall test failed");
 
-    LOG(test) << "key for field1: "
-              << stringToByteInts(cm->getKey("field1", SECLEVEL::SEMANTIC_OPE));
-    LOG(test) << "key for table5.field12OPE:"
-              << stringToByteInts(cm->getKey("table5.field12OPE", SECLEVEL::SEMANTIC_OPE));
+	LOG(test) << "key for field1: "
+			<< stringToByteInts(cm->getKey("field1", SECLEVEL::SEMANTIC_OPE));
+	LOG(test) << "key for table5.field12OPE:"
+			<< stringToByteInts(cm->getKey("table5.field12OPE", SECLEVEL::SEMANTIC_OPE));
 
-    //test SEM
-    AES_KEY * aesKey = cm->get_key_SEM(masterKey);
-    uint64_t salt = 3953954;
-    uint32_t value = 5;
-    uint32_t eValue = cm->encrypt_SEM(value, aesKey, salt);
-    cerr << "\n sem encr of " << value << " is " << eValue << "with salt " <<
-    salt << " and decr of encr is " <<
-    cm->decrypt_SEM(eValue, aesKey, salt) <<"\n";
-    myassert(cm->decrypt_SEM(eValue, aesKey,
-                             salt) == value,
-             "decrypt of encrypt does not return value");
+	//test SEM
+	AES_KEY * aesKey = cm->get_key_SEM(masterKey);
+	uint64_t salt = 3953954;
+	uint32_t value = 5;
+	uint32_t eValue = cm->encrypt_SEM(value, aesKey, salt);
+	cerr << "\n sem encr of " << value << " is " << eValue << "with salt " <<
+			salt << " and decr of encr is " <<
+			cm->decrypt_SEM(eValue, aesKey, salt) <<"\n";
+	myassert(cm->decrypt_SEM(eValue, aesKey,
+			salt) == value,
+			"decrypt of encrypt does not return value");
 
-    cerr << "SEMANTIC " << (int) SECLEVEL::SEMANTIC_OPE << "\n";
+	cerr << "SEMANTIC " << (int) SECLEVEL::SEMANTIC_OPE << "\n";
 
-    uint64_t value2 = 10;
-    uint64_t eValue2 = cm->encrypt_SEM(value2, aesKey, salt);
-    cerr << "sem encr of " << value2 << " is " << eValue2 <<
-    " and signed is " << (int64_t) eValue2 << "\n";
-    myassert(cm->decrypt_SEM(eValue2, aesKey,
-                             salt) == value2,
-             "decrypt of encrypt does not return correct value for uint64_t");
+	uint64_t value2 = 10;
+	uint64_t eValue2 = cm->encrypt_SEM(value2, aesKey, salt);
+	cerr << "sem encr of " << value2 << " is " << eValue2 <<
+			" and signed is " << (int64_t) eValue2 << "\n";
+	myassert(cm->decrypt_SEM(eValue2, aesKey,
+			salt) == value2,
+			"decrypt of encrypt does not return correct value for uint64_t");
 
-    cerr << "0, " << (int64_t) eValue2 << ", " << m << ", " << salt << "\n";
+	cerr << "0, " << (int64_t) eValue2 << ", " << m << ", " << salt << "\n";
 
-    OPE * ope = cm->get_key_OPE(masterKey);
-    uint64_t eOPE = cm->encrypt_OPE(value, ope);
-    cerr << "encryption is eOPE " << eOPE << " \n";
-    myassert(cm->decrypt_OPE(eOPE, ope) == value, "ope failed");
+	OPE * ope = cm->get_key_OPE(masterKey);
+	uint64_t eOPE = cm->encrypt_OPE(value, ope);
+	cerr << "encryption is eOPE " << eOPE << " \n";
+	myassert(cm->decrypt_OPE(eOPE, ope) == value, "ope failed");
 
-    cerr << "TEST CRYPTO MANAGER PASSED \n";
+	cerr << "TEST CRYPTO MANAGER PASSED \n";
 
 }
 
+//do not change: has been used in creating the dbs for experiments
 const uint64_t mkey = 113341234;
 
 static void __attribute__((unused))
 evalImproveSummations(const TestConfig &tc)
 {
-    string masterKey = BytesFromInt(mkey, AES_KEY_BYTES);
-    string host = tc.host;
-    string user = tc.user;
-    string db = tc.db;
-    string pwd = tc.pass;
-    cerr << "connecting to host " << host << " user " << user << " pwd " <<
-    pwd << " db " << db << endl;
-    EDBProxy * cl = new EDBProxy(host, user, pwd, db);
-    cl->setMasterKey(masterKey);
-    cl->VERBOSE = true;
+	string masterKey = BytesFromInt(mkey, AES_KEY_BYTES);
+	string host = tc.host;
+	string user = tc.user;
+	string db = tc.db;
+	string pwd = tc.pass;
+	cerr << "connecting to host " << host << " user " << user << " pwd " <<
+			pwd << " db " << db << endl;
+	EDBProxy * cl = new EDBProxy(host, user, pwd, db);
+	cl->setMasterKey(masterKey);
+	cl->VERBOSE = true;
 
-    cl->execute("CREATE TABLE test_table (id enc integer,  name enc text)");
-    unsigned int no_inserts = 100;
-    unsigned int no_sums = 20;
+	cl->execute("CREATE TABLE test_table (id enc integer,  name enc text)");
+	unsigned int no_inserts = 100;
+	unsigned int no_sums = 20;
 
-    for (unsigned int i = 0; i < no_inserts; i++) {
-        cl->execute(string("INSERT INTO test_table VALUES (") +
-                    StringFromVal(i) + " , 'ana');");
-    }
+	for (unsigned int i = 0; i < no_inserts; i++) {
+		cl->execute(string("INSERT INTO test_table VALUES (") +
+				StringFromVal(i) + " , 'ana');");
+	}
 
-    startTimer();
-    for (unsigned int i = 0; i < no_sums; i++) {
-        cl->execute("SELECT sum(id) FROM test_table;");
-    }
-    double time = readTimer();
+	startTimer();
+	for (unsigned int i = 0; i < no_sums; i++) {
+		cl->execute("SELECT sum(id) FROM test_table;");
+	}
+	double time = readTimer();
 
-    cerr << "time per sum: " << time/(1.0*no_sums) << " ms \n";
+	cerr << "time per sum: " << time/(1.0*no_sums) << " ms \n";
 
 }
 
 static void
 interactiveTest(const TestConfig &tc, int ac, char **av)
 {
-    cout << "\n ---------   CryptDB ---------- \n \n";
+	cout << "\n ---------   CryptDB ---------- \n \n";
 
-    cout << "To exit, hit \\q\n";
+	cout << "To exit, hit \\q\n";
 
-    string masterKey = BytesFromInt(mkey, AES_KEY_BYTES);
-    string host = tc.host;
-    string user = tc.user;
-    string db = tc.db;
-    string pwd = tc.pass;
-    cerr << "connecting to host " << host << " user " << user << " pwd " <<
-    pwd << " db " << db << endl;
-    EDBProxy * cl = new EDBProxy(host, user, pwd, db);
-    cl->setMasterKey(masterKey);
-    cl->VERBOSE = true;
+	string masterKey = BytesFromInt(mkey, AES_KEY_BYTES);
+	string host = tc.host;
+	string user = tc.user;
+	string db = tc.db;
+	string pwd = tc.pass;
+	cerr << "connecting to host " << host << " user " << user << " pwd " <<
+			pwd << " db " << db << endl;
+	EDBProxy * cl = new EDBProxy(host, user, pwd, db);
+	cl->setMasterKey(masterKey);
+	cl->VERBOSE = true;
 
-    streamsize len = 100;
-    char *cmd = new char[len];
+	streamsize len = 100;
+	char *cmd = new char[len];
 
-    for (;; ) {
+	for (;; ) {
 
-        cout << "CryptDB=# ";
-        cin.getline(cmd, len);
-        if (cin.eof())
-            break;
+		cout << "CryptDB=# ";
+		cin.getline(cmd, len);
+		if (cin.eof())
+			break;
 
-        string commandS = string(cmd);
+		string commandS = string(cmd);
 
-        if (commandS.compare("\\q") == 0) {
-            break;
-        } else if (commandS.compare("load cryptapp") == 0) {
-            cl->execute(
-                "CREATE TABLE users (id integer accessto uname, uname text givespsswd); ");
-            cl->execute(
-                "CREATE TABLE info (id integer equals users.id , creditcard integer encfor id); ");
-            cl->execute(
-                "INSERT INTO activeusers VALUES ('alice', 'secretA');");
-            cl->execute("INSERT INTO activeusers VALUES ('bob', 'secretB');");
-            cl->execute(
-                "INSERT INTO activeusers VALUES ('chris', 'secretC');");
-            cl->execute("INSERT INTO activeusers VALUES ('dan', 'secretD');");
-            cl->execute("INSERT INTO users VALUES (1, 'alice');");
-            cl->execute("INSERT INTO users VALUES (2, 'bob');");
-            cl->execute("INSERT INTO users VALUES (3, 'chris');");
-            cl->execute("INSERT INTO users VALUES (4, 'dan');");
-            cl->execute("INSERT INTO info VALUES (1, 111);");
-            cl->execute("INSERT INTO info VALUES (2, 222);");
-            cl->execute("INSERT INTO info VALUES (3, 333);");
-            cl->execute("INSERT INTO info VALUES (4, 444);");
-        } else if (commandS.compare("load people;") == 0) {
-            int noInserts = 15;
-            for (int i = 0; i < noInserts; i++) {
-                unsigned int val1 = rand() % 10;
-                unsigned int val2 = rand() % 10;
-                string qq = "INSERT INTO people VALUES ( " +
-                            strFromVal(val1) + ", " + strFromVal(val2) +
-                            ");";
-                cl->execute(qq);
-            }
-        } else if (commandS.compare("load all emp;") == 0) {
-            cl->execute("CREATE TABLE emp (id integer, jobid integer);");
+		if (commandS.compare("\\q") == 0) {
+			break;
+		} else if (commandS.compare("load cryptapp") == 0) {
+			cl->execute(
+					"CREATE TABLE users (id integer accessto uname, uname text givespsswd); ");
+			cl->execute(
+					"CREATE TABLE info (id integer equals users.id , creditcard integer encfor id); ");
+			cl->execute(
+					"INSERT INTO activeusers VALUES ('alice', 'secretA');");
+			cl->execute("INSERT INTO activeusers VALUES ('bob', 'secretB');");
+			cl->execute(
+					"INSERT INTO activeusers VALUES ('chris', 'secretC');");
+			cl->execute("INSERT INTO activeusers VALUES ('dan', 'secretD');");
+			cl->execute("INSERT INTO users VALUES (1, 'alice');");
+			cl->execute("INSERT INTO users VALUES (2, 'bob');");
+			cl->execute("INSERT INTO users VALUES (3, 'chris');");
+			cl->execute("INSERT INTO users VALUES (4, 'dan');");
+			cl->execute("INSERT INTO info VALUES (1, 111);");
+			cl->execute("INSERT INTO info VALUES (2, 222);");
+			cl->execute("INSERT INTO info VALUES (3, 333);");
+			cl->execute("INSERT INTO info VALUES (4, 444);");
+		} else if (commandS.compare("load people;") == 0) {
+			int noInserts = 15;
+			for (int i = 0; i < noInserts; i++) {
+				unsigned int val1 = rand() % 10;
+				unsigned int val2 = rand() % 10;
+				string qq = "INSERT INTO people VALUES ( " +
+						strFromVal(val1) + ", " + strFromVal(val2) +
+						");";
+				cl->execute(qq);
+			}
+		} else if (commandS.compare("load all emp;") == 0) {
+			cl->execute("CREATE TABLE emp (id integer, jobid integer);");
 
-            int noInserts = 20;
-            for (int i = 0; i < noInserts; i++) {
-                unsigned int val1 = rand() % 10;
-                unsigned int val2 = rand() % 10;
-                string qq = "INSERT INTO emp VALUES ( " + strFromVal(val1) +
-                            ", " + strFromVal(val2) + ");";
-                cl->execute(qq);
-            }
-        } else if (commandS.find("login") == 0) {
-            list<string> words = parse(commandS, delimsStay, delimsGo,
-                                       keepIntact);
-            list<string>::iterator wordsIt = words.begin();
-            wordsIt++;
-            string uname = getVal(wordsIt);
-            string p = getVal(wordsIt);
-            string query = "INSERT INTO activeusers VALUES ('" + uname +
-                           "' , '" + p + "' );";
-            cl->execute(query);
-        } else if (commandS.find("logout") == 0) {
-            list<string> words = parse(commandS, delimsStay, delimsGo,
-                                       keepIntact);
-            list<string>::iterator wordsIt = words.begin();
-            wordsIt++;
-            string uname = getVal(wordsIt);
-            string query = "DELETE FROM activeusers WHERE uname = '" +
-                           uname + "';";
-            cl->execute(query);
-        } else if (commandS.compare("debug;") == 0) {
-            //assert_res(cl->execute(), "failed");
+			int noInserts = 20;
+			for (int i = 0; i < noInserts; i++) {
+				unsigned int val1 = rand() % 10;
+				unsigned int val2 = rand() % 10;
+				string qq = "INSERT INTO emp VALUES ( " + strFromVal(val1) +
+						", " + strFromVal(val2) + ");";
+				cl->execute(qq);
+			}
+		} else if (commandS.find("login") == 0) {
+			list<string> words = parse(commandS, delimsStay, delimsGo,
+					keepIntact);
+			list<string>::iterator wordsIt = words.begin();
+			wordsIt++;
+			string uname = getVal(wordsIt);
+			string p = getVal(wordsIt);
+			string query = "INSERT INTO activeusers VALUES ('" + uname +
+					"' , '" + p + "' );";
+			cl->execute(query);
+		} else if (commandS.find("logout") == 0) {
+			list<string> words = parse(commandS, delimsStay, delimsGo,
+					keepIntact);
+			list<string>::iterator wordsIt = words.begin();
+			wordsIt++;
+			string uname = getVal(wordsIt);
+			string query = "DELETE FROM activeusers WHERE uname = '" +
+					uname + "';";
+			cl->execute(query);
+		} else if (commandS.compare("debug;") == 0) {
+			//assert_res(cl->execute(), "failed");
 
-            cl->plain_execute("DROP TABLE IF EXISTS table0, table1");
-            cerr << "here \n";
-            assert_res(cl->execute(
-                         "CREATE TABLE hi (id enc integer);"),
-                     "failed");
+			cl->plain_execute("DROP TABLE IF EXISTS table0, table1");
+			cerr << "here \n";
+			assert_res(cl->execute(
+					"CREATE TABLE hi (id enc integer);"),
+					"failed");
 
-            assert_res(cl->execute(
-                         "INSERT INTO hi VALUES (1);"), "failed");
+			assert_res(cl->execute(
+					"INSERT INTO hi VALUES (1);"), "failed");
 
-            assert_res(cl->execute(
-                                    "SELECT sum(id) FROM hi;"), "failed");
+			assert_res(cl->execute(
+					"SELECT sum(id) FROM hi;"), "failed");
 
-           // assert_res(cl->execute(
-           //              "SELECT sum(id) FROM hi;"), "failed");
+			// assert_res(cl->execute(
+			//              "SELECT sum(id) FROM hi;"), "failed");
 
 
-            /* assert_res(cl->execute(
+			/* assert_res(cl->execute(
                          "INSERT INTO hi VALUES (1, 'lauren');"), "failed");
                assert_res(cl->execute(
                          "INSERT INTO hi VALUES (1, 'aaa');"), "failed");
@@ -673,23 +675,23 @@ interactiveTest(const TestConfig &tc, int ac, char **av)
                          "SELECT * FROM hi, hi2 WHERE hi.name = hi2.name ;"),
                      "failed");*/
 
-            //debugging of DECRYPTFIRST mode
+			//debugging of DECRYPTFIRST mode
 
-            //cl->plain_execute("DROP TABLE IF EXISTS hi;");
-            //assert_res(cl->execute("CREATE TABLE hi (id enc integer, name
-            // text);"), "failed");
-            //    assert_res(cl->execute("INSERT INTO hi VALUES (3, '5');"),
-            // "failed");
-            //    assert_res(cl->execute("SELECT * FROM hi;"), "failed");
-            //    assert_res(cl->execute("SELECT id, name AS n FROM hi WHERE id =
-            // 3;"), "failed");
-            //    assert_res(cl->execute("SELECT * FROM hi WHERE id > 2;"),
-            // "failed");
-            //assert_res(cl->execute("SELECT * FROM hi;"), "failed");
+			//cl->plain_execute("DROP TABLE IF EXISTS hi;");
+			//assert_res(cl->execute("CREATE TABLE hi (id enc integer, name
+			// text);"), "failed");
+			//    assert_res(cl->execute("INSERT INTO hi VALUES (3, '5');"),
+			// "failed");
+			//    assert_res(cl->execute("SELECT * FROM hi;"), "failed");
+			//    assert_res(cl->execute("SELECT id, name AS n FROM hi WHERE id =
+			// 3;"), "failed");
+			//    assert_res(cl->execute("SELECT * FROM hi WHERE id > 2;"),
+			// "failed");
+			//assert_res(cl->execute("SELECT * FROM hi;"), "failed");
 
-            //GENERAL MULTI-KEY DEBUGGING
+			//GENERAL MULTI-KEY DEBUGGING
 
-            /*
+			/*
                cl->plain_execute("DROP TABLE IF EXISTS t1, users,
                   pwdcryptdb__users, cryptdb_public, cryptdb_active0;");
                assert_res(cl->execute("CREATE TABLE t1 (id integer, post encfor
@@ -724,10 +726,10 @@ interactiveTest(const TestConfig &tc, int ac, char **av)
                   'raluca');"), "failed");
                assert_res(cl->execute("INSERT INTO t1 VALUES (2, 'my text',
                   5);"), "failed");
-             */
+			 */
 
-            //PRIVATE MESSAGES EXAMPLE
-            /*    cl->plain_execute("DROP TABLE IF EXISTS users, msgs,
+			//PRIVATE MESSAGES EXAMPLE
+			/*    cl->plain_execute("DROP TABLE IF EXISTS users, msgs,
                privmsg;");
                     assert_res(cl->execute("CREATE TABLE msgs (msgid equals
                        privmsg.msgid integer, msgtext encfor msgid text);"),
@@ -761,9 +763,9 @@ interactiveTest(const TestConfig &tc, int ac, char **av)
                     assert_res(cl->execute("SELECT msgtext from msgs, privmsg,
                        users WHERE username = 'alice' AND userid = recid AND
                        msgs.msgid = privmsg.msgid;"), "failed");
-             */
-            //private messages without orphans
-            /* cl->plain_execute("DROP TABLE IF EXISTS users, msgs,
+			 */
+			//private messages without orphans
+			/* cl->plain_execute("DROP TABLE IF EXISTS users, msgs,
                privmsg;");
                assert_res(cl->execute("CREATE TABLE msgs (msgid equals
                   privmsg.msgid integer, msgtext encfor msgid text);"),
@@ -795,98 +797,98 @@ interactiveTest(const TestConfig &tc, int ac, char **av)
                assert_res(cl->execute("SELECT msgtext from msgs, privmsg, users
                   WHERE username = 'alice' AND userid = recid AND msgs.msgid =
                   privmsg.msgid;"), "failed");
-             */
+			 */
 
-            //USERID, GROUP, FORUM, SQL PRED EXAMPLE
-            //    cl->plain_execute("DROP TABLE IF EXISTS users, usergroup,
-            // groupforum, forum;");
-            //    assert_res(cl->execute("CREATE TABLE users (userid integer,
-            // username givespsswd userid text);"), "failed");
-            //    assert_res(cl->execute("CREATE TABLE usergroup (userid equals
-            // users.userid hasaccessto groupid integer, groupid integer);"),
-            // "failed");
-            //    assert_res(cl->execute("CREATE TABLE groupforum (forumid equals
-            // forum.forumid integer, groupid equals usergroup.groupid
-            // hasaccessto forumid if test(optionid) integer, optionid
-            // integer);"), "failed");
-            //    assert_res(cl->execute("CREATE TABLE forum (forumid integer,
-            // forumtext encfor forumid text);"), "failed");
-            //    assert_s(cl->plain_execute("DROP FUNCTION IF EXISTS test;"),
-            // "failed");
-            //    assert_s(cl->plain_execute("CREATE FUNCTION test (optionid
-            // integer) RETURNS bool RETURN optionid=20;"), "failed");
-            //
-            //    //Alice is in group 1, Bob in group 2 and Chris is in group 1
-            // and group 2
-            //    //group 1 can see the forum text, group 2 cannot
-            //    assert_res(cl->execute("INSERT INTO "psswdtable" VALUES
-            // ('alice', 'secretalice');"), "failed to log in user");
-            //    assert_res(cl->execute("INSERT INTO "psswdtable" VALUES ('bob',
-            // 'secretbob');"), "failed to log in user");
-            //    assert_res(cl->execute("INSERT INTO "psswdtable" VALUES
-            // ('chris', 'secretbob');"), "failed to log in user");
-            //
-            //    assert_res(cl->execute("INSERT INTO users (username) VALUES
-            // ('alice');"), "failed");
-            //    assert_res(cl->execute("INSERT INTO users (username) VALUES
-            // ('bob');"), "failed");
-            //    assert_res(cl->execute("INSERT INTO users (username) VALUES
-            // ('chris');"), "failed");
-            //
-            //    assert_res(cl->execute("INSERT INTO usergroup VALUES (1, 1);"),
-            // "failed");
-            //    assert_res(cl->execute("INSERT INTO usergroup VALUES (2, 2);"),
-            // "failed");
-            //    assert_res(cl->execute("INSERT INTO usergroup VALUES (3, 1);"),
-            // "failed");
-            //    assert_res(cl->execute("INSERT INTO usergroup VALUES (3, 2);"),
-            // "failed");
-            //
-            //
-            //    assert_res(cl->execute("INSERT INTO groupforum VALUES (1, 1,
-            // 14);"), "failed");
-            //    assert_res(cl->execute("INSERT INTO groupforum VALUES (1, 1,
-            // 20);"), "failed");
-            //    assert_res(cl->execute("INSERT INTO groupforum VALUES (1, 2,
-            // 2);"), "failed");
-            //    assert_res(cl->execute("INSERT INTO groupforum VALUES (1, 2,
-            // 0);"), "failed");
-            //
-            //    assert_res(cl->execute("INSERT INTO forum (forumtext) VALUES
-            // ('success--you can see forum text');"), "failed");
-            //
-            //    //all users log out, then each log in to have their
-            // permissions tested
-            //    assert_res(cl->execute("DELETE FROM "psswdtable" WHERE  username
-            // = 'alice';"), "failed");
-            //    assert_res(cl->execute("DELETE FROM "psswdtable" WHERE  username
-            // = 'bob';"), "failed");
-            //    assert_res(cl->execute("DELETE FROM "psswdtable" WHERE  username
-            // = 'chris';"), "failed");
-            //
-            //
-            //    assert_res(cl->execute("INSERT INTO "psswdtable" VALUES
-            // ('alice', 'secretalice');"), "failed to log in user");
-            //
-            //    assert_res(cl->execute("SELECT forumtext from forum  WHERE
-            // forumid  = 1;"), "Alice should succeed");
-            //
-            //    assert_res(cl->execute("DELETE FROM "psswdtable" WHERE  username
-            // = 'alice';"), "failed");
-            //    assert_res(cl->execute("INSERT INTO "psswdtable" VALUES ('bob',
-            // 'secretbob');"), "failed to log in user");
-            //
-            //    assert_res(cl->execute("DELETE FROM "psswdtable" WHERE  username
-            // = 'bob';"), "failed");
-            //    assert_res(cl->execute("INSERT INTO "psswdtable" VALUES
-            // ('chris', 'secretchris');"), "failed to log in user");
-            //
-            //    assert_res(cl->execute("SELECT forumtext from forum  WHERE
-            // forumid  = 1;"), "chris should succeed");
+			//USERID, GROUP, FORUM, SQL PRED EXAMPLE
+			//    cl->plain_execute("DROP TABLE IF EXISTS users, usergroup,
+			// groupforum, forum;");
+			//    assert_res(cl->execute("CREATE TABLE users (userid integer,
+			// username givespsswd userid text);"), "failed");
+			//    assert_res(cl->execute("CREATE TABLE usergroup (userid equals
+			// users.userid hasaccessto groupid integer, groupid integer);"),
+			// "failed");
+			//    assert_res(cl->execute("CREATE TABLE groupforum (forumid equals
+			// forum.forumid integer, groupid equals usergroup.groupid
+			// hasaccessto forumid if test(optionid) integer, optionid
+			// integer);"), "failed");
+			//    assert_res(cl->execute("CREATE TABLE forum (forumid integer,
+			// forumtext encfor forumid text);"), "failed");
+			//    assert_s(cl->plain_execute("DROP FUNCTION IF EXISTS test;"),
+			// "failed");
+			//    assert_s(cl->plain_execute("CREATE FUNCTION test (optionid
+			// integer) RETURNS bool RETURN optionid=20;"), "failed");
+			//
+			//    //Alice is in group 1, Bob in group 2 and Chris is in group 1
+			// and group 2
+			//    //group 1 can see the forum text, group 2 cannot
+			//    assert_res(cl->execute("INSERT INTO "psswdtable" VALUES
+			// ('alice', 'secretalice');"), "failed to log in user");
+			//    assert_res(cl->execute("INSERT INTO "psswdtable" VALUES ('bob',
+			// 'secretbob');"), "failed to log in user");
+			//    assert_res(cl->execute("INSERT INTO "psswdtable" VALUES
+			// ('chris', 'secretbob');"), "failed to log in user");
+			//
+			//    assert_res(cl->execute("INSERT INTO users (username) VALUES
+			// ('alice');"), "failed");
+			//    assert_res(cl->execute("INSERT INTO users (username) VALUES
+			// ('bob');"), "failed");
+			//    assert_res(cl->execute("INSERT INTO users (username) VALUES
+			// ('chris');"), "failed");
+			//
+			//    assert_res(cl->execute("INSERT INTO usergroup VALUES (1, 1);"),
+			// "failed");
+			//    assert_res(cl->execute("INSERT INTO usergroup VALUES (2, 2);"),
+			// "failed");
+			//    assert_res(cl->execute("INSERT INTO usergroup VALUES (3, 1);"),
+			// "failed");
+			//    assert_res(cl->execute("INSERT INTO usergroup VALUES (3, 2);"),
+			// "failed");
+			//
+			//
+			//    assert_res(cl->execute("INSERT INTO groupforum VALUES (1, 1,
+			// 14);"), "failed");
+			//    assert_res(cl->execute("INSERT INTO groupforum VALUES (1, 1,
+			// 20);"), "failed");
+			//    assert_res(cl->execute("INSERT INTO groupforum VALUES (1, 2,
+			// 2);"), "failed");
+			//    assert_res(cl->execute("INSERT INTO groupforum VALUES (1, 2,
+			// 0);"), "failed");
+			//
+			//    assert_res(cl->execute("INSERT INTO forum (forumtext) VALUES
+			// ('success--you can see forum text');"), "failed");
+			//
+			//    //all users log out, then each log in to have their
+			// permissions tested
+			//    assert_res(cl->execute("DELETE FROM "psswdtable" WHERE  username
+			// = 'alice';"), "failed");
+			//    assert_res(cl->execute("DELETE FROM "psswdtable" WHERE  username
+			// = 'bob';"), "failed");
+			//    assert_res(cl->execute("DELETE FROM "psswdtable" WHERE  username
+			// = 'chris';"), "failed");
+			//
+			//
+			//    assert_res(cl->execute("INSERT INTO "psswdtable" VALUES
+			// ('alice', 'secretalice');"), "failed to log in user");
+			//
+			//    assert_res(cl->execute("SELECT forumtext from forum  WHERE
+			// forumid  = 1;"), "Alice should succeed");
+			//
+			//    assert_res(cl->execute("DELETE FROM "psswdtable" WHERE  username
+			// = 'alice';"), "failed");
+			//    assert_res(cl->execute("INSERT INTO "psswdtable" VALUES ('bob',
+			// 'secretbob');"), "failed to log in user");
+			//
+			//    assert_res(cl->execute("DELETE FROM "psswdtable" WHERE  username
+			// = 'bob';"), "failed");
+			//    assert_res(cl->execute("INSERT INTO "psswdtable" VALUES
+			// ('chris', 'secretchris');"), "failed to log in user");
+			//
+			//    assert_res(cl->execute("SELECT forumtext from forum  WHERE
+			// forumid  = 1;"), "chris should succeed");
 
-            //multi-key debugging
+			//multi-key debugging
 
-            /*    cl->plain_execute("DROP TABLE IF EXISTS hi, try, bye;");
+			/*    cl->plain_execute("DROP TABLE IF EXISTS hi, try, bye;");
                //some single key debugging
                assert_res(cl->execute("CREATE TABLE hi (id integer, age enc
                   integer, name enc text);"), "q failed");
@@ -970,127 +972,127 @@ interactiveTest(const TestConfig &tc, int ac, char **av)
                   by failed");
 
                cl->outputOnionState();*/
-        } else {
-            ResType r = cl->execute(cmd);
-            if (r.ok && r.names.size() > 0) {
-                std::vector<size_t> width(r.names.size());
-                for (uint i = 0; i < r.names.size(); i++) {
-                    width[i] = r.names[i].length();;
-                    for (uint j = 0; j < r.rows.size(); j++)
-                        if (r.rows[j][i].to_string().length() > width[i])
-                            width[i] = r.rows[j][i].to_string().length();
-                }
-                {
-                    stringstream ss;
-                    for (unsigned int j = 0; j < r.names.size(); j++)
-                        ss << left << setw((int) (width[j] + 2)) << r.names[j];
-                    cout << ss.str() << endl;
-                }
-                for (unsigned int i = 0; i < r.rows.size(); i++) {
-                    stringstream ss;
-                    for (unsigned int j = 0; j < r.rows[i].size(); j++)
-                        ss << left << setw((int) (width[j] + 2)) << r.rows[i][j].to_string();
-                    cout << ss.str() << endl;
-                }
-            }
-        }
-    }
+		} else {
+			ResType r = cl->execute(cmd);
+			if (r.ok && r.names.size() > 0) {
+				std::vector<size_t> width(r.names.size());
+				for (uint i = 0; i < r.names.size(); i++) {
+					width[i] = r.names[i].length();;
+					for (uint j = 0; j < r.rows.size(); j++)
+						if (r.rows[j][i].to_string().length() > width[i])
+							width[i] = r.rows[j][i].to_string().length();
+				}
+				{
+					stringstream ss;
+					for (unsigned int j = 0; j < r.names.size(); j++)
+						ss << left << setw((int) (width[j] + 2)) << r.names[j];
+					cout << ss.str() << endl;
+				}
+				for (unsigned int i = 0; i < r.rows.size(); i++) {
+					stringstream ss;
+					for (unsigned int j = 0; j < r.rows[i].size(); j++)
+						ss << left << setw((int) (width[j] + 2)) << r.rows[i][j].to_string();
+					cout << ss.str() << endl;
+				}
+			}
+		}
+	}
 
-    cl->exit();
-    cout << "Goodbye!\n";
+	cl->exit();
+	cout << "Goodbye!\n";
 
 }
 
 static void __attribute__((unused))
 microEvaluate(const TestConfig &tc, int argc, char ** argv)
 {
-    cout << "\n\n Micro Eval \n------------------- \n \n";
+	cout << "\n\n Micro Eval \n------------------- \n \n";
 
-    string masterKey =  BytesFromInt(mkey, AES_KEY_BYTES);
-    EDBProxy * clsecure =
-        new EDBProxy(tc.host, tc.user, tc.pass, tc.db);
-    clsecure->setMasterKey(masterKey);
-    EDBProxy * clplain = new EDBProxy(tc.host, tc.user, tc.pass,
-                                        tc.db);
+	string masterKey =  BytesFromInt(mkey, AES_KEY_BYTES);
+	EDBProxy * clsecure =
+			new EDBProxy(tc.host, tc.user, tc.pass, tc.db);
+	clsecure->setMasterKey(masterKey);
+	EDBProxy * clplain = new EDBProxy(tc.host, tc.user, tc.pass,
+			tc.db);
 
-    clsecure->VERBOSE = false;
-    clplain->VERBOSE = false;
+	clsecure->VERBOSE = false;
+	clplain->VERBOSE = false;
 
-    clsecure->execute("CREATE TABLE tableeval (id integer, age integer);");
-    clplain->execute("CREATE TABLE tableeval (id integer, age integer);");
+	clsecure->execute("CREATE TABLE tableeval (id integer, age integer);");
+	clplain->execute("CREATE TABLE tableeval (id integer, age integer);");
 
-    int nrInsertsSecure = 500;
-    int nrInsertsPlain = 1000;
-    int nrSelectsPlain = 2000;
-    int nrSelectsSecure = 3000;
+	int nrInsertsSecure = 500;
+	int nrInsertsPlain = 1000;
+	int nrSelectsPlain = 2000;
+	int nrSelectsSecure = 3000;
 
-    int networkOverhead = 10;     //10 ms latency per query
+	int networkOverhead = 10;     //10 ms latency per query
 
-    startTimer();
-    for (int i = 0; i < nrInsertsSecure; i++) {
-        unsigned int val1 = rand() % 10;
-        unsigned int val2 = rand() % 10;
-        string qq = "INSERT INTO tableeval VALUES ( " + strFromVal(val1) +
-                    ", " + strFromVal(val2) + ");";
-        clsecure->execute(qq);
-    }
-    double endTimer = (readTimer()/(1.0 * nrInsertsSecure));
-    printf("secure insertion: no network %6.6f ms with network %6.6f ms \n",
-           endTimer,
-           endTimer+networkOverhead);
+	startTimer();
+	for (int i = 0; i < nrInsertsSecure; i++) {
+		unsigned int val1 = rand() % 10;
+		unsigned int val2 = rand() % 10;
+		string qq = "INSERT INTO tableeval VALUES ( " + strFromVal(val1) +
+				", " + strFromVal(val2) + ");";
+		clsecure->execute(qq);
+	}
+	double endTimer = (readTimer()/(1.0 * nrInsertsSecure));
+	printf("secure insertion: no network %6.6f ms with network %6.6f ms \n",
+			endTimer,
+			endTimer+networkOverhead);
 
-    startTimer();
-    for (int i = 0; i < nrInsertsPlain; i++) {
-        unsigned int val1 = rand() % 10;
-        unsigned int val2 = rand() % 10;
-        string qq = "INSERT INTO tableeval VALUES ( " + strFromVal(val1) +
-                    ", " + strFromVal(val2) + ");";
-        clplain->execute(qq);
-    }
-    endTimer = (readTimer()/(1.0 * nrInsertsPlain));
-    printf("plain insertion no network %6.6f ms with network %6.6f ms \n",
-           endTimer,
-           endTimer+networkOverhead);
+	startTimer();
+	for (int i = 0; i < nrInsertsPlain; i++) {
+		unsigned int val1 = rand() % 10;
+		unsigned int val2 = rand() % 10;
+		string qq = "INSERT INTO tableeval VALUES ( " + strFromVal(val1) +
+				", " + strFromVal(val2) + ");";
+		clplain->execute(qq);
+	}
+	endTimer = (readTimer()/(1.0 * nrInsertsPlain));
+	printf("plain insertion no network %6.6f ms with network %6.6f ms \n",
+			endTimer,
+			endTimer+networkOverhead);
 
-    startTimer();
-    for (int i = 0; i < nrSelectsSecure; i++) {
-        unsigned int val1 = rand() % 50;
-        string qq =
-            "SELECT tableeval.id FROM tableeval WHERE tableeval.id = " +
-            strFromVal(val1) + ";";
-        clsecure->execute(qq);
-        //unsigned int val2 = rand() % 50;
-        //qq = "SELECT tableeval.age FROM tableeval WHERE tableeval.age > " +
-        // strFromVal(val2) + ";";
-        clsecure->execute(qq);
-    }
-    endTimer = (readTimer()/(1.0 * nrSelectsSecure));
-    printf("secure selection no network %6.6f ms with network %6.6f ms \n",
-           endTimer,
-           endTimer+networkOverhead);
+	startTimer();
+	for (int i = 0; i < nrSelectsSecure; i++) {
+		unsigned int val1 = rand() % 50;
+		string qq =
+				"SELECT tableeval.id FROM tableeval WHERE tableeval.id = " +
+				strFromVal(val1) + ";";
+		clsecure->execute(qq);
+		//unsigned int val2 = rand() % 50;
+		//qq = "SELECT tableeval.age FROM tableeval WHERE tableeval.age > " +
+		// strFromVal(val2) + ";";
+		clsecure->execute(qq);
+	}
+	endTimer = (readTimer()/(1.0 * nrSelectsSecure));
+	printf("secure selection no network %6.6f ms with network %6.6f ms \n",
+			endTimer,
+			endTimer+networkOverhead);
 
-    startTimer();
-    for (int i = 0; i < nrSelectsPlain; i++) {
-        unsigned int val1 = rand() % 50;
-        string qq =
-            "SELECT tableeval.id FROM tableeval WHERE tableeval.id = " +
-            strFromVal(val1) + ";";
-        clplain->execute(qq);
-        //unsigned int val2 = rand() % 50;
-        //qq = "SELECT tableeval.age FROM tableeval WHERE tableeval.age > " +
-        // strFromVal(val2) + ";";
-        clplain->execute(qq);
-    }
-    endTimer = (readTimer()/(1.0 * nrSelectsPlain));
-    printf("plain selection no network %6.6f ms with network %6.6f ms \n",
-           endTimer,
-           endTimer+networkOverhead);
+	startTimer();
+	for (int i = 0; i < nrSelectsPlain; i++) {
+		unsigned int val1 = rand() % 50;
+		string qq =
+				"SELECT tableeval.id FROM tableeval WHERE tableeval.id = " +
+				strFromVal(val1) + ";";
+		clplain->execute(qq);
+		//unsigned int val2 = rand() % 50;
+		//qq = "SELECT tableeval.age FROM tableeval WHERE tableeval.age > " +
+		// strFromVal(val2) + ";";
+		clplain->execute(qq);
+	}
+	endTimer = (readTimer()/(1.0 * nrSelectsPlain));
+	printf("plain selection no network %6.6f ms with network %6.6f ms \n",
+			endTimer,
+			endTimer+networkOverhead);
 
-    clsecure->execute("DROP TABLE tableeval;");
-    clplain->execute("DROP TABLE tableeval;");
+	clsecure->execute("DROP TABLE tableeval;");
+	clplain->execute("DROP TABLE tableeval;");
 
-    clsecure->exit();
-    clplain->exit();
+	clsecure->exit();
+	clplain->exit();
 
 }
 
@@ -1122,126 +1124,126 @@ microEvaluate(const TestConfig &tc, int argc, char ** argv)
 static void __attribute__((unused))
 testEDBProxy(const TestConfig &tc)
 {
-    cout << "\n\n Integration Queries \n------------------- \n \n";
+	cout << "\n\n Integration Queries \n------------------- \n \n";
 
-    string masterKey =  BytesFromInt(mkey, AES_KEY_BYTES);
-    EDBProxy * cl = new EDBProxy(tc.host, tc.user, tc.pass, tc.db);
-    cl->setMasterKey(masterKey);
-    cl->VERBOSE = true;
+	string masterKey =  BytesFromInt(mkey, AES_KEY_BYTES);
+	EDBProxy * cl = new EDBProxy(tc.host, tc.user, tc.pass, tc.db);
+	cl->setMasterKey(masterKey);
+	cl->VERBOSE = true;
 
-    cl->execute("CREATE TABLE people (id integer, name text, age integer);");
+	cl->execute("CREATE TABLE people (id integer, name text, age integer);");
 
-    cl->execute("INSERT INTO people VALUES (34, 'raluca', 100);");
-    cl->execute("INSERT INTO people VALUES (35, 'alice', 20);");
-    cl->execute("INSERT INTO people VALUES (36, 'bob', 10);");
+	cl->execute("INSERT INTO people VALUES (34, 'raluca', 100);");
+	cl->execute("INSERT INTO people VALUES (35, 'alice', 20);");
+	cl->execute("INSERT INTO people VALUES (36, 'bob', 10);");
 
-    cl->execute("SELECT people.id, people.age, people.name FROM people;");
-    cl->execute("SELECT people.name FROM people WHERE people.age > 20;");
-    cl->execute(
-        "SELECT people.name, people.age FROM people WHERE people.name = 'alice' ;");
+	cl->execute("SELECT people.id, people.age, people.name FROM people;");
+	cl->execute("SELECT people.name FROM people WHERE people.age > 20;");
+	cl->execute(
+			"SELECT people.name, people.age FROM people WHERE people.name = 'alice' ;");
 
-    cl->execute("DROP TABLE people;");
+	cl->execute("DROP TABLE people;");
 
-    cl->exit();
+	cl->exit();
 
-    cout << "\n------------------- \n Integration test succeeded \n\n";
+	cout << "\n------------------- \n Integration test succeeded \n\n";
 }
 
 static void
 testPaillier(const TestConfig &tc, int ac, char **av)
 {
-    int noTests = 100;
-    int nrTestsEval = 100;
+	int noTests = 100;
+	int nrTestsEval = 100;
 
-    string masterKey = randomBytes(AES_KEY_BYTES);
-    CryptoManager * cm = new CryptoManager(masterKey);
+	string masterKey = randomBytes(AES_KEY_BYTES);
+	CryptoManager * cm = new CryptoManager(masterKey);
 
-    for (int i = 0; i < noTests; i++) {
-        int val = abs(rand() * 398493) % 12345;
-        cerr << "Encrypt " << val << "\n";
-        string ciph = cm->encrypt_Paillier(val);
-        //myPrint(ciph, CryptoManager::Paillier_len_bytes);
-        int dec = cm->decrypt_Paillier(ciph);
-        //cerr << "\n decrypt to: " << dec << "\n";
-        myassert(val == dec, "decrypted value is incorrect ");
-    }
+	for (int i = 0; i < noTests; i++) {
+		int val = abs(rand() * 398493) % 12345;
+		cerr << "Encrypt " << val << "\n";
+		string ciph = cm->encrypt_Paillier(val);
+		//myPrint(ciph, CryptoManager::Paillier_len_bytes);
+		int dec = cm->decrypt_Paillier(ciph);
+		//cerr << "\n decrypt to: " << dec << "\n";
+		myassert(val == dec, "decrypted value is incorrect ");
+	}
 
-    string homCiph =
-        homomorphicAdd(homomorphicAdd(cm->encrypt_Paillier(123),
-                                      cm->encrypt_Paillier(234),
-                                      cm->getPKInfo()),
-                       cm->encrypt_Paillier(1001), cm->getPKInfo());
-    myassert(cm->decrypt_Paillier(
-                 homCiph) == 1358, "homomorphic property fails! \n");
-    cerr << "decrypt of hom " <<  cm->decrypt_Paillier(homCiph)  <<
-    " success!! \n";
+	string homCiph =
+			homomorphicAdd(homomorphicAdd(cm->encrypt_Paillier(123),
+					cm->encrypt_Paillier(234),
+					cm->getPKInfo()),
+					cm->encrypt_Paillier(1001), cm->getPKInfo());
+	myassert(cm->decrypt_Paillier(
+			homCiph) == 1358, "homomorphic property fails! \n");
+	cerr << "decrypt of hom " <<  cm->decrypt_Paillier(homCiph)  <<
+			" success!! \n";
 
-    cerr << "Test Paillier SUCCEEDED \n";
+	cerr << "Test Paillier SUCCEEDED \n";
 
-    cerr << "\n Benchmarking..\n";
+	cerr << "\n Benchmarking..\n";
 
-    string ciphs[nrTestsEval];
+	string ciphs[nrTestsEval];
 
-    startTimer();
-    for (int i = 0; i < noTests; i++) {
-        int val = (i+1) * 10;
-        ciphs[i] = cm->encrypt_Paillier(val);
-    }
-    double res = readTimer();
-    cerr << "encryption takes " << res/noTests << " ms  \n";
+	startTimer();
+	for (int i = 0; i < noTests; i++) {
+		int val = (i+1) * 10;
+		ciphs[i] = cm->encrypt_Paillier(val);
+	}
+	double res = readTimer();
+	cerr << "encryption takes " << res/noTests << " ms  \n";
 
-    startTimer();
-    for (int i = 0; i < noTests; i++) {
-        int val = (i+1) * 10;
+	startTimer();
+	for (int i = 0; i < noTests; i++) {
+		int val = (i+1) * 10;
 
-        int dec = cm->decrypt_Paillier(ciphs[i]);
-        myassert(val == dec, "invalid decryption");
-    }
+		int dec = cm->decrypt_Paillier(ciphs[i]);
+		myassert(val == dec, "invalid decryption");
+	}
 
-    res = readTimer();
-    cerr << "decryption takes " << res/noTests << " ms \n";
+	res = readTimer();
+	cerr << "decryption takes " << res/noTests << " ms \n";
 }
 
 static void
 testUtils(const TestConfig &tc, int ac, char **av)
 {
-    const char * query =
-        "SELECT sum(1), name, age, year FROM debug WHERE debug.name = 'raluca ?*; ada' AND a+b=5 ORDER BY name;";
+	const char * query =
+			"SELECT sum(1), name, age, year FROM debug WHERE debug.name = 'raluca ?*; ada' AND a+b=5 ORDER BY name;";
 
-    LOG(test) << toString(parse(query, delimsStay, delimsGo, keepIntact), id_op);
+	LOG(test) << toString(parse(query, delimsStay, delimsGo, keepIntact), id_op);
 }
 
 static void __attribute__((unused))
 createTables(string file, EDBProxy * cl)
 {
-    ifstream createsFile(file);
+	ifstream createsFile(file);
 
-    if (createsFile.is_open()) {
-        while (!createsFile.eof()) {
+	if (createsFile.is_open()) {
+		while (!createsFile.eof()) {
 
-            string query = "";
-            string line = "";
-            while ((!createsFile.eof()) &&
-                   (line.find(';') == string::npos)) {
-                createsFile >> line;
-                query = query + line;
-            }
-            if (line.length() > 0) {
-                cerr << query << "\n";
-                if (!cl->execute(query).ok) {
-                    cerr << "FAILED on query " << query << "\n";
-                    createsFile.close();
-                    cl->exit();
-                    exit(1);
-                }
-            }
+			string query = "";
+			string line = "";
+			while ((!createsFile.eof()) &&
+					(line.find(';') == string::npos)) {
+				createsFile >> line;
+				query = query + line;
+			}
+			if (line.length() > 0) {
+				cerr << query << "\n";
+				if (!cl->execute(query).ok) {
+					cerr << "FAILED on query " << query << "\n";
+					createsFile.close();
+					cl->exit();
+					exit(1);
+				}
+			}
 
-        }
-    } else {
-        cerr << "error opening file " + file + "\n";
-    }
+		}
+	} else {
+		cerr << "error opening file " + file + "\n";
+	}
 
-    createsFile.close();
+	createsFile.close();
 
 }
 
@@ -1249,93 +1251,93 @@ static void __attribute__((unused))
 convertQueries()
 {
 
-    ifstream firstfile("eval/tpcc/client.sql");
-    ofstream secondfile("eval/tpcc/clientplain.sql");
+	ifstream firstfile("eval/tpcc/client.sql");
+	ofstream secondfile("eval/tpcc/clientplain.sql");
 
-    string line;
+	string line;
 
-    int nr= 0;
+	int nr= 0;
 
-    string transac = "";
+	string transac = "";
 
-    if (!firstfile.is_open()) {
-        cerr << "cannot open input file \n";
-        return;
-    }
+	if (!firstfile.is_open()) {
+		cerr << "cannot open input file \n";
+		return;
+	}
 
-    if (!secondfile.is_open()) {
-        cerr << "cannot open a second file \n";
-        return;
-    }
+	if (!secondfile.is_open()) {
+		cerr << "cannot open a second file \n";
+		return;
+	}
 
-    while (!firstfile.eof() )
-    {
-        getline (firstfile,line);
+	while (!firstfile.eof() )
+	{
+		getline (firstfile,line);
 
-        if (line.length() <= 1 ) {
-            continue;
-        }
-        line = line + ";";
+		if (line.length() <= 1 ) {
+			continue;
+		}
+		line = line + ";";
 
-        //extract transaction number
-        string no = line.substr(0, line.find('\t'));
-        cerr << "no transac is " << no << "\n";
-        line = line.substr(no.length()+1, line.length() - no.length()+1);
+		//extract transaction number
+		string no = line.substr(0, line.find('\t'));
+		cerr << "no transac is " << no << "\n";
+		line = line.substr(no.length()+1, line.length() - no.length()+1);
 
-        if (no.compare(transac) != 0) {
+		if (no.compare(transac) != 0) {
 
-            if (transac.length() > 0) {
-                secondfile << "commit; \n" << "begin; \n";
-            } else {
-                secondfile << "begin; \n";
-            }
-            transac = no;
-        }
+			if (transac.length() > 0) {
+				secondfile << "commit; \n" << "begin; \n";
+			} else {
+				secondfile << "begin; \n";
+			}
+			transac = no;
+		}
 
-        size_t index = 0;
-        while (line.find(".", index) != string::npos) {
-            size_t pos = line.find(".", index);
-            index = pos+1;
-            if (line[pos+1] >= '0' && line[pos+1] <= '9') {
-                while ((line[pos]!=' ') && (line[pos] != ',') &&
-                       (line[pos] != '\'')) {
-                    line[pos] = ' ';
-                    pos++;
-                }
-            }
-        }
+		size_t index = 0;
+		while (line.find(".", index) != string::npos) {
+			size_t pos = line.find(".", index);
+			index = pos+1;
+			if (line[pos+1] >= '0' && line[pos+1] <= '9') {
+				while ((line[pos]!=' ') && (line[pos] != ',') &&
+						(line[pos] != '\'')) {
+					line[pos] = ' ';
+					pos++;
+				}
+			}
+		}
 
-        while (line.find(">=") != string::npos) {
-            size_t pos = line.find(">=");
-            line[pos+1] = ' ';
-            //TRACE SPECIFIC
-            pos = pos + 3;
-            int nr2 = 0;
-            size_t oldpos = pos;
-            while (line[pos] != ' ') {
-                nr2 = nr2 * 10 + (line[pos]-'0');
-                pos++;
-            }
-            nr2 = nr2 - 20;
-            string replacement =  strFromVal((uint32_t)nr2) + "     ";
-            line.replace(oldpos, 9, replacement);
+		while (line.find(">=") != string::npos) {
+			size_t pos = line.find(">=");
+			line[pos+1] = ' ';
+			//TRACE SPECIFIC
+			pos = pos + 3;
+			int nr2 = 0;
+			size_t oldpos = pos;
+			while (line[pos] != ' ') {
+				nr2 = nr2 * 10 + (line[pos]-'0');
+				pos++;
+			}
+			nr2 = nr2 - 20;
+			string replacement =  strFromVal((uint32_t)nr2) + "     ";
+			line.replace(oldpos, 9, replacement);
 
-        }
-        while (line.find("<=") != string::npos) {
-            size_t pos = line.find("<");
-            line[pos+1] = ' ';
-        }
-        while (line.find(" -") != string::npos) {
-            size_t pos = line.find(" -");
-            line[pos+1] = ' ';
-        }
-        secondfile << line  << "\n";
-        nr++;
-    }
+		}
+		while (line.find("<=") != string::npos) {
+			size_t pos = line.find("<");
+			line[pos+1] = ' ';
+		}
+		while (line.find(" -") != string::npos) {
+			size_t pos = line.find(" -");
+			line[pos+1] = ' ';
+		}
+		secondfile << line  << "\n";
+		nr++;
+	}
 
-    cerr << "there are " << nr << " queries \n";
-    firstfile.close();
-    secondfile.close();
+	cerr << "there are " << nr << " queries \n";
+	firstfile.close();
+	secondfile.close();
 
 }
 /*
@@ -1361,7 +1363,7 @@ test_train(const TestConfig &tc)
     cl->exit();
 
 }
-*/
+ */
 /*
    void createIndexes(string indexF, EDBProxy * cl) {
         ifstream tracefile(indexF);
@@ -1475,13 +1477,13 @@ test_train(const TestConfig &tc)
 static string __attribute__((unused))
 suffix(int no)
 {
-    int fi = 97 + (no/26);
-    int se = 97 + (no%26);
-    string first = string("") + (char)fi;
-    string second = string("") + (char)se;
-    string res = first + second;
+	int fi = 97 + (no/26);
+	int se = 97 + (no%26);
+	string first = string("") + (char)fi;
+	string second = string("") + (char)se;
+	string res = first + second;
 
-    return res;
+	return res;
 }
 /*
    void tester::loadData(EDBProxy * cl, string workload, int logFreq) {
@@ -1696,7 +1698,7 @@ suffix(int no)
    void simpleThroughput(int noWorkers, int noRepeats, int logFreq, int
       totalLines, string dfile, bool isSecure, bool hasTransac) {
         cerr << "throughput benchmark \n";
- */
+                         */
 //    int res = system("rm eval/pieces/*");
 /*
         ifstream infile(dfile);
@@ -2305,7 +2307,7 @@ suffix(int no)
                         } else {
                                 cl->plain_execute("abort;");
                         }
- */
+  */
 /*            cl->rewriteEncryptQuery(query);
 
                         //cerr << query << "\n";
@@ -2339,83 +2341,83 @@ suffix(int no)
 static void
 encryptionTablesTest(const TestConfig &tc, int ac, char **av)
 {
-    EDBProxy * cl =
-        new EDBProxy(tc.host, tc.user, tc.pass, tc.db);
-    cl->setMasterKey(randomBytes(AES_KEY_BYTES));
+	EDBProxy * cl =
+			new EDBProxy(tc.host, tc.user, tc.pass, tc.db);
+	cl->setMasterKey(randomBytes(AES_KEY_BYTES));
 
-    int noHOM = 100;
-    int noOPE = 100;
+	int noHOM = 100;
+	int noOPE = 100;
 
-    cl->VERBOSE = true;
+	cl->VERBOSE = true;
 
-    if (!cl->execute("CREATE TABLE try (age integer);").ok)
-        return;
+	if (!cl->execute("CREATE TABLE try (age integer);").ok)
+		return;
 
-    struct timeval starttime, endtime;
+	struct timeval starttime, endtime;
 
-    gettimeofday(&starttime, NULL);
-    cl->createEncryptionTables(noHOM, noOPE);
-    gettimeofday(&endtime, NULL);
+	gettimeofday(&starttime, NULL);
+	cl->createEncryptionTables(noHOM, noOPE);
+	gettimeofday(&endtime, NULL);
 
-    cerr << "time per op" <<
-    timeInSec(starttime, endtime)*1000.0/(noHOM+noOPE) << "\n";
+	cerr << "time per op" <<
+			timeInSec(starttime, endtime)*1000.0/(noHOM+noOPE) << "\n";
 
-    if (!cl->execute("INSERT INTO try VALUES (4);").ok) return;
-    if (!cl->execute("INSERT INTO try VALUES (5);").ok) return;
-    if (!cl->execute("INSERT INTO try VALUES (5);").ok) return;
-    if (!cl->execute("INSERT INTO try VALUES (5);").ok) return;
-    if (!cl->execute("INSERT INTO try VALUES (5);").ok) return;
-    if (!cl->execute("INSERT INTO try VALUES (5);").ok) return;
-    if (!cl->execute("INSERT INTO try VALUES (5);").ok) return;
-    if (!cl->execute("INSERT INTO try VALUES (10000001);").ok) return;
-    if (!cl->execute("SELECT age FROM try WHERE age > 1000000;").ok) return;
-    if (!cl->execute("DROP TABLE try;").ok) return;
-    cl->exit();
+	if (!cl->execute("INSERT INTO try VALUES (4);").ok) return;
+	if (!cl->execute("INSERT INTO try VALUES (5);").ok) return;
+	if (!cl->execute("INSERT INTO try VALUES (5);").ok) return;
+	if (!cl->execute("INSERT INTO try VALUES (5);").ok) return;
+	if (!cl->execute("INSERT INTO try VALUES (5);").ok) return;
+	if (!cl->execute("INSERT INTO try VALUES (5);").ok) return;
+	if (!cl->execute("INSERT INTO try VALUES (5);").ok) return;
+	if (!cl->execute("INSERT INTO try VALUES (10000001);").ok) return;
+	if (!cl->execute("SELECT age FROM try WHERE age > 1000000;").ok) return;
+	if (!cl->execute("DROP TABLE try;").ok) return;
+	cl->exit();
 }
 
 static void
 testParseAccess(const TestConfig &tc, int ac, char **av)
 {
 
-    EDBProxy * cl = new EDBProxy(tc.host, tc.user, tc.pass, tc.db);
-    cl->setMasterKey(BytesFromInt(mkey, AES_KEY_BYTES));
+	EDBProxy * cl = new EDBProxy(tc.host, tc.user, tc.pass, tc.db);
+	cl->setMasterKey(BytesFromInt(mkey, AES_KEY_BYTES));
 
-    cl->VERBOSE = true;
-    cl->execute(
-        "CREATE TABLE test (gid integer, t text encfor gid, f integer encfor mid, mid integer);");
+	cl->VERBOSE = true;
+	cl->execute(
+			"CREATE TABLE test (gid integer, t text encfor gid, f integer encfor mid, mid integer);");
 
-    string q = "INSERT INTO test VALUES (3, 'ra', 5, 4);";
-    cerr << q;
-    list<string> query = parse(q, delimsStay, delimsGo, keepIntact);
+	string q = "INSERT INTO test VALUES (3, 'ra', 5, 4);";
+	cerr << q;
+	list<string> query = parse(q, delimsStay, delimsGo, keepIntact);
 
-    TMKM tmkm;
-    QueryMeta qm;
+	TMKM tmkm;
+	QueryMeta qm;
 
-    assert_s(false, "test no longer valid because of interface change ");
+	assert_s(false, "test no longer valid because of interface change ");
 
-    //cl->getEncForFromFilter(INSERT, query, tmkm, qm); <-- no longer valid
+	//cl->getEncForFromFilter(INSERT, query, tmkm, qm); <-- no longer valid
 
-    map<string, string>::iterator it = tmkm.encForVal.begin();
+	map<string, string>::iterator it = tmkm.encForVal.begin();
 
-    while (it != tmkm.encForVal.end()) {
-        cout << it->first << " " << it->second << "\n";
-        it++;
-    }
+	while (it != tmkm.encForVal.end()) {
+		cout << it->first << " " << it->second << "\n";
+		it++;
+	}
 
-    q = "SELECT * FROM test WHERE gid = 3 AND mid > 4 AND t = 'ra';";
-    cerr << q;
-    query = parse(q, delimsStay, delimsGo, keepIntact);
+	q = "SELECT * FROM test WHERE gid = 3 AND mid > 4 AND t = 'ra';";
+	cerr << q;
+	query = parse(q, delimsStay, delimsGo, keepIntact);
 
-    //cl->getEncForFromFilter(SELECT, query, tmkm, qm); <-- no longer valid
-    // due to interface change
+	//cl->getEncForFromFilter(SELECT, query, tmkm, qm); <-- no longer valid
+	// due to interface change
 
-    it = tmkm.encForVal.begin();
+	it = tmkm.encForVal.begin();
 
-    while (it != tmkm.encForVal.end()) {
-        cout << it->first << " " << it->second << "\n";
-        it++;
-    }
-    cl->execute("DROP TABLE test;");
+	while (it != tmkm.encForVal.end()) {
+		cout << it->first << " " << it->second << "\n";
+		it++;
+	}
+	cl->execute("DROP TABLE test;");
 
 }
 
@@ -2423,103 +2425,103 @@ static void
 autoIncTest(const TestConfig &tc, int ac, char **av)
 {
 
-    string masterKey = BytesFromInt(mkey, AES_KEY_BYTES);
-    string host = tc.host;
-    string user = tc.user;
-    string db = tc.db;
-    string pwd = tc.pass;
-    cerr << "connecting to host " << host << " user " << user << " pwd " <<
-    pwd << " db " << db << endl;
-    EDBProxy * cl = new EDBProxy(host, user, pwd, db);
-    cl->setMasterKey(masterKey);
-    cl->VERBOSE = true;
+	string masterKey = BytesFromInt(mkey, AES_KEY_BYTES);
+	string host = tc.host;
+	string user = tc.user;
+	string db = tc.db;
+	string pwd = tc.pass;
+	cerr << "connecting to host " << host << " user " << user << " pwd " <<
+			pwd << " db " << db << endl;
+	EDBProxy * cl = new EDBProxy(host, user, pwd, db);
+	cl->setMasterKey(masterKey);
+	cl->VERBOSE = true;
 
-    cl->plain_execute("DROP TABLE IF EXISTS t1, users;");
-    assert_res(cl->execute(
-                 "CREATE TABLE t1 (id integer, post encfor id det text, age encfor id ope bigint);"),
-             "failed");
-    assert_res(cl->execute(
-                 "CREATE TABLE users (id equals t1.id integer, username givespsswd id text);"),
-             "failed");
-    assert_res(cl->execute(
-                 "INSERT INTO " psswdtable
-                 " VALUES ('alice', 'secretalice');"),
-             "failed to log in user");
-    assert_res(cl->execute(
-                 "DELETE FROM " psswdtable
-                 " WHERE username = 'al\\'ice';"),
-             "failed to logout user");
-    assert_res(cl->execute(
-                 "INSERT INTO " psswdtable
-                 " VALUES ('alice', 'secretalice');"),
-             "failed to log in user");
-    assert_res(cl->execute(
-                 "INSERT INTO users VALUES (1, 'alice');"),
-             "failed to add alice in users table");
-    ResType rt = cl->execute(
-        "INSERT INTO t1 (post, age) VALUES ('A you go', 23);");
-    assert_s(rt.ok && rt.names[0].compare("cryptdb_autoinc") == 0, "fieldname is not autoinc");
-    assert_s(rt.ok && rt.rows[0][0].data == "1", "autoinc not correct1");
+	cl->plain_execute("DROP TABLE IF EXISTS t1, users;");
+	assert_res(cl->execute(
+			"CREATE TABLE t1 (id integer, post encfor id det text, age encfor id ope bigint);"),
+			"failed");
+	assert_res(cl->execute(
+			"CREATE TABLE users (id equals t1.id integer, username givespsswd id text);"),
+			"failed");
+	assert_res(cl->execute(
+			"INSERT INTO " psswdtable
+			" VALUES ('alice', 'secretalice');"),
+			"failed to log in user");
+	assert_res(cl->execute(
+			"DELETE FROM " psswdtable
+			" WHERE username = 'al\\'ice';"),
+			"failed to logout user");
+	assert_res(cl->execute(
+			"INSERT INTO " psswdtable
+			" VALUES ('alice', 'secretalice');"),
+			"failed to log in user");
+	assert_res(cl->execute(
+			"INSERT INTO users VALUES (1, 'alice');"),
+			"failed to add alice in users table");
+	ResType rt = cl->execute(
+			"INSERT INTO t1 (post, age) VALUES ('A you go', 23);");
+	assert_s(rt.ok && rt.names[0].compare("cryptdb_autoinc") == 0, "fieldname is not autoinc");
+	assert_s(rt.ok && rt.rows[0][0].data == "1", "autoinc not correct1");
 
-    rt = cl->execute(
-        "INSERT INTO t1 (post, age) VALUES ('B there you go', 23);");
-    assert_s(rt.ok && rt.rows[1][0].data == "2", "autoinc not correct2");
+	rt = cl->execute(
+			"INSERT INTO t1 (post, age) VALUES ('B there you go', 23);");
+	assert_s(rt.ok && rt.rows[1][0].data == "2", "autoinc not correct2");
 
-    rt = cl->execute("INSERT INTO t1 VALUES (3, 'C there you go', 23);");
-    cerr << "result is  " << rt.rows[0][0].to_string() << "\n";
-    assert_s(rt.ok && rt.rows[0][0].data == "3", "autoinc not correct3");
+	rt = cl->execute("INSERT INTO t1 VALUES (3, 'C there you go', 23);");
+	cerr << "result is  " << rt.rows[0][0].to_string() << "\n";
+	assert_s(rt.ok && rt.rows[0][0].data == "3", "autoinc not correct3");
 
-    rt = cl->execute(
-        "INSERT INTO t1 (post, age) VALUES ( 'D there you go', 23);");
-    assert_s(rt.ok && rt.rows[0][0].data == "4", "autoinc not correct4");
+	rt = cl->execute(
+			"INSERT INTO t1 (post, age) VALUES ( 'D there you go', 23);");
+	assert_s(rt.ok && rt.rows[0][0].data == "4", "autoinc not correct4");
 
-    //delete cl;
+	//delete cl;
 }
 
 static void
 accessManagerTest(const TestConfig &tc, int ac, char **av)
 {
 
-    cerr <<
-    "============================= Equation ========================" << endl;
+	cerr <<
+			"============================= Equation ========================" << endl;
 
-    Equation eq;
-    string test = "1+2";
-    eq.set(test);
-    string res1 = eq.rpn();
-    test = "1+(1*1+1)";
-    eq.set(test);
-    string res2 = eq.rpn();
-    assert_s(res1.compare(
-                 res2) == 0, "1+2="+res1+" != 1+(1*1+1)="+res2+
-             ";  this is sad");
+	Equation eq;
+	string test = "1+2";
+	eq.set(test);
+	string res1 = eq.rpn();
+	test = "1+(1*1+1)";
+	eq.set(test);
+	string res2 = eq.rpn();
+	assert_s(res1.compare(
+			res2) == 0, "1+2="+res1+" != 1+(1*1+1)="+res2+
+			";  this is sad");
 
-    test = "1";
-    eq.set(test);
-    res1 = eq.rpn();
-    assert_s(res1.compare("1") == 0, "1 != 1");
+	test = "1";
+	eq.set(test);
+	res1 = eq.rpn();
+	assert_s(res1.compare("1") == 0, "1 != 1");
 
-    test = "10/5+6";
-    eq.set(test);
-    res1 = eq.rpn();
-    test = "(2*4)/1+(3-5)+2";
-    eq.set(test);
-    res2 = eq.rpn();
-    assert_s(res1.compare(
-                 res2) == 0, "1+2="+res1+" != 1+(1*1+1)="+res2+
-             ";  this is sad");
+	test = "10/5+6";
+	eq.set(test);
+	res1 = eq.rpn();
+	test = "(2*4)/1+(3-5)+2";
+	eq.set(test);
+	res2 = eq.rpn();
+	assert_s(res1.compare(
+			res2) == 0, "1+2="+res1+" != 1+(1*1+1)="+res2+
+			";  this is sad");
 
-    test = "(5.5+.5)*2";
-    eq.set(test);
-    res1 = eq.rpn();
-    test = "(12-.3)+.2+.1";
-    eq.set(test);
-    res2 = eq.rpn();
-    assert_s(res1.compare(
-                 res2) == 0, "1+2="+res1+" != 1+(1*1+1)="+res2+
-             ";  this is sad");
+	test = "(5.5+.5)*2";
+	eq.set(test);
+	res1 = eq.rpn();
+	test = "(12-.3)+.2+.1";
+	eq.set(test);
+	res2 = eq.rpn();
+	assert_s(res1.compare(
+			res2) == 0, "1+2="+res1+" != 1+(1*1+1)="+res2+
+			";  this is sad");
 
-    /*cerr << "============================= Consolidate
+	/*cerr << "============================= Consolidate
        ========================" << endl;
        assert_s(isOnly("10",math,noMath), "10 is apparently not math");
        assert_s(isOnly("8-3",math,noMath), "8-3 is apparently not math");
@@ -2587,834 +2589,834 @@ accessManagerTest(const TestConfig &tc, int ac, char **av)
 
        return;*/
 
-    //Testing new AccessManager, called AccessManager2
-    cerr <<
-    "============================= AccessManager2 =================================="
-         << endl;
-    MetaAccess * meta;
-    meta = new MetaAccess(new Connect(tc.host, tc.user, tc.pass,
-                                      tc.db),true);
+	//Testing new AccessManager, called AccessManager2
+	cerr <<
+			"============================= AccessManager2 =================================="
+			<< endl;
+	MetaAccess * meta;
+	meta = new MetaAccess(new Connect(tc.host, tc.user, tc.pass,
+			tc.db),true);
 
-    meta->addEquals("u.uid","g.uid");
-    meta->addAccess("u.uid","g.gid");
+	meta->addEquals("u.uid","g.uid");
+	meta->addAccess("u.uid","g.gid");
 
-    assert_s(!meta->CheckAccess(), "passes access check with no givesPsswd");
+	assert_s(!meta->CheckAccess(), "passes access check with no givesPsswd");
 
-    meta->addGives("u.uname");
+	meta->addGives("u.uname");
 
-    assert_s(
-        !meta->CheckAccess(), "passes access check with broken access tree");
+	assert_s(
+			!meta->CheckAccess(), "passes access check with broken access tree");
 
-    KeyAccess * am;
-    am = new KeyAccess(new Connect(tc.host,tc.user,tc.pass,tc.db));
+	KeyAccess * am;
+	am = new KeyAccess(new Connect(tc.host,tc.user,tc.pass,tc.db));
 
-    am->addEquals("u.uid","g.uid");     //1
-    am->addAccess("u.uname","u.uid");
-    am->addEquals("m.uid","u.uid");     //3
-    am->addAccess("m.uid","m.mess");
-    am->addAccess("u.uid","u.acc");
-    am->addAccess("g.uid","g.gid");
-    am->addEquals("g.gid","x.gid");     //2
-    am->addAccess("f.gid","f.fid");
-    am->addAccess("x.gid","x.mailing_list");
-    am->addEquals("g.gid","f.gid");     //4
-    am->addAccess("m.mess","m.sub");
-    am->addAccess("f.gid","u.acc");
+	am->addEquals("u.uid","g.uid");     //1
+	am->addAccess("u.uname","u.uid");
+	am->addEquals("m.uid","u.uid");     //3
+	am->addAccess("m.uid","m.mess");
+	am->addAccess("u.uid","u.acc");
+	am->addAccess("g.uid","g.gid");
+	am->addEquals("g.gid","x.gid");     //2
+	am->addAccess("f.gid","f.fid");
+	am->addAccess("x.gid","x.mailing_list");
+	am->addEquals("g.gid","f.gid");     //4
+	am->addAccess("m.mess","m.sub");
+	am->addAccess("f.gid","u.acc");
 
-    am->addGives("u.uname");
+	am->addGives("u.uname");
 
-    am->addAccess("msgs.msgid", "msgs.msgtext");
+	am->addAccess("msgs.msgid", "msgs.msgtext");
 
-    am->addEquals("msgs.msgid","privmsgs.msgid");
-    am->addEquals("privmsgs.recid", "users.userid");
+	am->addEquals("msgs.msgid","privmsgs.msgid");
+	am->addEquals("privmsgs.recid", "users.userid");
 
-    am->addAccess("privmsgs.recid", "privmsgs.msgid");
-    am->addAccess("privmsgs.senderid", "privmsgs.msgid");
+	am->addAccess("privmsgs.recid", "privmsgs.msgid");
+	am->addAccess("privmsgs.senderid", "privmsgs.msgid");
 
-    am->addEquals("users.userid", "privmsgs.senderid");
+	am->addEquals("users.userid", "privmsgs.senderid");
 
-    am->addGives("users.username");
-    am->addAccess("users.username", "users.userid");
+	am->addGives("users.username");
+	am->addAccess("users.username", "users.userid");
 
-    cerr << "\n";
+	cerr << "\n";
 
-    std::set<string> generic_gid = am->getEquals("g.gid");
-    assert_s(generic_gid.find(
-                 "f.gid") != generic_gid.end(), "f.gid is not equal to g.gid");
-    assert_s(generic_gid.find(
-                 "x.gid") != generic_gid.end(), "x.gid is not equal to g.gid");
+	std::set<string> generic_gid = am->getEquals("g.gid");
+	assert_s(generic_gid.find(
+			"f.gid") != generic_gid.end(), "f.gid is not equal to g.gid");
+	assert_s(generic_gid.find(
+			"x.gid") != generic_gid.end(), "x.gid is not equal to g.gid");
 
-    std::set<string> generic_uid = am->getEquals("m.uid");
-    assert_s(generic_uid.find(
-                 "u.uid") != generic_uid.end(), "u.uid is not equal to m.uid");
-    assert_s(generic_uid.find(
-                 "g.uid") != generic_uid.end(), "g.uid is not equal to m.uid");
-    assert_s(generic_uid.find(
-                 "f.gid") == generic_uid.end(), "m.uid is equal to f.gid");
+	std::set<string> generic_uid = am->getEquals("m.uid");
+	assert_s(generic_uid.find(
+			"u.uid") != generic_uid.end(), "u.uid is not equal to m.uid");
+	assert_s(generic_uid.find(
+			"g.uid") != generic_uid.end(), "g.uid is not equal to m.uid");
+	assert_s(generic_uid.find(
+			"f.gid") == generic_uid.end(), "m.uid is equal to f.gid");
 
-    std::set<string> gid_hasAccessTo = am->getTypesHasAccessTo("g.gid");
-    assert_s(gid_hasAccessTo.find(
-                 "f.fid") != gid_hasAccessTo.end(),
-             "g.gid does not have access to f.fid");
-    assert_s(gid_hasAccessTo.find(
-                 "x.mailing_list") != gid_hasAccessTo.end(),
-             "g.gid does not have access to x.mailing_list");
-    assert_s(gid_hasAccessTo.find(
-                 "g.uid") == gid_hasAccessTo.end(),
-             "g.gid does have access to g.uid");
-    assert_s(gid_hasAccessTo.find(
-                 "f.gid") == gid_hasAccessTo.end(),
-             "getTypesHasAccessTo(g.gid) includes f.gid");
-    assert_s(gid_hasAccessTo.find(
-                 "g.gid") == gid_hasAccessTo.end(),
-             "getTypesHasAccessTo(g.gid) includes g.gid");
+	std::set<string> gid_hasAccessTo = am->getTypesHasAccessTo("g.gid");
+	assert_s(gid_hasAccessTo.find(
+			"f.fid") != gid_hasAccessTo.end(),
+			"g.gid does not have access to f.fid");
+	assert_s(gid_hasAccessTo.find(
+			"x.mailing_list") != gid_hasAccessTo.end(),
+			"g.gid does not have access to x.mailing_list");
+	assert_s(gid_hasAccessTo.find(
+			"g.uid") == gid_hasAccessTo.end(),
+			"g.gid does have access to g.uid");
+	assert_s(gid_hasAccessTo.find(
+			"f.gid") == gid_hasAccessTo.end(),
+			"getTypesHasAccessTo(g.gid) includes f.gid");
+	assert_s(gid_hasAccessTo.find(
+			"g.gid") == gid_hasAccessTo.end(),
+			"getTypesHasAccessTo(g.gid) includes g.gid");
 
-    std::set<string> mess_accessibleFrom = am->getTypesAccessibleFrom(
-        "m.mess");
-    assert_s(mess_accessibleFrom.find(
-                 "m.uid") != mess_accessibleFrom.end(),
-             "m.mess is not accessible from m.uid");
-    assert_s(mess_accessibleFrom.find(
-                 "u.uid") != mess_accessibleFrom.end(),
-             "m.mess is not accessible from u.uid");
-    assert_s(mess_accessibleFrom.find(
-                 "g.uid") != mess_accessibleFrom.end(),
-             "m.mess is not accessible from g.uid");
-    assert_s(mess_accessibleFrom.find(
-                 "g.gid") == mess_accessibleFrom.end(),
-             "m.mess is accessible from g.gid");
-    assert_s(mess_accessibleFrom.find(
-                 "u.uname") == mess_accessibleFrom.end(),
-             "m.mess is accessible from u.uname in one link");
+	std::set<string> mess_accessibleFrom = am->getTypesAccessibleFrom(
+			"m.mess");
+	assert_s(mess_accessibleFrom.find(
+			"m.uid") != mess_accessibleFrom.end(),
+			"m.mess is not accessible from m.uid");
+	assert_s(mess_accessibleFrom.find(
+			"u.uid") != mess_accessibleFrom.end(),
+			"m.mess is not accessible from u.uid");
+	assert_s(mess_accessibleFrom.find(
+			"g.uid") != mess_accessibleFrom.end(),
+			"m.mess is not accessible from g.uid");
+	assert_s(mess_accessibleFrom.find(
+			"g.gid") == mess_accessibleFrom.end(),
+			"m.mess is accessible from g.gid");
+	assert_s(mess_accessibleFrom.find(
+			"u.uname") == mess_accessibleFrom.end(),
+			"m.mess is accessible from u.uname in one link");
 
-    std::set<string> acc_accessibleFrom = am->getGenAccessibleFrom(
-        am->getGeneric("u.acc"));
-    assert_s(acc_accessibleFrom.find(am->getGeneric(
-                                         "u.uid")) != acc_accessibleFrom.end(),
-             "gen acc is not accessible from gen uid");
-    assert_s(acc_accessibleFrom.find(am->getGeneric(
-                                         "g.gid")) != acc_accessibleFrom.end(),
-             "gen acc is not accessible from gen gid");
-    assert_s(acc_accessibleFrom.find(am->getGeneric(
-                                         "f.fid")) == acc_accessibleFrom.end(),
-             "gen acc is accessible from gen fid");
+	std::set<string> acc_accessibleFrom = am->getGenAccessibleFrom(
+			am->getGeneric("u.acc"));
+	assert_s(acc_accessibleFrom.find(am->getGeneric(
+			"u.uid")) != acc_accessibleFrom.end(),
+			"gen acc is not accessible from gen uid");
+	assert_s(acc_accessibleFrom.find(am->getGeneric(
+			"g.gid")) != acc_accessibleFrom.end(),
+			"gen acc is not accessible from gen gid");
+	assert_s(acc_accessibleFrom.find(am->getGeneric(
+			"f.fid")) == acc_accessibleFrom.end(),
+			"gen acc is accessible from gen fid");
 
-    int create = am->CreateTables();
-    create += am->DeleteTables();
-    create += am->CreateTables();
+	int create = am->CreateTables();
+	create += am->DeleteTables();
+	create += am->CreateTables();
 
-    assert_s(create >= 0, "create/delete/create tables failed");
+	assert_s(create >= 0, "create/delete/create tables failed");
 
-    cerr << "BFS, DFS tests \n";
+	cerr << "BFS, DFS tests \n";
 
-    Prin alice;
-    alice.type = "u.uname";
-    alice.value = "alice";
+	Prin alice;
+	alice.type = "u.uname";
+	alice.value = "alice";
 
-    list<string> bfs = am->BFS_hasAccess(alice);
-    list<string>::iterator it;
-    cerr << endl;
-    for(it = bfs.begin(); it != bfs.end(); it++) {
-        cerr << *it << ", ";
-    }
-    cerr << "\n" << endl;
+	list<string> bfs = am->BFS_hasAccess(alice);
+	list<string>::iterator it;
+	cerr << endl;
+	for(it = bfs.begin(); it != bfs.end(); it++) {
+		cerr << *it << ", ";
+	}
+	cerr << "\n" << endl;
 
-    list<string> dfs = am->DFS_hasAccess(alice);
-    assert_s(bfs.size() == dfs.size(), "bfs and dfs have different sizes");
-    for(it = dfs.begin(); it != dfs.end(); it++) {
-        cerr << *it << ", ";
-    }
-    cerr << endl;
+	list<string> dfs = am->DFS_hasAccess(alice);
+	assert_s(bfs.size() == dfs.size(), "bfs and dfs have different sizes");
+	for(it = dfs.begin(); it != dfs.end(); it++) {
+		cerr << *it << ", ";
+	}
+	cerr << endl;
 
-    cerr << "=============================================" << endl;
-    cerr << "raluca tests" << endl;
+	cerr << "=============================================" << endl;
+	cerr << "raluca tests" << endl;
 
-    Prin name_a;
-    name_a.type = "users.username";
-    name_a.value = "alice";
-    Prin name_b;
-    name_b.type = "users.username";
-    name_b.value = "bob";
-    Prin user1;
-    user1.type = "users.userid";
-    user1.value = "1";
-    Prin user2;
-    user2.type = "users.userid";
-    user2.value = "2";
-    Prin sender2;
-    sender2.type = "privmsgs.senderid";
-    sender2.value = "2";
-    Prin rec1;
-    rec1.type = "privmsgs.recid";
-    rec1.value = "1";
-    Prin mess9;
-    mess9.type = "msgs.msgid";
-    mess9.value = "9";
-    Prin mess1;
-    mess1.type = "msgs.msgid";
-    mess1.value = "1";
-    Prin text1;
-    text1.type = "msgs.msgtext";
-    text1.value = "hello world";
+	Prin name_a;
+	name_a.type = "users.username";
+	name_a.value = "alice";
+	Prin name_b;
+	name_b.type = "users.username";
+	name_b.value = "bob";
+	Prin user1;
+	user1.type = "users.userid";
+	user1.value = "1";
+	Prin user2;
+	user2.type = "users.userid";
+	user2.value = "2";
+	Prin sender2;
+	sender2.type = "privmsgs.senderid";
+	sender2.value = "2";
+	Prin rec1;
+	rec1.type = "privmsgs.recid";
+	rec1.value = "1";
+	Prin mess9;
+	mess9.type = "msgs.msgid";
+	mess9.value = "9";
+	Prin mess1;
+	mess1.type = "msgs.msgid";
+	mess1.value = "1";
+	Prin text1;
+	text1.type = "msgs.msgtext";
+	text1.value = "hello world";
 
-    string secretA = "secretA";
-    secretA.resize(AES_KEY_BYTES);
-    string secretB = "secretB";
-    secretB.resize(AES_KEY_BYTES);
+	string secretA = "secretA";
+	secretA.resize(AES_KEY_BYTES);
+	string secretB = "secretB";
+	secretB.resize(AES_KEY_BYTES);
 
-    assert_s(am->insertPsswd(name_a, secretA) == 0, "insert alice failed (a)");
-    assert_s(am->insertPsswd(name_b, secretB) == 0, "insert bob failed (a)");
+	assert_s(am->insertPsswd(name_a, secretA) == 0, "insert alice failed (a)");
+	assert_s(am->insertPsswd(name_b, secretB) == 0, "insert bob failed (a)");
 
-    am->insert(name_a, user1);
-    am->insert(name_b, user2);
-    am->insert(rec1, mess1);
-    am->insert(sender2, mess1);
-    am->insert(mess1, text1);
+	am->insert(name_a, user1);
+	am->insert(name_b, user2);
+	am->insert(rec1, mess1);
+	am->insert(sender2, mess1);
+	am->insert(mess1, text1);
 
-    assert_s(am->getKey(
-                 mess1).length() > 0, "can't access orphan key for message 1");
+	assert_s(am->getKey(
+			mess1).length() > 0, "can't access orphan key for message 1");
 
-    cerr << "=============================================" << endl;
-    cerr << "single-user tests" << endl;
+	cerr << "=============================================" << endl;
+	cerr << "single-user tests" << endl;
 
-    Prin u1;
-    u1.type = "u.uid";
-    u1.value = "1";
-    Prin g5;
-    g5.type = "g.gid";
-    g5.value = "5";
-    Prin f2;
-    f2.type = "f.fid";
-    f2.value = "2";
+	Prin u1;
+	u1.type = "u.uid";
+	u1.value = "1";
+	Prin g5;
+	g5.type = "g.gid";
+	g5.value = "5";
+	Prin f2;
+	f2.type = "f.fid";
+	f2.value = "2";
 
-    assert_s(am->insertPsswd(alice, secretA) == 0, "insert alice failed (1)");
-    am->insert(alice,u1);
-    am->insert(u1,g5);
-    am->insert(g5,f2);
-    string alice_key = am->getKey(f2);
-    LOG(test) << stringToByteInts(alice_key);
-    string f2_key1 = marshallBinary(alice_key);
-    assert_s(alice_key.length() > 0, "alice can't access the forum 2 key");
-    am->removePsswd(alice);
-    assert_s(am->getKey(
-                 alice).length() == 0,
-             "can access alice's key with no one logged in");
-    assert_s(am->getKey(
-                 u1).length() == 0,
-             "can access user 1 key with no one logged in");
-    assert_s(am->getKey(
-                 g5).length() == 0,
-             "can access group 5 key with no one logged in");
-    assert_s(am->getKey(
-                 f2).length() == 0,
-             "can access forum 2 key with no one logged in");
-    assert_s(am->insertPsswd(alice, secretA) == 0, "insert alice failed (2)");
-    alice_key = am->getKey(f2);
-    assert_s(
-        alice_key.length() > 0,
-        "forum 2 key not found when alice logs on again");
-    string f2_key2 = marshallBinary(alice_key);
-    assert_s(f2_key1.compare(f2_key2) == 0, "forum 2 keys are not equal");
+	assert_s(am->insertPsswd(alice, secretA) == 0, "insert alice failed (1)");
+	am->insert(alice,u1);
+	am->insert(u1,g5);
+	am->insert(g5,f2);
+	string alice_key = am->getKey(f2);
+	LOG(test) << stringToByteInts(alice_key);
+	string f2_key1 = marshallBinary(alice_key);
+	assert_s(alice_key.length() > 0, "alice can't access the forum 2 key");
+	am->removePsswd(alice);
+	assert_s(am->getKey(
+			alice).length() == 0,
+			"can access alice's key with no one logged in");
+	assert_s(am->getKey(
+			u1).length() == 0,
+			"can access user 1 key with no one logged in");
+	assert_s(am->getKey(
+			g5).length() == 0,
+			"can access group 5 key with no one logged in");
+	assert_s(am->getKey(
+			f2).length() == 0,
+			"can access forum 2 key with no one logged in");
+	assert_s(am->insertPsswd(alice, secretA) == 0, "insert alice failed (2)");
+	alice_key = am->getKey(f2);
+	assert_s(
+			alice_key.length() > 0,
+			"forum 2 key not found when alice logs on again");
+	string f2_key2 = marshallBinary(alice_key);
+	assert_s(f2_key1.compare(f2_key2) == 0, "forum 2 keys are not equal");
 
-    assert_s(am->addEquals("g.gid",
-                           "foo.bar") < 0,
-             "should not be able to alter meta here");
-    assert_s(am->addAccess("g.gid",
-                           "foo.bar") < 0,
-             "should not be able to alter meta here");
-    assert_s(am->addGives(
-                 "foo.bar") < 0, "should not be able to alter meta here");
+	assert_s(am->addEquals("g.gid",
+			"foo.bar") < 0,
+			"should not be able to alter meta here");
+	assert_s(am->addAccess("g.gid",
+			"foo.bar") < 0,
+			"should not be able to alter meta here");
+	assert_s(am->addGives(
+			"foo.bar") < 0, "should not be able to alter meta here");
 
-    cerr << "=============================================" << endl;
-    cerr << "multi-user tests" << endl;
+	cerr << "=============================================" << endl;
+	cerr << "multi-user tests" << endl;
 
-    Prin bob;
-    bob.type = "u.uname";
-    bob.value = "bob";
-    Prin u2;
-    u2.type = "u.uid";
-    u2.value = "2";
-    Prin f3;
-    f3.type = "f.fid";
-    f3.value = "3";
-    Prin a5;
-    a5.type = "u.acc";
-    a5.value = "5";
-    Prin mlwork;
-    mlwork.type = "x.mailing_list";
-    mlwork.value = "work";
+	Prin bob;
+	bob.type = "u.uname";
+	bob.value = "bob";
+	Prin u2;
+	u2.type = "u.uid";
+	u2.value = "2";
+	Prin f3;
+	f3.type = "f.fid";
+	f3.value = "3";
+	Prin a5;
+	a5.type = "u.acc";
+	a5.value = "5";
+	Prin mlwork;
+	mlwork.type = "x.mailing_list";
+	mlwork.value = "work";
 
-    assert_s(am->insertPsswd(bob, secretB) == 0, "insert bob failed (1)");
-    am->insert(bob,u2);
-    am->insert(u2,g5);
-    assert_s(am->getKey(
-                 f2).length() > 0,
-             "forum 2 key not accessible with both alice and bob logged on");
-    am->removePsswd(alice);
-    string bob_key = am->getKey(f2);
-    assert_s(
-        bob_key.length() > 0,"forum 2 key not accessible with bob logged on");
-    string f2_key3 = marshallBinary(bob_key);
-    assert_s(f2_key2.compare(
-                 f2_key3) == 0,
-             "forum 2 key is not the same for bob as it was for alice");
-    am->insert(g5,f3);
-    bob_key = am->getKey(f3);
-    string f3_key1 = marshallBinary(bob_key);
-    assert_s(
-        bob_key.length() > 0, "forum 3 key not acessible with bob logged on");
-    am->removePsswd(bob);
-    assert_s(am->getKey(
-                 alice).length() == 0,
-             "can access alice's key with no one logged in");
-    assert_s(am->getKey(
-                 bob).length() == 0,
-             "can access bob's key with no one logged in");
-    assert_s(am->getKey(
-                 u1).length() == 0,
-             "can access user 1 key with no one logged in");
-    assert_s(am->getKey(
-                 u2).length() == 0,
-             "can access user 2 key with no one logged in");
-    assert_s(am->getKey(
-                 g5).length() == 0,
-             "can access group 5 key with no one logged in");
-    assert_s(am->getKey(
-                 f2).length() == 0,
-             "can access forum 2 key with no one logged in");
-    assert_s(am->getKey(
-                 f3).length() == 0,
-             "can access forum 3 key with no one logged in");
-    assert_s(am->insertPsswd(alice, secretA) == 0, "insert alice failed (3)");
-    alice_key = am->getKey(f3);
-    assert_s(
-        alice_key.length() > 0,
-        "forum 3 key not accessible with alice logged on");
-    string f3_key2 = marshallBinary(alice_key);
-    assert_s(f3_key1.compare(
-                 f3_key2) == 0,
-             "forum 3 key is not the same for alice as it was for bob");
-    am->removePsswd(alice);
-    am->insert(g5,mlwork);
-    assert_s(am->getKey(
-                 mlwork).length() == 0,
-             "can access mailing list work key with no one logged in");
-    assert_s(am->insertPsswd(alice, secretA) == 0, "insert alice failed (4)");
-    alice_key = am->getKey(mlwork);
-    assert_s(
-        alice_key.length() > 0,
-        "mailing list work key inaccessible when alice is logged on");
-    string mlwork_key1 = marshallBinary(alice_key);
-    am->removePsswd(alice);
-    assert_s(am->insertPsswd(bob, secretB) == 0, "insert bob failed (2)");
-    bob_key = am->getKey(mlwork);
-    assert_s(
-        bob_key.length() > 0,
-        "mailing list work key inaccessible when bob is logged on");
-    string mlwork_key2 = marshallBinary(bob_key);
-    assert_s(mlwork_key1.compare(
-                 mlwork_key2) == 0,
-             "mailing list work key is not the same for bob as it was for alice");
-    am->removePsswd(bob);
+	assert_s(am->insertPsswd(bob, secretB) == 0, "insert bob failed (1)");
+	am->insert(bob,u2);
+	am->insert(u2,g5);
+	assert_s(am->getKey(
+			f2).length() > 0,
+			"forum 2 key not accessible with both alice and bob logged on");
+	am->removePsswd(alice);
+	string bob_key = am->getKey(f2);
+	assert_s(
+			bob_key.length() > 0,"forum 2 key not accessible with bob logged on");
+	string f2_key3 = marshallBinary(bob_key);
+	assert_s(f2_key2.compare(
+			f2_key3) == 0,
+			"forum 2 key is not the same for bob as it was for alice");
+	am->insert(g5,f3);
+	bob_key = am->getKey(f3);
+	string f3_key1 = marshallBinary(bob_key);
+	assert_s(
+			bob_key.length() > 0, "forum 3 key not acessible with bob logged on");
+	am->removePsswd(bob);
+	assert_s(am->getKey(
+			alice).length() == 0,
+			"can access alice's key with no one logged in");
+	assert_s(am->getKey(
+			bob).length() == 0,
+			"can access bob's key with no one logged in");
+	assert_s(am->getKey(
+			u1).length() == 0,
+			"can access user 1 key with no one logged in");
+	assert_s(am->getKey(
+			u2).length() == 0,
+			"can access user 2 key with no one logged in");
+	assert_s(am->getKey(
+			g5).length() == 0,
+			"can access group 5 key with no one logged in");
+	assert_s(am->getKey(
+			f2).length() == 0,
+			"can access forum 2 key with no one logged in");
+	assert_s(am->getKey(
+			f3).length() == 0,
+			"can access forum 3 key with no one logged in");
+	assert_s(am->insertPsswd(alice, secretA) == 0, "insert alice failed (3)");
+	alice_key = am->getKey(f3);
+	assert_s(
+			alice_key.length() > 0,
+			"forum 3 key not accessible with alice logged on");
+	string f3_key2 = marshallBinary(alice_key);
+	assert_s(f3_key1.compare(
+			f3_key2) == 0,
+			"forum 3 key is not the same for alice as it was for bob");
+	am->removePsswd(alice);
+	am->insert(g5,mlwork);
+	assert_s(am->getKey(
+			mlwork).length() == 0,
+			"can access mailing list work key with no one logged in");
+	assert_s(am->insertPsswd(alice, secretA) == 0, "insert alice failed (4)");
+	alice_key = am->getKey(mlwork);
+	assert_s(
+			alice_key.length() > 0,
+			"mailing list work key inaccessible when alice is logged on");
+	string mlwork_key1 = marshallBinary(alice_key);
+	am->removePsswd(alice);
+	assert_s(am->insertPsswd(bob, secretB) == 0, "insert bob failed (2)");
+	bob_key = am->getKey(mlwork);
+	assert_s(
+			bob_key.length() > 0,
+			"mailing list work key inaccessible when bob is logged on");
+	string mlwork_key2 = marshallBinary(bob_key);
+	assert_s(mlwork_key1.compare(
+			mlwork_key2) == 0,
+			"mailing list work key is not the same for bob as it was for alice");
+	am->removePsswd(bob);
 
-    cerr << "=============================================" << endl;
-    cerr << "acylic graph, not tree tests" << endl;
-    am->insert(g5,a5);
-    assert_s(am->getKey(
-                 a5).length() == 0,
-             "can access account 5 key with no one logged in");
-    assert_s(am->insertPsswd(alice, secretA) == 0, "insert alice failed (5)");
-    alice_key = am->getKey(a5);
-    assert_s(
-        alice_key.length() > 0,
-        "account 5 key inaccessible when alice is logged on");
-    string a5_key1 = marshallBinary(alice_key);
-    am->removePsswd(alice);
-    assert_s(am->insertPsswd(bob, secretB) == 0, "insert bob failed (3)");
-    bob_key = am->getKey(a5);
-    string a5_key2 = marshallBinary(bob_key);
-    assert_s(a5_key1.compare(
-                 a5_key2) == 0,
-             "account 5 key is not the same for bob as it was for alice");
+	cerr << "=============================================" << endl;
+	cerr << "acylic graph, not tree tests" << endl;
+	am->insert(g5,a5);
+	assert_s(am->getKey(
+			a5).length() == 0,
+			"can access account 5 key with no one logged in");
+	assert_s(am->insertPsswd(alice, secretA) == 0, "insert alice failed (5)");
+	alice_key = am->getKey(a5);
+	assert_s(
+			alice_key.length() > 0,
+			"account 5 key inaccessible when alice is logged on");
+	string a5_key1 = marshallBinary(alice_key);
+	am->removePsswd(alice);
+	assert_s(am->insertPsswd(bob, secretB) == 0, "insert bob failed (3)");
+	bob_key = am->getKey(a5);
+	string a5_key2 = marshallBinary(bob_key);
+	assert_s(a5_key1.compare(
+			a5_key2) == 0,
+			"account 5 key is not the same for bob as it was for alice");
 
-    cerr << "=============================================" << endl;
-    cerr << "orphan tests" << endl;
+	cerr << "=============================================" << endl;
+	cerr << "orphan tests" << endl;
 
-    am->removePsswd(bob);
-    Prin m2;
-    m2.type = "m.mess";
-    m2.value = "2";
-    Prin s6;
-    s6.type = "m.sub";
-    s6.value = "6";
-    Prin m3;
-    m3.type = "m.mess";
-    m3.value = "3";
-    Prin s4;
-    s4.type = "m.sub";
-    s4.value = "4";
-    am->insert(m2, s6);
-    string s6_key = am->getKey(s6);
-    string m2_key = am->getKey(m2);
-    string s6_key1 = marshallBinary(s6_key);
-    string m2_key1 = marshallBinary(m2_key);
+	am->removePsswd(bob);
+	Prin m2;
+	m2.type = "m.mess";
+	m2.value = "2";
+	Prin s6;
+	s6.type = "m.sub";
+	s6.value = "6";
+	Prin m3;
+	m3.type = "m.mess";
+	m3.value = "3";
+	Prin s4;
+	s4.type = "m.sub";
+	s4.value = "4";
+	am->insert(m2, s6);
+	string s6_key = am->getKey(s6);
+	string m2_key = am->getKey(m2);
+	string s6_key1 = marshallBinary(s6_key);
+	string m2_key1 = marshallBinary(m2_key);
 #if 0   /* XXX this is all broken because of char->string changes */
-    assert_s(s6_key,
-             "subject 6 key is not available after it has been inserted");
-    assert_s(
-        m2_key,
-        "message 2 key (orphan) is not available after it has been inserted");
-    am->insert(u2,m2);
-    s6_key = am->getKey(s6);
-    m2_key = am->getKey(m2);
-    assert_s(!s6_key, "subject 6 key is available with bob not logged on");
-    assert_s(!m2_key, "message 2 key is available with bob not logged on");
-    assert_s(am->insertPsswd(bob, padPasswd(secretB)) == 0,
-             "insert bob failed (4)");
-    s6_key = am->getKey(s6);
-    m2_key = am->getKey(m2);
-    string s6_key2 = marshallBinary(s6_key,AES_KEY_BYTES);
-    string m2_key2 = marshallBinary(m2_key,AES_KEY_BYTES);
-    assert_s(s6_key, "subject 6 key is not available with bob logged on");
-    assert_s(s6_key1.compare(
-                 s6_key2) == 0,
-             "subject 6 key is not equal when orphan and for bob");
-    assert_s(m2_key, "message 2 key is not available with bob logged on");
-    assert_s(m2_key1.compare(
-                 m2_key2) == 0,
-             "message 2 key is not equal when orphan and for bob");
-    am->insert(m3,s4);
-    unsigned char * s4_key = am->getKey(s4);
-    unsigned char * m3_key = am->getKey(m3);
-    string s4_key1 = marshallBinary(s4_key, AES_KEY_BYTES);
-    string m3_key1 = marshallBinary(m3_key, AES_KEY_BYTES);
-    assert_s(s4_key,
-             "subject 4 key is not available after it has been inserted");
-    assert_s(
-        m3_key,
-        "message 3 key (orphan) is not available after it has been inserted");
-    am->insert(u2,m3);
-    s4_key = am->getKey(s4);
-    m3_key = am->getKey(m3);
-    string s4_key2 = marshallBinary(s4_key, AES_KEY_BYTES);
-    string m3_key2 = marshallBinary(m3_key, AES_KEY_BYTES);
-    assert_s(s4_key, "subject 4 key is not available with bob logged on");
-    assert_s(s4_key1.compare(
-                 s4_key2) == 0,
-             "subject 4 key is not equal when orphan and for bob");
-    assert_s(m3_key,
-             "message 3 key (orphan) is not available with bob logged on");
-    assert_s(m3_key1.compare(
-                 m3_key2) == 0,
-             "message 3 key is not equal when orphan and for bob");
-    am->removePsswd(bob);
-    s4_key = am->getKey(s4);
-    m3_key = am->getKey(m3);
-    assert_s(!s4_key,
-             "subject 4 key is not available after it has been inserted");
-    assert_s(
-        !m3_key,
-        "message 3 key (orphan) is not available after it has been inserted");
-    assert_s(am->insertPsswd(bob, padPasswd(secretB)) == 0,
-             "insert bob failed (5)");
-    s4_key = am->getKey(s4);
-    m3_key = am->getKey(m3);
-    string s4_key3 = marshallBinary(s4_key, AES_KEY_BYTES);
-    string m3_key3 = marshallBinary(m3_key, AES_KEY_BYTES);
-    assert_s(s4_key, "subject 4 key is not available with bob logged on");
-    assert_s(s4_key1.compare(
-                 s4_key3) == 0,
-             "subject 4 key is not equal when orphan and for bob (take 2)");
-    assert_s(m3_key,
-             "message 3 key (orphan) is not available with bob logged on");
-    assert_s(m3_key1.compare(
-                 m3_key3) == 0,
-             "message 3 key is not equal when orphan and for bob (take 2)");
+	assert_s(s6_key,
+			"subject 6 key is not available after it has been inserted");
+	assert_s(
+			m2_key,
+			"message 2 key (orphan) is not available after it has been inserted");
+	am->insert(u2,m2);
+	s6_key = am->getKey(s6);
+	m2_key = am->getKey(m2);
+	assert_s(!s6_key, "subject 6 key is available with bob not logged on");
+	assert_s(!m2_key, "message 2 key is available with bob not logged on");
+	assert_s(am->insertPsswd(bob, padPasswd(secretB)) == 0,
+			"insert bob failed (4)");
+	s6_key = am->getKey(s6);
+	m2_key = am->getKey(m2);
+	string s6_key2 = marshallBinary(s6_key,AES_KEY_BYTES);
+	string m2_key2 = marshallBinary(m2_key,AES_KEY_BYTES);
+	assert_s(s6_key, "subject 6 key is not available with bob logged on");
+	assert_s(s6_key1.compare(
+			s6_key2) == 0,
+			"subject 6 key is not equal when orphan and for bob");
+	assert_s(m2_key, "message 2 key is not available with bob logged on");
+	assert_s(m2_key1.compare(
+			m2_key2) == 0,
+			"message 2 key is not equal when orphan and for bob");
+	am->insert(m3,s4);
+	unsigned char * s4_key = am->getKey(s4);
+	unsigned char * m3_key = am->getKey(m3);
+	string s4_key1 = marshallBinary(s4_key, AES_KEY_BYTES);
+	string m3_key1 = marshallBinary(m3_key, AES_KEY_BYTES);
+	assert_s(s4_key,
+			"subject 4 key is not available after it has been inserted");
+	assert_s(
+			m3_key,
+			"message 3 key (orphan) is not available after it has been inserted");
+	am->insert(u2,m3);
+	s4_key = am->getKey(s4);
+	m3_key = am->getKey(m3);
+	string s4_key2 = marshallBinary(s4_key, AES_KEY_BYTES);
+	string m3_key2 = marshallBinary(m3_key, AES_KEY_BYTES);
+	assert_s(s4_key, "subject 4 key is not available with bob logged on");
+	assert_s(s4_key1.compare(
+			s4_key2) == 0,
+			"subject 4 key is not equal when orphan and for bob");
+	assert_s(m3_key,
+			"message 3 key (orphan) is not available with bob logged on");
+	assert_s(m3_key1.compare(
+			m3_key2) == 0,
+			"message 3 key is not equal when orphan and for bob");
+	am->removePsswd(bob);
+	s4_key = am->getKey(s4);
+	m3_key = am->getKey(m3);
+	assert_s(!s4_key,
+			"subject 4 key is not available after it has been inserted");
+	assert_s(
+			!m3_key,
+			"message 3 key (orphan) is not available after it has been inserted");
+	assert_s(am->insertPsswd(bob, padPasswd(secretB)) == 0,
+			"insert bob failed (5)");
+	s4_key = am->getKey(s4);
+	m3_key = am->getKey(m3);
+	string s4_key3 = marshallBinary(s4_key, AES_KEY_BYTES);
+	string m3_key3 = marshallBinary(m3_key, AES_KEY_BYTES);
+	assert_s(s4_key, "subject 4 key is not available with bob logged on");
+	assert_s(s4_key1.compare(
+			s4_key3) == 0,
+			"subject 4 key is not equal when orphan and for bob (take 2)");
+	assert_s(m3_key,
+			"message 3 key (orphan) is not available with bob logged on");
+	assert_s(m3_key1.compare(
+			m3_key3) == 0,
+			"message 3 key is not equal when orphan and for bob (take 2)");
 
-    Prin m4;
-    m4.type = "m.mess";
-    m4.value = "4";
-    Prin m5;
-    m5.type = "m.mess";
-    m5.value = "5";
-    Prin s5;
-    s5.type = "m.sub";
-    s5.value = "5";
-    Prin s7;
-    s7.type = "m.sub";
-    s7.value = "7";
-    am->insert(m4,s6);
-    unsigned char * m4_key = am->getKey(m4);
-    s6_key = am->getKey(s6);
-    string m4_key1 = marshallBinary(m4_key, AES_KEY_BYTES);
-    string s6_key3 = marshallBinary(s6_key, AES_KEY_BYTES);
-    assert_s(m4_key, "orphan message 4 key not available");
-    assert_s(
-        s6_key,
-        "subject 6 key not available when orphan message 4 key available and bob logged on");
-    assert_s(s6_key1.compare(s6_key3) == 0, "subject 6 key not the same");
-    am->removePsswd(bob);
-    m4_key = am->getKey(m4);
-    s6_key = am->getKey(s6);
-    string m4_key2 = marshallBinary(m4_key, AES_KEY_BYTES);
-    string s6_key4 = marshallBinary(s6_key, AES_KEY_BYTES);
-    assert_s(m4_key, "orphan message 4 key not available after bob logs off");
-    assert_s(m4_key1.compare(
-                 m4_key2) == 0,
-             "orphan message 4 key is different after bob logs off");
-    assert_s(
-        s6_key,
-        "subject 6 key not available when orphan message 4 key available");
-    assert_s(s6_key1.compare(
-                 s6_key3) == 0,
-             "subject 6 key not the same after bob logs off");
+	Prin m4;
+	m4.type = "m.mess";
+	m4.value = "4";
+	Prin m5;
+	m5.type = "m.mess";
+	m5.value = "5";
+	Prin s5;
+	s5.type = "m.sub";
+	s5.value = "5";
+	Prin s7;
+	s7.type = "m.sub";
+	s7.value = "7";
+	am->insert(m4,s6);
+	unsigned char * m4_key = am->getKey(m4);
+	s6_key = am->getKey(s6);
+	string m4_key1 = marshallBinary(m4_key, AES_KEY_BYTES);
+	string s6_key3 = marshallBinary(s6_key, AES_KEY_BYTES);
+	assert_s(m4_key, "orphan message 4 key not available");
+	assert_s(
+			s6_key,
+			"subject 6 key not available when orphan message 4 key available and bob logged on");
+	assert_s(s6_key1.compare(s6_key3) == 0, "subject 6 key not the same");
+	am->removePsswd(bob);
+	m4_key = am->getKey(m4);
+	s6_key = am->getKey(s6);
+	string m4_key2 = marshallBinary(m4_key, AES_KEY_BYTES);
+	string s6_key4 = marshallBinary(s6_key, AES_KEY_BYTES);
+	assert_s(m4_key, "orphan message 4 key not available after bob logs off");
+	assert_s(m4_key1.compare(
+			m4_key2) == 0,
+			"orphan message 4 key is different after bob logs off");
+	assert_s(
+			s6_key,
+			"subject 6 key not available when orphan message 4 key available");
+	assert_s(s6_key1.compare(
+			s6_key3) == 0,
+			"subject 6 key not the same after bob logs off");
 
-    am->insert(m5,s5);
-    am->insert(m5,s7);
-    unsigned char * m5_key = am->getKey(m5);
-    unsigned char * s5_key = am->getKey(s5);
-    unsigned char * s7_key = am->getKey(s7);
-    string m5_key1 = marshallBinary(m5_key, AES_KEY_BYTES);
-    string s5_key1 = marshallBinary(s5_key, AES_KEY_BYTES);
-    string s7_key1 = marshallBinary(s7_key, AES_KEY_BYTES);
-    assert_s(m5_key, "message 5 key (orphan) not available");
-    assert_s(s5_key, "subject 5 key (orphan) not available");
-    assert_s(s7_key, "subject 7 key (orphan) not available");
-    am->insert(u1,m5);
-    m5_key = am->getKey(m5);
-    s5_key = am->getKey(s5);
-    s7_key = am->getKey(s7);
-    assert_s(!am->getKey(alice), "alice is not logged off");
-    assert_s(!m5_key, "message 5 key available with alice not logged on");
-    assert_s(!s5_key, "subject 5 key available with alice not logged on");
-    assert_s(!s7_key, "subject 7 key available with alice not logged on");
-    assert_s(am->insertPsswd(alice, padPasswd(secretA)) == 0,
-             "insert alice failed (6)");
-    m5_key = am->getKey(m5);
-    s5_key = am->getKey(s5);
-    s7_key = am->getKey(s7);
-    string m5_key2 = marshallBinary(m5_key, AES_KEY_BYTES);
-    string s5_key2 = marshallBinary(s5_key, AES_KEY_BYTES);
-    string s7_key2 = marshallBinary(s7_key, AES_KEY_BYTES);
-    assert_s(m5_key, "message 5 key not available with alice logged on");
-    assert_s(m5_key1.compare(m5_key2) == 0, "message 5 key is different");
-    assert_s(s5_key, "subject 5 key not available with alice logged on");
-    assert_s(s5_key1.compare(s5_key2) == 0, "subject 5 key is different");
-    assert_s(s7_key, "subject 7 key not available with alice logged on");
-    assert_s(s7_key1.compare(s7_key2) == 0, "subject 7 key is different");
+	am->insert(m5,s5);
+	am->insert(m5,s7);
+	unsigned char * m5_key = am->getKey(m5);
+	unsigned char * s5_key = am->getKey(s5);
+	unsigned char * s7_key = am->getKey(s7);
+	string m5_key1 = marshallBinary(m5_key, AES_KEY_BYTES);
+	string s5_key1 = marshallBinary(s5_key, AES_KEY_BYTES);
+	string s7_key1 = marshallBinary(s7_key, AES_KEY_BYTES);
+	assert_s(m5_key, "message 5 key (orphan) not available");
+	assert_s(s5_key, "subject 5 key (orphan) not available");
+	assert_s(s7_key, "subject 7 key (orphan) not available");
+	am->insert(u1,m5);
+	m5_key = am->getKey(m5);
+	s5_key = am->getKey(s5);
+	s7_key = am->getKey(s7);
+	assert_s(!am->getKey(alice), "alice is not logged off");
+	assert_s(!m5_key, "message 5 key available with alice not logged on");
+	assert_s(!s5_key, "subject 5 key available with alice not logged on");
+	assert_s(!s7_key, "subject 7 key available with alice not logged on");
+	assert_s(am->insertPsswd(alice, padPasswd(secretA)) == 0,
+			"insert alice failed (6)");
+	m5_key = am->getKey(m5);
+	s5_key = am->getKey(s5);
+	s7_key = am->getKey(s7);
+	string m5_key2 = marshallBinary(m5_key, AES_KEY_BYTES);
+	string s5_key2 = marshallBinary(s5_key, AES_KEY_BYTES);
+	string s7_key2 = marshallBinary(s7_key, AES_KEY_BYTES);
+	assert_s(m5_key, "message 5 key not available with alice logged on");
+	assert_s(m5_key1.compare(m5_key2) == 0, "message 5 key is different");
+	assert_s(s5_key, "subject 5 key not available with alice logged on");
+	assert_s(s5_key1.compare(s5_key2) == 0, "subject 5 key is different");
+	assert_s(s7_key, "subject 7 key not available with alice logged on");
+	assert_s(s7_key1.compare(s7_key2) == 0, "subject 7 key is different");
 
-    Prin chris;
-    chris.type = "u.uname";
-    chris.value = "chris";
-    Prin u3;
-    u3.type = "u.uid";
-    u3.value = "3";
-    Prin m15;
-    m15.type = "m.mess";
-    m15.value = "15";
-    Prin s24;
-    s24.type = "m.sub";
-    s24.value = "24";
-    am->insert(u3, m15);
-    unsigned char * m15_key = am->getKey(m15);
-    assert_s(m15_key, "cannot access message 15 key (orphan)");
-    string m15_key1 = marshallBinary(m15_key, AES_KEY_BYTES);
-    unsigned char * u3_key = am->getKey(u3);
-    assert_s(u3_key, "cannot access user 3 key (orphan)");
-    string u3_key1 = marshallBinary(u3_key, AES_KEY_BYTES);
-    am->insert(m15, s24);
-    unsigned char * s24_key = am->getKey(s24);
-    assert_s(s24_key, "cannot access subject 24 key (orphan)");
-    string s24_key1 = marshallBinary(s24_key, AES_KEY_BYTES);
-    assert_s(am->insertPsswd(chris, padPasswd(secretC)) == 0,
-             "insert chris failed (1)");
-    unsigned char * chris_key = am->getKey(chris);
-    assert_s(chris_key, "cannot access chris key with chris logged on");
-    string chris_key1 = marshallBinary(chris_key, AES_KEY_BYTES);
-    am->insert(chris, u3);
-    chris_key = am->getKey(chris);
-    assert_s(chris_key, "cannot access chris key after chris->u3 insert");
-    string chris_key2 = marshallBinary(chris_key, AES_KEY_BYTES);
-    assert_s(chris_key1.compare(
-                 chris_key2) == 0,
-             "chris key is different for orphan and chris logged on");
+	Prin chris;
+	chris.type = "u.uname";
+	chris.value = "chris";
+	Prin u3;
+	u3.type = "u.uid";
+	u3.value = "3";
+	Prin m15;
+	m15.type = "m.mess";
+	m15.value = "15";
+	Prin s24;
+	s24.type = "m.sub";
+	s24.value = "24";
+	am->insert(u3, m15);
+	unsigned char * m15_key = am->getKey(m15);
+	assert_s(m15_key, "cannot access message 15 key (orphan)");
+	string m15_key1 = marshallBinary(m15_key, AES_KEY_BYTES);
+	unsigned char * u3_key = am->getKey(u3);
+	assert_s(u3_key, "cannot access user 3 key (orphan)");
+	string u3_key1 = marshallBinary(u3_key, AES_KEY_BYTES);
+	am->insert(m15, s24);
+	unsigned char * s24_key = am->getKey(s24);
+	assert_s(s24_key, "cannot access subject 24 key (orphan)");
+	string s24_key1 = marshallBinary(s24_key, AES_KEY_BYTES);
+	assert_s(am->insertPsswd(chris, padPasswd(secretC)) == 0,
+			"insert chris failed (1)");
+	unsigned char * chris_key = am->getKey(chris);
+	assert_s(chris_key, "cannot access chris key with chris logged on");
+	string chris_key1 = marshallBinary(chris_key, AES_KEY_BYTES);
+	am->insert(chris, u3);
+	chris_key = am->getKey(chris);
+	assert_s(chris_key, "cannot access chris key after chris->u3 insert");
+	string chris_key2 = marshallBinary(chris_key, AES_KEY_BYTES);
+	assert_s(chris_key1.compare(
+			chris_key2) == 0,
+			"chris key is different for orphan and chris logged on");
 
-    am->removePsswd(chris);
-    assert_s(!am->getKey(chris), "can access chris key with chris offline");
-    assert_s(!am->getKey(u3), "can access user 3 key with chris offline");
-    assert_s(!am->getKey(m15), "can access message 15 key with chris offline");
-    assert_s(!am->getKey(s24), "can access subject 24 key with chris offline");
+	am->removePsswd(chris);
+	assert_s(!am->getKey(chris), "can access chris key with chris offline");
+	assert_s(!am->getKey(u3), "can access user 3 key with chris offline");
+	assert_s(!am->getKey(m15), "can access message 15 key with chris offline");
+	assert_s(!am->getKey(s24), "can access subject 24 key with chris offline");
 
-    assert_s(am->insertPsswd(chris, padPasswd(secretC)) == 0,
-             "insert chris failed (2)");
-    chris_key = am->getKey(chris);
-    assert_s(chris_key,
-             "cannot access chris key with chris logged on after logging off");
-    string chris_key3 = marshallBinary(chris_key, AES_KEY_BYTES);
-    assert_s(chris_key1.compare(
-                 chris_key3) == 0,
-             "chris key is different for orphan and chris logged on after logging off");
-    u3_key = am->getKey(u3);
-    assert_s(
-        u3_key,
-        "cannot access user 3 key with chris logged on after logging off");
-    string u3_key2 = marshallBinary(u3_key, AES_KEY_BYTES);
-    assert_s(u3_key1.compare(
-                 u3_key2) == 0,
-             "user 3 key is different for orphan and chris logged on after logging off");
-    m15_key = am->getKey(m15);
-    assert_s(
-        m15_key,
-        "cannot access message 15 key with chris logged on after logging off");
-    string m15_key2 = marshallBinary(m15_key, AES_KEY_BYTES);
-    assert_s(m15_key1.compare(
-                 m15_key2) == 0,
-             "message 15 key is different for orphan and chris logged on after logging off");
-    s24_key = am->getKey(s24);
-    assert_s(
-        s24_key,
-        "cannot access subject 24 key with chris logged on after logging off");
-    string s24_key2 = marshallBinary(s24_key, AES_KEY_BYTES);
-    assert_s(s24_key1.compare(
-                 s24_key2) == 0,
-             "subject 24 key is different for orphan and chris logged on after logging off");
+	assert_s(am->insertPsswd(chris, padPasswd(secretC)) == 0,
+			"insert chris failed (2)");
+	chris_key = am->getKey(chris);
+	assert_s(chris_key,
+			"cannot access chris key with chris logged on after logging off");
+	string chris_key3 = marshallBinary(chris_key, AES_KEY_BYTES);
+	assert_s(chris_key1.compare(
+			chris_key3) == 0,
+			"chris key is different for orphan and chris logged on after logging off");
+	u3_key = am->getKey(u3);
+	assert_s(
+			u3_key,
+			"cannot access user 3 key with chris logged on after logging off");
+	string u3_key2 = marshallBinary(u3_key, AES_KEY_BYTES);
+	assert_s(u3_key1.compare(
+			u3_key2) == 0,
+			"user 3 key is different for orphan and chris logged on after logging off");
+	m15_key = am->getKey(m15);
+	assert_s(
+			m15_key,
+			"cannot access message 15 key with chris logged on after logging off");
+	string m15_key2 = marshallBinary(m15_key, AES_KEY_BYTES);
+	assert_s(m15_key1.compare(
+			m15_key2) == 0,
+			"message 15 key is different for orphan and chris logged on after logging off");
+	s24_key = am->getKey(s24);
+	assert_s(
+			s24_key,
+			"cannot access subject 24 key with chris logged on after logging off");
+	string s24_key2 = marshallBinary(s24_key, AES_KEY_BYTES);
+	assert_s(s24_key1.compare(
+			s24_key2) == 0,
+			"subject 24 key is different for orphan and chris logged on after logging off");
 
-    Prin s16;
-    s16.type = "m.sub";
-    s16.value = "16";
-    unsigned char * s16_key = am->getKey(s16);
-    string s16_key1 = marshallBinary(s16_key, AES_KEY_BYTES);
-    assert_s(s16_key, "orphan subject 16 did not get a key generated for it");
-    am->insert(m15, s16);
-    s16_key = am->getKey(s16);
-    string s16_key2 = marshallBinary(s16_key, AES_KEY_BYTES);
-    assert_s(s16_key, "subject 16 does not have key being de-orphanized");
-    assert_s(s16_key1.compare(
-                 s16_key2) == 0,
-             "subject 16 has a different key after being orphanized");
-    am->removePsswd(chris);
-    assert_s(!am->getKey(s16), "can access subject 16 key with chris offline");
-    assert_s(am->insertPsswd(chris, padPasswd(secretC)) == 0,
-             "insert chris failed (2)");
-    s16_key = am->getKey(s16);
-    string s16_key3 = marshallBinary(s16_key, AES_KEY_BYTES);
-    assert_s(s16_key,
-             "subject 16 does not have key after chris logs off and on");
-    assert_s(s16_key1.compare(
-                 s16_key2) == 0,
-             "subject 16 has a different key after chris logs out and back in");
+	Prin s16;
+	s16.type = "m.sub";
+	s16.value = "16";
+	unsigned char * s16_key = am->getKey(s16);
+	string s16_key1 = marshallBinary(s16_key, AES_KEY_BYTES);
+	assert_s(s16_key, "orphan subject 16 did not get a key generated for it");
+	am->insert(m15, s16);
+	s16_key = am->getKey(s16);
+	string s16_key2 = marshallBinary(s16_key, AES_KEY_BYTES);
+	assert_s(s16_key, "subject 16 does not have key being de-orphanized");
+	assert_s(s16_key1.compare(
+			s16_key2) == 0,
+			"subject 16 has a different key after being orphanized");
+	am->removePsswd(chris);
+	assert_s(!am->getKey(s16), "can access subject 16 key with chris offline");
+	assert_s(am->insertPsswd(chris, padPasswd(secretC)) == 0,
+			"insert chris failed (2)");
+	s16_key = am->getKey(s16);
+	string s16_key3 = marshallBinary(s16_key, AES_KEY_BYTES);
+	assert_s(s16_key,
+			"subject 16 does not have key after chris logs off and on");
+	assert_s(s16_key1.compare(
+			s16_key2) == 0,
+			"subject 16 has a different key after chris logs out and back in");
 
-    cerr << "=============================================" << endl;
-    cerr << "remove tests" << endl;
-    assert_s(am->insertPsswd(bob, padPasswd(secretB)) == 0,
-             "insert bob failed (6)");
-    s4_key = am->getKey(s4);
-    assert_s(s4_key, "cannot access subject 4 key with bob logged on");
-    string s4_key4 = marshallBinary(s4_key, AES_KEY_BYTES);
-    assert_s(s4_key1.compare(s4_key4) == 0, "Subject 4 has changed");
-    s6_key = am->getKey(s6);
-    assert_s(s6_key, "cannot access subject 6 key with bob logged on");
-    string s6_key5 = marshallBinary(s6_key, AES_KEY_BYTES);
-    assert_s(s6_key1.compare(s6_key5) == 0, "Subject 6 has changed");
-    m2_key = am->getKey(m2);
-    assert_s(m2_key, "cannot access message 2 key with bob logged on");
-    string m2_key3 = marshallBinary(m2_key, AES_KEY_BYTES);
-    assert_s(m2_key1.compare(m2_key3) == 0, "Message 2 has changed");
-    m3_key = am->getKey(m3);
-    assert_s(m3_key, "cannot access message 3 key with bob logged on");
-    string m3_key4 = marshallBinary(m3_key, AES_KEY_BYTES);
-    assert_s(m3_key1.compare(m3_key4) == 0, "Message 3 has changed");
-    unsigned char * u2_key = am->getKey(u2);
-    assert_s(u2_key, "cannot access user 2 key with bob logged on");
-    string u2_key1 = marshallBinary(u2_key, AES_KEY_BYTES);
+	cerr << "=============================================" << endl;
+	cerr << "remove tests" << endl;
+	assert_s(am->insertPsswd(bob, padPasswd(secretB)) == 0,
+			"insert bob failed (6)");
+	s4_key = am->getKey(s4);
+	assert_s(s4_key, "cannot access subject 4 key with bob logged on");
+	string s4_key4 = marshallBinary(s4_key, AES_KEY_BYTES);
+	assert_s(s4_key1.compare(s4_key4) == 0, "Subject 4 has changed");
+	s6_key = am->getKey(s6);
+	assert_s(s6_key, "cannot access subject 6 key with bob logged on");
+	string s6_key5 = marshallBinary(s6_key, AES_KEY_BYTES);
+	assert_s(s6_key1.compare(s6_key5) == 0, "Subject 6 has changed");
+	m2_key = am->getKey(m2);
+	assert_s(m2_key, "cannot access message 2 key with bob logged on");
+	string m2_key3 = marshallBinary(m2_key, AES_KEY_BYTES);
+	assert_s(m2_key1.compare(m2_key3) == 0, "Message 2 has changed");
+	m3_key = am->getKey(m3);
+	assert_s(m3_key, "cannot access message 3 key with bob logged on");
+	string m3_key4 = marshallBinary(m3_key, AES_KEY_BYTES);
+	assert_s(m3_key1.compare(m3_key4) == 0, "Message 3 has changed");
+	unsigned char * u2_key = am->getKey(u2);
+	assert_s(u2_key, "cannot access user 2 key with bob logged on");
+	string u2_key1 = marshallBinary(u2_key, AES_KEY_BYTES);
 
-    am->removePsswd(alice);
-    unsigned char * g5_key = am->getKey(g5);
-    assert_s(g5_key, "cannot access group 5 key with bob logged on");
-    string g5_key1 = marshallBinary(g5_key, AES_KEY_BYTES);
-    unsigned char * f2_key = am->getKey(f2);
-    assert_s(f2_key, "cannot access forum 2 key with bob logged on");
-    string f2_key4 = marshallBinary(f2_key, AES_KEY_BYTES);
-    assert_s(f2_key1.compare(f2_key4) == 0, "Forum 2 key has changed");
-    unsigned char * f3_key = am->getKey(f3);
-    assert_s(f3_key, "cannot access forum 3 key with bob logged on");
-    string f3_key3 = marshallBinary(f3_key, AES_KEY_BYTES);
-    assert_s(f3_key1.compare(f3_key3) == 0, "Forum 3 key has changed");
-    unsigned char * a5_key = am->getKey(a5);
-    assert_s(a5_key, "cannot access account 5 key with bob logged on");
-    string a5_key3 = marshallBinary(a5_key, AES_KEY_BYTES);
-    assert_s(a5_key1.compare(a5_key3) == 0, "Account 5 key has changed");
-    unsigned char * u1_key = am->getKey(u1);
-    assert_s(!u1_key, "user 1 key available when Alice not logged on");
-    assert_s(am->insertPsswd(alice, padPasswd(secretA)) == 0,
-             "insert alice failed (6)");
+	am->removePsswd(alice);
+	unsigned char * g5_key = am->getKey(g5);
+	assert_s(g5_key, "cannot access group 5 key with bob logged on");
+	string g5_key1 = marshallBinary(g5_key, AES_KEY_BYTES);
+	unsigned char * f2_key = am->getKey(f2);
+	assert_s(f2_key, "cannot access forum 2 key with bob logged on");
+	string f2_key4 = marshallBinary(f2_key, AES_KEY_BYTES);
+	assert_s(f2_key1.compare(f2_key4) == 0, "Forum 2 key has changed");
+	unsigned char * f3_key = am->getKey(f3);
+	assert_s(f3_key, "cannot access forum 3 key with bob logged on");
+	string f3_key3 = marshallBinary(f3_key, AES_KEY_BYTES);
+	assert_s(f3_key1.compare(f3_key3) == 0, "Forum 3 key has changed");
+	unsigned char * a5_key = am->getKey(a5);
+	assert_s(a5_key, "cannot access account 5 key with bob logged on");
+	string a5_key3 = marshallBinary(a5_key, AES_KEY_BYTES);
+	assert_s(a5_key1.compare(a5_key3) == 0, "Account 5 key has changed");
+	unsigned char * u1_key = am->getKey(u1);
+	assert_s(!u1_key, "user 1 key available when Alice not logged on");
+	assert_s(am->insertPsswd(alice, padPasswd(secretA)) == 0,
+			"insert alice failed (6)");
 
-    am->remove(u2, g5);
-    s4_key = am->getKey(s4);
-    assert_s(s4_key, "cannot access subject 4 key with bob logged on");
-    string s4_key5 = marshallBinary(s4_key, AES_KEY_BYTES);
-    assert_s(s4_key1.compare(s4_key5) == 0, "Subject 4 has changed");
-    s6_key = am->getKey(s6);
-    assert_s(s6_key, "cannot access subject 6 key with bob logged on");
-    string s6_key6 = marshallBinary(s6_key, AES_KEY_BYTES);
-    assert_s(s6_key1.compare(s6_key6) == 0, "Subject 6 has changed");
-    m2_key = am->getKey(m2);
-    assert_s(m2_key, "cannot access message 2 key with bob logged on");
-    string m2_key4 = marshallBinary(m2_key, AES_KEY_BYTES);
-    assert_s(m2_key1.compare(m2_key4) == 0, "Message 2 has changed");
-    m3_key = am->getKey(m3);
-    assert_s(m3_key, "cannot access message 3 key with bob logged on");
-    string m3_key5 = marshallBinary(m3_key, AES_KEY_BYTES);
-    assert_s(m3_key1.compare(m3_key5) == 0, "Message 3 has changed");
-    g5_key = am->getKey(g5);
-    assert_s(g5_key, "cannot access group 5 key with alice logged on");
-    string g5_key2 = marshallBinary(g5_key, AES_KEY_BYTES);
-    assert_s(g5_key1.compare(g5_key2) == 0, "Group 5 key has changed");
-    f2_key = am->getKey(f2);
-    assert_s(f2_key, "cannot access forum 2 key with alice logged on");
-    string f2_key5 = marshallBinary(f2_key, AES_KEY_BYTES);
-    assert_s(f2_key1.compare(f2_key5) == 0, "Forum 2 key has changed");
-    f3_key = am->getKey(f3);
-    assert_s(f3_key, "cannot access forum 3 key with alice logged on");
-    string f3_key4 = marshallBinary(f3_key, AES_KEY_BYTES);
-    assert_s(f3_key1.compare(f3_key4) == 0, "Forum 3 key has changed");
-    a5_key = am->getKey(a5);
-    assert_s(a5_key, "cannot access account 5 key with alice logged on");
-    string a5_key4 = marshallBinary(a5_key, AES_KEY_BYTES);
-    assert_s(a5_key1.compare(a5_key4) == 0, "Account 5 key has changed");
+	am->remove(u2, g5);
+	s4_key = am->getKey(s4);
+	assert_s(s4_key, "cannot access subject 4 key with bob logged on");
+	string s4_key5 = marshallBinary(s4_key, AES_KEY_BYTES);
+	assert_s(s4_key1.compare(s4_key5) == 0, "Subject 4 has changed");
+	s6_key = am->getKey(s6);
+	assert_s(s6_key, "cannot access subject 6 key with bob logged on");
+	string s6_key6 = marshallBinary(s6_key, AES_KEY_BYTES);
+	assert_s(s6_key1.compare(s6_key6) == 0, "Subject 6 has changed");
+	m2_key = am->getKey(m2);
+	assert_s(m2_key, "cannot access message 2 key with bob logged on");
+	string m2_key4 = marshallBinary(m2_key, AES_KEY_BYTES);
+	assert_s(m2_key1.compare(m2_key4) == 0, "Message 2 has changed");
+	m3_key = am->getKey(m3);
+	assert_s(m3_key, "cannot access message 3 key with bob logged on");
+	string m3_key5 = marshallBinary(m3_key, AES_KEY_BYTES);
+	assert_s(m3_key1.compare(m3_key5) == 0, "Message 3 has changed");
+	g5_key = am->getKey(g5);
+	assert_s(g5_key, "cannot access group 5 key with alice logged on");
+	string g5_key2 = marshallBinary(g5_key, AES_KEY_BYTES);
+	assert_s(g5_key1.compare(g5_key2) == 0, "Group 5 key has changed");
+	f2_key = am->getKey(f2);
+	assert_s(f2_key, "cannot access forum 2 key with alice logged on");
+	string f2_key5 = marshallBinary(f2_key, AES_KEY_BYTES);
+	assert_s(f2_key1.compare(f2_key5) == 0, "Forum 2 key has changed");
+	f3_key = am->getKey(f3);
+	assert_s(f3_key, "cannot access forum 3 key with alice logged on");
+	string f3_key4 = marshallBinary(f3_key, AES_KEY_BYTES);
+	assert_s(f3_key1.compare(f3_key4) == 0, "Forum 3 key has changed");
+	a5_key = am->getKey(a5);
+	assert_s(a5_key, "cannot access account 5 key with alice logged on");
+	string a5_key4 = marshallBinary(a5_key, AES_KEY_BYTES);
+	assert_s(a5_key1.compare(a5_key4) == 0, "Account 5 key has changed");
 
-    am->removePsswd(alice);
-    g5_key = am->getKey(g5);
-    assert_s(!g5_key, "group 5 key available when alice is logged off");
-    a5_key = am->getKey(a5);
-    assert_s(!a5_key, "account 5 key available when alice is logged off");
-    f2_key = am->getKey(f2);
-    assert_s(!f2_key, "forum 2 key available when alice is logged off");
-    f3_key = am->getKey(f3);
-    assert_s(!f3_key, "forum 3 key available when alice is logged off");
+	am->removePsswd(alice);
+	g5_key = am->getKey(g5);
+	assert_s(!g5_key, "group 5 key available when alice is logged off");
+	a5_key = am->getKey(a5);
+	assert_s(!a5_key, "account 5 key available when alice is logged off");
+	f2_key = am->getKey(f2);
+	assert_s(!f2_key, "forum 2 key available when alice is logged off");
+	f3_key = am->getKey(f3);
+	assert_s(!f3_key, "forum 3 key available when alice is logged off");
 
-    assert_s(am->insertPsswd(chris, padPasswd(secretC)) == 0,
-             "insert chris failed (3)");
-    s24_key = am->getKey(s24);
-    assert_s(s24_key, "subject 24 key is not accessible with chris logged on");
-    string s24_key3 = marshallBinary(s24_key, AES_KEY_BYTES);
-    assert_s(s24_key1.compare(
-                 s24_key3) == 0, "subject 24 key is not the same");
-    m15_key = am->getKey(m15);
-    assert_s(m15_key, "message 15 key is not accessible with chris logged on");
-    string m15_key3 = marshallBinary(m15_key, AES_KEY_BYTES);
-    assert_s(m15_key1.compare(
-                 m15_key3) == 0, "message 15 key is not the same");
-    u3_key = am->getKey(u3);
-    assert_s(u3_key, "user 3 key is not accessible with chris logged on");
-    string u3_key3 = marshallBinary(u3_key, AES_KEY_BYTES);
-    assert_s(u3_key1.compare(u3_key3) == 0, "user 3 key is not the same");
+	assert_s(am->insertPsswd(chris, padPasswd(secretC)) == 0,
+			"insert chris failed (3)");
+	s24_key = am->getKey(s24);
+	assert_s(s24_key, "subject 24 key is not accessible with chris logged on");
+	string s24_key3 = marshallBinary(s24_key, AES_KEY_BYTES);
+	assert_s(s24_key1.compare(
+			s24_key3) == 0, "subject 24 key is not the same");
+	m15_key = am->getKey(m15);
+	assert_s(m15_key, "message 15 key is not accessible with chris logged on");
+	string m15_key3 = marshallBinary(m15_key, AES_KEY_BYTES);
+	assert_s(m15_key1.compare(
+			m15_key3) == 0, "message 15 key is not the same");
+	u3_key = am->getKey(u3);
+	assert_s(u3_key, "user 3 key is not accessible with chris logged on");
+	string u3_key3 = marshallBinary(u3_key, AES_KEY_BYTES);
+	assert_s(u3_key1.compare(u3_key3) == 0, "user 3 key is not the same");
 
-    am->remove(u3,m15);
-    s24_key = am->getKey(s24);
-    assert_s(!s24_key, "subject 24 key is accessible after removal");
-    m15_key = am->getKey(m15);
-    assert_s(!m15_key, "message 15 key is accessible after removal");
-    u3_key = am->getKey(u3);
-    assert_s(u3_key,
-             "user 3 key is not accessible with chris after u3->m15 removal");
-    string u3_key4 = marshallBinary(u3_key, AES_KEY_BYTES);
-    assert_s(u3_key1.compare(
-                 u3_key4) == 0,
-             "user 3 key is not the same after u3->m15 removal");
+	am->remove(u3,m15);
+	s24_key = am->getKey(s24);
+	assert_s(!s24_key, "subject 24 key is accessible after removal");
+	m15_key = am->getKey(m15);
+	assert_s(!m15_key, "message 15 key is accessible after removal");
+	u3_key = am->getKey(u3);
+	assert_s(u3_key,
+			"user 3 key is not accessible with chris after u3->m15 removal");
+	string u3_key4 = marshallBinary(u3_key, AES_KEY_BYTES);
+	assert_s(u3_key1.compare(
+			u3_key4) == 0,
+			"user 3 key is not the same after u3->m15 removal");
 
-    am->remove(g5,f3);
-    assert_s(am->insertPsswd(alice, padPasswd(secretA)) == 0,
-             "insert alice failed (7)");
-    g5_key = am->getKey(g5);
-    assert_s(g5_key, "cannot access group 5 key with alice logged on");
-    string g5_key3 = marshallBinary(g5_key, AES_KEY_BYTES);
-    assert_s(g5_key1.compare(g5_key3) == 0, "Group 5 key has changed");
-    f2_key = am->getKey(f2);
-    assert_s(f2_key, "cannot access forum 2 key with alice logged on");
-    string f2_key6 = marshallBinary(f2_key, AES_KEY_BYTES);
-    assert_s(f2_key1.compare(f2_key6) == 0, "Forum 2 key has changed");
-    a5_key = am->getKey(a5);
-    assert_s(a5_key, "cannot access account 5 key with alice logged on");
-    string a5_key5 = marshallBinary(a5_key, AES_KEY_BYTES);
-    assert_s(a5_key1.compare(a5_key5) == 0, "Account 5 key has changed");
-    g5_key = am->getKey(g5);
-    f3_key = am->getKey(f3);
-    assert_s(!f3_key, "forum 3 key available when alice is logged off");
+	am->remove(g5,f3);
+	assert_s(am->insertPsswd(alice, padPasswd(secretA)) == 0,
+			"insert alice failed (7)");
+	g5_key = am->getKey(g5);
+	assert_s(g5_key, "cannot access group 5 key with alice logged on");
+	string g5_key3 = marshallBinary(g5_key, AES_KEY_BYTES);
+	assert_s(g5_key1.compare(g5_key3) == 0, "Group 5 key has changed");
+	f2_key = am->getKey(f2);
+	assert_s(f2_key, "cannot access forum 2 key with alice logged on");
+	string f2_key6 = marshallBinary(f2_key, AES_KEY_BYTES);
+	assert_s(f2_key1.compare(f2_key6) == 0, "Forum 2 key has changed");
+	a5_key = am->getKey(a5);
+	assert_s(a5_key, "cannot access account 5 key with alice logged on");
+	string a5_key5 = marshallBinary(a5_key, AES_KEY_BYTES);
+	assert_s(a5_key1.compare(a5_key5) == 0, "Account 5 key has changed");
+	g5_key = am->getKey(g5);
+	f3_key = am->getKey(f3);
+	assert_s(!f3_key, "forum 3 key available when alice is logged off");
 
-    am->removePsswd(bob);
-    s6_key = am->getKey(s6);
-    assert_s(s6_key, "subject 6 key, attached to orphan m4 not accessible");
-    string s6_key7 = marshallBinary(s6_key, AES_KEY_BYTES);
-    assert_s(s6_key1.compare(s6_key7) == 0, "subject 6 key has changed");
-    m4_key = am->getKey(m4);
-    assert_s(m4_key, "message 4 key (orpahn) not available");
-    string m4_key3 = marshallBinary(m4_key, AES_KEY_BYTES);
-    assert_s(m4_key1.compare(m4_key3) == 0, "message 4 key has changed");
+	am->removePsswd(bob);
+	s6_key = am->getKey(s6);
+	assert_s(s6_key, "subject 6 key, attached to orphan m4 not accessible");
+	string s6_key7 = marshallBinary(s6_key, AES_KEY_BYTES);
+	assert_s(s6_key1.compare(s6_key7) == 0, "subject 6 key has changed");
+	m4_key = am->getKey(m4);
+	assert_s(m4_key, "message 4 key (orpahn) not available");
+	string m4_key3 = marshallBinary(m4_key, AES_KEY_BYTES);
+	assert_s(m4_key1.compare(m4_key3) == 0, "message 4 key has changed");
 
-    am->remove(m4,s6);
-    m3_key = am->getKey(m3);
-    assert_s(!m3_key, "message 3 key available when bob is logged off");
-    m2_key = am->getKey(m2);
-    assert_s(!m2_key, "message 2 key available when bob is logged off");
-    s6_key = am->getKey(s6);
-    assert_s(!s6_key, "subject 6 key available when bob is logged off");
-    m4_key = am->getKey(m4);
-    assert_s(m4_key, "message 4 key (orpahn) not available after remove");
-    string m4_key4 = marshallBinary(m4_key, AES_KEY_BYTES);
-    assert_s(m4_key1.compare(
-                 m4_key4) == 0, "message 4 key has changed after remove");
+	am->remove(m4,s6);
+	m3_key = am->getKey(m3);
+	assert_s(!m3_key, "message 3 key available when bob is logged off");
+	m2_key = am->getKey(m2);
+	assert_s(!m2_key, "message 2 key available when bob is logged off");
+	s6_key = am->getKey(s6);
+	assert_s(!s6_key, "subject 6 key available when bob is logged off");
+	m4_key = am->getKey(m4);
+	assert_s(m4_key, "message 4 key (orpahn) not available after remove");
+	string m4_key4 = marshallBinary(m4_key, AES_KEY_BYTES);
+	assert_s(m4_key1.compare(
+			m4_key4) == 0, "message 4 key has changed after remove");
 
-    cerr << "=============================================" << endl;
-    cerr << "threshold tests" << endl;
+	cerr << "=============================================" << endl;
+	cerr << "threshold tests" << endl;
 
-    am->removePsswd(alice);
-    string g50_key1;
-    unsigned char * g50_key;
-    for (unsigned int i = 6; i < 110; i++) {
-        Prin group;
-        group.type = "g.gid";
-        group.value = strFromVal(i);
-        am->insert(u3,group);
-        if(i == 50) {
-            g50_key = am->getKey(group);
-            assert_s(g50_key,
-                     "could not access g50 key just after it's inserted");
-            g50_key1 = marshallBinary(g50_key, AES_KEY_BYTES);
-        }
-    }
+	am->removePsswd(alice);
+	string g50_key1;
+	unsigned char * g50_key;
+	for (unsigned int i = 6; i < 110; i++) {
+		Prin group;
+		group.type = "g.gid";
+		group.value = strFromVal(i);
+		am->insert(u3,group);
+		if(i == 50) {
+			g50_key = am->getKey(group);
+			assert_s(g50_key,
+					"could not access g50 key just after it's inserted");
+			g50_key1 = marshallBinary(g50_key, AES_KEY_BYTES);
+		}
+	}
 
-    am->removePsswd(chris);
-    Prin g50;
-    g50.type = "g.gid";
-    g50.value = "50";
-    g50_key = am->getKey(g50);
-    assert_s(!g50_key, "g50 key available after chris logs off");
-    assert_s(am->insertPsswd(chris, padPasswd(secretC)) == 0,
-             "insert chris failed (4)");
-    PrinKey g50_pkey = am->getUncached(g50);
-    assert_s(g50_pkey.len != 0,
-             "can't access g50 key after chris logs back on");
-    g50_key = am->getKey(g50);
-    string g50_key2 = marshallBinary(g50_key,AES_KEY_BYTES);
-    assert_s(g50_key1.compare(
-                 g50_key2) == 0,
-             "group 50 key is different after chris logs on and off");
+	am->removePsswd(chris);
+	Prin g50;
+	g50.type = "g.gid";
+	g50.value = "50";
+	g50_key = am->getKey(g50);
+	assert_s(!g50_key, "g50 key available after chris logs off");
+	assert_s(am->insertPsswd(chris, padPasswd(secretC)) == 0,
+			"insert chris failed (4)");
+	PrinKey g50_pkey = am->getUncached(g50);
+	assert_s(g50_pkey.len != 0,
+			"can't access g50 key after chris logs back on");
+	g50_key = am->getKey(g50);
+	string g50_key2 = marshallBinary(g50_key,AES_KEY_BYTES);
+	assert_s(g50_key1.compare(
+			g50_key2) == 0,
+			"group 50 key is different after chris logs on and off");
 
-    for (unsigned int i = 6; i < 110; i++) {
-        Prin group;
-        group.type = "g.gid";
-        group.value = strFromVal(i);
-        am->remove(u3,group);
-    }
+	for (unsigned int i = 6; i < 110; i++) {
+		Prin group;
+		group.type = "g.gid";
+		group.value = strFromVal(i);
+		am->remove(u3,group);
+	}
 
-    g50_key = am->getKey(g50);
-    assert_s(!g50_key,
-             "g50 key exists after the hundred group keys have been removed");
+	g50_key = am->getKey(g50);
+	assert_s(!g50_key,
+			"g50 key exists after the hundred group keys have been removed");
 
-    delete am;
+	delete am;
 
-    /* AccessManager * am;
+	/* AccessManager * am;
 
        // This test is no longer valid due to orphans.
 
@@ -3437,9 +3439,9 @@ accessManagerTest(const TestConfig &tc, int ac, char **av)
        am = new AccessManager(new Connect(tc.host, tc.user, tc.pass, tc.db));
 
        //OUR EXAMPLE TEST
-     * */
+	 * */
 
-    /* cerr << "=====================================\n";
+	/* cerr << "=====================================\n";
 
        cout << "our example test" << endl;
        am->addAccessTo("g.gid","g.uid");
@@ -3719,54 +3721,447 @@ accessManagerTest(const TestConfig &tc, int ac, char **av)
           available for Alice");
 
        am->finish();
-     */
+	 */
 
 #endif  /* XXX end of broken */
+
+}
+
+typedef struct Stats {
+	int total_queries;
+	int queries_failed;
+	Stats() {
+		total_queries = 0;
+		queries_failed = 0;
+	}
+} Stats;
+
+
+static Stats
+runQueriesFromFile(EDBProxy * cl, string queryFile, bool execquery, bool plainexec, string outputfile, bool allowfailures)
+throw (CryptDBError)
+{
+	ifstream infile(queryFile.c_str());
+	ofstream * outfile = NULL;
+
+	assert_s(infile.is_open(), "cannot open file " + queryFile);
+
+	Stats stats;
+
+	bool outputtranslation = false;
+	if (outputfile != "") {
+		outfile = new ofstream(outputfile);
+		outputtranslation = true;
+	}
+
+	string query;
+	list<string> queries;
+	while (!infile.eof()) {
+		query = getQuery(infile);
+
+		if (query.length() == 0) {
+			continue;
+		}
+
+		if (query.length() > 0) {
+			queries = cl->rewriteEncryptQuery(query+";");
+			stats.total_queries++;
+			for (list<string>::iterator it = queries.begin(); it != queries.end(); it++) {
+				if  (outputtranslation) {
+					*outfile << *it << "\n";
+				}
+				if (execquery) {
+					bool outcome;
+					if (plainexec) {
+						outcome = cl->plain_execute(*it).ok;
+					} else {
+						outcome = cl->execute(*it).ok;
+					}
+					if (allowfailures) {
+						if (!outcome) {
+							stats.queries_failed++;
+						}
+					} else {
+						assert_s(outcome, "failed to execute query " + *it);
+					}
+				}
+			}
+		}
+	}
+
+	infile.close();
+	if (outputtranslation) {
+		outfile->close();
+	}
+
+	return stats;
+
+}
+
+
+static void
+dotrain(EDBProxy * cl, string createsfile, string querypatterns, string exec) {
+	cl->execute(string("train ") + " 1 " + createsfile + " " + querypatterns + " " + exec);
+}
+
+static string * workloads;
+
+static void
+assignWork(string queryfile, int noWorkers,   int totalLines, int noRepeats, bool split) {
+        system("mkdir pieces");
+        assert_s(system("rm -f pieces/*") >= 0, "problem when removing pieces/*");
+
+	ifstream infile(queryfile);
+
+	workloads = new string[noWorkers];
+
+
+
+	int linesPerWorker = totalLines / noWorkers;
+	int linesPerLastWorker = totalLines - (noWorkers-1)*linesPerWorker;
+
+	string query;
+
+	if (!infile.is_open()) {
+		cerr << "cannot open " + queryfile << "\n";
+		exit(1);
+	}
+
+	//prepare files
+	for (int i = 0; i < noWorkers; i++) {
+		string workload;
+		if (!split) {
+
+			workload = queryfile + StringFromVal(i);
+
+		} else {
+
+			workload = string("pieces/piece") + StringFromVal(i);
+
+			ofstream outfile(workload);
+
+			if (!outfile.is_open()) {
+				cerr << "cannot open file " << workload << "\n";
+				infile.close();
+				exit(1);
+			}
+
+			int lines = 0;
+			if (i == noWorkers-1) {
+			    lines = linesPerLastWorker;
+			} else {
+			    lines = linesPerWorker;
+			}
+			for (int j = 0; j < lines; j++) {
+				getline(infile, query);
+				if (query != "") {
+				    outfile << query << "\n";
+				}
+			}
+			outfile.close();
+		}
+
+		workloads[i] = workload;
+
+		//we need to concatenate the outfile with itself noRepeats
+
+		assert_s(system("touch temp;") >= 0, "problem when creating temp");
+		for (int j = 0; j < noRepeats; j++) {
+		  assert_s(system((string("cat temp ") + workload + " > temp2;").c_str()) >= 0,  "problem when cat");
+		  assert_s(system("mv temp2 temp") >= 0, "problem when moving");
+		}
+		assert_s(system(("mv temp " + workload).c_str()) >= 0, "problem wehn moving");
+
+	}
+
+	infile.close();
+}
+
+static void
+workerJob(EDBProxy * cl, int index, ofstream & resultFile) {
+
+
+	string workload = workloads[index];
+	//execute on the workload
+	cerr << "in child workload file <" << workload << "> \n";
+	cerr << "value of index is " << index << "\n";
+
+	Timer t;
+
+	Stats stats = runQueriesFromFile(cl, workload, 1, true, "", false);
+
+	//now we need to start the workers
+	double ms = t.lap_ms();
+
+	cerr << "worker " << index << " total q " << stats.total_queries << " failed " << stats.queries_failed <<
+			" time " << ms << " ms \n";
+
+}
+
+static void runExp(EDBProxy * cl, int noWorkers) {
+
+        assert_s(system("rm -f pieces/result;") >= 0, "problem removing pieces/result");
+        assert_s(system("touch pieces/result;") >= 0, "problem creating pieces/result");
+
+	ofstream resultFile("pieces/result");
+	ifstream resultFileIn;
+
+	if (!resultFile.is_open()) {
+		cerr << "cannot open result file \n";
+		exit(1);
+	}
+
+	int childstatus;
+	int index;
+	int i;
+	pid_t pids[noWorkers];
+
+	double interval, querytput, querylat, trantput, tranlat;
+	int allInstr, allInstrOK, allTran, allTranOK;
+
+	for (i = 0; i < noWorkers; i++) {
+		index = i;
+		pid_t pid = fork();
+		if (pid == 0) {
+			workerJob(cl, index, resultFile);
+		} else if (pid < 0) {
+			cerr << "failed to fork \n";
+			exit(1);
+		} else { // in parent
+			pids[i] = pid;
+		}
+	}
+
+	//wait until any child finishes
+
+	pid_t firstchild = waitpid(-1, &childstatus,0);
+
+	assert_s(WIFEXITED(childstatus), "the first child returning terminated abnormally\n");
+
+	//signal the other children to stop
+	for (int j = 0; j < noWorkers; j++) {
+	    if (pids[j] != firstchild) {
+	        //signal(SIGTERM);
+	    }
+	}
+	resultFile.close();
+
+	resultFileIn.open("pieces/result", ifstream::in);
+
+	if (!resultFileIn.is_open()) {
+		cerr << "cannot open results file to read\n";
+		exit(1);
+	}
+
+	querytput = 0; querylat = 0; trantput = 0; tranlat = 0;
+	allInstr = 0; allInstrOK = 0; allTran = 0; allTranOK = 0;
+
+	for (i = 0; i < noWorkers; i++) {
+
+		double currquerytput, currquerylat;
+
+		resultFileIn >> index;
+		resultFileIn >> interval;
+		resultFileIn >> currquerytput;
+		resultFileIn >> currquerylat;
+		cerr << index << " " << interval << " sec " <<
+				currquerytput << " queries/sec " << currquerylat <<
+				" secs/query \n";
+		querytput = querytput + currquerytput;
+		querylat = querylat + currquerylat;
+	}
+
+	cerr <<"overall:  throughput " << querytput << " queries/sec latency " << querylat/noWorkers << " sec/query \n";
+	cerr << "some other vars " << trantput << tranlat << allInstr << allInstrOK << allTran << allTranOK << "\n";
+        resultFileIn.close();
+
+
 
 }
 
 static void
 testTrace(const TestConfig &tc, int argc, char ** argv)
 {
-    if (argc < 5) {
-        cerr <<
-        "usage: ./test trace createsfile fileoftrace  noofinstr [outputonion] \n";
-        return;
+
+	string masterKey =  BytesFromInt(mkey, AES_KEY_BYTES);
+
+	//trace encrypt_db createsfile indexfile queriesfile insertsfile outputfile
+
+	EDBProxy * cl;
+
+	cl = new EDBProxy(tc.host, tc.user, tc.pass, tc.db, tc.port);
+	cl->setMasterKey(masterKey);
+
+
+	if (string(argv[1]) == "encrypt_queries") {
+		if (argc != 9) {
+			cerr << "trace encrypt_queries createsfile indexfile queriestotrainfile queriestotranslate baseoutputfile totallines"
+			        " noWorkers \n";
+			return;
+		}
+
+		string queriestotranslate = argv[5];
+		string baseoutputfile = argv[6];
+		int totalLines = atoi(argv[7]);
+		int noWorkers = atoi(argv[8]);
+
+		dotrain(cl, argv[2], argv[4], "1");
+		assignWork(queriestotranslate, noWorkers, totalLines, 1, true);
+
+		pid_t pids[noWorkers];
+		for (int i = 0; i < noWorkers; i++) {
+		    int index = i;
+		    string work = workloads[index];
+		    string outputfile = baseoutputfile + StringFromVal(index);
+		    assert_s(system(("rm -f " + outputfile).c_str()) >= 0, "failed to remove " + outputfile);
+		    pid_t pid = fork();
+		    if (pid == 0) {
+		        runQueriesFromFile(cl, work, false, false, outputfile, false);
+		        cerr << "worker " << i << "finished\n";
+		        exit(1);
+		    } else if (pid < 0) {
+		        cerr << "failed to fork \n";
+		        exit(1);
+		    } else { // in parent
+		        pids[i] = pid;
+		    }
+
+
+		}
+
+		int childstatus;
+		for (int i = 0; i < noWorkers; i++) {
+		    if (waitpid(pids[i], &childstatus, 0) == -1) {
+		        cerr << "there were problems with process " << pids[i]
+		                                                            << "\n";
+		    }
+		}
+
+
+
+
+		return;
+	};
+
+	if (string(argv[1]) == "eval") {
+		if (argc != 7) {
+			//
+			cerr << "trace eval queryfile totallines noworkers noRepeats split? \n";
+		}
+
+		string queryfile = argv[2];
+		int totalLines = atoi(argv[3]);
+		int noWorkers = atoi(argv[4]);
+		int noRepeats = atoi(argv[5]);
+		bool split = atoi(argv[6]);
+
+		assignWork(queryfile, noWorkers, totalLines, noRepeats, split);
+
+		runExp(cl, noWorkers);
+
+		delete cl;
+
+		return;
+	}
+
+	cerr << "usage: test trace encrypt_queries/eval";
+	return;
+}
+
+
+static void
+testBench(const TestConfig & tc, int argc, char ** argv)
+{
+    setenv("EDBDIR", tc.edbdir.c_str(), 1);
+    setenv("CRYPTDB_LOG", cryptdb_logger::getConf().c_str(), 1);
+
+
+    //configure proxy
+    //setenv("TRAIN_QUERY", "train 1 /u/raluca/cryptdb/src/eval/offtrace/sqlTableCreates /u/raluca/cryptdb/src/eval/offtrace/querypatterns_bench", 1);
+
+    setenv("LOG_PLAIN_QUERIES", (tc.edbdir+"/../eval/offtrace/bench_plain_insert").c_str(), 1);
+    setenv("EXECUTE_QUERIES", "false", 1);
+    //static bool LOG_ENCRYPT_QUERIES = false;
+
+    //static bool EXECUTE_QUERIES = true;
+
+    //start proxy
+    pid_t proxy_pid = fork();
+    if (proxy_pid == 0) {
+        LOG(test) << "starting proxy, pid " << getpid();
+        setenv("CRYPTDB_MODE", "single", 1);
+
+        stringstream script_path, address;
+        script_path << "--proxy-lua-script=" << tc.edbdir << "/../mysqlproxy/wrapper.lua";
+        uint port = 5123;
+        address << "--proxy-address=localhost:" << port;
+
+        cerr << "starting on port " << port << "\n";
+
+        execlp("mysql-proxy",
+                "mysql-proxy", "--plugins=proxy",
+                "--max-open-files=1024",
+                script_path.str().c_str(),
+                address.str().c_str(),
+                "--proxy-backend-addresses=localhost:3306",
+                (char *) 0);
+        LOG(warn) << "could not execlp: " << strerror(errno);
+        exit(-1);
+    } else if (proxy_pid < 0) {
+        assert_s(false,"failed to fork");
     }
 
+    //wait for proxy to start
+    cerr << "waiting for proxy to start\n";
+    sleep(3);
+
+    //point benchmark data load to proxy
+    string path = tc.edbdir + "/../eval/bench/run/";
+
+    cerr << "trying to execute " << (path+"loadData.sh") << " " << "mysqlproxy.properties" << "\n";
+    execlp((path+"loadData.sh").c_str(),
+            "loadData.sh",
+             "mysqlproxy.properties",
+             "numWarehouses",
+             "4",
+             (char *) 0
+             );
+    LOG(warn) << "could not execlp bench: " << strerror(errno);
+
+    //don't forget to create indexes!
+
+}
+
+
+
+/*
     bool outputOnions = false;
     if (argc == 6) {
         outputOnions = argv[4];
     }
+ */
 
-    string masterKey =  BytesFromInt(mkey, AES_KEY_BYTES);
-    EDBProxy * cl;
-
-    cl = new EDBProxy(tc.host, tc.user, tc.pass, tc.db, tc.port);
-    cl->setMasterKey(masterKey);
-    cl->VERBOSE = false;
-
-    // cl->plain_execute("DROP TABLE IF EXISTS
-    // phpbb_acl_groups,phpbb_acl_options,phpbb_acl_roles,
-    // phpbb_acl_roles_data,phpbb_acl_users,phpbb_attachments,
-    // phpbb_banlist,phpbb_bbcodes,phpbb_bookmarks,phpbb_bots,
-    // phpbb_config,phpbb_confirm,phpbb_disallow,phpbb_drafts,
-    // phpbb_extension_groups,phpbb_extensions,phpbb_forums,
-    // phpbb_forums_access,phpbb_forums_track,phpbb_forums_watch,
-    // phpbb_groups,phpbb_icons,phpbb_lang,phpbb_log,phpbb_moderator_cache,
-    // phpbb_modules,phpbb_poll_options,phpbb_poll_votes,phpbb_posts,
-    // phpbb_privmsgs,phpbb_privmsgs_folder,phpbb_privmsgs_rules,
-    // phpbb_privmsgs_to,phpbb_profile_fields,phpbb_profile_fields_data,
-    // phpbb_profile_fields_lang,phpbb_profile_lang,phpbb_ranks,
-    // phpbb_reports,phpbb_reports_reasons,phpbb_search_results,
-    // phpbb_search_wordlist,phpbb_search_wordmatch,phpbb_sessions,
-    // phpbb_sessions_keys,phpbb_sitelist,phpbb_smilies,phpbb_styles,
-    // phpbb_styles_imageset,phpbb_styles_imageset_data,
-    // phpbb_styles_template,phpbb_styles_template_data,phpbb_styles_theme,
-    // phpbb_topics,phpbb_topics_posted,phpbb_topics_track,
-    // phpbb_topics_watch,phpbb_user_group,phpbb_users,
-    // phpbb_warnings,phpbb_words,phpbb_zebra;");
-
+// cl->plain_execute("DROP TABLE IF EXISTS
+// phpbb_acl_groups,phpbb_acl_options,phpbb_acl_roles,
+// phpbb_acl_roles_data,phpbb_acl_users,phpbb_attachments,
+// phpbb_banlist,phpbb_bbcodes,phpbb_bookmarks,phpbb_bots,
+// phpbb_config,phpbb_confirm,phpbb_disallow,phpbb_drafts,
+// phpbb_extension_groups,phpbb_extensions,phpbb_forums,
+// phpbb_forums_access,phpbb_forums_track,phpbb_forums_watch,
+// phpbb_groups,phpbb_icons,phpbb_lang,phpbb_log,phpbb_moderator_cache,
+// phpbb_modules,phpbb_poll_options,phpbb_poll_votes,phpbb_posts,
+// phpbb_privmsgs,phpbb_privmsgs_folder,phpbb_privmsgs_rules,
+// phpbb_privmsgs_to,phpbb_profile_fields,phpbb_profile_fields_data,
+// phpbb_profile_fields_lang,phpbb_profile_lang,phpbb_ranks,
+// phpbb_reports,phpbb_reports_reasons,phpbb_search_results,
+// phpbb_search_wordlist,phpbb_search_wordmatch,phpbb_sessions,
+// phpbb_sessions_keys,phpbb_sitelist,phpbb_smilies,phpbb_styles,
+// phpbb_styles_imageset,phpbb_styles_imageset_data,
+// phpbb_styles_template,phpbb_styles_template_data,phpbb_styles_theme,
+// phpbb_topics,phpbb_topics_posted,phpbb_topics_track,
+// phpbb_topics_watch,phpbb_user_group,phpbb_users,
+// phpbb_warnings,phpbb_words,phpbb_zebra;");
+/*
     ifstream createsfile(argv[2]);
     ifstream tracefile(argv[3]);
     string query;
@@ -3836,149 +4231,152 @@ testTrace(const TestConfig &tc, int argc, char ** argv)
     }
 
     tracefile.close();
+ */
 
-}
+
 
 static void
 test_PKCS(const TestConfig &tc, int ac, char **av)
 {
 
-    PKCS * pk,* sk;
-    CryptoManager::generateKeys(pk, sk);
-    assert_s(pk != NULL, "pk is null");
-    assert_s(sk != NULL, "pk is null");
+	PKCS * pk,* sk;
+	CryptoManager::generateKeys(pk, sk);
+	assert_s(pk != NULL, "pk is null");
+	assert_s(sk != NULL, "pk is null");
 
-    string pkbytes = CryptoManager::marshallKey(pk, true);
+	string pkbytes = CryptoManager::marshallKey(pk, true);
 
-    assert_s(pkbytes ==
-             CryptoManager::marshallKey(CryptoManager::unmarshallKey(pkbytes,
-                                                                     1),
-                                        1), "marshall does not work");
+	assert_s(pkbytes ==
+			CryptoManager::marshallKey(CryptoManager::unmarshallKey(pkbytes,
+					1),
+					1), "marshall does not work");
 
-    string skbytes = CryptoManager::marshallKey(sk, false);
+	string skbytes = CryptoManager::marshallKey(sk, false);
 
-    assert_s(skbytes ==
-             CryptoManager::marshallKey(CryptoManager::unmarshallKey(skbytes,
-                                                                     0),
-                                        0), "marshall does not work");
+	assert_s(skbytes ==
+			CryptoManager::marshallKey(CryptoManager::unmarshallKey(skbytes,
+					0),
+					0), "marshall does not work");
 
-    char msg[] = "Hello world";
+	char msg[] = "Hello world";
 
-    string enc = CryptoManager::encrypt(pk, msg);
-    string dec = CryptoManager::decrypt(sk, enc);
-    assert_s(msg == dec, "decryption is not original msg");
+	string enc = CryptoManager::encrypt(pk, msg);
+	string dec = CryptoManager::decrypt(sk, enc);
+	assert_s(msg == dec, "decryption is not original msg");
 
-    cerr << "msg" << dec << "\n";
+	cerr << "msg" << dec << "\n";
 }
 
 static void help(const TestConfig &tc, int ac, char **av);
 
 static struct {
-    const char *name;
-    const char * description;
-    void (*f)(const TestConfig &, int ac, char **av);
+	const char *name;
+	const char * description;
+	void (*f)(const TestConfig &, int ac, char **av);
 } tests[] = {
-    { "access",         "",                             &TestAccessManager::run },
-    { "access_old",     "",                             &accessManagerTest },
-    { "aes",            "",                             &evaluate_AES },
-    { "autoinc",        "",                             &autoIncTest },
-    { "crypto",         "crypto functions",             &TestCrypto::run },
-    { "multi",          "integration multi principal",  &TestMultiPrinc::run },
-    { "paillier",       "",                             &testPaillier },
-    { "parseaccess",    "",                             &testParseAccess },
-    { "pkcs",           "",                             &test_PKCS },
-    { "proxy",          "proxy",                        &TestProxy::run },
-    { "queries",        "queries",                      &TestQueries::run },
-    { "shell",          "interactive shell",            &interactiveTest },
-    { "single",         "integration - single principal",&TestSinglePrinc::run },
-    { "tables",         "",                             &encryptionTablesTest },
-    { "trace",          "",                             &testTrace },
-    { "utils",          "",                             &testUtils },
+		{ "access",         "",                             &TestAccessManager::run },
+		{ "access_old",     "",                             &accessManagerTest },
+		{ "aes",            "",                             &evaluate_AES },
+		{ "autoinc",        "",                             &autoIncTest },
+        { "consider",       "consider queries (or not)",    &TestNotConsider::run },
+		{ "crypto",         "crypto functions",             &TestCrypto::run },
+		{ "multi",          "integration multi principal",  &TestMultiPrinc::run },
+		{ "paillier",       "",                             &testPaillier },
+		{ "parseaccess",    "",                             &testParseAccess },
+		{ "pkcs",           "",                             &test_PKCS },
+		{ "proxy",          "proxy",                        &TestProxy::run },
+		{ "queries",        "queries",                      &TestQueries::run },
+		{ "shell",          "interactive shell",            &interactiveTest },
+		{ "single",         "integration - single principal",&TestSinglePrinc::run },
+		{ "tables",         "",                             &encryptionTablesTest },
+		{ "trace",          "TPC-C trace eval",             &testTrace },
+		{ "bench",          "TPC-C benchmark eval",         &testBench },
+		{ "utils",          "",                             &testUtils },
 
-    { "help",  "",      &help },
+		{ "help",  "",      &help },
 };
 
 static void
 help(const TestConfig &tc, int ac, char **av)
 {
-    cerr << "Usage: " << av[0] << " [options] testname" << endl;
-    cerr << "Options:" << endl
-         << "    -s           stop on failure [" << tc.stop_if_fail << "]" << endl
-         << "    -h host      database server [" << tc.host << "]" << endl
-         << "    -t port      database port [" << tc.port << "]" << endl
-         << "    -u user      database username [" << tc.user << "]" << endl
-         << "    -p pass      database password [" << tc.pass << "]" << endl
-         << "    -d db        database to use [" << tc.db << "]" << endl
-         << "    -v group     enable verbose messages in group" << endl;
-    cerr << "Verbose groups:" << endl;
-    for (auto i = log_name_to_group.begin(); i != log_name_to_group.end(); i++)
-        cerr << "    " << i->first << endl;
-    cerr << "Supported tests:" << endl;
-    for (uint i = 0; i < NELEM(tests); i++)
-        cerr << "    " << left << setw(20) << tests[i].name
-                                           << tests[i].description << endl;
+	cerr << "Usage: " << av[0] << " [options] testname" << endl;
+	cerr << "Options:" << endl
+			<< "    -s           stop on failure [" << tc.stop_if_fail << "]" << endl
+			<< "    -h host      database server [" << tc.host << "]" << endl
+			<< "    -t port      database port [" << tc.port << "]" << endl
+			<< "    -u user      database username [" << tc.user << "]" << endl
+			<< "    -p pass      database password [" << tc.pass << "]" << endl
+			<< "    -d db        database to use [" << tc.db << "]" << endl
+			<< "    -v group     enable verbose messages in group" << endl;
+	cerr << "Verbose groups:" << endl;
+	for (auto i = log_name_to_group.begin(); i != log_name_to_group.end(); i++)
+		cerr << "    " << i->first << endl;
+	cerr << "Supported tests:" << endl;
+	for (uint i = 0; i < NELEM(tests); i++)
+		cerr << "    " << left << setw(20) << tests[i].name
+		<< tests[i].description << endl;
 }
 
 int
 main(int argc, char ** argv)
 {
-    TestConfig tc;
-    int c;
+	TestConfig tc;
+	int c;
 
-    while ((c = getopt(argc, argv, "v:sh:u:p:d:t:")) != -1) {
-        switch (c) {
-        case 'v':
-            if (log_name_to_group.find(optarg) == log_name_to_group.end()) {
-                help(tc, argc, argv);
-                exit(0);
-            }
+	while ((c = getopt(argc, argv, "v:sh:u:p:d:t:")) != -1) {
+		switch (c) {
+		case 'v':
+			if (log_name_to_group.find(optarg) == log_name_to_group.end()) {
+				help(tc, argc, argv);
+				exit(0);
+			}
 
-            cryptdb_logger::enable(log_name_to_group[optarg]);
-            break;
+			cryptdb_logger::enable(log_name_to_group[optarg]);
+			break;
 
-        case 's':
-            tc.stop_if_fail = true;
-            break;
+		case 's':
+			tc.stop_if_fail = true;
+			break;
 
-        case 'u':
-            tc.user = optarg;
-            break;
+		case 'u':
+			tc.user = optarg;
+			break;
 
-        case 'p':
-            tc.pass = optarg;
-            break;
+		case 'p':
+			tc.pass = optarg;
+			break;
 
-        case 'd':
-            tc.db = optarg;
-            break;
+		case 'd':
+			tc.db = optarg;
+			break;
 
-        case 'h':
-            tc.host = optarg;
-            break;
+		case 'h':
+			tc.host = optarg;
+			break;
 
-        case 't':
-            tc.port = atoi(optarg);
-            break;
+		case 't':
+			tc.port = atoi(optarg);
+			break;
 
-        default:
-            help(tc, argc, argv);
-            exit(0);
-        }
-    }
+		default:
+			help(tc, argc, argv);
+			exit(0);
+		}
+	}
 
-    if (argc == optind) {
-        interactiveTest(tc, argc - optind, argv + optind);
-        return 0;
-    }
+	if (argc == optind) {
+		interactiveTest(tc, argc - optind, argv + optind);
+		return 0;
+	}
 
-    for (uint i = 0; i < NELEM(tests); i++) {
-        if (!strcasecmp(argv[optind], tests[i].name)) {
-            tests[i].f(tc, argc - optind, argv + optind);
-            return 0;
-        }
-    }
+	for (uint i = 0; i < NELEM(tests); i++) {
+		if (!strcasecmp(argv[optind], tests[i].name)) {
+			tests[i].f(tc, argc - optind, argv + optind);
+			return 0;
+		}
+	}
 
-    help(tc, argc, argv);
+	help(tc, argc, argv);
 }
 
 /*    if (strcmp(argv[1], "train") == 0) {
@@ -4000,7 +4398,7 @@ main(int argc, char ** argv)
                 createInstance();
                 return 0;
         }
- */
+                 */
 /*
                 if (strcmp(argv[1], "convertdump") == 0) {
                         convertDump();
@@ -4066,4 +4464,4 @@ main(int argc, char ** argv)
         //test_HGD();
         //test_EDBProxy_noSecurity();
         //evaluateMetrics(argc, argv);
- */
+  */

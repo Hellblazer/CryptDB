@@ -10,6 +10,8 @@
 
 using namespace std;
 
+#define TESTING 1
+
 class EDBProxy {
  public:
     bool VERBOSE;
@@ -24,7 +26,7 @@ class EDBProxy {
      */
 
     EDBProxy(string server, string user, string psswd, string dbname,
-              uint port = 0, bool multiPrinc = false);
+              uint port = 0, bool multiPrinc = false, bool allDefaultEncrypted = false);
     void setMasterKey(const string &mkey);
 
     // ========= QUERIES ===== //
@@ -82,6 +84,7 @@ class EDBProxy {
 
  private:
     bool isSecure;
+    bool allDefaultEncrypted;
 
     Connect * conn;     // to connect to the DBMs
     CryptoManager * cm;     // for cryptography
@@ -96,7 +99,19 @@ class EDBProxy {
     unsigned int totalTables;
     unsigned int totalIndexes;
 
+    //hack, remove
+    bool EXECUTE_QUERIES;
+
     //**************** HELPER FUNCTIONS *******************************/
+
+    //returns true if this query has to do with cryptdb
+    // e.g. SET NAMES 'utf8' is a negative example
+    // also ignores queries that apply only to non-sensitive tables
+#if TESTING
+ public:
+#endif
+    bool considerQuery(command com, const string &query);
+
 
     //CREATE
     //the Encrypt functions rewrite a query by anonymizing, encrypting, and
@@ -193,7 +208,7 @@ class EDBProxy {
     void dropTables();
 
 
-    //syntax: train createsfile indexfile queryfile
+    //syntax: train are_all_fields_encrypted createsfile indexfile queryfile
     list<string> rewriteEncryptTrain(const string & query);
 
  protected:

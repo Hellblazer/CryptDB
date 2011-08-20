@@ -19,6 +19,10 @@
 #include <vector>
 #include <set>
 #include "Equation.h"
+#include <fstream>
+#include <iostream>
+
+
 
 #include "NTL/ZZ.h"
 using namespace NTL;
@@ -226,6 +230,7 @@ typedef struct TableMetadata { //each anonymized field
     list<string> primaryKey;
     list<IndexMetadata *> indexes;
     bool hasEncrypted;     //true if the table contains an encrypted field
+    bool hasSensitive;    //true if any field is involved in access control of mp
 
     ~TableMetadata();
 } TableMetadata;
@@ -616,6 +621,12 @@ class SqlItem {
                data == other.data;
     }
 };
+
+/**** HELPERS FOR EVAL **************/
+
+string
+getQuery(ifstream & qFile);
+
 
 class Timer {
  private:

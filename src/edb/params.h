@@ -21,7 +21,6 @@
 
 #define ASSERTS_ON true
 
-#define ALL_ENCRYPTED  true
 
 /******* VERBOSITY ****************/
 
