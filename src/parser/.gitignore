@@ -2,4 +2,5 @@
 /parsetest
 /xftest
 /analyze
+/load-schema
 /*.o

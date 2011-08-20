@@ -858,35 +858,48 @@ read_schema(const std::string &filename)
         fatal() << "mysql_real_connect: " << mysql_error(m);
 
     stringstream ss;
+    vector<string> queries;
+
     for (;;) {
         string s;
         getline(f, s);
         if (!f.good())
             break;
 
+        if (s.substr(0, 15) == "CREATE DATABASE") {
+            queries.push_back(ss.str());
+            ss.str("");
+        }
         ss << s << endl;
     }
+    queries.push_back(ss.str());
 
-    if (mysql_query(m, ss.str().c_str()))
-        fatal() << "mysql_query: " << mysql_error(m);
+    uint ndb = 0;
+    for (const string &q: queries) {
+        if (mysql_query(m, q.c_str()))
+            fatal() << "mysql_query: " << mysql_error(m);
 
-    for (;;) {
-        MYSQL_RES *r = mysql_store_result(m);
-        if (r) {
-            // cout << "got result.." << endl;
-            mysql_free_result(r);
-        } else if (mysql_field_count(m) == 0) {
-            // cout << "rows affected: " << mysql_affected_rows(m) << endl;
-        } else {
-            fatal() << "could not retrieve result set";
+        for (;;) {
+            MYSQL_RES *r = mysql_store_result(m);
+            if (r) {
+                // cout << "got result.." << endl;
+                mysql_free_result(r);
+            } else if (mysql_field_count(m) == 0) {
+                // cout << "rows affected: " << mysql_affected_rows(m) << endl;
+            } else {
+                fatal() << "could not retrieve result set";
+            }
+
+            int s = mysql_next_result(m);
+            if (s > 0)
+                fatal() << "mysql_next_result: " << mysql_error(m);
+
+            if (s < 0)
+                break;
         }
 
-        int s = mysql_next_result(m);
-        if (s > 0)
-            fatal() << "mysql_next_result: " << mysql_error(m);
-
-        if (s < 0)
-            break;
+        ndb++;
+        cout << "processed " << ndb << " query batches" << endl;
     }
 
     cout << "done with schema" << endl;
@@ -900,15 +913,15 @@ main(int ac, char **av)
         exit(1);
     }
 
-    assert(0 == system("rm -rf /tmp/analyze.db"));
-    assert(0 == system("mkdir /tmp/analyze.db"));
+    assert(0 == system("rm -rf ./db"));
+    assert(0 == system("mkdir ./db"));
 
     const char *mysql_av[] =
         { "progname",
           "--skip-grant-tables",
           /* "--skip-innodb", */
           /* "--default-storage-engine=MEMORY", */
-          "--datadir=/tmp/analyze.db",
+          "--datadir=/tmp/db",
           "--language=" MYSQL_BUILD_DIR "/sql/share/"
         };
     assert(0 == mysql_server_init(sizeof(mysql_av) / sizeof(mysql_av[0]),

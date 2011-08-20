@@ -25,15 +25,12 @@ LDFLAGS  := -L$(MYBUILD)/libmysqld -lsql_embedded \
 	    -L$(MYBUILD)/strings -lstrings \
 	    -lpthread -lrt -ldl -lz -lcrypt -lbsd
 
-all:	parsetest xftest analyze
+all:	parsetest xftest analyze load-schema
 
-parsetest: parsetest.o mysql_glue.o
+parsetest xftest: %: %.o mysql_glue.o
 	$(CXX) $^ -o $@ $(LDFLAGS)
 
-xftest: xftest.o mysql_glue.o
-	$(CXX) $^ -o $@ $(LDFLAGS)
-
-analyze: analyze.o
+load-schema analyze: %: %.o
 	$(CXX) $^ -o $@ $(LDFLAGS)
 
 %.o: %.cc $(wildcard *.h)
