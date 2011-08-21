@@ -68,15 +68,31 @@ operator<<(ostream &out, List<T> &l)
 }
 
 static ostream&
+operator<<(ostream &out, SELECT_LEX &select_lex)
+{
+    String s;
+    THD *t = current_thd;
+    select_lex.print(t, &s, QT_ORDINARY);
+    return out << s;
+}
+
+static ostream&
+operator<<(ostream &out, SELECT_LEX_UNIT &select_lex_unit)
+{
+    String s;
+    select_lex_unit.print(&s, QT_ORDINARY);
+    return out << s;
+}
+
+static ostream&
 operator<<(ostream &out, LEX &lex)
 {
     String s;
-    THD *t = _current_thd();
+    THD *t = current_thd;
 
     switch (lex.sql_command) {
     case SQLCOM_SELECT:
-        lex.select_lex.print(t, &s, QT_ORDINARY);
-        out << s;
+        out << lex.select_lex;
         break;
 
     case SQLCOM_UPDATE:

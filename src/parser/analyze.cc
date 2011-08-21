@@ -543,7 +543,7 @@ process_table_list(List<TABLE_LIST> *tll)
         if (t->derived) {
             // XXX handle sub-selects..
             st_select_lex_unit *u __attribute__((unused)) = t->derived;
-            thrower() << "sub-select derived table";
+            thrower() << "sub-select derived table " << *u;
         }
     }
 }
