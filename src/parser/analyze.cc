@@ -30,7 +30,7 @@
 #define CONCAT(a, b)    CONCAT2(a, b)
 #define ANON            CONCAT(__anon_id_, __COUNTER__)
 
-static int debug = 0;
+static bool debug = true;
 
 #define CIPHER_TYPES(m)                                                     \
     m(any)    /* just need to decrypt the result */                         \
@@ -618,6 +618,10 @@ analyze(const std::string &db, const std::string &q)
             if (setup_fields(t, 0, fields, MARK_COLUMNS_NONE, 0, 0))
                 thrower() << "setup_fields error: " << t->stmt_da->message() << endl;
 
+            if (setup_conds(t, lex->query_tables, lex->select_lex.leaf_tables,
+                            &lex->select_lex.where))
+                thrower() << "setup_conds error: " << t->stmt_da->message() << endl;
+
             // iterate over the entire select statement..
             // based on st_select_lex::print in mysql-server/sql/sql_select.cc
 
@@ -630,10 +634,8 @@ analyze(const std::string &db, const std::string &q)
                 analyze(item, cipher_type::any);
             }
 
-            if (lex->select_lex.where) {
-                lex->select_lex.where->fix_fields(t, (Item**) &(lex->select_lex.where));
+            if (lex->select_lex.where)
                 analyze(lex->select_lex.where, cipher_type::plain);
-            }
 
             if (lex->select_lex.having) {
                 lex->select_lex.having->fix_fields(t, (Item**) &(lex->select_lex.having));
