@@ -90,7 +90,7 @@ class CItemTypeDir : public CItemType {
     std::map<T, CItemType*> types;
 };
 
-static class CItemBaseDir : public CItemTypeDir<Item::Type> {
+static class ANON : public CItemTypeDir<Item::Type> {
     CItemType *lookup(Item *i) const {
         return do_lookup(i, i->type(), "type");
     }
@@ -180,37 +180,43 @@ class CItemSubtypeFN : public CItemSubtype<T> {
  */
 static void process_select_lex(st_select_lex *select_lex, cipher_type t);
 
-static class CItemField : public CItemSubtypeIT<Item_field, Item::Type::FIELD_ITEM> {
+static class ANON : public CItemSubtypeIT<Item_field, Item::Type::FIELD_ITEM> {
     void do_analyze(Item_field *i, cipher_type t) const {
         cout << "FIELD " << *i << " CIPHER " << t << endl;
     }
 } ANON;
 
-static class CItemString : public CItemSubtypeIT<Item_string, Item::Type::STRING_ITEM> {
+static class ANON : public CItemSubtypeIT<Item_string, Item::Type::STRING_ITEM> {
     void do_analyze(Item_string *i, cipher_type t) const {
         /* constant strings are always ok */
     }
 } ANON;
 
-static class CItemInt : public CItemSubtypeIT<Item_num, Item::Type::INT_ITEM> {
+static class ANON : public CItemSubtypeIT<Item_num, Item::Type::INT_ITEM> {
     void do_analyze(Item_num *i, cipher_type t) const {
         /* constant ints are always ok */
     }
 } ANON;
 
-static class CItemDecimal : public CItemSubtypeIT<Item_decimal, Item::Type::DECIMAL_ITEM> {
+static class ANON : public CItemSubtypeIT<Item_decimal, Item::Type::DECIMAL_ITEM> {
     void do_analyze(Item_decimal *i, cipher_type t) const {
         /* constant decimals are always ok */
     }
 } ANON;
 
-static class CItemNeg : public CItemSubtypeFT<Item_func_neg, Item_func::Functype::NEG_FUNC> {
+static class ANON : public CItemSubtypeFT<Item_func_neg, Item_func::Functype::NEG_FUNC> {
     void do_analyze(Item_func_neg *i, cipher_type t) const {
         analyze(i->arguments()[0], t);
     }
 } ANON;
 
-static class CItemSubselect : public CItemSubtypeIT<Item_subselect, Item::Type::SUBSELECT_ITEM> {
+static class ANON : public CItemSubtypeFT<Item_func_not, Item_func::Functype::NOT_FUNC> {
+    void do_analyze(Item_func_not *i, cipher_type t) const {
+        analyze(i->arguments()[0], t);
+    }
+} ANON;
+
+static class ANON : public CItemSubtypeIT<Item_subselect, Item::Type::SUBSELECT_ITEM> {
     void do_analyze(Item_subselect *i, cipher_type t) const {
         st_select_lex *select_lex = i->get_select_lex();
         process_select_lex(select_lex, t);
@@ -218,7 +224,7 @@ static class CItemSubselect : public CItemSubtypeIT<Item_subselect, Item::Type::
 } ANON;
 
 extern const char str_in_optimizer[] = "<in_optimizer>";
-static class CItemSubselectInopt : public CItemSubtypeFN<Item_in_optimizer, str_in_optimizer> {
+static class ANON : public CItemSubtypeFN<Item_in_optimizer, str_in_optimizer> {
     void do_analyze(Item_in_optimizer *i, cipher_type t) const {
         Item **args = i->arguments();
         analyze(args[0], cipher_type::any);
@@ -235,7 +241,7 @@ class Item_cache_extractor : public Item_cache {
     }
 };
 
-static class CItemCache : public CItemSubtypeIT<Item_cache, Item::Type::CACHE_ITEM> {
+static class ANON : public CItemSubtypeIT<Item_cache, Item::Type::CACHE_ITEM> {
     void do_analyze(Item_cache *i, cipher_type t) const {
         Item *example = Item_cache_extractor::get_example(i);
         if (example)
@@ -299,7 +305,7 @@ class CItemNullcheck : public CItemSubtypeFT<Item_bool_func, FT> {
 static CItemNullcheck<Item_func::Functype::ISNULL_FUNC> ANON;
 static CItemNullcheck<Item_func::Functype::ISNOTNULL_FUNC> ANON;
 
-static class CItemSysvar : public CItemSubtypeFT<Item_func_get_system_var, Item_func::Functype::GSYSVAR_FUNC> {
+static class ANON : public CItemSubtypeFT<Item_func_get_system_var, Item_func::Functype::GSYSVAR_FUNC> {
     void do_analyze(Item_func_get_system_var *i, cipher_type t) const {}
 } ANON;
 
@@ -351,7 +357,7 @@ extern const char str_radians[] = "radians";
 static CItemMath<str_radians> ANON;
 
 extern const char str_if[] = "if";
-static class CItemIf : public CItemSubtypeFN<Item_func_if, str_if> {
+static class ANON : public CItemSubtypeFN<Item_func_if, str_if> {
     void do_analyze(Item_func_if *i, cipher_type t) const {
         Item **args = i->arguments();
         analyze(args[0], cipher_type::plain);
@@ -361,7 +367,7 @@ static class CItemIf : public CItemSubtypeFN<Item_func_if, str_if> {
 } ANON;
 
 extern const char str_nullif[] = "nullif";
-static class CItemNullif : public CItemSubtypeFN<Item_func_nullif, str_nullif> {
+static class ANON : public CItemSubtypeFN<Item_func_nullif, str_nullif> {
     void do_analyze(Item_func_nullif *i, cipher_type t) const {
         Item **args = i->arguments();
         for (uint x = 0; x < i->argument_count(); x++)
@@ -395,6 +401,13 @@ static CItemLeafFunc<str_found_rows> ANON;
 extern const char str_rand[] = "rand";
 static CItemLeafFunc<str_rand> ANON;
 
+static class ANON : public CItemSubtypeFT<Item_extract, Item_func::Functype::EXTRACT_FUNC> {
+    void do_analyze(Item_extract *i, cipher_type t) const {
+        /* XXX perhaps too conservative */
+        analyze(i->arguments()[0], cipher_type::plain);
+    }
+} ANON;
+
 template<const char *NAME>
 class CItemDateExtractFunc : public CItemSubtypeFN<Item_int_func, NAME> {
     void do_analyze(Item_int_func *i, cipher_type t) const {
@@ -419,7 +432,7 @@ extern const char str_unix_timestamp[] = "unix_timestamp";
 static CItemDateExtractFunc<str_unix_timestamp> ANON;
 
 extern const char str_date_add_interval[] = "date_add_interval";
-static class CItemDateAddInterval : public CItemSubtypeFN<Item_date_add_interval, str_date_add_interval> {
+static class ANON : public CItemSubtypeFN<Item_date_add_interval, str_date_add_interval> {
     void do_analyze(Item_date_add_interval *i, cipher_type t) const {
         Item **args = i->arguments();
         for (uint x = 0; x < i->argument_count(); x++) {
@@ -464,7 +477,7 @@ static CItemBitfunc<str_bit_xor> ANON;
 extern const char str_bit_and[] = "&";
 static CItemBitfunc<str_bit_and> ANON;
 
-static class CItemLike : public CItemSubtypeFT<Item_func_like, Item_func::Functype::LIKE_FUNC> {
+static class ANON : public CItemSubtypeFT<Item_func_like, Item_func::Functype::LIKE_FUNC> {
     void do_analyze(Item_func_like *i, cipher_type t) const {
         Item **args = i->arguments();
         if (args[1]->type() == Item::Type::STRING_ITEM) {
@@ -484,7 +497,7 @@ static class CItemLike : public CItemSubtypeFT<Item_func_like, Item_func::Functy
     }
 } ANON;
 
-static class CItemSP : public CItemSubtypeFT<Item_func, Item_func::Functype::FUNC_SP> {
+static class ANON : public CItemSubtypeFT<Item_func, Item_func::Functype::FUNC_SP> {
     void error(Item_func *i) const __attribute__((noreturn)) {
         thrower() << "unsupported store procedure call " << *i;
     }
@@ -492,7 +505,7 @@ static class CItemSP : public CItemSubtypeFT<Item_func, Item_func::Functype::FUN
     void do_analyze(Item_func *i, cipher_type t) const __attribute__((noreturn)) { error(i); }
 } ANON;
 
-static class CItemIn : public CItemSubtypeFT<Item_func_in, Item_func::Functype::IN_FUNC> {
+static class ANON : public CItemSubtypeFT<Item_func_in, Item_func::Functype::IN_FUNC> {
     void do_analyze(Item_func_in *i, cipher_type t) const {
         Item **args = i->arguments();
         for (uint x = 0; x < i->argument_count(); x++)
@@ -500,7 +513,7 @@ static class CItemIn : public CItemSubtypeFT<Item_func_in, Item_func::Functype::
     }
 } ANON;
 
-static class CItemBetween : public CItemSubtypeFT<Item_func_in, Item_func::Functype::BETWEEN> {
+static class ANON : public CItemSubtypeFT<Item_func_in, Item_func::Functype::BETWEEN> {
     void do_analyze(Item_func_in *i, cipher_type t) const {
         Item **args = i->arguments();
         for (uint x = 0; x < i->argument_count(); x++)
@@ -529,19 +542,26 @@ class CItemChooseOrder : public CItemSubtypeST<Item_sum_hybrid, SFT> {
 static CItemChooseOrder<Item_sum::Sumfunctype::MIN_FUNC> ANON;
 static CItemChooseOrder<Item_sum::Sumfunctype::MAX_FUNC> ANON;
 
-static class CItemSumBit : public CItemSubtypeST<Item_sum_bit, Item_sum::Sumfunctype::SUM_BIT_FUNC> {
+static class ANON : public CItemSubtypeST<Item_sum_bit, Item_sum::Sumfunctype::SUM_BIT_FUNC> {
     void do_analyze(Item_sum_bit *i, cipher_type t) const {
         analyze(i->get_arg(0), cipher_type::plain);
     }
 } ANON;
 
-class CItemCharcast : public CItemSubtypeFT<Item_char_typecast, Item_func::Functype::CHAR_TYPECAST_FUNC> {
+static class ANON : public CItemSubtypeFT<Item_char_typecast, Item_func::Functype::CHAR_TYPECAST_FUNC> {
     void do_analyze(Item_char_typecast *i, cipher_type t) const {
         thrower() << "what does Item_char_typecast do?";
     }
 } ANON;
 
-class CItemRef : public CItemSubtypeIT<Item_ref, Item::Type::REF_ITEM> {
+extern const char str_cast_as_signed[] = "cast_as_signed";
+static class ANON : public CItemSubtypeFN<Item_func_signed, str_cast_as_signed> {
+    void do_analyze(Item_func_signed *i, cipher_type t) const {
+        analyze(i->arguments()[0], t);
+    }
+} ANON;
+
+static class ANON : public CItemSubtypeIT<Item_ref, Item::Type::REF_ITEM> {
     void do_analyze(Item_ref *i, cipher_type t) const {
         if (i->ref) {
             analyze(*i->ref, t);
