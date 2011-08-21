@@ -308,7 +308,7 @@ MetaAccess::getTypesHasAccessTo(string princ)
 {
     assert_s(prinToGen.find(sanitize(
                                 princ)) != prinToGen.end(),
-             "input to getHasAccessTo is not a known principal");
+             princ+" input to getHasAccessTo is not a known principal");
     string gen_accessing = getGeneric(princ);
     std::set<string> can_access;
     std::set<string>::iterator it;
@@ -345,7 +345,7 @@ MetaAccess::getGenHasAccessTo(string gen)
 {
     assert_s(genToPrin.find(
                  gen) != genToPrin.end(),
-             "input to getHasAccessTo is not a known principal");
+             gen+" gen input to getHasAccessTo is not a known principal");
     string gen_accessing = gen;
     std::set<string> can_access;
     std::set<string>::iterator it;
