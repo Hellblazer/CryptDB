@@ -581,58 +581,30 @@ analyze(const std::string &db, const std::string &q)
 
             if (debug) cout << "parsed query: " << *lex << endl;
 
-            /* Much of the code below is based on JOIN::prepare in sql_select.cc */
+            /*
+             * Helpful in understanding what's going on: JOIN::prepare(),
+             * handle_select(), and mysql_select() in sql_select.cc.
+             */
             if (open_normal_and_derived_tables(t, lex->query_tables, 0))
                 thrower() << "open_tables error: " << t->stmt_da->message() << endl;
 
-            if (setup_tables(t, &lex->select_lex.context,
-                             &lex->select_lex.top_join_list,
-                             lex->query_tables,
-                             &lex->select_lex.leaf_tables,
-                             lex->sql_command == SQLCOM_INSERT_SELECT))
-                thrower() << "setup_tables error: " << t->stmt_da->message() << endl;
+            JOIN *j = new JOIN(t, lex->select_lex.item_list,
+                               lex->select_lex.options, 0);
+            if (j->prepare(&lex->select_lex.ref_pointer_array,
+                           lex->select_lex.table_list.first,
+                           lex->select_lex.with_wild,
+                           lex->select_lex.where,
+                           lex->select_lex.order_list.elements
+                             + lex->select_lex.group_list.elements,
+                           lex->select_lex.order_list.first,
+                           lex->select_lex.group_list.first,
+                           lex->select_lex.having,
+                           lex->proc_list.first,
+                           &lex->select_lex,
+                           &lex->unit))
+                thrower() << "JOIN prepare error: " << t->stmt_da->message() << endl;
 
-            if (setup_fields(t, 0, lex->value_list, MARK_COLUMNS_NONE, 0,
-                             /* allow sum */ 0))
-                thrower() << "setup_fields error: " << t->stmt_da->message() << endl;
-
-            List<Item> all_fields;
-            bool hidden_group_fields = false;
-
-            /* expand wildcard in item list */
-            List<Item> fields = lex->select_lex.item_list;
-            if (setup_wild(t, lex->query_tables, fields, &all_fields,
-                           lex->select_lex.with_wild))
-                thrower() << "setup_wild error: " << t->stmt_da->message() << endl;
-
-            if (lex->select_lex.setup_ref_array(t, lex->select_lex.order_list.elements +
-                                                   lex->select_lex.group_list.elements))
-                thrower() << "setup_ref_array: " << t->stmt_da->message() << endl;
-
-            if (setup_fields(t, lex->select_lex.ref_pointer_array, fields,
-                             MARK_COLUMNS_NONE, &all_fields, /* allow sum */ 0))
-                thrower() << "setup_fields error: " << t->stmt_da->message() << endl;
-
-            if (setup_conds(t, lex->query_tables, lex->select_lex.leaf_tables,
-                            &lex->select_lex.where))
-                thrower() << "setup_conds error: " << t->stmt_da->message() << endl;
-
-            if (setup_order(t, lex->select_lex.ref_pointer_array, lex->query_tables,
-                            fields, all_fields, lex->select_lex.order_list.first))
-                thrower() << "setup_order error: " << t->stmt_da->message() << endl;
-
-            if (setup_group(t, lex->select_lex.ref_pointer_array, lex->query_tables,
-                            fields, all_fields, lex->select_lex.group_list.first,
-                            &hidden_group_fields))
-                thrower() << "setup_order error: " << t->stmt_da->message() << endl;
-
-            if (lex->select_lex.having)
-                lex->select_lex.having->fix_fields(t, (Item**) &(lex->select_lex.having));
-
-            if (fix_inner_refs(t, all_fields, &lex->select_lex,
-                               lex->select_lex.ref_pointer_array,
-                               lex->select_lex.group_list.first))
-                thrower() << "fix_inner_refs error: " << t->stmt_da->message() << endl;
+            if (debug) cout << "prepared query: " << *lex << endl;
 
             // iterate over the entire select statement..
             // based on st_select_lex::print in mysql-server/sql/sql_select.cc
@@ -659,8 +631,6 @@ analyze(const std::string &db, const std::string &q)
                 analyze(*o->item, cipher_type::order);
 
             process_table_list(&lex->select_lex.top_join_list);
-
-            if (debug) cout << "fixed query: " << *lex << endl;
         }
 
         t->end_statement();
