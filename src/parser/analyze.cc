@@ -592,7 +592,8 @@ analyze(const std::string &db, const std::string &q)
                              lex->sql_command == SQLCOM_INSERT_SELECT))
                 thrower() << "setup_tables error: " << t->stmt_da->message() << endl;
 
-            if (setup_fields(t, 0, lex->value_list, MARK_COLUMNS_NONE, 0, 0))
+            if (setup_fields(t, 0, lex->value_list, MARK_COLUMNS_NONE, 0,
+                             /* allow sum */ 0))
                 thrower() << "setup_fields error: " << t->stmt_da->message() << endl;
 
             List<Item> all_fields;
@@ -609,7 +610,7 @@ analyze(const std::string &db, const std::string &q)
                 thrower() << "setup_ref_array: " << t->stmt_da->message() << endl;
 
             if (setup_fields(t, lex->select_lex.ref_pointer_array, fields,
-                             MARK_COLUMNS_NONE, &all_fields, 0))
+                             MARK_COLUMNS_NONE, &all_fields, /* allow sum */ 0))
                 thrower() << "setup_fields error: " << t->stmt_da->message() << endl;
 
             if (setup_conds(t, lex->query_tables, lex->select_lex.leaf_tables,
