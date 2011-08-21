@@ -184,13 +184,13 @@ EDBProxy::EDBProxy(string server, string user, string psswd, string dbname,
     this->allDefaultEncrypted = defaultEnc;
 
     //hack, remove
-    EXECUTE_QUERIES = true;
-    char * ev = getenv("EXECUTE_QUERIES");
+    REWRITE_QUERIES = true;
+    char * ev = getenv("REWRITE_QUERIES");
     if (ev) {
         string executeQueries = string(ev);
         if (executeQueries == "false") {
             LOG(wrapper) << "not executing queries";
-            EXECUTE_QUERIES = false;
+            REWRITE_QUERIES = false;
         } else {
             LOG(wrapper) << "executing queries";
         }
@@ -1001,7 +1001,6 @@ throw (CryptDBError)
             subqueries.pop_front();
         }
 
-        LOG(edb) << "before processop for " << operand1 << " " << operand2;
         resultQuery = resultQuery +
                       processOperation(op, operand1, operand2,  qm, subquery,
                                        tmkm);
@@ -1320,7 +1319,7 @@ throw (CryptDBError)
 }
 
 //returns a list of simple queries from nested queries,
-
+/*
 static list<list<string> >
 getSimpleQ(const string &query)
 {
@@ -1376,11 +1375,16 @@ getSimpleQ(const string &query)
 
     return results;
 }
-
+*/
 list<string>
 EDBProxy::rewriteEncryptSelect(const string &query)
 throw (CryptDBError)
 {
+    list<string> words = getSQLWords(query);
+    LOG(edb) << "after sql words " << toString(words, angleBrackets);
+    return rewriteSelectHelper(words);
+
+    /*
     FieldsToDecrypt fieldsDec;
 
     if (!isNested(query)) {
@@ -1456,7 +1460,7 @@ throw (CryptDBError)
     decqueries.push_back(results.back());
 
     return decqueries;
-
+*/
 }
 
 static bool
@@ -2947,11 +2951,17 @@ throw (CryptDBError)
 
     list<string> words = getSQLWords(query);
 
+
     list<string>::iterator wordsIt = words.begin();
 
-    wordsIt++;
+
+    if (words.size() == 1) {
+       return list<string>(1, "commit;");
+    }
+
 
     if (mp) {
+        wordsIt++;
         if (equalsIgnoreCase(*wordsIt, "annotations")) {
             wordsIt++;
             assert_s(
@@ -2962,7 +2972,10 @@ throw (CryptDBError)
         }
     }
 
+
     assert_s(wordsIt==words.end(), "nothing should come after commit;");
+
+
     return list<string>(1, "commit;");
 }
 
@@ -3183,11 +3196,7 @@ EDBProxy::considerQuery(command com, const string &query)
         break; 
     }
     case cmd::BEGIN: {
-        LOG(edb_v) << "begin";
-        if (DECRYPTFIRST) {
-            return true;
-        }
-        return false;
+        return true;
     }
     case cmd::COMMIT: {
         if (DECRYPTFIRST) {
@@ -3235,15 +3244,19 @@ throw (CryptDBError)
 
     command com = getCommand(query);
 
+    LOG(edb) << "-------------------";
+    LOG(edb) << "Query: " << query;
+
     //some queries do not need to be encrypted
     if (!considerQuery(com, query)) {
+
         LOG(edb_v) << "query not considered: " << query;
         list<string> res;
         res.push_back(query);
         return res;
     }
 
-    if (!EXECUTE_QUERIES && (com != cmd::TRAIN)) {
+    if (!REWRITE_QUERIES && (com != cmd::TRAIN)) {
         return list<string>();
     }
 
