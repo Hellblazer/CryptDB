@@ -8,17 +8,21 @@
 *
 */
 
-$updates_to_version = '3.0.7-PL1';
+define('UPDATES_TO_VERSION', '3.0.9');
 
 // Enter any version to update from to test updates. The version within the db will not be updated.
-$debug_from_version = false;
+define('DEBUG_FROM_VERSION', false);
 
 // Which oldest version does this updater support?
-$oldest_from_version = '3.0.0';
+define('OLDEST_FROM_VERSION', '3.0.0');
 
 // Return if we "just include it" to find out for which version the database update is responsible for
 if (defined('IN_PHPBB') && defined('IN_INSTALL'))
 {
+	$updates_to_version = UPDATES_TO_VERSION;
+	$debug_from_version = DEBUG_FROM_VERSION;
+	$oldest_from_version = OLDEST_FROM_VERSION;
+
 	return;
 }
 
@@ -30,12 +34,32 @@ define('IN_INSTALL', true);
 $phpbb_root_path = (defined('PHPBB_ROOT_PATH')) ? PHPBB_ROOT_PATH : './../';
 $phpEx = substr(strrchr(__FILE__, '.'), 1);
 
-// Report all errors, except notices and deprecation messages
-if (!defined('E_DEPRECATED'))
+if (!function_exists('phpbb_require_updated'))
 {
-	define('E_DEPRECATED', 8192);
+	function phpbb_require_updated($path, $optional = false)
+	{
+		global $phpbb_root_path;
+
+		$new_path = $phpbb_root_path . 'install/update/new/' . $path;
+		$old_path = $phpbb_root_path . $path;
+
+		if (file_exists($new_path))
+		{
+			require($new_path);
+		}
+		else if (!$optional || file_exists($old_path))
+		{
+			require($old_path);
+		}
+	}
 }
-//error_reporting(E_ALL ^ E_NOTICE ^ E_DEPRECATED);
+
+phpbb_require_updated('includes/startup.' . $phpEx);
+
+$updates_to_version = UPDATES_TO_VERSION;
+$debug_from_version = DEBUG_FROM_VERSION;
+$oldest_from_version = OLDEST_FROM_VERSION;
+
 error_reporting(E_ALL);
 
 @set_time_limit(0);
@@ -68,28 +92,18 @@ require($phpbb_root_path . 'includes/auth.' . $phpEx);
 
 require($phpbb_root_path . 'includes/functions.' . $phpEx);
 
-if (file_exists($phpbb_root_path . 'includes/functions_content.' . $phpEx))
-{
-	require($phpbb_root_path . 'includes/functions_content.' . $phpEx);
-}
+phpbb_require_updated('includes/functions_content.' . $phpEx, true);
 
 require($phpbb_root_path . 'includes/functions_admin.' . $phpEx);
 require($phpbb_root_path . 'includes/constants.' . $phpEx);
 require($phpbb_root_path . 'includes/db/' . $dbms . '.' . $phpEx);
 require($phpbb_root_path . 'includes/utf/utf_tools.' . $phpEx);
 
-// If we are on PHP >= 6.0.0 we do not need some code
-if (version_compare(PHP_VERSION, '6.0.0-dev', '>='))
+// new table constants are separately defined here in case the updater is run
+// before the files are updated
+if (!defined('LOGIN_ATTEMPT_TABLE'))
 {
-	/**
-	* @ignore
-	*/
-	define('STRIP', false);
-}
-else
-{
-	@set_magic_quotes_runtime(0);
-	define('STRIP', (get_magic_quotes_gpc()) ? true : false);
+	define('LOGIN_ATTEMPT_TABLE', $table_prefix . 'login_attempts');
 }
 
 $user = new user();
@@ -119,6 +133,7 @@ $db->sql_connect($dbhost, $dbuser, $dbpasswd, $dbname, $dbport, false, false);
 unset($dbpasswd);
 
 $user->ip = (!empty($_SERVER['REMOTE_ADDR'])) ? htmlspecialchars($_SERVER['REMOTE_ADDR']) : '';
+$user->ip = (stripos($user->ip, '::ffff:') === 0) ? substr($user->ip, 7) : $user->ip;
 
 $sql = "SELECT config_value
 	FROM " . CONFIG_TABLE . "
@@ -226,7 +241,7 @@ if (empty($config['dbms_version']))
 	set_config('dbms_version', $db->sql_server_info(true));
 }
 
-// Firebird update from Firebord 2.0 to 2.1+ required?
+// Firebird update from Firebird 2.0 to 2.1+ required?
 if ($db->sql_layer == 'firebird')
 {
 	// We do not trust any PHP5 function enabled, we will simply test for a function new in 2.1
@@ -476,7 +491,7 @@ else
 
 	<p><?php echo ((isset($lang['INLINE_UPDATE_SUCCESSFUL'])) ? $lang['INLINE_UPDATE_SUCCESSFUL'] : 'The database update was successful. Now you need to continue the update process.'); ?></p>
 
-	<p><a href="<?php echo append_sid("{$phpbb_root_path}install/index.{$phpEx}", "mode=update&amp;sub=file_check&amp;lang=$language"); ?>" class="button1"><?php echo (isset($lang['CONTINUE_UPDATE_NOW'])) ? $lang['CONTINUE_UPDATE_NOW'] : 'Continue the update process now'; ?></a></p>
+	<p><a href="<?php echo append_sid("{$phpbb_root_path}install/index.{$phpEx}", "mode=update&amp;sub=file_check&amp;language=$language"); ?>" class="button1"><?php echo (isset($lang['CONTINUE_UPDATE_NOW'])) ? $lang['CONTINUE_UPDATE_NOW'] : 'Continue the update process now'; ?></a></p>
 
 <?php
 }
@@ -510,7 +525,7 @@ function _print_footer()
 	</div>
 
 	<div id="page-footer">
-		Powered by phpBB &copy; 2000, 2002, 2005, 2007 <a href="http://www.phpbb.com/">phpBB Group</a>
+		Powered by <a href="http://www.phpbb.com/">phpBB</a>&reg; Forum Software &copy; phpBB Group
 	</div>
 </div>
 
@@ -533,12 +548,23 @@ function _sql($sql, &$errored, &$error_ary, $echo_dot = true)
 
 	$db->sql_return_on_error(true);
 
-	$result = $db->sql_query($sql);
-	if ($db->sql_error_triggered)
+	if ($sql === 'begin')
 	{
-		$errored = true;
-		$error_ary['sql'][] = $db->sql_error_sql;
-		$error_ary['error_code'][] = $db->sql_error_returned;
+		$result = $db->sql_transaction('begin');
+	}
+	else if ($sql === 'commit')
+	{
+		$result = $db->sql_transaction('commit');
+	}
+	else
+	{
+		$result = $db->sql_query($sql);
+		if ($db->sql_error_triggered)
+		{
+			$errored = true;
+			$error_ary['sql'][] = $db->sql_error_sql;
+			$error_ary['error_code'][] = $db->sql_error_returned;
+		}
 	}
 
 	$db->sql_return_on_error(false);
@@ -684,9 +710,7 @@ function _add_modules($modules_to_install)
 				FROM ' . MODULES_TABLE . "
 				WHERE module_class = '" . $db->sql_escape($module_data['class']) . "'
 					AND parent_id = {$parent_id}
-					AND left_id BETWEEN {$first_left_id} AND {$module_row['left_id']}
-				GROUP BY left_id
-				ORDER BY left_id";
+					AND left_id BETWEEN {$first_left_id} AND {$module_row['left_id']}";
 			$result = $db->sql_query($sql);
 			$steps = (int) $db->sql_fetchfield('num_modules');
 			$db->sql_freeresult($result);
@@ -881,7 +905,7 @@ function database_update_info()
 					'pm_id'			=> array('pm_id'),
 				),
 				POSTS_TABLE			=> array(
-					'post_username'		=> array('post_username'),
+					'post_username'		=> array('post_username:255'),
 				),
 			),
 		),
@@ -913,6 +937,54 @@ function database_update_info()
 		'3.0.7-RC2'		=> array(),
 		// No changes from 3.0.7 to 3.0.7-PL1
 		'3.0.7'		=> array(),
+		// No changes from 3.0.7-PL1 to 3.0.8-RC1
+		'3.0.7-PL1'		=> array(),
+		// No changes from 3.0.8-RC1 to 3.0.8
+		'3.0.8-RC1'		=> array(),
+		// Changes from 3.0.8 to 3.0.9-RC1
+		'3.0.8'			=> array(
+			'add_tables'		=> array(
+				LOGIN_ATTEMPT_TABLE	=> array(
+					'COLUMNS'			=> array(
+						// this column was removed from the database updater
+						// after 3.0.9-RC3 was released. It might still exist
+						// in 3.0.9-RCX installations and has to be dropped in
+						// 3.0.10 after the db_tools class is capable of properly
+						// removing a primary key.
+						// 'attempt_id'			=> array('UINT', NULL, 'auto_increment'),
+						'attempt_ip'			=> array('VCHAR:40', ''),
+						'attempt_browser'		=> array('VCHAR:150', ''),
+						'attempt_forwarded_for'	=> array('VCHAR:255', ''),
+						'attempt_time'			=> array('TIMESTAMP', 0),
+						'user_id'				=> array('UINT', 0),
+						'username'				=> array('VCHAR_UNI:255', 0),
+						'username_clean'		=> array('VCHAR_CI', 0),
+					),
+					//'PRIMARY_KEY'		=> 'attempt_id',
+					'KEYS'				=> array(
+						'att_ip'			=> array('INDEX', array('attempt_ip', 'attempt_time')),
+						'att_for'	=> array('INDEX', array('attempt_forwarded_for', 'attempt_time')),
+						'att_time'			=> array('INDEX', array('attempt_time')),
+						'user_id'				=> array('INDEX', 'user_id'),
+					),
+				),
+			),
+			'change_columns'	=> array(
+				BBCODES_TABLE	=> array(
+					'bbcode_id'	=> array('USINT', 0),
+				),
+			),
+		),
+		// No changes from 3.0.9-RC1 to 3.0.9-RC2
+		'3.0.9-RC1'		=> array(),
+		// No changes from 3.0.9-RC2 to 3.0.9-RC3
+		'3.0.9-RC2'		=> array(),
+		// No changes from 3.0.9-RC3 to 3.0.9-RC4
+		'3.0.9-RC3'     => array(),
+		// No changes from 3.0.9-RC4 to 3.0.9
+		'3.0.9-RC4'     => array(),
+
+		/** @todo DROP LOGIN_ATTEMPT_TABLE.attempt_id in 3.0.10-RC1 */
 	);
 }
 
@@ -1648,6 +1720,278 @@ function change_database_data(&$no_updates, $version)
 		// No changes from 3.0.7 to 3.0.7-PL1
 		case '3.0.7':
 		break;
+
+		// Changes from 3.0.7-PL1 to 3.0.8-RC1
+		case '3.0.7-PL1':
+			// Update file extension group names to use language strings.
+			$sql = 'SELECT lang_dir
+				FROM ' . LANG_TABLE;
+			$result = $db->sql_query($sql);
+
+			$extension_groups_updated = array();
+			while ($lang_dir = $db->sql_fetchfield('lang_dir'))
+			{
+				$lang_dir = basename($lang_dir);
+
+				// The language strings we need are either in language/.../acp/attachments.php
+				// in the update package if we're updating to 3.0.8-RC1 or later,
+				// or they are in language/.../install.php when we're updating from 3.0.7-PL1 or earlier.
+				// On an already updated board, they can also already be in language/.../acp/attachments.php
+				// in the board root.
+				$lang_files = array(
+					"{$phpbb_root_path}install/update/new/language/$lang_dir/acp/attachments.$phpEx",
+					"{$phpbb_root_path}language/$lang_dir/install.$phpEx",
+					"{$phpbb_root_path}language/$lang_dir/acp/attachments.$phpEx",
+				);
+
+				foreach ($lang_files as $lang_file)
+				{
+					if (!file_exists($lang_file))
+					{
+						continue;
+					}
+
+					$lang = array();
+					include($lang_file);
+
+					foreach($lang as $lang_key => $lang_val)
+					{
+						if (isset($extension_groups_updated[$lang_key]) || strpos($lang_key, 'EXT_GROUP_') !== 0)
+						{
+							continue;
+						}
+
+						$sql_ary = array(
+							'group_name'	=> substr($lang_key, 10), // Strip off 'EXT_GROUP_'
+						);
+
+						$sql = 'UPDATE ' . EXTENSION_GROUPS_TABLE . '
+							SET ' . $db->sql_build_array('UPDATE', $sql_ary) . "
+							WHERE group_name = '" . $db->sql_escape($lang_val) . "'";
+						_sql($sql, $errored, $error_ary);
+
+						$extension_groups_updated[$lang_key] = true;
+					}
+				}
+			}
+			$db->sql_freeresult($result);
+
+			// Install modules
+			$modules_to_install = array(
+				'post'					=> array(
+					'base'		=> 'board',
+					'class'		=> 'acp',
+					'title'		=> 'ACP_POST_SETTINGS',
+					'auth'		=> 'acl_a_board',
+					'cat'		=> 'ACP_MESSAGES',
+					'after'		=> array('message', 'ACP_MESSAGE_SETTINGS')
+				),
+			);
+
+			_add_modules($modules_to_install);
+
+			// update
+			$sql = 'UPDATE ' . MODULES_TABLE . '
+				SET module_auth = \'cfg_allow_avatar && (cfg_allow_avatar_local || cfg_allow_avatar_remote || cfg_allow_avatar_upload || cfg_allow_avatar_remote_upload)\'
+				WHERE module_class = \'ucp\'
+					AND module_basename = \'profile\'
+					AND module_mode = \'avatar\'';
+			_sql($sql, $errored, $error_ary);
+
+			// add Bing Bot
+			$bot_name = 'Bing [Bot]';
+			$bot_name_clean = utf8_clean_string($bot_name);
+
+			$sql = 'SELECT user_id
+				FROM ' . USERS_TABLE . "
+				WHERE username_clean = '" . $db->sql_escape($bot_name_clean) . "'";
+			$result = $db->sql_query($sql);
+			$bing_already_added = (bool) $db->sql_fetchfield('user_id');
+			$db->sql_freeresult($result);
+
+			if (!$bing_already_added)
+			{
+				$bot_agent = 'bingbot/';
+				$bot_ip = '';
+				$sql = 'SELECT group_id, group_colour
+					FROM ' . GROUPS_TABLE . "
+					WHERE group_name = 'BOTS'";
+				$result = $db->sql_query($sql);
+				$group_row = $db->sql_fetchrow($result);
+				$db->sql_freeresult($result);
+
+				if (!$group_row)
+				{
+					// default fallback, should never get here
+					$group_row['group_id'] = 6;
+					$group_row['group_colour'] = '9E8DA7';
+				}
+
+				if (!function_exists('user_add'))
+				{
+					include($phpbb_root_path . 'includes/functions_user.' . $phpEx);
+				}
+
+				$user_row = array(
+					'user_type'				=> USER_IGNORE,
+					'group_id'				=> $group_row['group_id'],
+					'username'				=> $bot_name,
+					'user_regdate'			=> time(),
+					'user_password'			=> '',
+					'user_colour'			=> $group_row['group_colour'],
+					'user_email'			=> '',
+					'user_lang'				=> $config['default_lang'],
+					'user_style'			=> $config['default_style'],
+					'user_timezone'			=> 0,
+					'user_dateformat'		=> $config['default_dateformat'],
+					'user_allow_massemail'	=> 0,
+				);
+
+				$user_id = user_add($user_row);
+
+				$sql = 'INSERT INTO ' . BOTS_TABLE . ' ' . $db->sql_build_array('INSERT', array(
+					'bot_active'	=> 1,
+					'bot_name'		=> (string) $bot_name,
+					'user_id'		=> (int) $user_id,
+					'bot_agent'		=> (string) $bot_agent,
+					'bot_ip'		=> (string) $bot_ip,
+				));
+
+				_sql($sql, $errored, $error_ary);
+			}
+			// end Bing Bot addition
+
+			// Delete shadow topics pointing to not existing topics
+			$batch_size = 500;
+
+			// Set of affected forums we have to resync
+			$sync_forum_ids = array();
+
+			do
+			{
+				$sql_array = array(
+					'SELECT'	=> 't1.topic_id, t1.forum_id',
+					'FROM'		=> array(
+						TOPICS_TABLE	=> 't1',
+					),
+					'LEFT_JOIN'	=> array(
+						array(
+							'FROM'	=> array(TOPICS_TABLE	=> 't2'),
+							'ON'	=> 't1.topic_moved_id = t2.topic_id',
+						),
+					),
+					'WHERE'		=> 't1.topic_moved_id <> 0
+								AND t2.topic_id IS NULL',
+				);
+				$sql = $db->sql_build_query('SELECT', $sql_array);
+				$result = $db->sql_query_limit($sql, $batch_size);
+
+				$topic_ids = array();
+				while ($row = $db->sql_fetchrow($result))
+				{
+					$topic_ids[] = (int) $row['topic_id'];
+
+					$sync_forum_ids[(int) $row['forum_id']] = (int) $row['forum_id'];
+				}
+				$db->sql_freeresult($result);
+
+				if (!empty($topic_ids))
+				{
+					$sql = 'DELETE FROM ' . TOPICS_TABLE . '
+						WHERE ' . $db->sql_in_set('topic_id', $topic_ids);
+					$db->sql_query($sql);
+				}
+			}
+			while (sizeof($topic_ids) == $batch_size);
+
+			// Sync the forums we have deleted shadow topics from.
+			sync('forum', 'forum_id', $sync_forum_ids, true, true);
+
+			// Unread posts search load switch
+			set_config('load_unreads_search', '1');
+
+			// Reduce queue interval to 60 seconds, email package size to 20
+			if ($config['queue_interval'] == 600)
+			{
+				set_config('queue_interval', '60');
+			}
+
+			if ($config['email_package_size'] == 50)
+			{
+				set_config('email_package_size', '20');
+			}
+
+			$no_updates = false;
+		break;
+
+		// No changes from 3.0.8-RC1 to 3.0.8
+		case '3.0.8-RC1':
+		break;
+
+		// Changes from 3.0.8 to 3.0.9-RC1
+		case '3.0.8':
+			set_config('ip_login_limit_max', '50');
+			set_config('ip_login_limit_time', '21600');
+			set_config('ip_login_limit_use_forwarded', '0');
+
+			// Update file extension group names to use language strings, again.
+			$sql = 'SELECT group_id, group_name
+				FROM ' . EXTENSION_GROUPS_TABLE . '
+				WHERE group_name ' . $db->sql_like_expression('EXT_GROUP_' . $db->any_char);
+			$result = $db->sql_query($sql);
+
+			while ($row = $db->sql_fetchrow($result))
+			{
+				$sql_ary = array(
+					'group_name'	=> substr($row['group_name'], 10), // Strip off 'EXT_GROUP_'
+				);
+
+				$sql = 'UPDATE ' . EXTENSION_GROUPS_TABLE . '
+					SET ' . $db->sql_build_array('UPDATE', $sql_ary) . '
+					WHERE group_id = ' . $row['group_id'];
+				_sql($sql, $errored, $error_ary);
+			}
+			$db->sql_freeresult($result);
+
+			global $db_tools, $table_prefix;
+
+			// Recover from potentially broken Q&A CAPTCHA table on firebird
+			// Q&A CAPTCHA was uninstallable, so it's safe to remove these
+			// without data loss
+			if ($db_tools->sql_layer == 'firebird')
+			{
+				$tables = array(
+					$table_prefix . 'captcha_questions',
+					$table_prefix . 'captcha_answers',
+					$table_prefix . 'qa_confirm',
+				);
+				foreach ($tables as $table)
+				{
+					if ($db_tools->sql_table_exists($table))
+					{
+						$db_tools->sql_table_drop($table);
+					}
+				}
+			}
+
+			$no_updates = false;
+		break;
+
+		// No changes from 3.0.9-RC1 to 3.0.9-RC2
+		case '3.0.9-RC1':
+		break;
+
+		// No changes from 3.0.9-RC2 to 3.0.9-RC3
+		case '3.0.9-RC2':
+		break;
+
+		// No changes from 3.0.9-RC3 to 3.0.9-RC4
+		case '3.0.9-RC3':
+		break;
+
+		// No changes from 3.0.9-RC4 to 3.0.9
+		case '3.0.9-RC4':
+		break;
 	}
 }
 
@@ -1795,6 +2139,36 @@ class updater_db_tools
 			'VARBINARY'	=> '[varchar] (255)',
 		),
 
+		'mssqlnative'	=> array(
+			'INT:'		=> '[int]',
+			'BINT'		=> '[float]',
+			'UINT'		=> '[int]',
+			'UINT:'		=> '[int]',
+			'TINT:'		=> '[int]',
+			'USINT'		=> '[int]',
+			'BOOL'		=> '[int]',
+			'VCHAR'		=> '[varchar] (255)',
+			'VCHAR:'	=> '[varchar] (%d)',
+			'CHAR:'		=> '[char] (%d)',
+			'XSTEXT'	=> '[varchar] (1000)',
+			'STEXT'		=> '[varchar] (3000)',
+			'TEXT'		=> '[varchar] (8000)',
+			'MTEXT'		=> '[text]',
+			'XSTEXT_UNI'=> '[varchar] (100)',
+			'STEXT_UNI'	=> '[varchar] (255)',
+			'TEXT_UNI'	=> '[varchar] (4000)',
+			'MTEXT_UNI'	=> '[text]',
+			'TIMESTAMP'	=> '[int]',
+			'DECIMAL'	=> '[float]',
+			'DECIMAL:'	=> '[float]',
+			'PDECIMAL'	=> '[float]',
+			'PDECIMAL:'	=> '[float]',
+			'VCHAR_UNI'	=> '[varchar] (255)',
+			'VCHAR_UNI:'=> '[varchar] (%d)',
+			'VCHAR_CI'	=> '[varchar] (255)',
+			'VARBINARY'	=> '[varchar] (255)',
+		),
+
 		'oracle'	=> array(
 			'INT:'		=> 'number(%d)',
 			'BINT'		=> 'number(20)',
@@ -1896,7 +2270,7 @@ class updater_db_tools
 	* A list of supported DBMS. We change this class to support more DBMS, the DBMS itself only need to follow some rules.
 	* @var array
 	*/
-	var $supported_dbms = array('firebird', 'mssql', 'mysql_40', 'mysql_41', 'oracle', 'postgres', 'sqlite');
+	var $supported_dbms = array('firebird', 'mssql', 'mssqlnative', 'mysql_40', 'mysql_41', 'oracle', 'postgres', 'sqlite');
 
 	/**
 	* This is set to true if user only wants to return the 'to-be-executed' SQL statement(s) (as an array).
@@ -1942,10 +2316,279 @@ class updater_db_tools
 				$this->sql_layer = 'mssql';
 			break;
 
+			case 'mssqlnative':
+				$this->sql_layer = 'mssqlnative';
+			break;
+
 			default:
 				$this->sql_layer = $this->db->sql_layer;
 			break;
 		}
+	}
+
+	/**
+	* Check if table exists
+	*
+	*
+	* @param string	$table_name	The table name to check for
+	* @return bool true if table exists, else false
+	*/
+	function sql_table_exists($table_name)
+	{
+		$this->db->sql_return_on_error(true);
+		$result = $this->db->sql_query_limit('SELECT * FROM ' . $table_name, 1);
+		$this->db->sql_return_on_error(false);
+
+		if ($result)
+		{
+			$this->db->sql_freeresult($result);
+			return true;
+		}
+
+		return false;
+	}
+
+	/**
+	* Create SQL Table
+	*
+	* @param string	$table_name	The table name to create
+	* @param array	$table_data	Array containing table data.
+	* @return array	Statements if $return_statements is true.
+	*/
+	function sql_create_table($table_name, $table_data)
+	{
+		// holds the DDL for a column
+		$columns = $statements = array();
+
+		if ($this->sql_table_exists($table_name))
+		{
+			return $this->_sql_run_sql($statements);
+		}
+
+		// Begin transaction
+		$statements[] = 'begin';
+
+		// Determine if we have created a PRIMARY KEY in the earliest
+		$primary_key_gen = false;
+
+		// Determine if the table must be created with TEXTIMAGE
+		$create_textimage = false;
+
+		// Determine if the table requires a sequence
+		$create_sequence = false;
+
+		// Begin table sql statement
+		switch ($this->sql_layer)
+		{
+			case 'mssql':
+			case 'mssqlnative':
+				$table_sql = 'CREATE TABLE [' . $table_name . '] (' . "\n";
+			break;
+
+			default:
+				$table_sql = 'CREATE TABLE ' . $table_name . ' (' . "\n";
+			break;
+		}
+
+		// Iterate through the columns to create a table
+		foreach ($table_data['COLUMNS'] as $column_name => $column_data)
+		{
+			// here lies an array, filled with information compiled on the column's data
+			$prepared_column = $this->sql_prepare_column_data($table_name, $column_name, $column_data);
+
+			if (isset($prepared_column['auto_increment']) && strlen($column_name) > 26) // "${column_name}_gen"
+			{
+				trigger_error("Index name '${column_name}_gen' on table '$table_name' is too long. The maximum auto increment column length is 26 characters.", E_USER_ERROR);
+			}
+
+			// here we add the definition of the new column to the list of columns
+			switch ($this->sql_layer)
+			{
+				case 'mssql':
+				case 'mssqlnative':
+					$columns[] = "\t [{$column_name}] " . $prepared_column['column_type_sql_default'];
+				break;
+
+				default:
+					$columns[] = "\t {$column_name} " . $prepared_column['column_type_sql'];
+				break;
+			}
+
+			// see if we have found a primary key set due to a column definition if we have found it, we can stop looking
+			if (!$primary_key_gen)
+			{
+				$primary_key_gen = isset($prepared_column['primary_key_set']) && $prepared_column['primary_key_set'];
+			}
+
+			// create textimage DDL based off of the existance of certain column types
+			if (!$create_textimage)
+			{
+				$create_textimage = isset($prepared_column['textimage']) && $prepared_column['textimage'];
+			}
+
+			// create sequence DDL based off of the existance of auto incrementing columns
+			if (!$create_sequence && isset($prepared_column['auto_increment']) && $prepared_column['auto_increment'])
+			{
+				$create_sequence = $column_name;
+			}
+		}
+
+		// this makes up all the columns in the create table statement
+		$table_sql .= implode(",\n", $columns);
+
+		// Close the table for two DBMS and add to the statements
+		switch ($this->sql_layer)
+		{
+			case 'firebird':
+				$table_sql .= "\n);";
+				$statements[] = $table_sql;
+			break;
+
+			case 'mssql':
+			case 'mssqlnative':
+				$table_sql .= "\n) ON [PRIMARY]" . (($create_textimage) ? ' TEXTIMAGE_ON [PRIMARY]' : '');
+				$statements[] = $table_sql;
+			break;
+		}
+
+		// we have yet to create a primary key for this table,
+		// this means that we can add the one we really wanted instead
+		if (!$primary_key_gen)
+		{
+			// Write primary key
+			if (isset($table_data['PRIMARY_KEY']))
+			{
+				if (!is_array($table_data['PRIMARY_KEY']))
+				{
+					$table_data['PRIMARY_KEY'] = array($table_data['PRIMARY_KEY']);
+				}
+
+				switch ($this->sql_layer)
+				{
+					case 'mysql_40':
+					case 'mysql_41':
+					case 'postgres':
+					case 'sqlite':
+						$table_sql .= ",\n\t PRIMARY KEY (" . implode(', ', $table_data['PRIMARY_KEY']) . ')';
+					break;
+
+					case 'firebird':
+					case 'mssql':
+					case 'mssqlnative':
+						// We need the data here
+						$old_return_statements = $this->return_statements;
+						$this->return_statements = true;
+
+						$primary_key_stmts = $this->sql_create_primary_key($table_name, $table_data['PRIMARY_KEY']);
+						foreach ($primary_key_stmts as $pk_stmt)
+						{
+							$statements[] = $pk_stmt;
+						}
+
+						$this->return_statements = $old_return_statements;
+					break;
+
+					case 'oracle':
+						$table_sql .= ",\n\t CONSTRAINT pk_{$table_name} PRIMARY KEY (" . implode(', ', $table_data['PRIMARY_KEY']) . ')';
+					break;
+				}
+			}
+		}
+
+		// close the table
+		switch ($this->sql_layer)
+		{
+			case 'mysql_41':
+				// make sure the table is in UTF-8 mode
+				$table_sql .= "\n) CHARACTER SET `utf8` COLLATE `utf8_bin`;";
+				$statements[] = $table_sql;
+			break;
+
+			case 'mysql_40':
+			case 'sqlite':
+				$table_sql .= "\n);";
+				$statements[] = $table_sql;
+			break;
+
+			case 'postgres':
+				// do we need to add a sequence for auto incrementing columns?
+				if ($create_sequence)
+				{
+					$statements[] = "CREATE SEQUENCE {$table_name}_seq;";
+				}
+
+				$table_sql .= "\n);";
+				$statements[] = $table_sql;
+			break;
+
+			case 'oracle':
+				$table_sql .= "\n)";
+				$statements[] = $table_sql;
+
+				// do we need to add a sequence and a tigger for auto incrementing columns?
+				if ($create_sequence)
+				{
+					// create the actual sequence
+					$statements[] = "CREATE SEQUENCE {$table_name}_seq";
+
+					// the trigger is the mechanism by which we increment the counter
+					$trigger = "CREATE OR REPLACE TRIGGER t_{$table_name}\n";
+					$trigger .= "BEFORE INSERT ON {$table_name}\n";
+					$trigger .= "FOR EACH ROW WHEN (\n";
+					$trigger .= "\tnew.{$create_sequence} IS NULL OR new.{$create_sequence} = 0\n";
+					$trigger .= ")\n";
+					$trigger .= "BEGIN\n";
+					$trigger .= "\tSELECT {$table_name}_seq.nextval\n";
+					$trigger .= "\tINTO :new.{$create_sequence}\n";
+					$trigger .= "\tFROM dual;\n";
+					$trigger .= "END;";
+
+					$statements[] = $trigger;
+				}
+			break;
+
+			case 'firebird':
+				if ($create_sequence)
+				{
+					$statements[] = "CREATE GENERATOR {$table_name}_gen;";
+					$statements[] = "SET GENERATOR {$table_name}_gen TO 0;";
+
+					$trigger = "CREATE TRIGGER t_$table_name FOR $table_name\n";
+					$trigger .= "BEFORE INSERT\nAS\nBEGIN\n";
+					$trigger .= "\tNEW.{$create_sequence} = GEN_ID({$table_name}_gen, 1);\nEND;";
+					$statements[] = $trigger;
+				}
+			break;
+		}
+
+		// Write Keys
+		if (isset($table_data['KEYS']))
+		{
+			foreach ($table_data['KEYS'] as $key_name => $key_data)
+			{
+				if (!is_array($key_data[1]))
+				{
+					$key_data[1] = array($key_data[1]);
+				}
+
+				$old_return_statements = $this->return_statements;
+				$this->return_statements = true;
+
+				$key_stmts = ($key_data[0] == 'UNIQUE') ? $this->sql_create_unique_index($table_name, $key_name, $key_data[1]) : $this->sql_create_index($table_name, $key_name, $key_data[1]);
+
+				foreach ($key_stmts as $key_stmt)
+				{
+					$statements[] = $key_stmt;
+				}
+
+				$this->return_statements = $old_return_statements;
+			}
+		}
+
+		// Commit Transaction
+		$statements[] = 'commit';
+
+		return $this->_sql_run_sql($statements);
 	}
 
 	/**
@@ -1958,7 +2601,7 @@ class updater_db_tools
 	*	drop_columns: Removing/Dropping columns
 	*	add_primary_keys: adding primary keys
 	*	add_unique_index: adding an unique index
-	*	add_index: adding an index
+	*	add_index: adding an index (can be column:index_size if you need to provide size)
 	*
 	* The values are in this format:
 	*		{TABLE NAME}		=> array(
@@ -1983,6 +2626,19 @@ class updater_db_tools
 		{
 			$sqlite_data = array();
 			$sqlite = true;
+		}
+
+		// Add tables?
+		if (!empty($schema_changes['add_tables']))
+		{
+			foreach ($schema_changes['add_tables'] as $table => $table_data)
+			{
+				$result = $this->sql_create_table($table, $table_data);
+				if ($this->return_statements)
+				{
+					$statements = array_merge($statements, $result);
+				}
+			}
 		}
 
 		// Change columns?
@@ -2373,6 +3029,7 @@ class updater_db_tools
 			// same deal with PostgreSQL, we must perform more complex operations than
 			// we technically could
 			case 'mssql':
+			case 'mssqlnative':
 				$sql = "SELECT c.name
 					FROM syscolumns c
 					LEFT JOIN sysobjects o ON c.id = o.id
@@ -2476,7 +3133,7 @@ class updater_db_tools
 	*/
 	function sql_index_exists($table_name, $index_name)
 	{
-		if ($this->sql_layer == 'mssql')
+		if ($this->sql_layer == 'mssql' || $this->sql_layer == 'mssqlnative')
 		{
 			$sql = "EXEC sp_statistics '$table_name'";
 			$result = $this->db->sql_query($sql);
@@ -2581,7 +3238,7 @@ class updater_db_tools
 	*/
 	function sql_unique_index_exists($table_name, $index_name)
 	{
-		if ($this->sql_layer == 'mssql')
+		if ($this->sql_layer == 'mssql' || $this->sql_layer == 'mssqlnative')
 		{
 			$sql = "EXEC sp_statistics '$table_name'";
 			$result = $this->db->sql_query($sql);
@@ -2733,6 +3390,11 @@ class updater_db_tools
 	*/
 	function sql_prepare_column_data($table_name, $column_name, $column_data)
 	{
+		if (strlen($column_name) > 30)
+		{
+			trigger_error("Column name '$column_name' on table '$table_name' is too long. The maximum is 30 characters.", E_USER_ERROR);
+		}
+
 		// Get type
 		if (strpos($column_data[0], ':') !== false)
 		{
@@ -2820,6 +3482,7 @@ class updater_db_tools
 			break;
 
 			case 'mssql':
+			case 'mssqlnative':
 				$sql .= " {$column_type} ";
 				$sql_default = " {$column_type} ";
 
@@ -2969,6 +3632,7 @@ class updater_db_tools
 			break;
 
 			case 'mssql':
+			case 'mssqlnative':
 				// Does not support AFTER, only through temporary table
 				$statements[] = 'ALTER TABLE [' . $table_name . '] ADD [' . $column_name . '] ' . $column_data['column_type_sql_default'];
 			break;
@@ -3093,6 +3757,7 @@ class updater_db_tools
 			break;
 
 			case 'mssql':
+			case 'mssqlnative':
 				$statements[] = 'ALTER TABLE [' . $table_name . '] DROP COLUMN [' . $column_name . ']';
 			break;
 
@@ -3187,6 +3852,7 @@ class updater_db_tools
 		switch ($this->sql_layer)
 		{
 			case 'mssql':
+			case 'mssqlnative':
 				$statements[] = 'DROP INDEX ' . $table_name . '.' . $index_name;
 			break;
 
@@ -3223,6 +3889,7 @@ class updater_db_tools
 			break;
 
 			case 'mssql':
+			case 'mssqlnative':
 				$sql = "ALTER TABLE [{$table_name}] WITH NOCHECK ADD ";
 				$sql .= "CONSTRAINT [PK_{$table_name}] PRIMARY KEY  CLUSTERED (";
 				$sql .= '[' . implode("],\n\t\t[", $column) . ']';
@@ -3301,6 +3968,13 @@ class updater_db_tools
 	{
 		$statements = array();
 
+		$table_prefix = substr(CONFIG_TABLE, 0, -6); // strlen(config)
+		if (strlen($table_name . $index_name) - strlen($table_prefix) > 24)
+		{
+			$max_length = $table_prefix + 24;
+			trigger_error("Index name '{$table_name}_$index_name' on table '$table_name' is too long. The maximum is $max_length characters.", E_USER_ERROR);
+		}
+
 		switch ($this->sql_layer)
 		{
 			case 'firebird':
@@ -3316,6 +3990,7 @@ class updater_db_tools
 			break;
 
 			case 'mssql':
+			case 'mssqlnative':
 				$statements[] = 'CREATE UNIQUE INDEX ' . $index_name . ' ON ' . $table_name . '(' . implode(', ', $column) . ') ON [PRIMARY]';
 			break;
 		}
@@ -3330,6 +4005,19 @@ class updater_db_tools
 	{
 		$statements = array();
 
+		$table_prefix = substr(CONFIG_TABLE, 0, -6); // strlen(config)
+		if (strlen($table_name . $index_name) - strlen($table_prefix) > 24)
+		{
+			$max_length = $table_prefix + 24;
+			trigger_error("Index name '{$table_name}_$index_name' on table '$table_name' is too long. The maximum is $max_length characters.", E_USER_ERROR);
+		}
+
+		// remove index length unless MySQL4
+		if ('mysql_40' != $this->sql_layer)
+		{
+			$column = preg_replace('#:.*$#', '', $column);
+		}
+
 		switch ($this->sql_layer)
 		{
 			case 'firebird':
@@ -3340,11 +4028,22 @@ class updater_db_tools
 			break;
 
 			case 'mysql_40':
+				// add index size to definition as required by MySQL4
+				foreach ($column as $i => $col)
+				{
+					if (false !== strpos($col, ':'))
+					{
+						list($col, $index_size) = explode(':', $col);
+						$column[$i] = "$col($index_size)";
+					}
+				}
+			// no break
 			case 'mysql_41':
 				$statements[] = 'CREATE INDEX ' . $index_name . ' ON ' . $table_name . '(' . implode(', ', $column) . ')';
 			break;
 
 			case 'mssql':
+			case 'mssqlnative':
 				$statements[] = 'CREATE INDEX ' . $index_name . ' ON ' . $table_name . '(' . implode(', ', $column) . ') ON [PRIMARY]';
 			break;
 		}
@@ -3377,6 +4076,7 @@ class updater_db_tools
 			break;
 
 			case 'mssql':
+			case 'mssqlnative':
 				$statements[] = 'ALTER TABLE [' . $table_name . '] ALTER COLUMN [' . $column_name . '] ' . $column_data['column_type_sql'];
 
 				if (!empty($column_data['default']))
