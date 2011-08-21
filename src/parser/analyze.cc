@@ -15,6 +15,9 @@
 #include "cleanup.h"
 
 #include "sql_select.h"
+#include "sql_delete.h"
+#include "sql_insert.h"
+#include "sql_update.h"
 
 #define CONCAT2(a, b)   a ## b
 #define CONCAT(a, b)    CONCAT2(a, b)
@@ -23,6 +26,7 @@
 static bool debug = true;
 
 #define CIPHER_TYPES(m)                                                     \
+    m(none)         /* no data needed (blind writes) */                     \
     m(any)          /* just need to decrypt the result */                   \
     m(plain)        /* evaluate Item on the server, e.g. for WHERE */       \
     m(order)        /* evaluate order on the server, e.g. for SORT BY */    \
@@ -131,7 +135,7 @@ static class CItemFuncNameDir : public CItemTypeDir<std::string> {
 static void
 analyze(Item *i, cipher_type t)
 {
-    if (!i->const_item())
+    if (t != cipher_type::none && !i->const_item())
         itemTypes.do_analyze(i, t);
 }
 
@@ -674,28 +678,97 @@ query_analyze(const std::string &db, const std::string &q)
     if (open_normal_and_derived_tables(t, lex->query_tables, 0))
         mysql_thrower() << "open_normal_and_derived_tables";
 
-    JOIN *j = new JOIN(t, lex->select_lex.item_list,
-                       lex->select_lex.options, 0);
-    if (j->prepare(&lex->select_lex.ref_pointer_array,
-                   lex->select_lex.table_list.first,
-                   lex->select_lex.with_wild,
-                   lex->select_lex.where,
-                   lex->select_lex.order_list.elements
-                     + lex->select_lex.group_list.elements,
-                   lex->select_lex.order_list.first,
-                   lex->select_lex.group_list.first,
-                   lex->select_lex.having,
-                   lex->proc_list.first,
-                   &lex->select_lex,
-                   &lex->unit))
-        mysql_thrower() << "JOIN::prepare";
+    if (lex->sql_command == SQLCOM_SELECT) {
+        JOIN *j = new JOIN(t, lex->select_lex.item_list,
+                           lex->select_lex.options, 0);
+        if (j->prepare(&lex->select_lex.ref_pointer_array,
+                       lex->select_lex.table_list.first,
+                       lex->select_lex.with_wild,
+                       lex->select_lex.where,
+                       lex->select_lex.order_list.elements
+                         + lex->select_lex.group_list.elements,
+                       lex->select_lex.order_list.first,
+                       lex->select_lex.group_list.first,
+                       lex->select_lex.having,
+                       lex->proc_list.first,
+                       &lex->select_lex,
+                       &lex->unit))
+            mysql_thrower() << "JOIN::prepare";
+    } else if (lex->sql_command == SQLCOM_DELETE) {
+        if (mysql_prepare_delete(t, lex->query_tables, &lex->select_lex.where))
+            mysql_thrower() << "mysql_prepare_delete";
+
+        if (lex->select_lex.setup_ref_array(t, lex->select_lex.order_list.elements))
+            mysql_thrower() << "setup_ref_array";
+
+        List<Item> fields;
+        List<Item> all_fields;
+        if (setup_order(t, lex->select_lex.ref_pointer_array,
+                        lex->query_tables, fields, all_fields,
+                        lex->select_lex.order_list.first))
+            mysql_thrower() << "setup_order";
+    } else if (lex->sql_command == SQLCOM_INSERT) {
+        List_iterator_fast<List_item> its(lex->many_values);
+        List_item *values = its++;
+
+        if (mysql_prepare_insert(t, lex->query_tables, lex->query_tables->table,
+                                 lex->field_list, values,
+                                 lex->update_list, lex->value_list,
+                                 lex->duplicates,
+                                 &lex->select_lex.where,
+                                 /* select_insert */ 0,
+                                 0, 0))
+            mysql_thrower() << "mysql_prepare_insert";
+
+        for (;;) {
+            values = its++;
+            if (!values)
+                break;
+
+            if (setup_fields(t, 0, *values, MARK_COLUMNS_NONE, 0, 0))
+                mysql_thrower() << "setup_fields";
+        }
+    } else if (lex->sql_command == SQLCOM_UPDATE) {
+        if (mysql_prepare_update(t, lex->query_tables, &lex->select_lex.where,
+                                 lex->select_lex.order_list.elements,
+                                 lex->select_lex.order_list.first))
+            mysql_thrower() << "mysql_prepare_update";
+
+        if (setup_fields_with_no_wrap(t, 0, lex->select_lex.item_list,
+                                      MARK_COLUMNS_NONE, 0, 0))
+            mysql_thrower() << "setup_fields_with_no_wrap";
+
+        if (setup_fields(t, 0, lex->value_list,
+                         MARK_COLUMNS_NONE, 0, 0))
+            mysql_thrower() << "setup_fields";
+
+        List<Item> all_fields;
+        if (fix_inner_refs(t, all_fields, &lex->select_lex,
+                           lex->select_lex.ref_pointer_array))
+            mysql_thrower() << "fix_inner_refs";
+    } else {
+        thrower() << "don't know how to prepare command " << lex->sql_command;
+    }
 
     if (debug) cout << "prepared query: " << *lex << endl;
 
     // iterate over the entire select statement..
     // based on st_select_lex::print in mysql-server/sql/sql_select.cc
     process_table_list(&lex->select_lex.top_join_list);
-    process_select_lex(&lex->select_lex, cipher_type::any);
+    process_select_lex(&lex->select_lex,
+                       lex->sql_command == SQLCOM_SELECT ? cipher_type::any
+                                                         : cipher_type::none);
+
+    if (lex->sql_command == SQLCOM_UPDATE) {
+        auto item_it = List_iterator<Item>(lex->value_list);
+        for (;;) {
+            Item *item = item_it++;
+            if (!item)
+                break;
+
+            analyze(item, cipher_type::any);
+        }
+    }
 }
 
 static string
