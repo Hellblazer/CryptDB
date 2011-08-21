@@ -525,9 +525,8 @@ process_table_list(List<TABLE_LIST> *tll)
 
         if (t->derived) {
             // XXX handle sub-selects..
-            cerr << "sub-select derived table...\n";
-
             st_select_lex_unit *u __attribute__((unused)) = t->derived;
+            throw std::runtime_error("sub-select derived table");
         }
     }
 }
