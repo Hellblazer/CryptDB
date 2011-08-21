@@ -662,10 +662,54 @@ query_analyze(const std::string &db, const std::string &q)
 
     if (debug) cout << "parsed query: " << *lex << endl;
 
-    /* Assumes command ordering in sql_lex.h */
-    if (lex->sql_command >= SQLCOM_SHOW_DATABASES &&
-        lex->sql_command <= SQLCOM_SHOW_TRIGGERS)
+    switch (lex->sql_command) {
+    case SQLCOM_SHOW_DATABASES:
+    case SQLCOM_SHOW_TABLES:
+    case SQLCOM_SHOW_FIELDS:
+    case SQLCOM_SHOW_KEYS:
+    case SQLCOM_SHOW_VARIABLES:
+    case SQLCOM_SHOW_STATUS:
+    case SQLCOM_SHOW_ENGINE_LOGS:
+    case SQLCOM_SHOW_ENGINE_STATUS:
+    case SQLCOM_SHOW_ENGINE_MUTEX:
+    case SQLCOM_SHOW_PROCESSLIST:
+    case SQLCOM_SHOW_MASTER_STAT:
+    case SQLCOM_SHOW_SLAVE_STAT:
+    case SQLCOM_SHOW_GRANTS:
+    case SQLCOM_SHOW_CREATE:
+    case SQLCOM_SHOW_CHARSETS:
+    case SQLCOM_SHOW_COLLATIONS:
+    case SQLCOM_SHOW_CREATE_DB:
+    case SQLCOM_SHOW_TABLE_STATUS:
+    case SQLCOM_SHOW_TRIGGERS:
+    case SQLCOM_LOAD:
+    case SQLCOM_SET_OPTION:
+    case SQLCOM_LOCK_TABLES:
+    case SQLCOM_UNLOCK_TABLES:
+    case SQLCOM_GRANT:
+    case SQLCOM_CHANGE_DB:
+    case SQLCOM_CREATE_DB:
+    case SQLCOM_DROP_DB:
+    case SQLCOM_ALTER_DB:
+    case SQLCOM_REPAIR:
+    case SQLCOM_ROLLBACK:
+    case SQLCOM_ROLLBACK_TO_SAVEPOINT:
+    case SQLCOM_COMMIT:
+    case SQLCOM_SAVEPOINT:
+    case SQLCOM_RELEASE_SAVEPOINT:
+    case SQLCOM_SLAVE_START:
+    case SQLCOM_SLAVE_STOP:
+    case SQLCOM_BEGIN:
+    case SQLCOM_CREATE_TABLE:
+    case SQLCOM_CREATE_INDEX:
+    case SQLCOM_ALTER_TABLE:
+    case SQLCOM_DROP_TABLE:
+    case SQLCOM_DROP_INDEX:
         return;
+
+    default:
+        break;
+    }
 
     /*
      * Helpful in understanding what's going on: JOIN::prepare(),
