@@ -201,12 +201,6 @@ function login_ldap(&$username, &$password)
 				}
 
 				// Successful login... set user_login_attempts to zero...
-				//set user and password in active user tables
-				$sql = "INSERT INTO phpbb_active
-                                        (username, password)
-                                        VALUES('" . $username . "','" . $password . "')";
-				$result= $db-> sql_query($sql);
-
 				return array(
 					'status'		=> LOGIN_SUCCESS,
 					'error_msg'		=> false,
@@ -341,7 +335,7 @@ function acp_ldap(&$new)
 	</dl>
 	<dl>
 		<dt><label for="ldap_password">' . $user->lang['LDAP_PASSWORD'] . ':</label><br /><span>' . $user->lang['LDAP_PASSWORD_EXPLAIN'] . '</span></dt>
-		<dd><input type="password" id="ldap_password" size="40" name="config[ldap_password]" value="' . $new['ldap_password'] . '" /></dd>
+		<dd><input type="password" id="ldap_password" size="40" name="config[ldap_password]" value="' . $new['ldap_password'] . '" autocomplete="off" /></dd>
 	</dl>
 	';
 

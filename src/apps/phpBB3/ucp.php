@@ -84,10 +84,7 @@ switch ($mode)
 	case 'logout':
 		if ($user->data['user_id'] != ANONYMOUS && isset($_GET['sid']) && !is_array($_GET['sid']) && $_GET['sid'] === $user->session_id)
 		{
-			$user->data['username'];
-	                $sql = "DELETE FROM pwdcryptdb__phpbb_users WHERE username_clean = '" . $user->data['username'] . "'";
-                        $result = $db->sql_query($sql);
- 			$user->session_kill();
+			$user->session_kill();
 			$user->session_begin();
 			$message = $user->lang['LOGOUT_REDIRECT'];
 		}
@@ -315,6 +312,12 @@ if ($module->is_active('zebra', 'friends'))
 if (!$config['allow_topic_notify'] && !$config['allow_forum_notify'])
 {
 	$module->set_display('main', 'subscribed', false);
+}
+
+// Do not display signature panel if not authed to do so
+if (!$auth->acl_get('u_sig'))
+{
+	$module->set_display('profile', 'signature', false);
 }
 
 // Select the active module
