@@ -32,18 +32,29 @@
 
 static int debug = 0;
 
+#define CIPHER_TYPES(m)                                                     \
+    m(any)    /* just need to decrypt the result */                         \
+    m(plain)  /* need to evaluate Item on the server, e.g. for WHERE */     \
+    m(order)  /* need to evaluate order on the server, e.g. for SORT BY */  \
+    m(equal)  /* need to evaluate dups on the server, e.g. for GROUP BY */  \
+    m(like)   /* need to do LIKE */
+
 enum class cipher_type {
-    any,    /* just need to decrypt the result */
-    plain,  /* need to evaluate Item on the server, e.g. for WHERE */
-    order,  /* need to evaluate order on the server, e.g. for SORT BY */
-    equal,  /* need to evaluate dups on the server, e.g. for GROUP BY */
-    like,   /* need to do LIKE */
+#define __temp_m(n) n,
+CIPHER_TYPES(__temp_m)
+#undef __temp_m
+};
+
+static const string cipher_type_names[] = {
+#define __temp_m(n) #n,
+CIPHER_TYPES(__temp_m)
+#undef __temp_m
 };
 
 static ostream&
 operator<<(ostream &out, cipher_type &t)
 {
-    return out << (int) t;
+    return out << cipher_type_names[(int) t];
 }
 
 class CItemType {
