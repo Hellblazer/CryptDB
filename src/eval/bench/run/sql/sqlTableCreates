@@ -81,7 +81,7 @@ create table oorder (
   o_ol_cnt     decimal(2,0) not null,
   o_all_local  decimal(1,0) not null,
   -- default specified for mysql: disables automatic timestamp updates
-  o_entry_d    timestamp not null not null default '2011-01-01 00:00:00',
+  o_entry_d    timestamp not null default '2011-01-01 00:00:00',
   primary key (o_w_id, o_d_id, o_id)
 );
 commit;

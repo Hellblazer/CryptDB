@@ -9,18 +9,19 @@
 class WrapperState {
  public:
     string last_query;
+    ofstream * PLAIN_LOG;
 };
 
 static EDBProxy * cl = NULL;
 
 static string TRAIN_QUERY ="";
 
+static bool PLAIN_MODE = false;
 
 static bool LOG_PLAIN_QUERIES = false;
-static ofstream * PLAIN_LOG = NULL;
+static string PLAIN_BASELOG = "";
 
-static bool LOG_ENCRYPT_QUERIES = false;
-static ofstream * ENCRYPT_LOG = NULL;
+static int counter = 0;
 
 static map<string, WrapperState*> clients;
 
@@ -50,6 +51,12 @@ connect(lua_State *L)
 
     WrapperState *ws = new WrapperState();
 
+    if (clients.find(client) != clients.end()) {
+           LOG(warn) << "duplicate client entry";
+    }
+
+    clients[client] = ws;
+
     if (!cl) {
         cryptdb_logger::setConf(string(getenv("CRYPTDB_LOG")));
 
@@ -78,44 +85,53 @@ connect(lua_State *L)
             }
         }
 
+        //may want to run in plain mode
+        ev = getenv("PLAIN_MODE");
+        if (ev) {
+            if (string(ev) == "true") {
+                PLAIN_MODE = true;
+                LOG(wrapper) << "proxy runs in plain mode, just an intermediary\n ";
+            }
+        }
+
         ev = getenv("LOG_PLAIN_QUERIES");
         if (ev) {
             string logPlainQueries = string(ev);
             if (logPlainQueries != "") {
                 LOG_PLAIN_QUERIES = true;
-                int res = system(("rm -f" + logPlainQueries + "; touch " + logPlainQueries).c_str());
-                assert_s(res >= 0, "failed to rm -f and touch " + logPlainQueries);
-                PLAIN_LOG = new ofstream(logPlainQueries, ios_base::app);
+                PLAIN_BASELOG = logPlainQueries;
+                logPlainQueries += StringFromVal(++counter);
+
+                assert_s(system(("rm -f" + logPlainQueries + "; touch " + logPlainQueries).c_str()) >= 0, "failed to rm -f and touch " + logPlainQueries);
+
+                ofstream * PLAIN_LOG = new ofstream(logPlainQueries, ios_base::app);
                 LOG(wrapper) << "proxy logs plain queries at " << logPlainQueries;
                 assert_s(PLAIN_LOG != NULL, "could not create file " + logPlainQueries);
+                clients[client]->PLAIN_LOG = PLAIN_LOG;
             } else {
                 LOG_PLAIN_QUERIES = false;
             }
         }
 
-        ev = getenv("LOG_ENCRYPT_QUERIES");
-        if (ev) {
-            string logEncryptQueries = string(ev);
-            if (logEncryptQueries != "") {
-                LOG_ENCRYPT_QUERIES = true;
-                LOG(wrapper) << "proxy logs encrypted queries ";
-                ENCRYPT_LOG = new ofstream(logEncryptQueries, ios_base::app);
-                assert_s(ENCRYPT_LOG != NULL, "could not create file " + logEncryptQueries);
-            } else {
-                LOG_ENCRYPT_QUERIES = false;
-            }
+        uint64_t mkey = 113341234;  // XXX do not change as it's used for tpcc exps
+        cl->setMasterKey(BytesFromInt(mkey, AES_KEY_BYTES));
+
+
+
+    } else {
+        if (LOG_PLAIN_QUERIES) {
+            string logPlainQueries = PLAIN_BASELOG+StringFromVal(++counter);
+            assert_s(system((" touch " + logPlainQueries).c_str()) >= 0, "failed to remove or touch plain log");
+            LOG(wrapper) << "proxy logs plain queries at " << logPlainQueries;
+
+            ofstream * PLAIN_LOG = new ofstream(logPlainQueries, ios_base::app);
+            assert_s(PLAIN_LOG != NULL, "could not create file " + logPlainQueries);
+            clients[client]->PLAIN_LOG = PLAIN_LOG;
         }
-
-
-
     }
 
-    uint64_t mkey = 113341234;  // XXX do not change as it's used for tpcc exps
-    cl->setMasterKey(BytesFromInt(mkey, AES_KEY_BYTES));
 
-    if (clients.find(client) != clients.end())
-        LOG(warn) << "duplicate client entry";
-    clients[client] = ws;
+
     return 0;
 }
 
@@ -143,24 +159,21 @@ rewrite(lua_State *L)
     string query = xlua_tolstring(L, 2);
 
     list<string> new_queries;
-    try {
-        new_queries = cl->rewriteEncryptQuery(query);
-    } catch (CryptDBError &e) {
-        LOG(wrapper) << "cannot rewrite " << query << ": " << e.msg;
-        lua_pushnil(L);
-        return 1;
-    }
-
-    if (LOG_PLAIN_QUERIES) {
-        *PLAIN_LOG << query << "\n";
-    }
-
-    if (LOG_ENCRYPT_QUERIES) {
-        for (auto it = new_queries.begin(); it != new_queries.end(); it++) {
-            *ENCRYPT_LOG << *it << "\n";
+    if (PLAIN_MODE) {
+        new_queries.push_back(query);
+    } else {
+        try {
+            new_queries = cl->rewriteEncryptQuery(query);
+        } catch (CryptDBError &e) {
+            LOG(wrapper) << "cannot rewrite " << query << ": " << e.msg;
+            lua_pushnil(L);
+            return 1;
         }
     }
 
+    if (LOG_PLAIN_QUERIES) {
+        *(clients[client]->PLAIN_LOG) << query << "\n";
+    }
 
     lua_createtable(L, (int) new_queries.size(), 0);
     int top = lua_gettop(L);
@@ -230,6 +243,9 @@ decrypt(lua_State *L)
     }
 
     ResType rd;
+    if (PLAIN_MODE) {
+        rd = r;
+    } else {
     try {
         rd = cl->decryptResults(clients[client]->last_query, r);
     }
@@ -237,6 +253,7 @@ decrypt(lua_State *L)
         lua_pushnil(L);
         lua_pushnil(L);
         return 2;
+    }
     }
 
     /* return decrypted result set */

@@ -100,7 +100,7 @@ class EDBProxy {
     unsigned int totalIndexes;
 
     //hack, remove
-    bool EXECUTE_QUERIES;
+    bool REWRITE_QUERIES;
 
     //**************** HELPER FUNCTIONS *******************************/
 

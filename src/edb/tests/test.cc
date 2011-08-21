@@ -3777,34 +3777,40 @@ throw (CryptDBError)
 		}
 
 		if (query.length() > 0) {
-			queries = cl->rewriteEncryptQuery(query+";");
-			stats.total_queries++;
-			for (list<string>::iterator it = queries.begin(); it != queries.end(); it++) {
-				if  (outputtranslation) {
-					*outfile << *it << "\n";
-				}
-				if (execquery) {
-					bool outcome;
-					if (plainexec) {
-						outcome = cl->plain_execute(*it).ok;
-					} else {
-						outcome = cl->execute(*it).ok;
-					}
-					if (allowfailures) {
-						if (!outcome) {
-							stats.queries_failed++;
-						}
-					} else {
-						assert_s(outcome, "failed to execute query " + *it);
-					}
-				}
-			}
+		    try{
+		        queries = cl->rewriteEncryptQuery(query+";");
+		    } catch(...) {
+		        cerr << "query " << query << "failed";
+		        cerr << "worker exits\n";
+		        exit(-1);
+		    }
+		    stats.total_queries++;
+		    for (list<string>::iterator it = queries.begin(); it != queries.end(); it++) {
+		        if  (outputtranslation) {
+		            *outfile << *it << "\n";
+		        }
+		        if (execquery) {
+		            bool outcome;
+		            if (plainexec) {
+		                outcome = cl->plain_execute(*it).ok;
+		            } else {
+		                outcome = cl->execute(*it).ok;
+		            }
+		            if (allowfailures) {
+		                if (!outcome) {
+		                    stats.queries_failed++;
+		                }
+		            } else {
+		                assert_s(outcome, "failed to execute query " + *it);
+		            }
+		        }
+		    }
 		}
 	}
 
 	infile.close();
 	if (outputtranslation) {
-		outfile->close();
+	    outfile->close();
 	}
 
 	return stats;
@@ -4037,6 +4043,7 @@ testTrace(const TestConfig &tc, int argc, char ** argv)
 		    pid_t pid = fork();
 		    if (pid == 0) {
 		        runQueriesFromFile(cl, work, false, false, outputfile, false);
+
 		        cerr << "worker " << i << "finished\n";
 		        exit(1);
 		    } else if (pid < 0) {
@@ -4094,13 +4101,13 @@ testBench(const TestConfig & tc, int argc, char ** argv)
 {
     setenv("EDBDIR", tc.edbdir.c_str(), 1);
     setenv("CRYPTDB_LOG", cryptdb_logger::getConf().c_str(), 1);
-
+    setenv("PLAIN_MODE", "true", 1);
 
     //configure proxy
     //setenv("TRAIN_QUERY", "train 1 /u/raluca/cryptdb/src/eval/offtrace/sqlTableCreates /u/raluca/cryptdb/src/eval/offtrace/querypatterns_bench", 1);
 
-    setenv("LOG_PLAIN_QUERIES", (tc.edbdir+"/../eval/offtrace/bench_plain_insert").c_str(), 1);
-    setenv("EXECUTE_QUERIES", "false", 1);
+    setenv("LOG_PLAIN_QUERIES", (tc.edbdir+"/../eval/tpcc/bench_plain_queries").c_str(), 1);
+    setenv("REWRITE_QUERIES", "false", 1);
     //static bool LOG_ENCRYPT_QUERIES = false;
 
     //static bool EXECUTE_QUERIES = true;
@@ -4113,7 +4120,7 @@ testBench(const TestConfig & tc, int argc, char ** argv)
 
         stringstream script_path, address;
         script_path << "--proxy-lua-script=" << tc.edbdir << "/../mysqlproxy/wrapper.lua";
-        uint port = 5123;
+        uint port = 5143;
         address << "--proxy-address=localhost:" << port;
 
         cerr << "starting on port " << port << "\n";
@@ -4136,8 +4143,9 @@ testBench(const TestConfig & tc, int argc, char ** argv)
     sleep(3);
 
     //point benchmark data load to proxy
-    string path = tc.edbdir + "/../eval/bench/run/";
+    //string path = tc.edbdir + "/../eval/bench/run/";
 
+    /*
     cerr << "trying to execute " << (path+"loadData.sh") << " " << "mysqlproxy.properties" << "\n";
     execlp((path+"loadData.sh").c_str(),
             "loadData.sh",
@@ -4146,7 +4154,17 @@ testBench(const TestConfig & tc, int argc, char ** argv)
              "4",
              (char *) 0
              );
+
     LOG(warn) << "could not execlp bench: " << strerror(errno);
+
+    */
+
+   assert_s(system("java -cp  ../build/classes:../lib/edb-jdbc14-8_0_3_14.jar:../lib/ganymed-ssh2-build250.jar:"
+           "../lib/hsqldb.jar:../lib/mysql-connector-java-5.1.10-bin.jar:../lib/ojdbc14-10.2.jar:../lib/postgresql-8.0.309.jdbc3.jar -Ddriver=com.mysql.jdbc.Driver "
+           "-Dconn=jdbc:mysql://localhost:5143/tpccplain "
+           "-Duser=tpccuser -Dpassword=letmein -Dnwarehouses=1 -Dnterminals=10 -DtimeLimit=10 client.jTPCCHeadless")>=0, "problem running benchmark");
+
+
 
     //don't forget to create indexes!
 
