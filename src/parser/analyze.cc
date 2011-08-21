@@ -23,12 +23,13 @@
 static bool debug = true;
 
 #define CIPHER_TYPES(m)                                                     \
-    m(any)    /* just need to decrypt the result */                         \
-    m(plain)  /* need to evaluate Item on the server, e.g. for WHERE */     \
-    m(order)  /* need to evaluate order on the server, e.g. for SORT BY */  \
-    m(equal)  /* need to evaluate dups on the server, e.g. for GROUP BY */  \
-    m(like)   /* need to do LIKE */                                         \
-    m(homadd) /* addition */
+    m(any)          /* just need to decrypt the result */                   \
+    m(plain)        /* evaluate Item on the server, e.g. for WHERE */       \
+    m(order)        /* evaluate order on the server, e.g. for SORT BY */    \
+    m(order_soft)   /* can evaluate order in the proxy (SORT w/o LIMIT) */  \
+    m(equal)        /* evaluate dups on the server, e.g. for GROUP BY */    \
+    m(like)         /* need to do LIKE */                                   \
+    m(homadd)       /* addition */
 
 enum class cipher_type {
 #define __temp_m(n) n,
@@ -572,7 +573,8 @@ process_select_lex(st_select_lex *select_lex, cipher_type t)
         analyze(*o->item, cipher_type::equal);
 
     for (ORDER *o = select_lex->order_list.first; o; o = o->next)
-        analyze(*o->item, cipher_type::order);
+        analyze(*o->item, select_lex->select_limit ? cipher_type::order
+                                                   : cipher_type::order_soft);
 }
 
 static void
