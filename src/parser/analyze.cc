@@ -582,6 +582,9 @@ analyze(const std::string &db, const std::string &q)
             if (setup_wild(t, lex->query_tables, fields, 0, lex->select_lex.with_wild))
                 thrower() << "setup_wild error: " << t->stmt_da->message() << endl;
 
+            if (lex->select_lex.setup_ref_array(t, 0))
+                thrower() << "setup_ref_array: " << t->stmt_da->message() << endl;
+
             if (setup_fields(t, 0, fields, MARK_COLUMNS_NONE, 0, 0))
                 thrower() << "setup_fields error: " << t->stmt_da->message() << endl;
 
