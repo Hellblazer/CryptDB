@@ -3,6 +3,7 @@
 import sys, collections
 
 field_ciphers = collections.defaultdict(set)
+collapse_ciphers = True
 
 while True:
     l = sys.stdin.readline()
@@ -20,6 +21,10 @@ while True:
 cipherset_count = collections.defaultdict(int)
 
 for cs in field_ciphers.itervalues():
+    if collapse_ciphers:
+        if len(cs) > 1 and 'any' in cs: cs.remove('any')
+        if 'plain' in cs: cs = ['plain']
+        if 'order' in cs and 'equal' in cs: cs.remove('equal')
     cipherset_count[str(sorted(cs))] += 1
 
 for cs in sorted(cipherset_count, key=lambda cs: cipherset_count[cs]):
