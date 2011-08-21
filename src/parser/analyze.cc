@@ -485,6 +485,12 @@ class CItemCharcast : public CItemSubtypeFT<Item_char_typecast, Item_func::Funct
     }
 } ANON;
 
+class CItemRef : public CItemSubtypeIT<Item_ref, Item::Type::REF_ITEM> {
+    void do_analyze(Item_ref *i, cipher_type t) const {
+        throw std::runtime_error("what is a ref item?");
+    }
+} ANON;
+
 
 /*
  * Some helper functions.
