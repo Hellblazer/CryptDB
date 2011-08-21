@@ -432,9 +432,19 @@ static CItemBitfunc<str_bit_and> ANON;
 static class CItemLike : public CItemSubtypeFT<Item_func_like, Item_func::Functype::LIKE_FUNC> {
     void do_analyze(Item_func_like *i, cipher_type t) const {
         Item **args = i->arguments();
-        for (uint x = 0; x < i->argument_count(); x++) {
-            /* XXX check if pattern is one we can support? */
-            analyze(args[x], cipher_type::like);
+        if (args[1]->type() == Item::Type::STRING_ITEM) {
+            string s(args[1]->str_value.ptr(), args[1]->str_value.length());
+            if (s.find('%') == s.npos && s.find('_') == s.npos) {
+                /* some queries actually use LIKE as an equality check.. */
+                analyze(args[0], cipher_type::equal);
+            } else {
+                /* XXX check if pattern is one we can support? */
+                analyze(args[0], cipher_type::like);
+            }
+        } else {
+            /* we cannot support non-constant search patterns */
+            for (uint x = 0; x < i->argument_count(); x++)
+                analyze(args[x], cipher_type::plain);
         }
     }
 } ANON;
