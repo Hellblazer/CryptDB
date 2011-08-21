@@ -13,6 +13,7 @@
 #include <fstream>
 #include <iomanip>
 #include <pthread.h>
+#include <signal.h>
 #include <stdlib.h>
 #include <sys/time.h>
 #include <time.h>
@@ -30,6 +31,7 @@
 #include "TestProxy.h"
 #include "TestQueries.h"
 #include "TestNotConsider.h"
+
 
 using namespace std;
 
@@ -3743,23 +3745,24 @@ accessManagerTest(const TestConfig &tc, int ac, char **av)
 typedef struct Stats {
 	int total_queries;
 	int queries_failed;
+	double mspassed;
 	Stats() {
 		total_queries = 0;
 		queries_failed = 0;
+		mspassed = 0.0;
 	}
 } Stats;
 
+static Stats * myStats;
 
-static Stats
-runQueriesFromFile(EDBProxy * cl, string queryFile, bool execquery, bool plainexec, string outputfile, bool allowfailures)
+static void
+runQueriesFromFile(EDBProxy * cl, string queryFile, bool execquery, bool plainexec, string outputfile, bool allowfailures, Stats * stats)
 throw (CryptDBError)
 {
 	ifstream infile(queryFile);
 	ofstream * outfile = NULL;
 
 	assert_s(infile.is_open(), "cannot open file " + queryFile);
-
-	Stats stats;
 
 	bool outputtranslation = false;
 	if (outputfile != "") {
@@ -3784,7 +3787,7 @@ throw (CryptDBError)
 		        cerr << "worker exits\n";
 		        exit(-1);
 		    }
-		    stats.total_queries++;
+		    stats->total_queries++;
 		    for (list<string>::iterator it = queries.begin(); it != queries.end(); it++) {
 		        if  (outputtranslation) {
 		            *outfile << *it << "\n";
@@ -3798,7 +3801,7 @@ throw (CryptDBError)
 		            }
 		            if (allowfailures) {
 		                if (!outcome) {
-		                    stats.queries_failed++;
+		                    stats->queries_failed++;
 		                }
 		            } else {
 		                assert_s(outcome, "failed to execute query " + *it);
@@ -3813,7 +3816,6 @@ throw (CryptDBError)
 	    outfile->close();
 	}
 
-	return stats;
 
 }
 
@@ -3824,6 +3826,7 @@ dotrain(EDBProxy * cl, string createsfile, string querypatterns, string exec) {
 }
 
 static string * workloads;
+static ofstream * resultFile;
 
 static void
 assignWork(string queryfile, int noWorkers,   int totalLines, int noRepeats, bool split) {
@@ -3836,8 +3839,6 @@ assignWork(string queryfile, int noWorkers,   int totalLines, int noRepeats, boo
 	ifstream infile(queryfile);
 
 	workloads = new string[noWorkers];
-
-
 
 	int linesPerWorker = totalLines / noWorkers;
 	int linesPerLastWorker = totalLines - (noWorkers-1)*linesPerWorker;
@@ -3899,8 +3900,20 @@ assignWork(string queryfile, int noWorkers,   int totalLines, int noRepeats, boo
 	infile.close();
 }
 
+//function is called when a worker must terminate
+//it outputs its statistics and exits
+static void __attribute__((noreturn))
+signal_handler(int signum) {
+
+    *resultFile << "queriesfailed " << myStats->queries_failed << " totalqueries " << myStats->total_queries
+            << " mspassed " << myStats->mspassed << "\n";
+    exit(EXIT_SUCCESS);
+
+}
+
+
 static void
-workerJob(EDBProxy * cl, int index, ofstream & resultFile) {
+workerJob(EDBProxy * cl, int index) {
 
 
 	string workload = workloads[index];
@@ -3910,13 +3923,13 @@ workerJob(EDBProxy * cl, int index, ofstream & resultFile) {
 
 	Timer t;
 
-	Stats stats = runQueriesFromFile(cl, workload, 1, true, "", false);
+	myStats = new Stats();
 
-	//now we need to start the workers
-	double ms = t.lap_ms();
+	runQueriesFromFile(cl, workload, 1, true, "", false, myStats);
 
-	cerr << "worker " << index << " total q " << stats.total_queries << " failed " << stats.queries_failed <<
-			" time " << ms << " ms \n";
+	myStats->mspassed = t.lap_ms();
+
+	signal_handler(SIGTERM); //faking a signal receipt
 
 }
 
@@ -3925,13 +3938,12 @@ static void runExp(EDBProxy * cl, int noWorkers) {
         assert_s(system("rm -f pieces/result;") >= 0, "problem removing pieces/result");
         assert_s(system("touch pieces/result;") >= 0, "problem creating pieces/result");
 
-	ofstream resultFile("pieces/result");
+	resultFile = new ofstream("pieces/result", ios::app);
 	ifstream resultFileIn;
 
-	if (!resultFile.is_open()) {
-		cerr << "cannot open result file \n";
-		exit(1);
-	}
+	assert_s(resultFile->is_open(), "cannot open result file \n");
+
+	assert_s(signal(SIGTERM, signal_handler) != SIG_ERR ,"signal could not set the handler");
 
 	int childstatus;
 	int index;
@@ -3945,7 +3957,7 @@ static void runExp(EDBProxy * cl, int noWorkers) {
 		index = i;
 		pid_t pid = fork();
 		if (pid == 0) {
-			workerJob(cl, index, resultFile);
+			workerJob(cl, index);
 		} else if (pid < 0) {
 			cerr << "failed to fork \n";
 			exit(1);
@@ -3963,10 +3975,10 @@ static void runExp(EDBProxy * cl, int noWorkers) {
 	//signal the other children to stop
 	for (int j = 0; j < noWorkers; j++) {
 	    if (pids[j] != firstchild) {
-	        //signal(SIGTERM);
+	        assert_s(kill(pids[j], SIGTERM) == 0, "could not send signal to child " + StringFromVal(j));
 	    }
 	}
-	resultFile.close();
+	resultFile->close();
 
 	resultFileIn.open("pieces/result", ifstream::in);
 
@@ -4042,7 +4054,8 @@ testTrace(const TestConfig &tc, int argc, char ** argv)
 		    assert_s(system(("rm -f " + outputfile).c_str()) >= 0, "failed to remove " + outputfile);
 		    pid_t pid = fork();
 		    if (pid == 0) {
-		        runQueriesFromFile(cl, work, false, false, outputfile, false);
+		        Stats * st = new Stats();
+		        runQueriesFromFile(cl, work, false, false, outputfile, false, st);
 
 		        cerr << "worker " << i << "finished\n";
 		        exit(1);
@@ -4052,8 +4065,6 @@ testTrace(const TestConfig &tc, int argc, char ** argv)
 		    } else { // in parent
 		        pids[i] = pid;
 		    }
-
-
 		}
 
 		int childstatus;
@@ -4063,9 +4074,6 @@ testTrace(const TestConfig &tc, int argc, char ** argv)
 		                                                            << "\n";
 		    }
 		}
-
-
-
 
 		return;
 	};
