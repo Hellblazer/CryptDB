@@ -129,7 +129,8 @@ static class CItemFuncNameDir : public CItemTypeDir<std::string> {
 static void
 analyze(Item *i, cipher_type t)
 {
-    itemTypes.do_analyze(i, t);
+    if (!i->const_item())
+        itemTypes.do_analyze(i, t);
 }
 
 
@@ -171,6 +172,8 @@ class CItemSubtypeFN : public CItemSubtype<T> {
 /*
  * Actual item handlers.
  */
+static void process_select_lex(st_select_lex *select_lex, cipher_type t);
+
 static class CItemField : public CItemSubtypeIT<Item_field, Item::Type::FIELD_ITEM> {
     void do_analyze(Item_field *i, cipher_type t) const {
         cout << "FIELD " << *i << " CIPHER " << t << endl;
@@ -203,7 +206,34 @@ static class CItemNeg : public CItemSubtypeFT<Item_func_neg, Item_func::Functype
 
 static class CItemSubselect : public CItemSubtypeIT<Item_subselect, Item::Type::SUBSELECT_ITEM> {
     void do_analyze(Item_subselect *i, cipher_type t) const {
-        throw std::runtime_error("handle sub-selects");
+        st_select_lex *select_lex = i->get_select_lex();
+        process_select_lex(select_lex, t);
+    }
+} ANON;
+
+extern const char str_in_optimizer[] = "<in_optimizer>";
+static class CItemSubselectInopt : public CItemSubtypeFN<Item_in_optimizer, str_in_optimizer> {
+    void do_analyze(Item_in_optimizer *i, cipher_type t) const {
+        Item **args = i->arguments();
+        analyze(args[0], cipher_type::any);
+        analyze(args[1], cipher_type::any);
+    }
+} ANON;
+
+class Item_cache_extractor : public Item_cache {
+ public:
+    /* Why is Item_cache::example a protected field?  This is ugly.. */
+    static Item *get_example(Item_cache *i) {
+        Item_cache_extractor *ii = (Item_cache_extractor *) i;
+        return ii->example;
+    }
+};
+
+static class CItemCache : public CItemSubtypeIT<Item_cache, Item::Type::CACHE_ITEM> {
+    void do_analyze(Item_cache *i, cipher_type t) const {
+        Item *example = Item_cache_extractor::get_example(i);
+        if (example)
+            analyze(example, t);
     }
 } ANON;
 
@@ -351,6 +381,9 @@ class CItemLeafFunc : public CItemSubtypeFN<Item_func, NAME> {
 
 extern const char str_found_rows[] = "found_rows";
 static CItemLeafFunc<str_found_rows> ANON;
+
+extern const char str_rand[] = "rand";
+static CItemLeafFunc<str_rand> ANON;
 
 template<const char *NAME>
 class CItemDateExtractFunc : public CItemSubtypeFN<Item_int_func, NAME> {
@@ -511,6 +544,31 @@ class CItemRef : public CItemSubtypeIT<Item_ref, Item::Type::REF_ITEM> {
  * Some helper functions.
  */
 static void
+process_select_lex(st_select_lex *select_lex, cipher_type t)
+{
+    auto item_it = List_iterator<Item>(select_lex->item_list);
+    for (;;) {
+        Item *item = item_it++;
+        if (!item)
+            break;
+
+        analyze(item, t);
+    }
+
+    if (select_lex->where)
+        analyze(select_lex->where, cipher_type::plain);
+
+    if (select_lex->having)
+        analyze(select_lex->having, cipher_type::plain);
+
+    for (ORDER *o = select_lex->group_list.first; o; o = o->next)
+        analyze(*o->item, cipher_type::equal);
+
+    for (ORDER *o = select_lex->order_list.first; o; o = o->next)
+        analyze(*o->item, cipher_type::order);
+}
+
+static void
 process_table_list(List<TABLE_LIST> *tll)
 {
     /*
@@ -537,9 +595,8 @@ process_table_list(List<TABLE_LIST> *tll)
         std::string alias(t->alias);
 
         if (t->derived) {
-            // XXX handle sub-selects..
-            st_select_lex_unit *u __attribute__((unused)) = t->derived;
-            thrower() << "sub-select derived table";
+            st_select_lex_unit *u = t->derived;
+            process_select_lex(u->first_select(), cipher_type::any);
         }
     }
 }
@@ -559,7 +616,7 @@ class mysql_thrower : public std::stringstream {
 };
 
 static void
-analyze(const std::string &db, const std::string &q)
+query_analyze(const std::string &db, const std::string &q)
 {
     assert(create_embedded_thd(0));
     THD *t = current_thd;
@@ -628,29 +685,8 @@ analyze(const std::string &db, const std::string &q)
 
     // iterate over the entire select statement..
     // based on st_select_lex::print in mysql-server/sql/sql_select.cc
-
-    auto item_it = List_iterator<Item>(lex->select_lex.item_list);
-    for (;;) {
-        Item *item = item_it++;
-        if (!item)
-            break;
-
-        analyze(item, cipher_type::any);
-    }
-
-    if (lex->select_lex.where)
-        analyze(lex->select_lex.where, cipher_type::plain);
-
-    if (lex->select_lex.having)
-        analyze(lex->select_lex.having, cipher_type::plain);
-
-    for (ORDER *o = lex->select_lex.group_list.first; o; o = o->next)
-        analyze(*o->item, cipher_type::equal);
-
-    for (ORDER *o = lex->select_lex.order_list.first; o; o = o->next)
-        analyze(*o->item, cipher_type::order);
-
     process_table_list(&lex->select_lex.top_join_list);
+    process_select_lex(&lex->select_lex, cipher_type::any);
 }
 
 static string
@@ -732,7 +768,7 @@ main(int ac, char **av)
         } else {
             string unq = unescape(q);
             try {
-                analyze(db, unq);
+                query_analyze(db, unq);
             } catch (std::runtime_error &e) {
                 cout << "ERROR: " << e.what() << " in query " << unq << endl;
                 nerror++;
