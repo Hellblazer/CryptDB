@@ -730,7 +730,7 @@ process_table_list(List<TABLE_LIST> *tll)
 
         if (t->derived) {
             // XXX handle sub-selects..
-            cerr << "sub-select derived table...";
+            cerr << "sub-select derived table...\n";
 
             st_select_lex_unit *u __attribute__((unused)) = t->derived;
         }
@@ -769,8 +769,7 @@ analyze(const std::string &db, const std::string &q)
 
             cout << "parsed query: " << *lex << endl;
 
-            uint open_count;
-            if (open_tables(t, &lex->query_tables, &open_count, 0))
+            if (open_normal_and_derived_tables(t, lex->query_tables, 0))
                 thrower() << "open_tables error: " << t->stmt_da->message() << endl;
 
             TABLE_LIST *leaves_tmp= NULL;
