@@ -12,6 +12,7 @@
 
 #include "errstream.h"
 #include "stringify.h"
+#include "cleanup.h"
 
 #include "sql_priv.h"
 #include "unireg.h"
@@ -27,7 +28,7 @@
 
 #define CONCAT2(a, b)   a ## b
 #define CONCAT(a, b)    CONCAT2(a, b)
-#define ANON            CONCAT(__anon_id_, __LINE__)
+#define ANON            CONCAT(__anon_id_, __COUNTER__)
 
 enum class Cipher   { AES, OPE, Paillier, SWP };
 enum class DataType { integer, string, decimal };
@@ -748,6 +749,10 @@ analyze(const std::string &db, const std::string &q)
 {
     assert(create_embedded_thd(0));
     THD *t = current_thd;
+    auto ANON = cleanup([&t]() { delete t; });
+    auto ANON = cleanup([&t]() { close_thread_tables(t); });
+    auto ANON = cleanup([&t]() { t->cleanup_after_query(); });
+
     t->set_db(db.data(), db.length());
     mysql_reset_thd_for_next_command(t);
 
@@ -760,7 +765,7 @@ analyze(const std::string &db, const std::string &q)
 
     Parser_state ps;
     if (!ps.init(t, buf, len)) {
-        printf("input  query: %s\n", buf);
+        cout << "input  query: " << buf << endl;
         bool error = parse_sql(t, &ps, 0);
         if (error) {
             printf("parse error: %d %s\n", t->is_error(), t->stmt_da->message());
@@ -816,10 +821,6 @@ analyze(const std::string &db, const std::string &q)
     } else {
         printf("parser init error\n");
     }
-
-    t->cleanup_after_query();
-    close_thread_tables(t);
-    delete t;
 }
 
 static string
@@ -877,7 +878,11 @@ main(int ac, char **av)
     assert(0 == mysql_thread_init());
 
     ifstream f(av[2]);
-    for (uint nquery = 0; ; nquery++) {
+    int nquery = 0;
+    int nerror = 0;
+    int nskip = 0;
+
+    for (;;) {
         string s;
         getline(f, s);
         if (f.eof())
@@ -892,13 +897,21 @@ main(int ac, char **av)
         string db = s.substr(0, space);
         string q = s.substr(space + 1);
 
-        if (db != "") {
+        if (db == "") {
+            nskip++;
+        } else {
             try {
                 analyze(db, unescape(q));
             } catch (std::runtime_error &e) {
                 cout << "ERROR: " << e.what() << endl;
+                nerror++;
             }
         }
-        cout << "nquery: " << nquery << "\n";
+
+        nquery++;
+        cout << " nquery: " << nquery
+             << " nerror: " << nerror
+             << " nskip: " << nskip
+             << endl;
     }
 }
