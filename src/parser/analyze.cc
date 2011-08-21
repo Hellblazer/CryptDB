@@ -14,18 +14,7 @@
 #include "stringify.h"
 #include "cleanup.h"
 
-#include "sql_priv.h"
-#include "unireg.h"
-#include "strfunc.h"
-#include "sql_class.h"
-#include "set_var.h"
-#include "sql_base.h"
 #include "sql_select.h"
-#include "rpl_handler.h"
-#include "sql_parse.h"
-#include "sql_plugin.h"
-#include "derror.h"
-#include "item.h"
 
 #define CONCAT2(a, b)   a ## b
 #define CONCAT(a, b)    CONCAT2(a, b)
