@@ -30,88 +30,23 @@
 #define CONCAT(a, b)    CONCAT2(a, b)
 #define ANON            CONCAT(__anon_id_, __COUNTER__)
 
-enum class Cipher   { AES, OPE, Paillier, SWP };
-enum class DataType { integer, string, decimal };
-std::set<Cipher> pkCiphers = { Cipher::Paillier };
-
-struct EncKey {
- public:
-    EncKey(int i) : id(i) {}
-    int id;     // XXX not right, but assume 0 is any key
+enum class cipher_type {
+    any,    /* just need to decrypt the result */
+    plain,  /* need to evaluate Item on the server, e.g. for WHERE */
+    order,  /* need to evaluate order on the server, e.g. for SORT BY */
+    equal,  /* need to evaluate dups on the server, e.g. for GROUP BY */
+    like,   /* need to do LIKE */
 };
 
-class EncType {
- public:
-    EncType(bool c = false) : isconst(c) {}
-    EncType(std::vector<std::pair<Cipher, EncKey> > o)
-        : onion(o), isconst(false) {}
-
-    std::vector<std::pair<Cipher, EncKey> > onion;  // last is outermost
-    bool isconst;
-
-    /* Find a common enctype between two onions */
-    bool match(const EncType &other, EncType *out) const {
-        std::vector<const EncType*> v = { this, &other };
-        std::sort(v.begin(), v.end(), [](const EncType *a, const EncType *b) {
-                  return a->onion.size() > b->onion.size(); });
-
-        const EncType *a = v[0];    // longer, if any
-        const EncType *b = v[1];
-        EncType res;
-
-        auto ai = a->onion.begin();
-        auto ae = a->onion.end();
-        auto bi = b->onion.begin();
-        auto be = b->onion.end();
-
-        for (; ai != ae; ai++, bi++) {
-            if (bi == be) {
-                if (a->isconst || pkCiphers.find(ai->first) != pkCiphers.end()) {
-                    res.onion.push_back(*ai);   // can add layers
-                } else {
-                    return false;
-                }
-            } else {
-                if (ai->first != bi->first)
-                    return false;
-
-                struct EncKey k = ai->second;
-                if (k.id == 0) {
-                    k = bi->second;
-                } else {
-                    if (k.id != bi->second.id)
-                        return false;
-                }
-
-                res.onion.push_back(make_pair(ai->first, k));
-            }
-        }
-
-        *out = res;
-        return true;
-    }
-
-    bool match(const std::vector<EncType> &encs, EncType *out) const {
-        for (auto i = encs.begin(); i != encs.end(); i++)
-            if (match(*i, out))
-                return true;
-        return false;
-    }
-};
-
-class ColType {
- public:
-    ColType(DataType dt) : type(dt) {}
-    ColType(DataType dt, std::vector<EncType> e) : type(dt), encs(e) {}
-
-    DataType type;
-    std::vector<EncType> encs;
-};
+static ostream&
+operator<<(ostream &out, cipher_type &t)
+{
+    return out << (int) t;
+}
 
 class CItemType {
  public:
-    virtual Item *do_rewrite(Item *) const = 0;
-    virtual ColType do_enctype(Item *) const = 0;
+    virtual void do_analyze(Item *, cipher_type) const = 0;
 };
 
 
@@ -128,12 +63,8 @@ class CItemTypeDir : public CItemType {
         types[t] = ct;
     }
 
-    Item *do_rewrite(Item *i) const {
-        return lookup(i)->do_rewrite(i);
-    }
-
-    ColType do_enctype(Item *i) const {
-        return lookup(i)->do_enctype(i);
+    void do_analyze(Item *i, cipher_type t) const {
+        lookup(i)->do_analyze(i, t);
     }
 
  protected:
@@ -192,18 +123,10 @@ static class CItemFuncNameDir : public CItemTypeDir<std::string> {
 /*
  * Helper functions to look up via directory & invoke method.
  */
-static Item *
-rewrite(Item *i)
+static void
+analyze(Item *i, cipher_type t)
 {
-    Item *n = itemTypes.do_rewrite(i);
-    n->name = i->name;
-    return n;
-}
-
-static ColType
-enctype(Item *i)
-{
-    return itemTypes.do_enctype(i);
+    itemTypes.do_analyze(i, t);
 }
 
 
@@ -212,11 +135,9 @@ enctype(Item *i)
  */
 template<class T>
 class CItemSubtype : public CItemType {
-    virtual Item *do_rewrite(Item *i) const { return do_rewrite((T*) i); }
-    virtual ColType do_enctype(Item *i) const { return do_enctype((T*) i); }
+    virtual void do_analyze(Item *i, cipher_type t) const { do_analyze((T*) i, t); }
  private:
-    virtual Item *do_rewrite(T *) const = 0;
-    virtual ColType do_enctype(T *) const = 0;
+    virtual void do_analyze(T *, cipher_type) const = 0;
 };
 
 template<class T, Item::Type TYPE>
@@ -248,92 +169,59 @@ class CItemSubtypeFN : public CItemSubtype<T> {
  * Actual item handlers.
  */
 static class CItemField : public CItemSubtypeIT<Item_field, Item::Type::FIELD_ITEM> {
-    Item *do_rewrite(Item_field *i) const {
-        return i;
-    }
-
-    ColType do_enctype(Item_field *i) const {
-        /* XXX
-         * need to look up current schema state.
-         * return one EncType for each onion level
-         * that can be exposed for this column.
-         */
-        return ColType(DataType::string, {
-                        EncType({ make_pair(Cipher::AES, 123) }),
-                        EncType({ make_pair(Cipher::OPE, 124),
-                                  make_pair(Cipher::AES, 125) }),
-                        EncType({ make_pair(Cipher::Paillier, 126) }),
-                       });
+    void do_analyze(Item_field *i, cipher_type t) const {
+        cout << "FIELD " << *i << " CIPHER " << t << endl;
     }
 } ANON;
 
 static class CItemString : public CItemSubtypeIT<Item_string, Item::Type::STRING_ITEM> {
-    Item *do_rewrite(Item_string *i) const {
-        const char *s = "some-string";
-        return new Item_string(s, strlen(s), i->str_value.charset());
-    }
-
-    ColType do_enctype(Item_string *i) const {
-        return ColType(DataType::string, {EncType(true)});
+    void do_analyze(Item_string *i, cipher_type t) const {
+        /* constant strings are always ok */
     }
 } ANON;
 
 static class CItemInt : public CItemSubtypeIT<Item_num, Item::Type::INT_ITEM> {
-    Item *do_rewrite(Item_num *i) const {
-        return new Item_int(i->val_int() + 1000);
-    }
-
-    ColType do_enctype(Item_num *i) const {
-        return ColType(DataType::integer, {EncType(true)});
+    void do_analyze(Item_num *i, cipher_type t) const {
+        /* constant ints are always ok */
     }
 } ANON;
 
 static class CItemDecimal : public CItemSubtypeIT<Item_decimal, Item::Type::DECIMAL_ITEM> {
-    Item *do_rewrite(Item_decimal *i) const {
-        /* XXX */
-        return i;
-    }
-
-    ColType do_enctype(Item_decimal *i) const {
-        return DataType::decimal;
+    void do_analyze(Item_decimal *i, cipher_type t) const {
+        /* constant decimals are always ok */
     }
 } ANON;
 
 static class CItemNeg : public CItemSubtypeFT<Item_func_neg, Item_func::Functype::NEG_FUNC> {
-    Item *do_rewrite(Item_func_neg *i) const {
-        rewrite(i->arguments()[0]);
-        return i;
-    }
-
-    ColType do_enctype(Item_func_neg *i) const {
-        return DataType::integer;   /* XXX decimal? */
+    void do_analyze(Item_func_neg *i, cipher_type t) const {
+        analyze(i->arguments()[0], t);
     }
 } ANON;
 
 static class CItemSubselect : public CItemSubtypeIT<Item_subselect, Item::Type::SUBSELECT_ITEM> {
-    Item *do_rewrite(Item_subselect *i) const {
-        static int count = 0;
-        count++;
-        cerr << "sub-select " << count << endl;
-
-        // XXX handle sub-selects
-        return i;
-    }
-
-    ColType do_enctype(Item_subselect *i) const {
-        /* XXX */
-        return DataType::integer;
+    void do_analyze(Item_subselect *i, cipher_type t) const {
+        throw std::runtime_error("handle sub-selects");
     }
 } ANON;
 
 template<Item_func::Functype FT, class IT>
 class CItemCompare : public CItemSubtypeFT<Item_func, FT> {
-    Item *do_rewrite(Item_func *i) const {
-        Item **args = i->arguments();
-        return new IT(rewrite(args[0]), rewrite(args[1]));
-    }
+    void do_analyze(Item_func *i, cipher_type t) const {
+        throw std::runtime_error("compare");
+        cipher_type t2;
+        if (FT == Item_func::Functype::EQ_FUNC ||
+            FT == Item_func::Functype::EQUAL_FUNC ||
+            FT == Item_func::Functype::NE_FUNC)
+        {
+            t2 = cipher_type::equal;
+        } else {
+            t2 = cipher_type::order;
+        }
 
-    ColType do_enctype(Item_func *i) const { return DataType::integer; }
+        Item **args = i->arguments();
+        analyze(args[0], t2);
+        analyze(args[1], t2);
+    }
 };
 
 static CItemCompare<Item_func::Functype::EQ_FUNC,    Item_func_eq>    ANON;
@@ -346,23 +234,16 @@ static CItemCompare<Item_func::Functype::LE_FUNC,    Item_func_le>    ANON;
 
 template<Item_func::Functype FT, class IT>
 class CItemCond : public CItemSubtypeFT<Item_cond, FT> {
-    Item *do_rewrite(Item_cond *i) const {
-        List<Item> *arglist = i->argument_list();
-        List<Item> newlist;
-
-        auto it = List_iterator<Item>(*arglist);
-        for (;; ) {
+    void do_analyze(Item_cond *i, cipher_type t) const {
+        auto it = List_iterator<Item>(*i->argument_list());
+        for (;;) {
             Item *argitem = it++;
             if (!argitem)
                 break;
 
-            newlist.push_back(rewrite(argitem));
+            analyze(argitem, cipher_type::plain);
         }
-
-        return new IT(newlist);
     }
-
-    ColType do_enctype(Item_cond *i) const { return DataType::integer; }
 };
 
 static CItemCond<Item_func::Functype::COND_AND_FUNC, Item_cond_and> ANON;
@@ -370,53 +251,27 @@ static CItemCond<Item_func::Functype::COND_OR_FUNC,  Item_cond_or>  ANON;
 
 template<Item_func::Functype FT>
 class CItemNullcheck : public CItemSubtypeFT<Item_bool_func, FT> {
-    Item *do_rewrite(Item_bool_func *i) const {
+    void do_analyze(Item_bool_func *i, cipher_type t) const {
         Item **args = i->arguments();
         for (uint x = 0; x < i->argument_count(); x++)
-            rewrite(args[x]);
-        return i;
+            analyze(args[x], cipher_type::any);
     }
-
-    ColType do_enctype(Item_bool_func *i) const { return DataType::integer; }
 };
 
 static CItemNullcheck<Item_func::Functype::ISNULL_FUNC> ANON;
 static CItemNullcheck<Item_func::Functype::ISNOTNULL_FUNC> ANON;
 
 static class CItemSysvar : public CItemSubtypeFT<Item_func_get_system_var, Item_func::Functype::GSYSVAR_FUNC> {
-    Item *do_rewrite(Item_func_get_system_var *i) const { return i; }
-    ColType do_enctype(Item_func_get_system_var *i) const {
-        return DataType::integer; /* XXX ? */
-    }
+    void do_analyze(Item_func_get_system_var *i, cipher_type t) const {}
 } ANON;
 
 template<const char *NAME>
 class CItemAdditive : public CItemSubtypeFN<Item_func_additive_op, NAME> {
-    Item *do_rewrite(Item_func_additive_op *i) const {
+    void do_analyze(Item_func_additive_op *i, cipher_type t) const {
         Item **args = i->arguments();
-        return new Item_func_plus(rewrite(args[0]), rewrite(args[1]));
-    }
-
-    ColType do_enctype(Item_func_additive_op *i) const {
-        /* what about date +/-? */
-
-        Item **args = i->arguments();
-        ColType t0 = enctype(args[0]);
-        ColType t1 = enctype(args[0]);
-
-        if (t0.type != DataType::integer || t1.type != DataType::integer)
-            thrower() << "non-integer plus " << *args[0] << ", " << *args[1];
-
-        EncType e;
-        e.onion = {};
-        if (e.match(t0.encs, &e) && e.match(t1.encs, &e))
-            return ColType(DataType::integer, {e});
-
-        e.onion = { make_pair(Cipher::Paillier, 0) };
-        if (e.match(t0.encs, &e) && e.match(t1.encs, &e))
-            return ColType(DataType::integer, {e});
-
-        thrower() << "no common HOM type: " << *args[0] << ", " << *args[1];
+        /* XXX too conservative */
+        analyze(args[0], cipher_type::plain);
+        analyze(args[1], cipher_type::plain);
     }
 };
 
@@ -428,13 +283,11 @@ static CItemAdditive<str_minus> ANON;
 
 template<const char *NAME>
 class CItemMath : public CItemSubtypeFN<Item_func, NAME> {
-    Item *do_rewrite(Item_func *i) const {
+    void do_analyze(Item_func *i, cipher_type t) const {
         Item **args = i->arguments();
         for (uint x = 0; x < i->argument_count(); x++)
-            rewrite(args[x]);
-        return i; /* XXX? */
+            analyze(args[x], cipher_type::plain);
     }
-    ColType do_enctype(Item_func *i) const { return DataType::integer; /* XXX? */ }
 };
 
 extern const char str_mul[] = "*";
@@ -457,46 +310,29 @@ static CItemMath<str_radians> ANON;
 
 extern const char str_if[] = "if";
 static class CItemIf : public CItemSubtypeFN<Item_func_if, str_if> {
-    Item *do_rewrite(Item_func_if *i) const {
-        /* ensure args[0] is server-evaluatable */
+    void do_analyze(Item_func_if *i, cipher_type t) const {
         Item **args = i->arguments();
-        for (uint x = 0; x < i->argument_count(); x++)
-            rewrite(args[x]);
-        return i;
-    }
-
-    ColType do_enctype(Item_func_if *i) const {
-        /* XXX find a common enctype between args[1] and args[2] */
-        return enctype(i->arguments()[1]);
+        analyze(args[0], cipher_type::plain);
+        analyze(args[1], t);
+        analyze(args[2], t);
     }
 } ANON;
 
 extern const char str_nullif[] = "nullif";
 static class CItemNullif : public CItemSubtypeFN<Item_func_nullif, str_nullif> {
-    Item *do_rewrite(Item_func_nullif *i) const {
+    void do_analyze(Item_func_nullif *i, cipher_type t) const {
         Item **args = i->arguments();
         for (uint x = 0; x < i->argument_count(); x++)
-            rewrite(args[x]);
-        /* DET for args[0] and args[1] */
-        return i;
-    }
-
-    ColType do_enctype(Item_func_nullif *i) const {
-        return enctype(i->arguments()[0]);
+            analyze(args[x], cipher_type::equal);
     }
 } ANON;
 
 template<const char *NAME>
 class CItemStrconv : public CItemSubtypeFN<Item_str_conv, NAME> {
-    Item *do_rewrite(Item_str_conv *i) const {
+    void do_analyze(Item_str_conv *i, cipher_type t) const {
         Item **args = i->arguments();
         for (uint x = 0; x < i->argument_count(); x++)
-            rewrite(args[x]);
-        return i;
-    }
-
-    ColType do_enctype(Item_str_conv *i) const {
-        return DataType::string;
+            analyze(args[x], cipher_type::plain);
     }
 };
 
@@ -508,8 +344,7 @@ static CItemStrconv<str_ucase> ANON;
 
 template<const char *NAME>
 class CItemLeafFunc : public CItemSubtypeFN<Item_func, NAME> {
-    Item *do_rewrite(Item_func *i) const { return i; }
-    ColType do_enctype(Item_func *i) const { return DataType::integer; }
+    void do_analyze(Item_func *i, cipher_type t) const {}
 };
 
 extern const char str_found_rows[] = "found_rows";
@@ -517,13 +352,13 @@ static CItemLeafFunc<str_found_rows> ANON;
 
 template<const char *NAME>
 class CItemDateExtractFunc : public CItemSubtypeFN<Item_int_func, NAME> {
-    Item *do_rewrite(Item_int_func *i) const {
+    void do_analyze(Item_int_func *i, cipher_type t) const {
         Item **args = i->arguments();
-        for (uint x = 0; x < i->argument_count(); x++)
-            rewrite(args[x]);
-        return i;
+        for (uint x = 0; x < i->argument_count(); x++) {
+            analyze(args[x], cipher_type::plain);
+            /* XXX perhaps too conservative */
+        }
     }
-    ColType do_enctype(Item_int_func *i) const { return DataType::integer; }
 };
 
 extern const char str_year[] = "year";
@@ -540,24 +375,16 @@ static CItemDateExtractFunc<str_unix_timestamp> ANON;
 
 extern const char str_date_add_interval[] = "date_add_interval";
 static class CItemDateAddInterval : public CItemSubtypeFN<Item_date_add_interval, str_date_add_interval> {
-    Item *do_rewrite(Item_date_add_interval *i) const {
+    void do_analyze(Item_date_add_interval *i, cipher_type t) const {
         Item **args = i->arguments();
         for (uint x = 0; x < i->argument_count(); x++)
-            rewrite(args[x]);
-        /* XXX check if args[0] is a constant, in which case might be OK? */
-        return i;
-    }
-
-    ColType do_enctype(Item_date_add_interval *i) const {
-        /* XXX date? */
-        return DataType::integer;
+            analyze(args[x], cipher_type::plain);
     }
 } ANON;
 
 template<const char *NAME>
 class CItemDateNow : public CItemSubtypeFN<Item_func_now, NAME> {
-    Item *do_rewrite(Item_func_now *i) const { return i; }
-    ColType do_enctype(Item_func_now *i) const { return DataType::integer; /* XXX date? */ }
+    void do_analyze(Item_func_now *i, cipher_type t) const {}
 };
 
 extern const char str_now[] = "now";
@@ -571,14 +398,11 @@ static CItemDateNow<str_sysdate> ANON;
 
 template<const char *NAME>
 class CItemBitfunc : public CItemSubtypeFN<Item_func_bit, NAME> {
-    Item *do_rewrite(Item_func_bit *i) const {
+    void do_analyze(Item_func_bit *i, cipher_type t) const {
         Item **args = i->arguments();
         for (uint x = 0; x < i->argument_count(); x++)
-            rewrite(args[x]);
-        /* probably cannot do in CryptDB.. */
-        return i;
+            analyze(args[x], cipher_type::plain);
     }
-    ColType do_enctype(Item_func_bit *i) const { return DataType::integer; }
 };
 
 extern const char str_bit_not[] = "~";
@@ -594,14 +418,13 @@ extern const char str_bit_and[] = "&";
 static CItemBitfunc<str_bit_and> ANON;
 
 static class CItemLike : public CItemSubtypeFT<Item_func_like, Item_func::Functype::LIKE_FUNC> {
-    Item *do_rewrite(Item_func_like *i) const {
+    void do_analyze(Item_func_like *i, cipher_type t) const {
         Item **args = i->arguments();
-        for (uint x = 0; x < i->argument_count(); x++)
-            rewrite(args[x]);
-        return i;
+        for (uint x = 0; x < i->argument_count(); x++) {
+            /* XXX check if pattern is one we can support? */
+            analyze(args[x], cipher_type::like);
+        }
     }
-
-    ColType do_enctype(Item_func_like *i) const { return DataType::integer; }
 } ANON;
 
 static class CItemSP : public CItemSubtypeFT<Item_func, Item_func::Functype::FUNC_SP> {
@@ -609,48 +432,31 @@ static class CItemSP : public CItemSubtypeFT<Item_func, Item_func::Functype::FUN
         thrower() << "unsupported store procedure call " << *i;
     }
 
-    Item *do_rewrite(Item_func *i) const __attribute__((noreturn)) { error(i); }
-    ColType do_enctype(Item_func *i) const __attribute__((noreturn)) { error(i); }
+    void do_analyze(Item_func *i, cipher_type t) const __attribute__((noreturn)) { error(i); }
 } ANON;
 
 static class CItemIn : public CItemSubtypeFT<Item_func_in, Item_func::Functype::IN_FUNC> {
-    Item *do_rewrite(Item_func_in *i) const {
+    void do_analyze(Item_func_in *i, cipher_type t) const {
         Item **args = i->arguments();
         for (uint x = 0; x < i->argument_count(); x++)
-            rewrite(args[x]);
-
-        /* need DET */
-        return i;
+            analyze(args[x], cipher_type::equal);
     }
-
-    ColType do_enctype(Item_func_in *i) const { return DataType::integer; }
 } ANON;
 
 static class CItemBetween : public CItemSubtypeFT<Item_func_in, Item_func::Functype::BETWEEN> {
-    Item *do_rewrite(Item_func_in *i) const {
+    void do_analyze(Item_func_in *i, cipher_type t) const {
         Item **args = i->arguments();
         for (uint x = 0; x < i->argument_count(); x++)
-            rewrite(args[x]);
-        /* need OPE */
-        return i;
+            analyze(args[x], cipher_type::order);
     }
-
-    ColType do_enctype(Item_func_in *i) const { return DataType::integer; }
 } ANON;
 
 template<Item_sum::Sumfunctype SFT>
 class CItemCount : public CItemSubtypeST<Item_sum_count, SFT> {
-    Item *do_rewrite(Item_sum_count *i) const {
-        rewrite(i->get_arg(0));
-
-        if (i->has_with_distinct()) {
-            /* need DET.. */
-        }
-
-        return i;
+    void do_analyze(Item_sum_count *i, cipher_type t) const {
+        if (i->has_with_distinct())
+            analyze(i->get_arg(0), cipher_type::equal);
     }
-
-    ColType do_enctype(Item_sum_count *i) const { return DataType::integer; }
 };
 
 static CItemCount<Item_sum::Sumfunctype::COUNT_FUNC> ANON;
@@ -658,16 +464,8 @@ static CItemCount<Item_sum::Sumfunctype::COUNT_DISTINCT_FUNC> ANON;
 
 template<Item_sum::Sumfunctype SFT>
 class CItemChooseOrder : public CItemSubtypeST<Item_sum_hybrid, SFT> {
-    Item *do_rewrite(Item_sum_hybrid *i) const {
-        rewrite(i->get_arg(0));
-
-        /* need OPE */
-        return i;
-    }
-
-    ColType do_enctype(Item_sum_hybrid *i) const {
-        /* OPE of whatever data type args[0] is */
-        return DataType::integer;
+    void do_analyze(Item_sum_hybrid *i, cipher_type t) const {
+        analyze(i->get_arg(0), cipher_type::order);
     }
 };
 
@@ -675,25 +473,14 @@ static CItemChooseOrder<Item_sum::Sumfunctype::MIN_FUNC> ANON;
 static CItemChooseOrder<Item_sum::Sumfunctype::MAX_FUNC> ANON;
 
 static class CItemSumBit : public CItemSubtypeST<Item_sum_bit, Item_sum::Sumfunctype::SUM_BIT_FUNC> {
-    Item *do_rewrite(Item_sum_bit *i) const {
-        rewrite(i->get_arg(0));
-
-        /* might not be doable in CryptDB? */
-        return i;
+    void do_analyze(Item_sum_bit *i, cipher_type t) const {
+        analyze(i->get_arg(0), cipher_type::plain);
     }
-
-    ColType do_enctype(Item_sum_bit *i) const { return DataType::integer; }
 } ANON;
 
 class CItemCharcast : public CItemSubtypeFT<Item_char_typecast, Item_func::Functype::CHAR_TYPECAST_FUNC> {
-    Item *do_rewrite(Item_char_typecast *i) const {
-        /* XXX what does this even do? */
-        return i;
-    }
-
-    ColType do_enctype(Item_char_typecast *i) const {
-        /* XXX? */
-        return DataType::integer;
+    void do_analyze(Item_char_typecast *i, cipher_type t) const {
+        throw std::runtime_error("what does Item_char_typecast do?");
     }
 } ANON;
 
@@ -722,7 +509,7 @@ process_table_list(List<TABLE_LIST> *tll)
 
         if (t->on_expr) {
             t->on_expr->fix_fields(current_thd, &t->on_expr);
-            rewrite(t->on_expr);
+            analyze(t->on_expr, cipher_type::plain);
         }
 
         std::string db(t->db, t->db_length);
@@ -805,13 +592,25 @@ analyze(const std::string &db, const std::string &q)
                 if (!item)
                     break;
 
-                rewrite(item);
+                analyze(item, cipher_type::any);
             }
 
             if (lex->select_lex.where) {
                 lex->select_lex.where->fix_fields(t, (Item**) &(lex->select_lex.where));
-                rewrite(lex->select_lex.where);
+                analyze(lex->select_lex.where, cipher_type::plain);
             }
+
+            if (lex->select_lex.having) {
+                lex->select_lex.having->fix_fields(t, (Item**) &(lex->select_lex.having));
+                analyze(lex->select_lex.having, cipher_type::plain);
+            }
+
+            for (ORDER *o = lex->select_lex.group_list.first; o; o = o->next)
+                analyze(*o->item, cipher_type::equal);
+
+            for (ORDER *o = lex->select_lex.order_list.first; o; o = o->next)
+                analyze(*o->item, cipher_type::order);
+
             process_table_list(&lex->select_lex.top_join_list);
 
             cout << "fixed  query: " << *lex << endl;
