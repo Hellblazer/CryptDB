@@ -542,6 +542,21 @@ class CItemChooseOrder : public CItemSubtypeST<Item_sum_hybrid, SFT> {
 static CItemChooseOrder<Item_sum::Sumfunctype::MIN_FUNC> ANON;
 static CItemChooseOrder<Item_sum::Sumfunctype::MAX_FUNC> ANON;
 
+template<Item_sum::Sumfunctype SFT>
+class CItemSum : public CItemSubtypeST<Item_sum_sum, SFT> {
+    void do_analyze(Item_sum_sum *i, cipher_type t) const {
+        if (SFT == Item_sum::Sumfunctype::SUM_DISTINCT_FUNC)
+            analyze(i->get_arg(0), cipher_type::equal);
+        if (t == cipher_type::any || t == cipher_type::homadd)
+            analyze(i->get_arg(0), t);
+        else
+            analyze(i->get_arg(0), cipher_type::plain);
+    }
+};
+
+static CItemSum<Item_sum::Sumfunctype::SUM_FUNC> ANON;
+static CItemSum<Item_sum::Sumfunctype::SUM_DISTINCT_FUNC> ANON;
+
 static class ANON : public CItemSubtypeST<Item_sum_bit, Item_sum::Sumfunctype::SUM_BIT_FUNC> {
     void do_analyze(Item_sum_bit *i, cipher_type t) const {
         analyze(i->get_arg(0), cipher_type::plain);
