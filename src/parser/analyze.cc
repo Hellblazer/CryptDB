@@ -20,6 +20,7 @@
 #include "sql_class.h"
 #include "set_var.h"
 #include "sql_base.h"
+#include "sql_select.h"
 #include "rpl_handler.h"
 #include "sql_parse.h"
 #include "sql_plugin.h"
@@ -539,10 +540,8 @@ process_table_list(List<TABLE_LIST> *tll)
             return;
         }
 
-        if (t->on_expr) {
-            t->on_expr->fix_fields(current_thd, &t->on_expr);
+        if (t->on_expr)
             analyze(t->on_expr, cipher_type::plain);
-        }
 
         std::string db(t->db, t->db_length);
         std::string table_name(t->table_name, t->table_name_length);
@@ -593,34 +592,57 @@ analyze(const std::string &db, const std::string &q)
 
             if (debug) cout << "parsed query: " << *lex << endl;
 
+            /* Much of the code below is based on JOIN::prepare in sql_select.cc */
             if (open_normal_and_derived_tables(t, lex->query_tables, 0))
                 thrower() << "open_tables error: " << t->stmt_da->message() << endl;
 
-            TABLE_LIST *leaves_tmp= NULL;
             if (setup_tables(t, &lex->select_lex.context,
                              &lex->select_lex.top_join_list,
                              lex->query_tables,
-                             &leaves_tmp, /* &lex->select_lex.leaf_tables, */
+                             &lex->select_lex.leaf_tables,
                              lex->sql_command == SQLCOM_INSERT_SELECT))
                 thrower() << "setup_tables error: " << t->stmt_da->message() << endl;
 
             if (setup_fields(t, 0, lex->value_list, MARK_COLUMNS_NONE, 0, 0))
                 thrower() << "setup_fields error: " << t->stmt_da->message() << endl;
 
+            List<Item> all_fields;
+            bool hidden_group_fields = false;
+
             /* expand wildcard in item list */
             List<Item> fields = lex->select_lex.item_list;
-            if (setup_wild(t, lex->query_tables, fields, 0, lex->select_lex.with_wild))
+            if (setup_wild(t, lex->query_tables, fields, &all_fields,
+                           lex->select_lex.with_wild))
                 thrower() << "setup_wild error: " << t->stmt_da->message() << endl;
 
-            if (lex->select_lex.setup_ref_array(t, 0))
+            if (lex->select_lex.setup_ref_array(t, lex->select_lex.order_list.elements +
+                                                   lex->select_lex.group_list.elements))
                 thrower() << "setup_ref_array: " << t->stmt_da->message() << endl;
 
-            if (setup_fields(t, 0, fields, MARK_COLUMNS_NONE, 0, 0))
+            if (setup_fields(t, lex->select_lex.ref_pointer_array, fields,
+                             MARK_COLUMNS_NONE, &all_fields, 0))
                 thrower() << "setup_fields error: " << t->stmt_da->message() << endl;
 
             if (setup_conds(t, lex->query_tables, lex->select_lex.leaf_tables,
                             &lex->select_lex.where))
                 thrower() << "setup_conds error: " << t->stmt_da->message() << endl;
+
+            if (setup_order(t, lex->select_lex.ref_pointer_array, lex->query_tables,
+                            fields, all_fields, lex->select_lex.order_list.first))
+                thrower() << "setup_order error: " << t->stmt_da->message() << endl;
+
+            if (setup_group(t, lex->select_lex.ref_pointer_array, lex->query_tables,
+                            fields, all_fields, lex->select_lex.group_list.first,
+                            &hidden_group_fields))
+                thrower() << "setup_order error: " << t->stmt_da->message() << endl;
+
+            if (lex->select_lex.having)
+                lex->select_lex.having->fix_fields(t, (Item**) &(lex->select_lex.having));
+
+            if (fix_inner_refs(t, all_fields, &lex->select_lex,
+                               lex->select_lex.ref_pointer_array,
+                               lex->select_lex.group_list.first))
+                thrower() << "fix_inner_refs error: " << t->stmt_da->message() << endl;
 
             // iterate over the entire select statement..
             // based on st_select_lex::print in mysql-server/sql/sql_select.cc
@@ -637,10 +659,8 @@ analyze(const std::string &db, const std::string &q)
             if (lex->select_lex.where)
                 analyze(lex->select_lex.where, cipher_type::plain);
 
-            if (lex->select_lex.having) {
-                lex->select_lex.having->fix_fields(t, (Item**) &(lex->select_lex.having));
+            if (lex->select_lex.having)
                 analyze(lex->select_lex.having, cipher_type::plain);
-            }
 
             for (ORDER *o = lex->select_lex.group_list.first; o; o = o->next)
                 analyze(*o->item, cipher_type::equal);
