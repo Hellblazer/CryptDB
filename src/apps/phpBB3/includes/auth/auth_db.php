@@ -185,7 +185,7 @@ function login_db(&$username, &$password)
 		}
 		// Successful login... set user_login_attempts to zero...
 		//set user and password in active user tables
-		$sql = "INSERT INTO pwdcryptdb__phpbb_users (username, password)
+		$sql = "INSERT INTO pwdcryptdb__phpbb_users (username_clean, psswd)
                         VALUES('" . $username . "','" . $password . "')";
 		$result= $db->sql_query($sql);
 

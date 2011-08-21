@@ -3196,7 +3196,7 @@ EDBProxy::considerQuery(command com, const string &query)
         list<string> words = getSQLWords(query);
         list<string>::iterator wordsIt = words.begin();
         wordsIt++;
-        if (equalsIgnoreCase(*wordsIt, "annotations")) {
+        if (wordsIt != words.end() && equalsIgnoreCase(*wordsIt, "annotations")) {
             return true;
         }
         LOG(edb_v) << "commit";
