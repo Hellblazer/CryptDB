@@ -599,8 +599,12 @@ analyze(const std::string &db, const std::string &q)
 
     /*
      * Helpful in understanding what's going on: JOIN::prepare(),
-     * handle_select(), and mysql_select() in sql_select.cc.
+     * handle_select(), and mysql_select() in sql_select.cc.  Also
+     * initial code in mysql_execute_command() in sql_parse.cc.
      */
+    lex->select_lex.context.resolve_in_table_list_only(
+        lex->select_lex.table_list.first);
+
     if (open_normal_and_derived_tables(t, lex->query_tables, 0))
         mysql_thrower() << "open_normal_and_derived_tables";
 
