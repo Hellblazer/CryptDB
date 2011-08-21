@@ -23,5 +23,5 @@ for cs in field_ciphers.itervalues():
     cipherset_count[str(sorted(cs))] += 1
 
 for cs in sorted(cipherset_count, key=lambda cs: cipherset_count[cs]):
-    print cs, cipherset_count[cs]
+    print '%9d' % cipherset_count[cs], cs
 
