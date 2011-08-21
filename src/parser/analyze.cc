@@ -30,6 +30,8 @@
 #define CONCAT(a, b)    CONCAT2(a, b)
 #define ANON            CONCAT(__anon_id_, __COUNTER__)
 
+static int debug = 0;
+
 enum class cipher_type {
     any,    /* just need to decrypt the result */
     plain,  /* need to evaluate Item on the server, e.g. for WHERE */
@@ -207,7 +209,6 @@ static class CItemSubselect : public CItemSubtypeIT<Item_subselect, Item::Type::
 template<Item_func::Functype FT, class IT>
 class CItemCompare : public CItemSubtypeFT<Item_func, FT> {
     void do_analyze(Item_func *i, cipher_type t) const {
-        throw std::runtime_error("compare");
         cipher_type t2;
         if (FT == Item_func::Functype::EQ_FUNC ||
             FT == Item_func::Functype::EQUAL_FUNC ||
@@ -552,14 +553,15 @@ analyze(const std::string &db, const std::string &q)
 
     Parser_state ps;
     if (!ps.init(t, buf, len)) {
-        cout << "input  query: " << buf << endl;
+        if (debug) cout << "input query: " << buf << endl;
+
         bool error = parse_sql(t, &ps, 0);
         if (error) {
             printf("parse error: %d %s\n", t->is_error(), t->stmt_da->message());
         } else {
             LEX *lex = t->lex;
 
-            cout << "parsed query: " << *lex << endl;
+            if (debug) cout << "parsed query: " << *lex << endl;
 
             if (open_normal_and_derived_tables(t, lex->query_tables, 0))
                 thrower() << "open_tables error: " << t->stmt_da->message() << endl;
@@ -613,7 +615,7 @@ analyze(const std::string &db, const std::string &q)
 
             process_table_list(&lex->select_lex.top_join_list);
 
-            cout << "fixed  query: " << *lex << endl;
+            if (debug) cout << "fixed query: " << *lex << endl;
         }
 
         t->end_statement();
@@ -699,10 +701,11 @@ main(int ac, char **av)
         if (db == "") {
             nskip++;
         } else {
+            string unq = unescape(q);
             try {
-                analyze(db, unescape(q));
+                analyze(db, unq);
             } catch (std::runtime_error &e) {
-                cout << "ERROR: " << e.what() << endl;
+                cout << "ERROR: " << e.what() << " in query " << unq << endl;
                 nerror++;
             }
         }
