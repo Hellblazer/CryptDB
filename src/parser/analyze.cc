@@ -492,7 +492,7 @@ static class CItemSumBit : public CItemSubtypeST<Item_sum_bit, Item_sum::Sumfunc
 
 class CItemCharcast : public CItemSubtypeFT<Item_char_typecast, Item_func::Functype::CHAR_TYPECAST_FUNC> {
     void do_analyze(Item_char_typecast *i, cipher_type t) const {
-        throw std::runtime_error("what does Item_char_typecast do?");
+        thrower() << "what does Item_char_typecast do?";
     }
 } ANON;
 
@@ -501,7 +501,7 @@ class CItemRef : public CItemSubtypeIT<Item_ref, Item::Type::REF_ITEM> {
         if (i->ref) {
             analyze(*i->ref, t);
         } else {
-            throw std::runtime_error("how to resolve Item_ref::ref?");
+            thrower() << "how to resolve Item_ref::ref?";
         }
     }
 } ANON;
@@ -539,7 +539,7 @@ process_table_list(List<TABLE_LIST> *tll)
         if (t->derived) {
             // XXX handle sub-selects..
             st_select_lex_unit *u __attribute__((unused)) = t->derived;
-            throw std::runtime_error("sub-select derived table");
+            thrower() << "sub-select derived table";
         }
     }
 }
@@ -549,6 +549,14 @@ process_table_list(List<TABLE_LIST> *tll)
  * Test harness.
  */
 extern "C" void *create_embedded_thd(int client_flag);
+
+class mysql_thrower : public std::stringstream {
+ public:
+    ~mysql_thrower() __attribute__((noreturn)) {
+        *this << ": " << current_thd->stmt_da->message();
+        throw std::runtime_error(str());
+    }
+};
 
 static void
 analyze(const std::string &db, const std::string &q)
@@ -570,73 +578,75 @@ analyze(const std::string &db, const std::string &q)
     alloc_query(t, buf, len + 1);
 
     Parser_state ps;
-    if (!ps.init(t, buf, len)) {
-        if (debug) cout << "input query: " << buf << endl;
+    if (ps.init(t, buf, len))
+        mysql_thrower() << "Paser_state::init";
 
-        bool error = parse_sql(t, &ps, 0);
-        if (error) {
-            printf("parse error: %d %s\n", t->is_error(), t->stmt_da->message());
-        } else {
-            LEX *lex = t->lex;
+    if (debug) cout << "input query: " << buf << endl;
 
-            if (debug) cout << "parsed query: " << *lex << endl;
+    bool error = parse_sql(t, &ps, 0);
+    if (error)
+        mysql_thrower() << "parse_sql";
 
-            /*
-             * Helpful in understanding what's going on: JOIN::prepare(),
-             * handle_select(), and mysql_select() in sql_select.cc.
-             */
-            if (open_normal_and_derived_tables(t, lex->query_tables, 0))
-                thrower() << "open_tables error: " << t->stmt_da->message() << endl;
+    auto ANON = cleanup([&t]() { t->end_statement(); });
+    LEX *lex = t->lex;
 
-            JOIN *j = new JOIN(t, lex->select_lex.item_list,
-                               lex->select_lex.options, 0);
-            if (j->prepare(&lex->select_lex.ref_pointer_array,
-                           lex->select_lex.table_list.first,
-                           lex->select_lex.with_wild,
-                           lex->select_lex.where,
-                           lex->select_lex.order_list.elements
-                             + lex->select_lex.group_list.elements,
-                           lex->select_lex.order_list.first,
-                           lex->select_lex.group_list.first,
-                           lex->select_lex.having,
-                           lex->proc_list.first,
-                           &lex->select_lex,
-                           &lex->unit))
-                thrower() << "JOIN prepare error: " << t->stmt_da->message() << endl;
+    if (debug) cout << "parsed query: " << *lex << endl;
 
-            if (debug) cout << "prepared query: " << *lex << endl;
+    /* Assumes command ordering in sql_lex.h */
+    if (lex->sql_command >= SQLCOM_SHOW_DATABASES &&
+        lex->sql_command <= SQLCOM_SHOW_TRIGGERS)
+        return;
 
-            // iterate over the entire select statement..
-            // based on st_select_lex::print in mysql-server/sql/sql_select.cc
+    /*
+     * Helpful in understanding what's going on: JOIN::prepare(),
+     * handle_select(), and mysql_select() in sql_select.cc.
+     */
+    if (open_normal_and_derived_tables(t, lex->query_tables, 0))
+        mysql_thrower() << "open_normal_and_derived_tables";
 
-            auto item_it = List_iterator<Item>(lex->select_lex.item_list);
-            for (;;) {
-                Item *item = item_it++;
-                if (!item)
-                    break;
+    JOIN *j = new JOIN(t, lex->select_lex.item_list,
+                       lex->select_lex.options, 0);
+    if (j->prepare(&lex->select_lex.ref_pointer_array,
+                   lex->select_lex.table_list.first,
+                   lex->select_lex.with_wild,
+                   lex->select_lex.where,
+                   lex->select_lex.order_list.elements
+                     + lex->select_lex.group_list.elements,
+                   lex->select_lex.order_list.first,
+                   lex->select_lex.group_list.first,
+                   lex->select_lex.having,
+                   lex->proc_list.first,
+                   &lex->select_lex,
+                   &lex->unit))
+        mysql_thrower() << "JOIN::prepare";
 
-                analyze(item, cipher_type::any);
-            }
+    if (debug) cout << "prepared query: " << *lex << endl;
 
-            if (lex->select_lex.where)
-                analyze(lex->select_lex.where, cipher_type::plain);
+    // iterate over the entire select statement..
+    // based on st_select_lex::print in mysql-server/sql/sql_select.cc
 
-            if (lex->select_lex.having)
-                analyze(lex->select_lex.having, cipher_type::plain);
+    auto item_it = List_iterator<Item>(lex->select_lex.item_list);
+    for (;;) {
+        Item *item = item_it++;
+        if (!item)
+            break;
 
-            for (ORDER *o = lex->select_lex.group_list.first; o; o = o->next)
-                analyze(*o->item, cipher_type::equal);
-
-            for (ORDER *o = lex->select_lex.order_list.first; o; o = o->next)
-                analyze(*o->item, cipher_type::order);
-
-            process_table_list(&lex->select_lex.top_join_list);
-        }
-
-        t->end_statement();
-    } else {
-        printf("parser init error\n");
+        analyze(item, cipher_type::any);
     }
+
+    if (lex->select_lex.where)
+        analyze(lex->select_lex.where, cipher_type::plain);
+
+    if (lex->select_lex.having)
+        analyze(lex->select_lex.having, cipher_type::plain);
+
+    for (ORDER *o = lex->select_lex.group_list.first; o; o = o->next)
+        analyze(*o->item, cipher_type::equal);
+
+    for (ORDER *o = lex->select_lex.order_list.first; o; o = o->next)
+        analyze(*o->item, cipher_type::order);
+
+    process_table_list(&lex->select_lex.top_join_list);
 }
 
 static string
