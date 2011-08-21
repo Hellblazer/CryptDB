@@ -9,3 +9,8 @@
 now, copy config.mk.sample to config.mk and adjust the path for MYSRC
 may need to sudo apt-get install libbsd-dev 
 
+---
+
+Some notes about Item processing:
+    Item::transform, Item::compile, and Item::traverse_cond could be useful
+

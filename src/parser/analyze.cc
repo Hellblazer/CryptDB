@@ -129,7 +129,8 @@ static class CItemFuncNameDir : public CItemTypeDir<std::string> {
 static void
 analyze(Item *i, cipher_type t)
 {
-    itemTypes.do_analyze(i, t);
+    if (!i->const_item())
+        itemTypes.do_analyze(i, t);
 }
 
 
@@ -559,7 +560,7 @@ class mysql_thrower : public std::stringstream {
 };
 
 static void
-analyze(const std::string &db, const std::string &q)
+query_analyze(const std::string &db, const std::string &q)
 {
     assert(create_embedded_thd(0));
     THD *t = current_thd;
@@ -732,7 +733,7 @@ main(int ac, char **av)
         } else {
             string unq = unescape(q);
             try {
-                analyze(db, unq);
+                query_analyze(db, unq);
             } catch (std::runtime_error &e) {
                 cout << "ERROR: " << e.what() << " in query " << unq << endl;
                 nerror++;
