@@ -248,14 +248,6 @@ class CItemSubtypeFN : public CItemSubtype<T> {
  */
 static class CItemField : public CItemSubtypeIT<Item_field, Item::Type::FIELD_ITEM> {
     Item *do_rewrite(Item_field *i) const {
-        /*
-         * Look up the fully-qualified name for this field,
-         * using something like find_field_in_tables()..
-         *
-         * Item_field::fix_fields() seems promising, as long as we place
-         * the app-visible schema into a shadow database kept by the proxy
-         * (so that find_field_in_tables works).
-         */
         return i;
     }
 
@@ -778,19 +770,26 @@ analyze(const std::string &db, const std::string &q)
             cout << "parsed query: " << *lex << endl;
 
             uint open_count;
-            if (open_tables(current_thd, &lex->query_tables, &open_count, 0))
+            if (open_tables(t, &lex->query_tables, &open_count, 0))
                 thrower() << "open_tables error: " << t->stmt_da->message() << endl;
 
             TABLE_LIST *leaves_tmp= NULL;
-            if (setup_tables(current_thd, &lex->select_lex.context,
+            if (setup_tables(t, &lex->select_lex.context,
                              &lex->select_lex.top_join_list,
                              lex->query_tables,
                              &leaves_tmp, /* &lex->select_lex.leaf_tables, */
                              lex->sql_command == SQLCOM_INSERT_SELECT))
                 thrower() << "setup_tables error: " << t->stmt_da->message() << endl;
 
-            if (setup_fields(current_thd, 0, lex->value_list,
-                             MARK_COLUMNS_NONE, 0, 0))
+            if (setup_fields(t, 0, lex->value_list, MARK_COLUMNS_NONE, 0, 0))
+                thrower() << "setup_fields error: " << t->stmt_da->message() << endl;
+
+            /* expand wildcard in item list */
+            List<Item> fields = lex->select_lex.item_list;
+            if (setup_wild(t, lex->query_tables, fields, 0, lex->select_lex.with_wild))
+                thrower() << "setup_wild error: " << t->stmt_da->message() << endl;
+
+            if (setup_fields(t, 0, fields, MARK_COLUMNS_NONE, 0, 0))
                 thrower() << "setup_fields error: " << t->stmt_da->message() << endl;
 
             // iterate over the entire select statement..
@@ -802,13 +801,11 @@ analyze(const std::string &db, const std::string &q)
                 if (!item)
                     break;
 
-                item->fix_fields(current_thd, item_it.ref());
                 rewrite(item);
             }
 
             if (lex->select_lex.where) {
-                lex->select_lex.where->fix_fields(current_thd,
-                                                  (Item**) &(lex->select_lex.where));
+                lex->select_lex.where->fix_fields(t, (Item**) &(lex->select_lex.where));
                 rewrite(lex->select_lex.where);
             }
             process_table_list(&lex->select_lex.top_join_list);
