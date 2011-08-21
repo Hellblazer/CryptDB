@@ -24,6 +24,7 @@ for cs in field_ciphers.itervalues():
     if collapse_ciphers:
         if len(cs) > 1 and 'any' in cs: cs.remove('any')
         if 'plain' in cs: cs = ['plain']
+        if 'order' in cs and 'order_soft' in cs: cs.remove('order_soft')
         if 'order' in cs and 'equal' in cs: cs.remove('equal')
     cipherset_count[str(sorted(cs))] += 1
 
