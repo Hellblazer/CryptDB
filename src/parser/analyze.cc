@@ -711,7 +711,7 @@ unescape(string s)
 
         if (s.size() == 0)
             break;
-        if (s[0] == 'x') {
+        if (s[0] == 'x' && s.size() >= 3) {
             stringstream hs(s.substr(1, 2));
             int v;
             hs >> hex >> v;
