@@ -353,6 +353,9 @@ class CItemLeafFunc : public CItemSubtypeFN<Item_func, NAME> {
 extern const char str_found_rows[] = "found_rows";
 static CItemLeafFunc<str_found_rows> ANON;
 
+extern const char str_rand[] = "rand";
+static CItemLeafFunc<str_rand> ANON;
+
 template<const char *NAME>
 class CItemDateExtractFunc : public CItemSubtypeFN<Item_int_func, NAME> {
     void do_analyze(Item_int_func *i, cipher_type t) const {
