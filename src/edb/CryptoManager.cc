@@ -238,6 +238,20 @@ increaseLevel(SECLEVEL l, fieldType ft, onion o)
 
 }
 
+//TODO: this function should be replaced with actual functionality..
+// for now, it does not interfere with tpcc performance because all filters are on integers or strings
+static string
+removeUnsupportedMath(string data) {
+    if (data[0]=='-') {
+        data = data.substr(1, data.length()-1);
+    }
+    if (data.find(".") != string::npos) {
+        data = data.substr(0, data.find('.'));
+    }
+
+    return data;
+}
+
 //////////////////////////////////////////////////////////////////
 
 //TODO: optimization: crypt can take in an array of elements to decrypt as
@@ -274,6 +288,7 @@ CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft,
 
         switch (ft) {
         case TYPE_INTEGER: {
+
 
             switch (o) {
             case oDET: {
@@ -473,9 +488,11 @@ CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft,
         switch (o) {
         case oDET: {
 
-            uint64_t val = valFromStr(data);
+            uint64_t val;
 
             if (fromlevel == SECLEVEL::PLAIN_DET) {
+                data = removeUnsupportedMath(data);
+                val = valFromStr(data);
                 fromlevel = increaseLevel(fromlevel, ft, oDET);
                 AES_KEY * key = get_key_DET(getKey(mkey, "join", fromlevel));
                 val = encrypt_DET(val, key);
@@ -483,6 +500,8 @@ CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft,
                 if (fromlevel == tolevel) {
                     return strFromVal(val);
                 }
+            } else {
+                val = valFromStr(data);
             }
 
             if (fromlevel == SECLEVEL::DETJOIN) {
@@ -512,13 +531,19 @@ CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft,
             return "";
         }
         case oOPE: {
-            uint64_t val = valFromStr(data);
+
+            uint64_t val;
 
             if (fromlevel == SECLEVEL::PLAIN_OPE) {
+                data = removeUnsupportedMath(data);
+                val = valFromStr(data);
+
                 fromlevel = increaseLevel(fromlevel, ft, oOPE);
                 if (fromlevel == tolevel) {
                     return strFromVal(val);
                 }
+            } else {
+                val = valFromStr(data);
             }
 
             if (fromlevel == SECLEVEL::OPEJOIN) {
@@ -548,8 +573,10 @@ CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft,
             return "";
         }
         case oAGG: {
-            uint64_t val = valFromStr(data);
+
             if (fromlevel == SECLEVEL::PLAIN_AGG) {
+                data = removeUnsupportedMath(data);
+                uint64_t val = valFromStr(data);
                 string uval = encrypt_Paillier(val);
                 fromlevel = increaseLevel(fromlevel, ft, oAGG);
                 if (fromlevel == tolevel) {

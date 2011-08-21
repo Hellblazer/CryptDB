@@ -3239,7 +3239,7 @@ throw (CryptDBError)
 
     //some queries do not need to be encrypted
     if (!considerQuery(com, query)) {
-        cerr << "A\n";
+
         LOG(edb_v) << "query not considered: " << query;
         list<string> res;
         res.push_back(query);
