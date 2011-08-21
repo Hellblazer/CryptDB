@@ -27,7 +27,8 @@ static bool debug = true;
     m(plain)  /* need to evaluate Item on the server, e.g. for WHERE */     \
     m(order)  /* need to evaluate order on the server, e.g. for SORT BY */  \
     m(equal)  /* need to evaluate dups on the server, e.g. for GROUP BY */  \
-    m(like)   /* need to do LIKE */
+    m(like)   /* need to do LIKE */                                         \
+    m(homadd) /* addition */
 
 enum class cipher_type {
 #define __temp_m(n) n,
@@ -301,9 +302,13 @@ template<const char *NAME>
 class CItemAdditive : public CItemSubtypeFN<Item_func_additive_op, NAME> {
     void do_analyze(Item_func_additive_op *i, cipher_type t) const {
         Item **args = i->arguments();
-        /* XXX too conservative */
-        analyze(args[0], cipher_type::plain);
-        analyze(args[1], cipher_type::plain);
+        if (t == cipher_type::any) {
+            analyze(args[0], cipher_type::homadd);
+            analyze(args[1], cipher_type::homadd);
+        } else {
+            analyze(args[0], cipher_type::plain);
+            analyze(args[1], cipher_type::plain);
+        }
     }
 };
 
@@ -390,8 +395,8 @@ class CItemDateExtractFunc : public CItemSubtypeFN<Item_int_func, NAME> {
     void do_analyze(Item_int_func *i, cipher_type t) const {
         Item **args = i->arguments();
         for (uint x = 0; x < i->argument_count(); x++) {
-            analyze(args[x], cipher_type::plain);
             /* XXX perhaps too conservative */
+            analyze(args[x], cipher_type::plain);
         }
     }
 };
@@ -412,8 +417,10 @@ extern const char str_date_add_interval[] = "date_add_interval";
 static class CItemDateAddInterval : public CItemSubtypeFN<Item_date_add_interval, str_date_add_interval> {
     void do_analyze(Item_date_add_interval *i, cipher_type t) const {
         Item **args = i->arguments();
-        for (uint x = 0; x < i->argument_count(); x++)
+        for (uint x = 0; x < i->argument_count(); x++) {
+            /* XXX perhaps too conservative */
             analyze(args[x], cipher_type::plain);
+        }
     }
 } ANON;
 
