@@ -2779,7 +2779,7 @@ throw (CryptDBError)
         // increment value
         noFieldsGiven = fields.size();
 
-        cerr << "fieldNames are " << toString(tm->fieldNames, angleBrackets) << "\n";
+        //cerr << "fieldNames are " << toString(tm->fieldNames, angleBrackets) << "\n";
         //check if we need to add any principal or encrypted field
         for (addit = tm->fieldNames.begin(); addit!=tm->fieldNames.end();
              addit++) {
