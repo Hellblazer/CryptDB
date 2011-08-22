@@ -3746,10 +3746,12 @@ typedef struct Stats {
 	int total_queries;
 	int queries_failed;
 	double mspassed;
+	int worker;
 	Stats() {
 		total_queries = 0;
 		queries_failed = 0;
 		mspassed = 0.0;
+		worker = 0;
 	}
 } Stats;
 
@@ -3761,10 +3763,11 @@ static Stats * myStats;
  * - if conn != NULL, use this connection to send queries to the DBMS
  * - if outputfile != "", log encrypted query here
  * - if !allowExecFailures, we stop on failed queries sent to the DBMS
+ * - logFreq indicates frequency of logging
  */
 static void
 runQueriesFromFile(EDBProxy * cl, string queryFile, bool execQuery, bool encryptQuery, Connect * conn,
-        string outputfile, bool allowExecFailures, Stats * stats)
+        string outputfile, bool allowExecFailures, Stats * stats, int logFreq)
 throw (CryptDBError)
 {
 	ifstream infile(queryFile);
@@ -3803,6 +3806,9 @@ throw (CryptDBError)
 		        queries = list<string>(1, query);
 		    }
 		    stats->total_queries++;
+		    if (stats->total_queries % logFreq == 0) {
+		        cerr << queryFile << ": " << stats->total_queries << " so far\n";
+		    }
 		    for (list<string>::iterator it = queries.begin(); it != queries.end(); it++) {
 		        if  (outputtranslation) {
 		            *outfile << *it << "\n";
@@ -3837,7 +3843,7 @@ dotrain(EDBProxy * cl, string createsfile, string querypatterns, string exec) {
 }
 
 static string * workloads;
-static ofstream * resultFile;
+static string resultFile;
 
 static string
 fixedRepr(int i) {
@@ -3914,11 +3920,25 @@ assignWork(string queryfile, int noWorkers,   int totalLines, int noRepeats, boo
 		  assert_s(system((string("cat temp ") + workload + " > temp2;").c_str()) >= 0,  "problem when cat");
 		  assert_s(system("mv temp2 temp") >= 0, "problem when moving");
 		}
-		assert_s(system(("mv temp " + workload).c_str()) >= 0, "problem wehn moving");
+		assert_s(system(("mv temp " + workload).c_str()) >= 0, "problem when moving");
 
 	}
 
 	infile.close();
+}
+
+static void __attribute__((noreturn))
+workerFinish() {
+
+    ofstream resFile(resultFile, ios::app);
+    assert_s(resFile.is_open(), " could not open file " + resultFile);
+
+    resFile << myStats->worker <<  " " << myStats->queries_failed << " " << myStats->total_queries << " "
+                << myStats->mspassed << "\n";
+    resFile.close();
+    cerr <<  "worker " << myStats->worker << " queriesfailed " << myStats->queries_failed << " totalqueries " << myStats->total_queries
+                << " mspassed " << myStats->mspassed << "\n";
+    exit(EXIT_SUCCESS);
 }
 
 //function is called when a worker must terminate
@@ -3926,16 +3946,18 @@ assignWork(string queryfile, int noWorkers,   int totalLines, int noRepeats, boo
 static void __attribute__((noreturn))
 signal_handler(int signum) {
 
-    *resultFile << "queriesfailed " << myStats->queries_failed << " totalqueries " << myStats->total_queries
-            << " mspassed " << myStats->mspassed << "\n";
-    exit(EXIT_SUCCESS);
+    //sleep for random interval to avoid races at writing out results
+    srand(myStats->worker);
+    int usecs = rand() % 1000000;
+    usleep(usecs);
+    cerr << "worker " << myStats->worker << " received signal \n";
+    workerFinish();
 
 }
 
 
 static void
-workerJob(EDBProxy * cl, int index, const TestConfig & tc) {
-
+workerJob(EDBProxy * cl, int index, const TestConfig & tc, int logFreq) {
 
 	string workload = workloads[index];
 	//execute on the workload
@@ -3944,27 +3966,26 @@ workerJob(EDBProxy * cl, int index, const TestConfig & tc) {
 	Timer t;
 
 	myStats = new Stats();
+	myStats->worker = index;
 
 	Connect * conn = new Connect(tc.host, tc.user, tc.pass, tc.db, tc.port);
 
-	runQueriesFromFile(cl, workload, true, true, conn, "", false, myStats);
+	runQueriesFromFile(cl, workload, true, false, conn, "", true, myStats, logFreq);
 
 	cerr << "Done on " << workload << "\n";
 	myStats->mspassed = t.lap_ms();
 
-	signal_handler(SIGTERM); //faking a signal receipt
+	workerFinish();
 
 }
 
-static void runExp(EDBProxy * cl, int noWorkers, const TestConfig & tc) {
+static void runExp(EDBProxy * cl, int noWorkers, const TestConfig & tc, int logFreq) {
 
         assert_s(system("rm -f pieces/result;") >= 0, "problem removing pieces/result");
         assert_s(system("touch pieces/result;") >= 0, "problem creating pieces/result");
 
-	resultFile = new ofstream("pieces/result", ios::app);
+	resultFile = "pieces/exp_result";
 	ifstream resultFileIn;
-
-	assert_s(resultFile->is_open(), "cannot open result file \n");
 
 	assert_s(signal(SIGTERM, signal_handler) != SIG_ERR ,"signal could not set the handler");
 
@@ -3973,14 +3994,14 @@ static void runExp(EDBProxy * cl, int noWorkers, const TestConfig & tc) {
 	int i;
 	pid_t pids[noWorkers];
 
-	double interval, querytput, querylat, trantput, tranlat;
-	int allInstr, allInstrOK, allTran, allTranOK;
+	double interval, querytput, querylat;
+	int allQueries, allQueriesOK;
 
 	for (i = 0; i < noWorkers; i++) {
 		index = i;
 		pid_t pid = fork();
 		if (pid == 0) {
-			workerJob(cl, index, tc);
+			workerJob(cl, index, tc, logFreq);
 		} else if (pid < 0) {
 			cerr << "failed to fork \n";
 			exit(1);
@@ -3995,42 +4016,61 @@ static void runExp(EDBProxy * cl, int noWorkers, const TestConfig & tc) {
 
 	assert_s(WIFEXITED(childstatus), "the first child returning terminated abnormally\n");
 
+	cerr << "One child finished, stopping all other children..\n";
+
 	//signal the other children to stop
 	for (int j = 0; j < noWorkers; j++) {
 	    if (pids[j] != firstchild) {
 	        assert_s(kill(pids[j], SIGTERM) == 0, "could not send signal to child " + StringFromVal(j));
 	    }
 	}
-	resultFile->close();
 
-	resultFileIn.open("pieces/result", ifstream::in);
+	//now wait and make sure all finished
+	for (int j = 0; j < noWorkers; j++) {
+	    if (pids[j] != firstchild) {
+	        if (waitpid(pids[j], &childstatus, 0) == -1) {
+	            cerr << "there were problems with process " << j << "\n";
+	        }
+	    }
+
+	}
+
+	resultFileIn.open(resultFile, ifstream::in);
 
 	if (!resultFileIn.is_open()) {
 		cerr << "cannot open results file to read\n";
 		exit(1);
 	}
 
-	querytput = 0; querylat = 0; trantput = 0; tranlat = 0;
-	allInstr = 0; allInstrOK = 0; allTran = 0; allTranOK = 0;
+	interval = 0.0;
+	querytput = 0.0; querylat = 0.0;
+	allQueries = 0; allQueriesOK = 0;
+
 
 	for (i = 0; i < noWorkers; i++) {
+            int worker, queries_failed, total_queries;
+            double mspassed;
 
-		double currquerytput, currquerylat;
+		resultFileIn >> worker;
+		resultFileIn >> queries_failed;
+		resultFileIn >> total_queries;
+		resultFileIn >> mspassed;
 
-		resultFileIn >> index;
-		resultFileIn >> interval;
-		resultFileIn >> currquerytput;
-		resultFileIn >> currquerylat;
-		cerr << index << " " << interval << " sec " <<
-				currquerytput << " queries/sec " << currquerylat <<
-				" secs/query \n";
-		querytput = querytput + currquerytput;
-		querylat = querylat + currquerylat;
+		allQueries += total_queries;
+		allQueriesOK += total_queries - queries_failed;
+		interval = max(interval, mspassed);//there should be just one worker reporting nonzero time
+
+		cerr << "worker " << worker << ": mspased " << mspassed << " totalqueries " <<
+				total_queries << " queriesfailed " << queries_failed <<
+				" \n";
+
 	}
 
-	cerr <<"overall:  throughput " << querytput << " queries/sec latency " << querylat/noWorkers << " sec/query \n";
-	cerr << "some other vars " << trantput << tranlat << allInstr << allInstrOK << allTran << allTranOK << "\n";
-        resultFileIn.close();
+	querytput = allQueriesOK*1000.0/interval;
+	querylat = interval * noWorkers/allQueries;
+	cerr <<"overall:  throughput " << querytput << " queries/sec latency " << querylat << " msec/query \n";
+
+	resultFileIn.close();
 
 
 
@@ -4078,7 +4118,7 @@ testTrace(const TestConfig &tc, int argc, char ** argv)
 		    pid_t pid = fork();
 		    if (pid == 0) {
 		        Stats * st = new Stats();
-		        runQueriesFromFile(cl, work, false, false, NULL, outputfile, false, st);
+		        runQueriesFromFile(cl, work, false, false, NULL, outputfile, false, st, 100000);
 
 		        cerr << "worker " << i << "finished\n";
 		        exit(1);
@@ -4102,8 +4142,8 @@ testTrace(const TestConfig &tc, int argc, char ** argv)
 	};
 
 	if (string(argv[1]) == "eval") {
-		if (argc != 7) {
-			cerr << "trace eval queryfile totallines noworkers noRepeats split? \n";
+		if (argc != 8) {
+			cerr << "trace eval queryfile totallines noworkers noRepeats split? logFreq \n";
 			return;
 		}
 
@@ -4112,10 +4152,11 @@ testTrace(const TestConfig &tc, int argc, char ** argv)
 		int noWorkers = atoi(argv[4]);
 		int noRepeats = atoi(argv[5]);
 		bool split = atoi(argv[6]);
+		int logFreq = atoi(argv[7]);
 
 		assignWork(queryfile, noWorkers, totalLines, noRepeats, split);
 
-		runExp(cl, noWorkers, tc);
+		runExp(cl, noWorkers, tc, logFreq);
 
 		delete cl;
 
