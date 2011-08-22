@@ -26,15 +26,14 @@
 
 static bool debug = true;
 
-#define CIPHER_TYPES(m)                                                     \
-    m(none)         /* no data needed (blind writes) */                     \
-    m(any)          /* just need to decrypt the result */                   \
-    m(plain)        /* evaluate Item on the server, e.g. for WHERE */       \
-    m(order)        /* evaluate order on the server, e.g. for SORT BY */    \
-    m(order_soft)   /* can evaluate order in the proxy (SORT w/o LIMIT) */  \
-    m(equal)        /* evaluate dups on the server, e.g. for GROUP BY */    \
-    m(like)         /* need to do LIKE */                                   \
-    m(homadd)       /* addition */
+#define CIPHER_TYPES(m)                                                 \
+    m(none)     /* no data needed (blind writes) */                     \
+    m(any)      /* just need to decrypt the result */                   \
+    m(plain)    /* evaluate Item on the server, e.g. for WHERE */       \
+    m(order)    /* evaluate order on the server, e.g. for SORT BY */    \
+    m(equal)    /* evaluate dups on the server, e.g. for GROUP BY */    \
+    m(like)     /* need to do LIKE */                                   \
+    m(homadd)   /* addition */
 
 enum class cipher_type {
 #define __temp_m(n) n,
@@ -59,11 +58,21 @@ class cipher_type_reason {
     cipher_type_reason(cipher_type t_arg,
                        const std::string &why_t_arg,
                        Item *why_t_item_arg,
-                       const cipher_type_reason *parent_arg)
-    : t(t_arg), why_t(why_t_arg), why_t_item(why_t_item_arg),
-      parent(parent_arg) {}
+                       const cipher_type_reason *parent_arg,
+                       bool init_soft_arg = false)
+    : t(t_arg), soft(init_soft_arg),
+      why_t(why_t_arg), why_t_item(why_t_item_arg),
+      parent(parent_arg)
+    {
+        if (parent) {
+            if (parent->t == cipher_type::none || parent->t == cipher_type::any)
+                soft = true;
+        }
+    }
 
     cipher_type t;
+    bool soft;      /* can be evaluated at proxy */
+
     string why_t;
     Item *why_t_item;
 
@@ -73,7 +82,10 @@ class cipher_type_reason {
 static ostream&
 operator<<(ostream &out, const cipher_type_reason &r)
 {
-    out << r.t << " NEEDED FOR " << r.why_t;
+    out << r.t;
+    if (r.soft)
+        out << "(soft)";
+    out << " NEEDED FOR " << r.why_t;
     if (r.why_t_item)
         out << " in " << *r.why_t_item;
     if (r.parent)
@@ -686,9 +698,9 @@ class CItemSum : public CItemSubtypeST<Item_sum_sum, SFT> {
         if (i->has_with_distinct())
             analyze(i->get_arg(0), cipher_type_reason(cipher_type::equal, "agg distinct", i, &tr));
         if (tr.t == cipher_type::any || tr.t == cipher_type::homadd)
-            analyze(i->get_arg(0), tr);
+            analyze(i->get_arg(0), cipher_type_reason(cipher_type::homadd, "sum/avg", i, &tr));
         else
-            analyze(i->get_arg(0), cipher_type_reason(cipher_type::plain, "sum/avg", i, &tr));
+            analyze(i->get_arg(0), cipher_type_reason(cipher_type::plain, "sum/avg x", i, &tr));
     }
 };
 
@@ -765,10 +777,8 @@ process_select_lex(st_select_lex *select_lex, const cipher_type_reason &tr)
         analyze(*o->item, cipher_type_reason(cipher_type::equal, "group", *o->item, 0));
 
     for (ORDER *o = select_lex->order_list.first; o; o = o->next)
-        analyze(*o->item, cipher_type_reason(
-                    select_lex->select_limit ? cipher_type::order
-                                             : cipher_type::order_soft,
-                    "order", *o->item, 0));
+        analyze(*o->item, cipher_type_reason(cipher_type::order,
+                "order", *o->item, 0, select_lex->select_limit ? false : true));
 }
 
 static void
