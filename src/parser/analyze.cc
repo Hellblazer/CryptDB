@@ -370,6 +370,15 @@ static class ANON : public CItemSubtypeFN<Item_func_nullif, str_nullif> {
     }
 } ANON;
 
+extern const char str_coalesce[] = "coalesce";
+static class ANON : public CItemSubtypeFN<Item_func_coalesce, str_coalesce> {
+    void do_analyze(Item_func_coalesce *i, cipher_type t) const {
+        Item **args = i->arguments();
+        for (uint x = 0; x < i->argument_count(); x++)
+            analyze(args[x], t);
+    }
+} ANON;
+
 struct Item_func_case__first_expr_num { typedef  int Item_func_case::*type; };
 struct Item_func_case__else_expr_num  { typedef  int Item_func_case::*type; };
 struct Item_func_case__ncases         { typedef uint Item_func_case::*type; };
@@ -415,6 +424,24 @@ static CItemStrconv<str_lcase> ANON;
 extern const char str_ucase[] = "ucase";
 static CItemStrconv<str_ucase> ANON;
 
+extern const char str_char_length[] = "char_length";
+static CItemStrconv<str_char_length> ANON;
+
+extern const char str_substr[] = "substr";
+static CItemStrconv<str_substr> ANON;
+
+extern const char str_concat[] = "concat";
+static CItemStrconv<str_concat> ANON;
+
+extern const char str_concat_ws[] = "concat_ws";
+static CItemStrconv<str_concat_ws> ANON;
+
+extern const char str_md5[] = "md5";
+static CItemStrconv<str_md5> ANON;
+
+extern const char str_regexp[] = "regexp";
+static CItemStrconv<str_regexp> ANON;
+
 template<const char *NAME>
 class CItemLeafFunc : public CItemSubtypeFN<Item_func, NAME> {
     void do_analyze(Item_func *i, cipher_type t) const {}
@@ -443,6 +470,12 @@ class CItemDateExtractFunc : public CItemSubtypeFN<Item_int_func, NAME> {
         }
     }
 };
+
+extern const char str_minute[] = "minute";
+static CItemDateExtractFunc<str_minute> ANON;
+
+extern const char str_hour[] = "hour";
+static CItemDateExtractFunc<str_hour> ANON;
 
 extern const char str_year[] = "year";
 static CItemDateExtractFunc<str_year> ANON;
@@ -585,6 +618,21 @@ static CItemSum<Item_sum::Sumfunctype::SUM_DISTINCT_FUNC> ANON;
 static class ANON : public CItemSubtypeST<Item_sum_bit, Item_sum::Sumfunctype::SUM_BIT_FUNC> {
     void do_analyze(Item_sum_bit *i, cipher_type t) const {
         analyze(i->get_arg(0), cipher_type::plain);
+    }
+} ANON;
+
+struct Item_func_group_concat__arg_count_field { typedef uint Item_func_group_concat::*type; };
+template class rob<Item_func_group_concat__arg_count_field, &Item_func_group_concat::arg_count_field>;
+
+static class ANON : public CItemSubtypeST<Item_func_group_concat, Item_sum::Sumfunctype::GROUP_CONCAT_FUNC> {
+    void do_analyze(Item_func_group_concat *i, cipher_type t) const {
+        uint arg_count_field = (*i).*result<Item_func_group_concat__arg_count_field>::ptr;
+        for (uint x = 0; x < arg_count_field; x++) {
+            /* XXX could perform in the proxy.. */
+            analyze(i->get_arg(x), cipher_type::plain);
+        }
+
+        /* XXX order, unused in trace queries.. */
     }
 } ANON;
 
