@@ -58,9 +58,8 @@ class cipher_type_reason {
     cipher_type_reason(cipher_type t_arg,
                        const std::string &why_t_arg,
                        Item *why_t_item_arg,
-                       const cipher_type_reason *parent_arg,
-                       bool init_soft_arg = false)
-    : t(t_arg), soft(init_soft_arg),
+                       const cipher_type_reason *parent_arg)
+    : t(t_arg), soft(false),
       why_t(why_t_arg), why_t_item(why_t_item_arg),
       parent(parent_arg)
     {
@@ -70,6 +69,17 @@ class cipher_type_reason {
             if (parent->soft)
                 soft = true;
         }
+    }
+
+    cipher_type_reason(cipher_type t_arg,
+                       const std::string &why_t_arg,
+                       Item *why_t_item_arg,
+                       const cipher_type_reason *parent_arg,
+                       bool soft_arg)
+    : t(t_arg), soft(soft_arg),
+      why_t(why_t_arg), why_t_item(why_t_item_arg),
+      parent(parent_arg)
+    {
     }
 
     cipher_type t;
@@ -677,7 +687,7 @@ template<Item_sum::Sumfunctype SFT>
 class CItemCount : public CItemSubtypeST<Item_sum_count, SFT> {
     void do_analyze(Item_sum_count *i, const cipher_type_reason &tr) const {
         if (i->has_with_distinct())
-            analyze(i->get_arg(0), cipher_type_reason(cipher_type::equal, "sum", i, &tr));
+            analyze(i->get_arg(0), cipher_type_reason(cipher_type::equal, "sum", i, &tr, false));
     }
 };
 
@@ -687,7 +697,7 @@ static CItemCount<Item_sum::Sumfunctype::COUNT_DISTINCT_FUNC> ANON;
 template<Item_sum::Sumfunctype SFT>
 class CItemChooseOrder : public CItemSubtypeST<Item_sum_hybrid, SFT> {
     void do_analyze(Item_sum_hybrid *i, const cipher_type_reason &tr) const {
-        analyze(i->get_arg(0), cipher_type_reason(cipher_type::order, "min/max agg", i, &tr));
+        analyze(i->get_arg(0), cipher_type_reason(cipher_type::order, "min/max agg", i, &tr, false));
     }
 };
 
@@ -698,11 +708,11 @@ template<Item_sum::Sumfunctype SFT>
 class CItemSum : public CItemSubtypeST<Item_sum_sum, SFT> {
     void do_analyze(Item_sum_sum *i, const cipher_type_reason &tr) const {
         if (i->has_with_distinct())
-            analyze(i->get_arg(0), cipher_type_reason(cipher_type::equal, "agg distinct", i, &tr));
+            analyze(i->get_arg(0), cipher_type_reason(cipher_type::equal, "agg distinct", i, &tr, false));
         if (tr.t == cipher_type::any || tr.t == cipher_type::homadd)
-            analyze(i->get_arg(0), cipher_type_reason(cipher_type::homadd, "sum/avg", i, &tr));
+            analyze(i->get_arg(0), cipher_type_reason(cipher_type::homadd, "sum/avg", i, &tr, false));
         else
-            analyze(i->get_arg(0), cipher_type_reason(cipher_type::plain, "sum/avg x", i, &tr));
+            analyze(i->get_arg(0), cipher_type_reason(cipher_type::plain, "sum/avg x", i, &tr, false));
     }
 };
 
@@ -713,7 +723,7 @@ static CItemSum<Item_sum::Sumfunctype::AVG_DISTINCT_FUNC> ANON;
 
 static class ANON : public CItemSubtypeST<Item_sum_bit, Item_sum::Sumfunctype::SUM_BIT_FUNC> {
     void do_analyze(Item_sum_bit *i, const cipher_type_reason &tr) const {
-        analyze(i->get_arg(0), cipher_type_reason(cipher_type::plain, "bitagg", i, &tr));
+        analyze(i->get_arg(0), cipher_type_reason(cipher_type::plain, "bitagg", i, &tr, false));
     }
 } ANON;
 
