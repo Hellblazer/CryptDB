@@ -54,9 +54,20 @@ operator<<(ostream &out, cipher_type &t)
     return out << cipher_type_names[(int) t];
 }
 
+string
+because(const std::string &context, Item *i)
+{
+    stringstream ss;
+    ss << context;
+    if (i)
+        ss << ": " << *i;
+    return ss.str();
+}
+
+
 class CItemType {
  public:
-    virtual void do_analyze(Item *, cipher_type) const = 0;
+    virtual void do_analyze(Item *, cipher_type, const std::string &why) const = 0;
 };
 
 
@@ -73,8 +84,8 @@ class CItemTypeDir : public CItemType {
         types[t] = ct;
     }
 
-    void do_analyze(Item *i, cipher_type t) const {
-        lookup(i)->do_analyze(i, t);
+    void do_analyze(Item *i, cipher_type t, const std::string &why) const {
+        lookup(i)->do_analyze(i, t, why);
     }
 
  protected:
@@ -134,10 +145,10 @@ static class CItemFuncNameDir : public CItemTypeDir<std::string> {
  * Helper functions to look up via directory & invoke method.
  */
 static void
-analyze(Item *i, cipher_type t)
+analyze(Item *i, cipher_type t, const std::string &why)
 {
     if (t != cipher_type::none && !i->const_item())
-        itemTypes.do_analyze(i, t);
+        itemTypes.do_analyze(i, t, why);
 }
 
 
@@ -146,9 +157,11 @@ analyze(Item *i, cipher_type t)
  */
 template<class T>
 class CItemSubtype : public CItemType {
-    virtual void do_analyze(Item *i, cipher_type t) const { do_analyze((T*) i, t); }
+    virtual void do_analyze(Item *i, cipher_type t, const std::string &why) const {
+        do_analyze((T*) i, t, why);
+    }
  private:
-    virtual void do_analyze(T *, cipher_type) const = 0;
+    virtual void do_analyze(T *, cipher_type, const std::string&) const = 0;
 };
 
 template<class T, Item::Type TYPE>
@@ -179,71 +192,71 @@ class CItemSubtypeFN : public CItemSubtype<T> {
 /*
  * Actual item handlers.
  */
-static void process_select_lex(st_select_lex *select_lex, cipher_type t);
+static void process_select_lex(st_select_lex *select_lex, cipher_type t, const std::string &why);
 
 static class ANON : public CItemSubtypeIT<Item_field, Item::Type::FIELD_ITEM> {
-    void do_analyze(Item_field *i, cipher_type t) const {
-        cout << "FIELD " << *i << " CIPHER " << t << endl;
+    void do_analyze(Item_field *i, cipher_type t, const std::string &why) const {
+        cout << "FIELD " << *i << " CIPHER " << t << " BECAUSE " << why << endl;
     }
 } ANON;
 
 static class ANON : public CItemSubtypeIT<Item_string, Item::Type::STRING_ITEM> {
-    void do_analyze(Item_string *i, cipher_type t) const {
+    void do_analyze(Item_string *i, cipher_type t, const std::string &why) const {
         /* constant strings are always ok */
     }
 } ANON;
 
 static class ANON : public CItemSubtypeIT<Item_num, Item::Type::INT_ITEM> {
-    void do_analyze(Item_num *i, cipher_type t) const {
+    void do_analyze(Item_num *i, cipher_type t, const std::string &why) const {
         /* constant ints are always ok */
     }
 } ANON;
 
 static class ANON : public CItemSubtypeIT<Item_decimal, Item::Type::DECIMAL_ITEM> {
-    void do_analyze(Item_decimal *i, cipher_type t) const {
+    void do_analyze(Item_decimal *i, cipher_type t, const std::string &why) const {
         /* constant decimals are always ok */
     }
 } ANON;
 
 static class ANON : public CItemSubtypeFT<Item_func_neg, Item_func::Functype::NEG_FUNC> {
-    void do_analyze(Item_func_neg *i, cipher_type t) const {
-        analyze(i->arguments()[0], t);
+    void do_analyze(Item_func_neg *i, cipher_type t, const std::string &why) const {
+        analyze(i->arguments()[0], t, why);
     }
 } ANON;
 
 static class ANON : public CItemSubtypeFT<Item_func_not, Item_func::Functype::NOT_FUNC> {
-    void do_analyze(Item_func_not *i, cipher_type t) const {
-        analyze(i->arguments()[0], t);
+    void do_analyze(Item_func_not *i, cipher_type t, const std::string &why) const {
+        analyze(i->arguments()[0], t, why);
     }
 } ANON;
 
 static class ANON : public CItemSubtypeIT<Item_subselect, Item::Type::SUBSELECT_ITEM> {
-    void do_analyze(Item_subselect *i, cipher_type t) const {
+    void do_analyze(Item_subselect *i, cipher_type t, const std::string &why) const {
         st_select_lex *select_lex = i->get_select_lex();
-        process_select_lex(select_lex, t);
+        process_select_lex(select_lex, t, because("sub-select", i));
     }
 } ANON;
 
 extern const char str_in_optimizer[] = "<in_optimizer>";
 static class ANON : public CItemSubtypeFN<Item_in_optimizer, str_in_optimizer> {
-    void do_analyze(Item_in_optimizer *i, cipher_type t) const {
+    void do_analyze(Item_in_optimizer *i, cipher_type t, const std::string &why) const {
         Item **args = i->arguments();
-        analyze(args[0], cipher_type::any);
-        analyze(args[1], cipher_type::any);
+        analyze(args[0], cipher_type::any, because("in_opt", i));
+        analyze(args[1], cipher_type::any, because("in_opt", i));
     }
 } ANON;
 
 static class ANON : public CItemSubtypeIT<Item_cache, Item::Type::CACHE_ITEM> {
-    void do_analyze(Item_cache *i, cipher_type t) const {
+    void do_analyze(Item_cache *i, cipher_type t, const std::string &why) const {
         Item *example = (*i).*rob<Item_cache, Item*, &Item_cache::example>::ptr();
         if (example)
-            analyze(example, t);
+            analyze(example, t, why);
     }
 } ANON;
 
 template<Item_func::Functype FT, class IT>
 class CItemCompare : public CItemSubtypeFT<Item_func, FT> {
-    void do_analyze(Item_func *i, cipher_type t) const {
+    void do_analyze(Item_func *i, cipher_type t, const std::string &why) const {
         cipher_type t2;
         if (FT == Item_func::Functype::EQ_FUNC ||
             FT == Item_func::Functype::EQUAL_FUNC ||
@@ -255,8 +268,8 @@ class CItemCompare : public CItemSubtypeFT<Item_func, FT> {
         }
 
         Item **args = i->arguments();
-        analyze(args[0], t2);
-        analyze(args[1], t2);
+        analyze(args[0], t2, because("compare func", i));
+        analyze(args[1], t2, because("compare func", i));
     }
 };
 
@@ -270,14 +283,14 @@ static CItemCompare<Item_func::Functype::LE_FUNC,    Item_func_le>    ANON;
 
 template<Item_func::Functype FT, class IT>
 class CItemCond : public CItemSubtypeFT<Item_cond, FT> {
-    void do_analyze(Item_cond *i, cipher_type t) const {
+    void do_analyze(Item_cond *i, cipher_type t, const std::string &why) const {
         auto it = List_iterator<Item>(*i->argument_list());
         for (;;) {
             Item *argitem = it++;
             if (!argitem)
                 break;
 
-            analyze(argitem, cipher_type::plain);
+            analyze(argitem, cipher_type::plain, because("cond", i));
         }
     }
 };
@@ -287,10 +300,10 @@ static CItemCond<Item_func::Functype::COND_OR_FUNC,  Item_cond_or>  ANON;
 
 template<Item_func::Functype FT>
 class CItemNullcheck : public CItemSubtypeFT<Item_bool_func, FT> {
-    void do_analyze(Item_bool_func *i, cipher_type t) const {
+    void do_analyze(Item_bool_func *i, cipher_type t, const std::string &why) const {
         Item **args = i->arguments();
         for (uint x = 0; x < i->argument_count(); x++)
-            analyze(args[x], cipher_type::any);
+            analyze(args[x], cipher_type::any, because("nullcheck", i));
     }
 };
 
@@ -298,19 +311,19 @@ static CItemNullcheck<Item_func::Functype::ISNULL_FUNC> ANON;
 static CItemNullcheck<Item_func::Functype::ISNOTNULL_FUNC> ANON;
 
 static class ANON : public CItemSubtypeFT<Item_func_get_system_var, Item_func::Functype::GSYSVAR_FUNC> {
-    void do_analyze(Item_func_get_system_var *i, cipher_type t) const {}
+    void do_analyze(Item_func_get_system_var *i, cipher_type t, const std::string &why) const {}
 } ANON;
 
 template<const char *NAME>
 class CItemAdditive : public CItemSubtypeFN<Item_func_additive_op, NAME> {
-    void do_analyze(Item_func_additive_op *i, cipher_type t) const {
+    void do_analyze(Item_func_additive_op *i, cipher_type t, const std::string &why) const {
         Item **args = i->arguments();
         if (t == cipher_type::any) {
-            analyze(args[0], cipher_type::homadd);
-            analyze(args[1], cipher_type::homadd);
+            analyze(args[0], cipher_type::homadd, because("additive", i));
+            analyze(args[1], cipher_type::homadd, because("additive", i));
         } else {
-            analyze(args[0], cipher_type::plain);
-            analyze(args[1], cipher_type::plain);
+            analyze(args[0], cipher_type::plain, because("additivex", i));
+            analyze(args[1], cipher_type::plain, because("additivex", i));
         }
     }
 };
@@ -323,10 +336,10 @@ static CItemAdditive<str_minus> ANON;
 
 template<const char *NAME>
 class CItemMath : public CItemSubtypeFN<Item_func, NAME> {
-    void do_analyze(Item_func *i, cipher_type t) const {
+    void do_analyze(Item_func *i, cipher_type t, const std::string &why) const {
         Item **args = i->arguments();
         for (uint x = 0; x < i->argument_count(); x++)
-            analyze(args[x], cipher_type::plain);
+            analyze(args[x], cipher_type::plain, because("math", i));
     }
 };
 
@@ -365,35 +378,35 @@ static CItemMath<str_radians> ANON;
 
 extern const char str_if[] = "if";
 static class ANON : public CItemSubtypeFN<Item_func_if, str_if> {
-    void do_analyze(Item_func_if *i, cipher_type t) const {
+    void do_analyze(Item_func_if *i, cipher_type t, const std::string &why) const {
         Item **args = i->arguments();
-        analyze(args[0], cipher_type::plain);
-        analyze(args[1], t);
-        analyze(args[2], t);
+        analyze(args[0], cipher_type::plain, because("if cond", i));
+        analyze(args[1], t, why);
+        analyze(args[2], t, why);
     }
 } ANON;
 
 extern const char str_nullif[] = "nullif";
 static class ANON : public CItemSubtypeFN<Item_func_nullif, str_nullif> {
-    void do_analyze(Item_func_nullif *i, cipher_type t) const {
+    void do_analyze(Item_func_nullif *i, cipher_type t, const std::string &why) const {
         Item **args = i->arguments();
         for (uint x = 0; x < i->argument_count(); x++)
-            analyze(args[x], cipher_type::equal);
+            analyze(args[x], cipher_type::equal, because("nullif", i));
     }
 } ANON;
 
 extern const char str_coalesce[] = "coalesce";
 static class ANON : public CItemSubtypeFN<Item_func_coalesce, str_coalesce> {
-    void do_analyze(Item_func_coalesce *i, cipher_type t) const {
+    void do_analyze(Item_func_coalesce *i, cipher_type t, const std::string &why) const {
         Item **args = i->arguments();
         for (uint x = 0; x < i->argument_count(); x++)
-            analyze(args[x], t);
+            analyze(args[x], t, why);
     }
 } ANON;
 
 extern const char str_case[] = "case";
 static class ANON : public CItemSubtypeFN<Item_func_case, str_case> {
-    void do_analyze(Item_func_case *i, cipher_type t) const {
+    void do_analyze(Item_func_case *i, cipher_type t, const std::string &why) const {
         Item **args = i->arguments();
         int first_expr_num = (*i).*rob<Item_func_case, int,
             &Item_func_case::first_expr_num>::ptr();
@@ -403,26 +416,29 @@ static class ANON : public CItemSubtypeFN<Item_func_case, str_case> {
             &Item_func_case::ncases>::ptr();
 
         if (first_expr_num >= 0)
-            analyze(args[first_expr_num], cipher_type::equal);
+            analyze(args[first_expr_num], cipher_type::equal,
+                    because("case first", i));
         if (else_expr_num >= 0)
-            analyze(args[else_expr_num], t);
+            analyze(args[else_expr_num], t, why);
 
         for (uint x = 0; x < ncases; x += 2) {
             if (first_expr_num < 0)
-                analyze(args[x], cipher_type::plain);
+                analyze(args[x], cipher_type::plain,
+                        because("case nofirst", i));
             else
-                analyze(args[x], cipher_type::equal);
-            analyze(args[x+1], t);
+                analyze(args[x], cipher_type::equal,
+                        because("case w/first", i));
+            analyze(args[x+1], t, why);
         }
     }
 } ANON;
 
 template<const char *NAME>
 class CItemStrconv : public CItemSubtypeFN<Item_str_conv, NAME> {
-    void do_analyze(Item_str_conv *i, cipher_type t) const {
+    void do_analyze(Item_str_conv *i, cipher_type t, const std::string &why) const {
         Item **args = i->arguments();
         for (uint x = 0; x < i->argument_count(); x++)
-            analyze(args[x], cipher_type::plain);
+            analyze(args[x], cipher_type::plain, because("strconv", i));
     }
 };
 
@@ -458,7 +474,7 @@ static CItemStrconv<str_regexp> ANON;
 
 template<const char *NAME>
 class CItemLeafFunc : public CItemSubtypeFN<Item_func, NAME> {
-    void do_analyze(Item_func *i, cipher_type t) const {}
+    void do_analyze(Item_func *i, cipher_type t, const std::string &why) const {}
 };
 
 extern const char str_found_rows[] = "found_rows";
@@ -471,19 +487,19 @@ extern const char str_rand[] = "rand";
 static CItemLeafFunc<str_rand> ANON;
 
 static class ANON : public CItemSubtypeFT<Item_extract, Item_func::Functype::EXTRACT_FUNC> {
-    void do_analyze(Item_extract *i, cipher_type t) const {
+    void do_analyze(Item_extract *i, cipher_type t, const std::string &why) const {
         /* XXX perhaps too conservative */
-        analyze(i->arguments()[0], cipher_type::plain);
+        analyze(i->arguments()[0], cipher_type::plain, because("extract", i));
     }
 } ANON;
 
 template<const char *NAME>
 class CItemDateExtractFunc : public CItemSubtypeFN<Item_int_func, NAME> {
-    void do_analyze(Item_int_func *i, cipher_type t) const {
+    void do_analyze(Item_int_func *i, cipher_type t, const std::string &why) const {
         Item **args = i->arguments();
         for (uint x = 0; x < i->argument_count(); x++) {
             /* XXX perhaps too conservative */
-            analyze(args[x], cipher_type::plain);
+            analyze(args[x], cipher_type::plain, because("date extract", i));
         }
     }
 };
@@ -514,18 +530,18 @@ static CItemDateExtractFunc<str_unix_timestamp> ANON;
 
 extern const char str_date_add_interval[] = "date_add_interval";
 static class ANON : public CItemSubtypeFN<Item_date_add_interval, str_date_add_interval> {
-    void do_analyze(Item_date_add_interval *i, cipher_type t) const {
+    void do_analyze(Item_date_add_interval *i, cipher_type t, const std::string &why) const {
         Item **args = i->arguments();
         for (uint x = 0; x < i->argument_count(); x++) {
             /* XXX perhaps too conservative */
-            analyze(args[x], cipher_type::plain);
+            analyze(args[x], cipher_type::plain, because("date add", i));
         }
     }
 } ANON;
 
 template<const char *NAME>
 class CItemDateNow : public CItemSubtypeFN<Item_func_now, NAME> {
-    void do_analyze(Item_func_now *i, cipher_type t) const {}
+    void do_analyze(Item_func_now *i, cipher_type t, const std::string &why) const {}
 };
 
 extern const char str_now[] = "now";
@@ -539,10 +555,10 @@ static CItemDateNow<str_sysdate> ANON;
 
 template<const char *NAME>
 class CItemBitfunc : public CItemSubtypeFN<Item_func_bit, NAME> {
-    void do_analyze(Item_func_bit *i, cipher_type t) const {
+    void do_analyze(Item_func_bit *i, cipher_type t, const std::string &why) const {
         Item **args = i->arguments();
         for (uint x = 0; x < i->argument_count(); x++)
-            analyze(args[x], cipher_type::plain);
+            analyze(args[x], cipher_type::plain, because("bitfunc", i));
     }
 };
 
@@ -559,21 +575,21 @@ extern const char str_bit_and[] = "&";
 static CItemBitfunc<str_bit_and> ANON;
 
 static class ANON : public CItemSubtypeFT<Item_func_like, Item_func::Functype::LIKE_FUNC> {
-    void do_analyze(Item_func_like *i, cipher_type t) const {
+    void do_analyze(Item_func_like *i, cipher_type t, const std::string &why) const {
         Item **args = i->arguments();
         if (args[1]->type() == Item::Type::STRING_ITEM) {
             string s(args[1]->str_value.ptr(), args[1]->str_value.length());
             if (s.find('%') == s.npos && s.find('_') == s.npos) {
                 /* some queries actually use LIKE as an equality check.. */
-                analyze(args[0], cipher_type::equal);
+                analyze(args[0], cipher_type::equal, because("like eq", i));
             } else {
                 /* XXX check if pattern is one we can support? */
-                analyze(args[0], cipher_type::like);
+                analyze(args[0], cipher_type::like, because("like", i));
             }
         } else {
             /* we cannot support non-constant search patterns */
             for (uint x = 0; x < i->argument_count(); x++)
-                analyze(args[x], cipher_type::plain);
+                analyze(args[x], cipher_type::plain, because("like non-const", i));
         }
     }
 } ANON;
@@ -583,31 +599,31 @@ static class ANON : public CItemSubtypeFT<Item_func, Item_func::Functype::FUNC_S
         thrower() << "unsupported store procedure call " << *i;
     }
 
-    void do_analyze(Item_func *i, cipher_type t) const __attribute__((noreturn)) { error(i); }
+    void do_analyze(Item_func *i, cipher_type t, const std::string &why) const __attribute__((noreturn)) { error(i); }
 } ANON;
 
 static class ANON : public CItemSubtypeFT<Item_func_in, Item_func::Functype::IN_FUNC> {
-    void do_analyze(Item_func_in *i, cipher_type t) const {
+    void do_analyze(Item_func_in *i, cipher_type t, const std::string &why) const {
         Item **args = i->arguments();
         for (uint x = 0; x < i->argument_count(); x++)
-            analyze(args[x], cipher_type::equal);
+            analyze(args[x], cipher_type::equal, because("in", i));
     }
 } ANON;
 
 static class ANON : public CItemSubtypeFT<Item_func_in, Item_func::Functype::BETWEEN> {
-    void do_analyze(Item_func_in *i, cipher_type t) const {
+    void do_analyze(Item_func_in *i, cipher_type t, const std::string &why) const {
         Item **args = i->arguments();
         for (uint x = 0; x < i->argument_count(); x++)
-            analyze(args[x], cipher_type::order);
+            analyze(args[x], cipher_type::order, because("between", i));
     }
 } ANON;
 
 template<const char *FN>
 class CItemMinMax : public CItemSubtypeFN<Item_func_min_max, FN> {
-    void do_analyze(Item_func_min_max *i, cipher_type t) const {
+    void do_analyze(Item_func_min_max *i, cipher_type t, const std::string &why) const {
         Item **args = i->arguments();
         for (uint x = 0; x < i->argument_count(); x++)
-            analyze(args[x], cipher_type::order);
+            analyze(args[x], cipher_type::order, because("min/max", i));
     }
 };
 
@@ -619,18 +635,18 @@ static CItemMinMax<str_least> ANON;
 
 extern const char str_strcmp[] = "strcmp";
 static class ANON : public CItemSubtypeFN<Item_func_strcmp, str_strcmp> {
-    void do_analyze(Item_func_strcmp *i, cipher_type t) const {
+    void do_analyze(Item_func_strcmp *i, cipher_type t, const std::string &why) const {
         Item **args = i->arguments();
         for (uint x = 0; x < i->argument_count(); x++)
-            analyze(args[x], cipher_type::equal);
+            analyze(args[x], cipher_type::equal, because("strcmp", i));
     }
 } ANON;
 
 template<Item_sum::Sumfunctype SFT>
 class CItemCount : public CItemSubtypeST<Item_sum_count, SFT> {
-    void do_analyze(Item_sum_count *i, cipher_type t) const {
+    void do_analyze(Item_sum_count *i, cipher_type t, const std::string &why) const {
         if (i->has_with_distinct())
-            analyze(i->get_arg(0), cipher_type::equal);
+            analyze(i->get_arg(0), cipher_type::equal, because("sum", i));
     }
 };
 
@@ -639,8 +655,8 @@ static CItemCount<Item_sum::Sumfunctype::COUNT_DISTINCT_FUNC> ANON;
 
 template<Item_sum::Sumfunctype SFT>
 class CItemChooseOrder : public CItemSubtypeST<Item_sum_hybrid, SFT> {
-    void do_analyze(Item_sum_hybrid *i, cipher_type t) const {
-        analyze(i->get_arg(0), cipher_type::order);
+    void do_analyze(Item_sum_hybrid *i, cipher_type t, const std::string &why) const {
+        analyze(i->get_arg(0), cipher_type::order, because("min/max agg", i));
     }
 };
 
@@ -649,13 +665,13 @@ static CItemChooseOrder<Item_sum::Sumfunctype::MAX_FUNC> ANON;
 
 template<Item_sum::Sumfunctype SFT>
 class CItemSum : public CItemSubtypeST<Item_sum_sum, SFT> {
-    void do_analyze(Item_sum_sum *i, cipher_type t) const {
+    void do_analyze(Item_sum_sum *i, cipher_type t, const std::string &why) const {
         if (i->has_with_distinct())
-            analyze(i->get_arg(0), cipher_type::equal);
+            analyze(i->get_arg(0), cipher_type::equal, because("agg distinct", i));
         if (t == cipher_type::any || t == cipher_type::homadd)
-            analyze(i->get_arg(0), t);
+            analyze(i->get_arg(0), t, why);
         else
-            analyze(i->get_arg(0), cipher_type::plain);
+            analyze(i->get_arg(0), cipher_type::plain, because("sum/avg", i));
     }
 };
 
@@ -665,18 +681,18 @@ static CItemSum<Item_sum::Sumfunctype::AVG_FUNC> ANON;
 static CItemSum<Item_sum::Sumfunctype::AVG_DISTINCT_FUNC> ANON;
 
 static class ANON : public CItemSubtypeST<Item_sum_bit, Item_sum::Sumfunctype::SUM_BIT_FUNC> {
-    void do_analyze(Item_sum_bit *i, cipher_type t) const {
-        analyze(i->get_arg(0), cipher_type::plain);
+    void do_analyze(Item_sum_bit *i, cipher_type t, const std::string &why) const {
+        analyze(i->get_arg(0), cipher_type::plain, because("bitagg", i));
     }
 } ANON;
 
 static class ANON : public CItemSubtypeST<Item_func_group_concat, Item_sum::Sumfunctype::GROUP_CONCAT_FUNC> {
-    void do_analyze(Item_func_group_concat *i, cipher_type t) const {
+    void do_analyze(Item_func_group_concat *i, cipher_type t, const std::string &why) const {
         uint arg_count_field = (*i).*rob<Item_func_group_concat, uint,
             &Item_func_group_concat::arg_count_field>::ptr();
         for (uint x = 0; x < arg_count_field; x++) {
             /* XXX could perform in the proxy.. */
-            analyze(i->get_arg(x), cipher_type::plain);
+            analyze(i->get_arg(x), cipher_type::plain, because("group concat", i));
         }
 
         /* XXX order, unused in trace queries.. */
@@ -684,22 +700,22 @@ static class ANON : public CItemSubtypeST<Item_func_group_concat, Item_sum::Sumf
 } ANON;
 
 static class ANON : public CItemSubtypeFT<Item_char_typecast, Item_func::Functype::CHAR_TYPECAST_FUNC> {
-    void do_analyze(Item_char_typecast *i, cipher_type t) const {
+    void do_analyze(Item_char_typecast *i, cipher_type t, const std::string &why) const {
         thrower() << "what does Item_char_typecast do?";
     }
 } ANON;
 
 extern const char str_cast_as_signed[] = "cast_as_signed";
 static class ANON : public CItemSubtypeFN<Item_func_signed, str_cast_as_signed> {
-    void do_analyze(Item_func_signed *i, cipher_type t) const {
-        analyze(i->arguments()[0], t);
+    void do_analyze(Item_func_signed *i, cipher_type t, const std::string &why) const {
+        analyze(i->arguments()[0], t, why);
     }
 } ANON;
 
 static class ANON : public CItemSubtypeIT<Item_ref, Item::Type::REF_ITEM> {
-    void do_analyze(Item_ref *i, cipher_type t) const {
+    void do_analyze(Item_ref *i, cipher_type t, const std::string &why) const {
         if (i->ref) {
-            analyze(*i->ref, t);
+            analyze(*i->ref, t, why);
         } else {
             thrower() << "how to resolve Item_ref::ref?";
         }
@@ -711,7 +727,7 @@ static class ANON : public CItemSubtypeIT<Item_ref, Item::Type::REF_ITEM> {
  * Some helper functions.
  */
 static void
-process_select_lex(st_select_lex *select_lex, cipher_type t)
+process_select_lex(st_select_lex *select_lex, cipher_type t, const std::string &why)
 {
     auto item_it = List_iterator<Item>(select_lex->item_list);
     for (;;) {
@@ -719,21 +735,22 @@ process_select_lex(st_select_lex *select_lex, cipher_type t)
         if (!item)
             break;
 
-        analyze(item, t);
+        analyze(item, t, why);
     }
 
     if (select_lex->where)
-        analyze(select_lex->where, cipher_type::plain);
+        analyze(select_lex->where, cipher_type::plain, because("where", select_lex->where));
 
     if (select_lex->having)
-        analyze(select_lex->having, cipher_type::plain);
+        analyze(select_lex->having, cipher_type::plain, because("having", select_lex->having));
 
     for (ORDER *o = select_lex->group_list.first; o; o = o->next)
-        analyze(*o->item, cipher_type::equal);
+        analyze(*o->item, cipher_type::equal, because("group", *o->item));
 
     for (ORDER *o = select_lex->order_list.first; o; o = o->next)
         analyze(*o->item, select_lex->select_limit ? cipher_type::order
-                                                   : cipher_type::order_soft);
+                                                   : cipher_type::order_soft,
+                because("order", *o->item));
 }
 
 static void
@@ -756,7 +773,7 @@ process_table_list(List<TABLE_LIST> *tll)
         }
 
         if (t->on_expr)
-            analyze(t->on_expr, cipher_type::plain);
+            analyze(t->on_expr, cipher_type::plain, because("join cond", t->on_expr));
 
         std::string db(t->db, t->db_length);
         std::string table_name(t->table_name, t->table_name_length);
@@ -764,7 +781,7 @@ process_table_list(List<TABLE_LIST> *tll)
 
         if (t->derived) {
             st_select_lex_unit *u = t->derived;
-            process_select_lex(u->first_select(), cipher_type::any);
+            process_select_lex(u->first_select(), cipher_type::any, because("sub-select", 0));
         }
     }
 }
@@ -956,7 +973,8 @@ query_analyze(const std::string &db, const std::string &q)
     process_table_list(&lex->select_lex.top_join_list);
     process_select_lex(&lex->select_lex,
                        lex->sql_command == SQLCOM_SELECT ? cipher_type::any
-                                                         : cipher_type::none);
+                                                         : cipher_type::none,
+                       because("select", 0));
 
     if (lex->sql_command == SQLCOM_UPDATE) {
         auto item_it = List_iterator<Item>(lex->value_list);
@@ -965,7 +983,7 @@ query_analyze(const std::string &db, const std::string &q)
             if (!item)
                 break;
 
-            analyze(item, cipher_type::any);
+            analyze(item, cipher_type::any, because("update", item));
         }
     }
 }
