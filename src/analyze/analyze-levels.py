@@ -11,7 +11,7 @@ while True:
         break
 
     w = l.strip().split(' ')
-    if len(w) != 4 or w[0] != 'FIELD' or w[2] != 'CIPHER':
+    if len(w) < 4 or w[0] != 'FIELD' or w[2] != 'CIPHER':
         continue
 
     f = w[1]
