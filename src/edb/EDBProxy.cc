@@ -442,21 +442,43 @@ processAnnotation(MultiPrinc * mp, list<string>::iterator & wordsIt,
 
 }
 
-static void processPostAnnotations(TableMetadata * tm, string field, list<string>::iterator wordsIt, const list<string> & words) {
+// records if a field has auto_increment or it if it has non null
+static void
+processPostAnnotations(TableMetadata * tm, FieldMetadata * fm, string field, list<string>::iterator wordsIt, const list<string> & words) {
 
+    string res = "";
     /* This function is implemented ad-hoc.. the generic parser will fix this. */
     while ((wordsIt != words.end()) && (*wordsIt != ")") && (*wordsIt != ",")) {
-    	if (equalsIgnoreCase(*wordsIt, "(")) {
-    		processParen(wordsIt, words);
-    	}
+        if (equalsIgnoreCase(*wordsIt, "(")) {
+            processParen(wordsIt, words);
+            continue;
+        }
+        if (equalsIgnoreCase(*wordsIt, "not")) {
+            list<string>::iterator nextIt = wordsIt;
+            nextIt++;
+            if (nextIt!=words.end()) {
+                if (equalsIgnoreCase(*nextIt,"null")) {
+                    fm->can_be_null = false;
+                    wordsIt = nextIt;
+                }
+            }
+            wordsIt++;
+            continue;
+        }
         if (equalsIgnoreCase(*wordsIt, "auto_increment")) {
             assert_s(tm->ai.field == "", " table cannot have two autoincrements");
             tm->ai.field = field;
             LOG(edb) << "auto_increment field " << field;
-            return;
+            wordsIt++;
+            continue;
+        }
+        if (fm->isEncrypted) {
+            assert_s(!equalsIgnoreCase(*wordsIt, "key"), "do not support key specification in encrypted field properties currently; specify it at end of table");
         }
         wordsIt++;
     }
+
+    return;
 
 }
 
@@ -580,17 +602,19 @@ throw (CryptDBError)
                           fm,
                           tableMetaMap, allDefaultEncrypted);
 
+
         if (fm->isEncrypted) {
             LOG(edb_v) << "encrypted field";
             tm->hasEncrypted = true;
         } else {
             LOG(edb_v) << "not enc " << fieldName;
-            processPostAnnotations(tm, fieldName, wordsIt, words);
-            fieldSeq +=  fieldName + " " +
-                        mirrorUntilTerm(wordsIt, words, {","}, 1, 1);
+            //record auto increments:
+            processPostAnnotations(tm, fm, fieldName, wordsIt, words);
+            fieldSeq = fieldSeq + fieldName + " " + mirrorUntilTerm(wordsIt, words, {","}, 1, 1);
             continue;
         }
 
+        //ONLY ENCRYPTED FIELDS
 
         setType(wordsIt, words,  fm);
         //now wordsIt points to first word after type
@@ -598,8 +622,12 @@ throw (CryptDBError)
         fieldSeq += processCreate(fm->type, fieldName, i, tm,
                                   fm, !!mp) + " ";
 
+        //record not nulls
+        processPostAnnotations(tm, fm, fieldName, wordsIt, words);
 
-        fieldSeq +=  mirrorUntilTerm(wordsIt, words, terms);
+        //do not add field properties, only add "," or ")"
+        mirrorUntilTerm(wordsIt, words, terms, 0);
+        fieldSeq += mirrorUntilTerm(wordsIt, words, terms, 1);
 
         i++;
     }
@@ -2663,7 +2691,7 @@ EDBProxy::processValsToInsert(string field, string table, uint64_t salt,
 // returns the value we should insert for a field for which the INSERT
 // statement does not specify a value
 static pair<string, bool>
-getInitValue(TableMetadata * tm, string field, string & insid_query)
+getInitValue(TableMetadata * tm, FieldMetadata * fm, string field, string & insid_query)
 {
     insid_query = "";
     // FieldMetadata * fm = tm->fieldMetaMap[field];
@@ -2677,10 +2705,16 @@ getInitValue(TableMetadata * tm, string field, string & insid_query)
     }
 
     // TODO: record and use default values here
-    if (tm->fieldMetaMap[field]->type == TYPE_TEXT) {
-        return make_pair("", false);
-    } else {
-        return make_pair("0", false);
+
+    // check if it is not null
+    if (fm->can_be_null) {
+        return make_pair("", true);
+    } else { //cannot be null
+        if (fm->type == TYPE_TEXT) {
+            return make_pair("", false);
+        } else {
+            return make_pair("0", false);
+        }
     }
 
 }
@@ -2858,7 +2892,7 @@ throw (CryptDBError)
              addit++) {
             string field = *addit;
             string insid_query;
-            valnulls.push_back(getInitValue(tm, field, insid_query));
+            valnulls.push_back(getInitValue(tm, tm->fieldMetaMap[field], field, insid_query));
             if (insid_query != "") {
                 queries.push_back(insid_query);
             }
@@ -2871,7 +2905,7 @@ throw (CryptDBError)
                  addit++) {
                 string field = *addit;
                 string insid_query;
-                valnulls.push_back(getInitValue(tm, field, insid_query));
+                valnulls.push_back(getInitValue(tm, tm->fieldMetaMap[field], field, insid_query));
                 if (insid_query != "") {
                     queries.push_back(insid_query);
                 }

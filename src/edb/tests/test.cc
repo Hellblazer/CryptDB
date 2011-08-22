@@ -577,7 +577,7 @@ interactiveTest(const TestConfig &tc, int ac, char **av)
 	//cl->execute("INSERT INTO phpbb_forums (forum_name, forum_desc, left_id, right_id, parent_id, forum_type, forum_posts, forum_topics, forum_topics_real, forum_last_post_id, forum_last_poster_id, forum_last_poster_name, forum_last_poster_colour, forum_last_post_time, forum_link, forum_password, forum_image, forum_rules, forum_rules_link, forum_rules_uid, forum_desc_uid, prune_days, prune_viewed, forum_parents) VALUES ('Your first category', '', 1, 4, 0, 0, 1, 1, 1, 1, 2, 'Admin', 'AA0000', 972086460, '', '', '', '', '', '', '', 0, 0, '');");
 
 
-	streamsize len = 300;
+	streamsize len = 500;
 	char *cmd = new char[len];
 
 	for (;; ) {

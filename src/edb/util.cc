@@ -61,7 +61,11 @@ ParserMeta::ParserMeta() : clauseKeywords_p(), querySeparators_p()
 FieldMetadata::FieldMetadata()
 {
     isEncrypted = false;
+
+    can_be_null = true;
+
     type = TYPE_TEXT;
+
 
     //by default, all onions are at maximum security
     secLevelDET = SECLEVEL::SEMANTIC_DET;
@@ -80,6 +84,13 @@ FieldMetadata::FieldMetadata()
     agg_used = false;
     search_used = false;
 
+}
+
+TableMetadata::TableMetadata() {
+    anonTableName = "";
+    tableNo = 0;
+    hasEncrypted = false;
+    hasSensitive = false;
 }
 
 TableMetadata::~TableMetadata()

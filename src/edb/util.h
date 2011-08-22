@@ -181,6 +181,7 @@ typedef struct FieldMetadata {
     fieldType type;
     string fieldName;
 
+    bool can_be_null;
     enum_field_types mysql_type;
 
     string anonFieldNameDET;
@@ -192,7 +193,6 @@ typedef struct FieldMetadata {
     bool has_ope;
     bool has_agg;
     bool has_search;
-
 
     FieldMetadata();
 
@@ -232,6 +232,7 @@ typedef struct TableMetadata { //each anonymized field
     bool hasEncrypted;     //true if the table contains an encrypted field
     bool hasSensitive;    //true if any field is involved in access control of mp
 
+    TableMetadata();
     ~TableMetadata();
 } TableMetadata;
 
