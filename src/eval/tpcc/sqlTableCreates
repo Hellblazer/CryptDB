@@ -60,7 +60,7 @@ CREATE TABLE history (
   h_w_id   integer  not null ,
   h_date   timestamp not null ,
   h_amount integer  not null ,
-  h_data    timestamp not null  
+  h_data   text not null  
 );
 
 

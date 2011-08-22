@@ -3761,10 +3761,11 @@ static Stats * myStats;
  * - if conn != NULL, use this connection to send queries to the DBMS
  * - if outputfile != "", log encrypted query here
  * - if !allowExecFailures, we stop on failed queries sent to the DBMS
+ * - logFreq indicates frequency of logging
  */
 static void
 runQueriesFromFile(EDBProxy * cl, string queryFile, bool execQuery, bool encryptQuery, Connect * conn,
-        string outputfile, bool allowExecFailures, Stats * stats)
+        string outputfile, bool allowExecFailures, Stats * stats, int logFreq)
 throw (CryptDBError)
 {
 	ifstream infile(queryFile);
@@ -3803,6 +3804,9 @@ throw (CryptDBError)
 		        queries = list<string>(1, query);
 		    }
 		    stats->total_queries++;
+		    if (stats->total_queries % logFreq == 0) {
+		        cerr << queryFile << ": " << stats->total_queries << " so far\n";
+		    }
 		    for (list<string>::iterator it = queries.begin(); it != queries.end(); it++) {
 		        if  (outputtranslation) {
 		            *outfile << *it << "\n";
@@ -3934,7 +3938,7 @@ signal_handler(int signum) {
 
 
 static void
-workerJob(EDBProxy * cl, int index, const TestConfig & tc) {
+workerJob(EDBProxy * cl, int index, const TestConfig & tc, int logFreq) {
 
 
 	string workload = workloads[index];
@@ -3947,7 +3951,7 @@ workerJob(EDBProxy * cl, int index, const TestConfig & tc) {
 
 	Connect * conn = new Connect(tc.host, tc.user, tc.pass, tc.db, tc.port);
 
-	runQueriesFromFile(cl, workload, true, true, conn, "", false, myStats);
+	runQueriesFromFile(cl, workload, true, false, conn, "", true, myStats, logFreq);
 
 	cerr << "Done on " << workload << "\n";
 	myStats->mspassed = t.lap_ms();
@@ -3956,7 +3960,7 @@ workerJob(EDBProxy * cl, int index, const TestConfig & tc) {
 
 }
 
-static void runExp(EDBProxy * cl, int noWorkers, const TestConfig & tc) {
+static void runExp(EDBProxy * cl, int noWorkers, const TestConfig & tc, int logFreq) {
 
         assert_s(system("rm -f pieces/result;") >= 0, "problem removing pieces/result");
         assert_s(system("touch pieces/result;") >= 0, "problem creating pieces/result");
@@ -3980,7 +3984,7 @@ static void runExp(EDBProxy * cl, int noWorkers, const TestConfig & tc) {
 		index = i;
 		pid_t pid = fork();
 		if (pid == 0) {
-			workerJob(cl, index, tc);
+			workerJob(cl, index, tc, logFreq);
 		} else if (pid < 0) {
 			cerr << "failed to fork \n";
 			exit(1);
@@ -4078,7 +4082,7 @@ testTrace(const TestConfig &tc, int argc, char ** argv)
 		    pid_t pid = fork();
 		    if (pid == 0) {
 		        Stats * st = new Stats();
-		        runQueriesFromFile(cl, work, false, false, NULL, outputfile, false, st);
+		        runQueriesFromFile(cl, work, false, false, NULL, outputfile, false, st, 100000);
 
 		        cerr << "worker " << i << "finished\n";
 		        exit(1);
@@ -4102,8 +4106,8 @@ testTrace(const TestConfig &tc, int argc, char ** argv)
 	};
 
 	if (string(argv[1]) == "eval") {
-		if (argc != 7) {
-			cerr << "trace eval queryfile totallines noworkers noRepeats split? \n";
+		if (argc != 8) {
+			cerr << "trace eval queryfile totallines noworkers noRepeats split? logFreq \n";
 			return;
 		}
 
@@ -4112,10 +4116,11 @@ testTrace(const TestConfig &tc, int argc, char ** argv)
 		int noWorkers = atoi(argv[4]);
 		int noRepeats = atoi(argv[5]);
 		bool split = atoi(argv[6]);
+		int logFreq = atoi(argv[7]);
 
 		assignWork(queryfile, noWorkers, totalLines, noRepeats, split);
 
-		runExp(cl, noWorkers, tc);
+		runExp(cl, noWorkers, tc, logFreq);
 
 		delete cl;
 
