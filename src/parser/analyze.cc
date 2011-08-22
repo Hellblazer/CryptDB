@@ -923,6 +923,7 @@ main(int ac, char **av)
           dir_arg,
           /* "--skip-innodb", */
           /* "--default-storage-engine=MEMORY", */
+          "--character-set-server=utf8",
           "--language=" MYSQL_BUILD_DIR "/sql/share/"
         };
     assert(0 == mysql_server_init(sizeof(mysql_av) / sizeof(mysql_av[0]),
