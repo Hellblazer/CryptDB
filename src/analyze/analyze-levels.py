@@ -22,9 +22,14 @@ cipherset_count = collections.defaultdict(int)
 
 for cs in field_ciphers.itervalues():
     if collapse_ciphers:
+        if 'any(soft)' in cs:
+            cs.add('any')
+            cs.remove('any(soft)')
+        for c in sorted(cs):
+            csoft = c+'(soft)'
+            if csoft in cs: cs.remove(csoft)
         if len(cs) > 1 and 'any' in cs: cs.remove('any')
         if 'plain' in cs: cs = ['plain']
-        if 'order' in cs and 'order_soft' in cs: cs.remove('order_soft')
         if 'order' in cs and 'equal' in cs: cs.remove('equal')
     cipherset_count[str(sorted(cs))] += 1
 
