@@ -67,6 +67,8 @@ class cipher_type_reason {
         if (parent) {
             if (parent->t == cipher_type::none || parent->t == cipher_type::any)
                 soft = true;
+            if (parent->soft)
+                soft = true;
         }
     }
 
