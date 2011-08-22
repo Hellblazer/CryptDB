@@ -233,12 +233,9 @@ static class ANON : public CItemSubtypeFN<Item_in_optimizer, str_in_optimizer> {
     }
 } ANON;
 
-struct Item_cache__example { typedef Item* Item_cache::*type; };
-template class rob<Item_cache__example, &Item_cache::example>;
-
 static class ANON : public CItemSubtypeIT<Item_cache, Item::Type::CACHE_ITEM> {
     void do_analyze(Item_cache *i, cipher_type t) const {
-        Item *example = (*i).*result<Item_cache__example>::ptr;
+        Item *example = (*i).*rob<Item_cache, Item*, &Item_cache::example>::ptr();
         if (example)
             analyze(example, t);
     }
@@ -394,20 +391,16 @@ static class ANON : public CItemSubtypeFN<Item_func_coalesce, str_coalesce> {
     }
 } ANON;
 
-struct Item_func_case__first_expr_num { typedef  int Item_func_case::*type; };
-struct Item_func_case__else_expr_num  { typedef  int Item_func_case::*type; };
-struct Item_func_case__ncases         { typedef uint Item_func_case::*type; };
-template class rob<Item_func_case__first_expr_num, &Item_func_case::first_expr_num>;
-template class rob<Item_func_case__else_expr_num, &Item_func_case::else_expr_num>;
-template class rob<Item_func_case__ncases, &Item_func_case::ncases>;
-
 extern const char str_case[] = "case";
 static class ANON : public CItemSubtypeFN<Item_func_case, str_case> {
     void do_analyze(Item_func_case *i, cipher_type t) const {
         Item **args = i->arguments();
-        int first_expr_num = (*i).*result<Item_func_case__first_expr_num>::ptr;
-        int else_expr_num = (*i).*result<Item_func_case__else_expr_num>::ptr;
-        uint ncases = (*i).*result<Item_func_case__ncases>::ptr;
+        int first_expr_num = (*i).*rob<Item_func_case, int,
+            &Item_func_case::first_expr_num>::ptr();
+        int else_expr_num = (*i).*rob<Item_func_case, int,
+            &Item_func_case::else_expr_num>::ptr();
+        uint ncases = (*i).*rob<Item_func_case, uint,
+            &Item_func_case::ncases>::ptr();
 
         if (first_expr_num >= 0)
             analyze(args[first_expr_num], cipher_type::equal);
@@ -677,12 +670,10 @@ static class ANON : public CItemSubtypeST<Item_sum_bit, Item_sum::Sumfunctype::S
     }
 } ANON;
 
-struct Item_func_group_concat__arg_count_field { typedef uint Item_func_group_concat::*type; };
-template class rob<Item_func_group_concat__arg_count_field, &Item_func_group_concat::arg_count_field>;
-
 static class ANON : public CItemSubtypeST<Item_func_group_concat, Item_sum::Sumfunctype::GROUP_CONCAT_FUNC> {
     void do_analyze(Item_func_group_concat *i, cipher_type t) const {
-        uint arg_count_field = (*i).*result<Item_func_group_concat__arg_count_field>::ptr;
+        uint arg_count_field = (*i).*rob<Item_func_group_concat, uint,
+            &Item_func_group_concat::arg_count_field>::ptr();
         for (uint x = 0; x < arg_count_field; x++) {
             /* XXX could perform in the proxy.. */
             analyze(i->get_arg(x), cipher_type::plain);
