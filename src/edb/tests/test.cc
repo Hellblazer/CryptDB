@@ -3886,7 +3886,7 @@ assignWork(string queryfile, int noWorkers,   int totalLines, int noRepeats, boo
 
 		} else {
 
-			workload = string("pieces/piece") + StringFromVal(i);
+			workload = string("pieces/piece") + fixedRepr(i);
 
 			ofstream outfile(workload);
 
@@ -4113,7 +4113,7 @@ testTrace(const TestConfig &tc, int argc, char ** argv)
 		for (int i = 0; i < noWorkers; i++) {
 		    int index = i;
 		    string work = workloads[index];
-		    string outputfile = baseoutputfile + StringFromVal(index);
+		    string outputfile = baseoutputfile + fixedRepr(index);
 		    assert_s(system(("rm -f " + outputfile).c_str()) >= 0, "failed to remove " + outputfile);
 		    pid_t pid = fork();
 		    if (pid == 0) {
