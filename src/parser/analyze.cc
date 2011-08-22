@@ -345,8 +345,20 @@ static CItemMath<str_idiv> ANON;
 extern const char str_sqrt[] = "sqrt";
 static CItemMath<str_sqrt> ANON;
 
+extern const char str_round[] = "round";
+static CItemMath<str_round> ANON;
+
+extern const char str_sin[] = "sin";
+static CItemMath<str_sin> ANON;
+
+extern const char str_acos[] = "acos";
+static CItemMath<str_acos> ANON;
+
 extern const char str_pow[] = "pow";
 static CItemMath<str_pow> ANON;
+
+extern const char str_log[] = "log";
+static CItemMath<str_log> ANON;
 
 extern const char str_radians[] = "radians";
 static CItemMath<str_radians> ANON;
@@ -424,6 +436,9 @@ static CItemStrconv<str_lcase> ANON;
 extern const char str_ucase[] = "ucase";
 static CItemStrconv<str_ucase> ANON;
 
+extern const char str_length[] = "length";
+static CItemStrconv<str_length> ANON;
+
 extern const char str_char_length[] = "char_length";
 static CItemStrconv<str_char_length> ANON;
 
@@ -450,6 +465,9 @@ class CItemLeafFunc : public CItemSubtypeFN<Item_func, NAME> {
 extern const char str_found_rows[] = "found_rows";
 static CItemLeafFunc<str_found_rows> ANON;
 
+extern const char str_last_insert_id[] = "last_insert_id";
+static CItemLeafFunc<str_last_insert_id> ANON;
+
 extern const char str_rand[] = "rand";
 static CItemLeafFunc<str_rand> ANON;
 
@@ -471,11 +489,17 @@ class CItemDateExtractFunc : public CItemSubtypeFN<Item_int_func, NAME> {
     }
 };
 
+extern const char str_second[] = "second";
+static CItemDateExtractFunc<str_second> ANON;
+
 extern const char str_minute[] = "minute";
 static CItemDateExtractFunc<str_minute> ANON;
 
 extern const char str_hour[] = "hour";
 static CItemDateExtractFunc<str_hour> ANON;
+
+extern const char str_to_days[] = "to_days";
+static CItemDateExtractFunc<str_to_days> ANON;
 
 extern const char str_year[] = "year";
 static CItemDateExtractFunc<str_year> ANON;
@@ -579,6 +603,30 @@ static class ANON : public CItemSubtypeFT<Item_func_in, Item_func::Functype::BET
     }
 } ANON;
 
+template<const char *FN>
+class CItemMinMax : public CItemSubtypeFN<Item_func_min_max, FN> {
+    void do_analyze(Item_func_min_max *i, cipher_type t) const {
+        Item **args = i->arguments();
+        for (uint x = 0; x < i->argument_count(); x++)
+            analyze(args[x], cipher_type::order);
+    }
+};
+
+extern const char str_greatest[] = "greatest";
+static CItemMinMax<str_greatest> ANON;
+
+extern const char str_least[] = "least";
+static CItemMinMax<str_least> ANON;
+
+extern const char str_strcmp[] = "strcmp";
+static class ANON : public CItemSubtypeFN<Item_func_strcmp, str_strcmp> {
+    void do_analyze(Item_func_strcmp *i, cipher_type t) const {
+        Item **args = i->arguments();
+        for (uint x = 0; x < i->argument_count(); x++)
+            analyze(args[x], cipher_type::equal);
+    }
+} ANON;
+
 template<Item_sum::Sumfunctype SFT>
 class CItemCount : public CItemSubtypeST<Item_sum_count, SFT> {
     void do_analyze(Item_sum_count *i, cipher_type t) const {
@@ -603,7 +651,7 @@ static CItemChooseOrder<Item_sum::Sumfunctype::MAX_FUNC> ANON;
 template<Item_sum::Sumfunctype SFT>
 class CItemSum : public CItemSubtypeST<Item_sum_sum, SFT> {
     void do_analyze(Item_sum_sum *i, cipher_type t) const {
-        if (SFT == Item_sum::Sumfunctype::SUM_DISTINCT_FUNC)
+        if (i->has_with_distinct())
             analyze(i->get_arg(0), cipher_type::equal);
         if (t == cipher_type::any || t == cipher_type::homadd)
             analyze(i->get_arg(0), t);
@@ -614,6 +662,8 @@ class CItemSum : public CItemSubtypeST<Item_sum_sum, SFT> {
 
 static CItemSum<Item_sum::Sumfunctype::SUM_FUNC> ANON;
 static CItemSum<Item_sum::Sumfunctype::SUM_DISTINCT_FUNC> ANON;
+static CItemSum<Item_sum::Sumfunctype::AVG_FUNC> ANON;
+static CItemSum<Item_sum::Sumfunctype::AVG_DISTINCT_FUNC> ANON;
 
 static class ANON : public CItemSubtypeST<Item_sum_bit, Item_sum::Sumfunctype::SUM_BIT_FUNC> {
     void do_analyze(Item_sum_bit *i, cipher_type t) const {
