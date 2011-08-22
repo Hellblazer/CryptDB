@@ -3755,14 +3755,23 @@ typedef struct Stats {
 
 static Stats * myStats;
 
+/*
+ * - if execQuery is true, the query is sent to the DB
+ * - if encryptQuery is true, the query is being rewritten
+ * - if conn != NULL, use this connection to send queries to the DBMS
+ * - if outputfile != "", log encrypted query here
+ * - if !allowExecFailures, we stop on failed queries sent to the DBMS
+ */
 static void
-runQueriesFromFile(EDBProxy * cl, string queryFile, bool execquery, bool plainexec, string outputfile, bool allowfailures, Stats * stats)
+runQueriesFromFile(EDBProxy * cl, string queryFile, bool execQuery, bool encryptQuery, Connect * conn,
+        string outputfile, bool allowExecFailures, Stats * stats)
 throw (CryptDBError)
 {
 	ifstream infile(queryFile);
 	ofstream * outfile = NULL;
 
 	assert_s(infile.is_open(), "cannot open file " + queryFile);
+	assert_s(!execQuery || conn, "conn is null, while execQuery is true");
 
 	bool outputtranslation = false;
 	if (outputfile != "") {
@@ -3772,6 +3781,8 @@ throw (CryptDBError)
 
 	string query;
 	list<string> queries;
+
+	Timer t;
 	while (!infile.eof()) {
 		query = getQuery(infile);
 
@@ -3780,26 +3791,25 @@ throw (CryptDBError)
 		}
 
 		if (query.length() > 0) {
-		    try{
-		        queries = cl->rewriteEncryptQuery(query+";");
-		    } catch(...) {
-		        cerr << "query " << query << "failed";
-		        cerr << "worker exits\n";
-		        exit(-1);
+		    if (encryptQuery) {
+		        try{
+		            queries = cl->rewriteEncryptQuery(query+";");
+		        } catch(...) {
+		            cerr << "query " << query << "failed";
+		            cerr << "worker exits\n";
+		            exit(-1);
+		        }
+		    } else {
+		        queries = list<string>(1, query);
 		    }
 		    stats->total_queries++;
 		    for (list<string>::iterator it = queries.begin(); it != queries.end(); it++) {
 		        if  (outputtranslation) {
 		            *outfile << *it << "\n";
 		        }
-		        if (execquery) {
-		            bool outcome;
-		            if (plainexec) {
-		                outcome = cl->plain_execute(*it).ok;
-		            } else {
-		                outcome = cl->execute(*it).ok;
-		            }
-		            if (allowfailures) {
+		        if (execQuery) {
+		            bool outcome = conn->execute(*it);
+		            if (allowExecFailures) {
 		                if (!outcome) {
 		                    stats->queries_failed++;
 		                }
@@ -3810,6 +3820,7 @@ throw (CryptDBError)
 		    }
 		}
 	}
+	stats->mspassed = t.lap_ms();
 
 	infile.close();
 	if (outputtranslation) {
@@ -3827,6 +3838,16 @@ dotrain(EDBProxy * cl, string createsfile, string querypatterns, string exec) {
 
 static string * workloads;
 static ofstream * resultFile;
+
+static string
+fixedRepr(int i) {
+    string s = StringFromVal(i);
+    while (s.length() < 5) {
+        s = "0" + s;
+    }
+    return s;
+}
+
 
 static void
 assignWork(string queryfile, int noWorkers,   int totalLines, int noRepeats, bool split) {
@@ -3855,7 +3876,7 @@ assignWork(string queryfile, int noWorkers,   int totalLines, int noRepeats, boo
 		string workload;
 		if (!split) {
 
-			workload = queryfile + StringFromVal(i);
+			workload = queryfile + fixedRepr(i);
 
 		} else {
 
@@ -3913,27 +3934,29 @@ signal_handler(int signum) {
 
 
 static void
-workerJob(EDBProxy * cl, int index) {
+workerJob(EDBProxy * cl, int index, const TestConfig & tc) {
 
 
 	string workload = workloads[index];
 	//execute on the workload
 	cerr << "in child workload file <" << workload << "> \n";
-	cerr << "value of index is " << index << "\n";
 
 	Timer t;
 
 	myStats = new Stats();
 
-	runQueriesFromFile(cl, workload, 1, true, "", false, myStats);
+	Connect * conn = new Connect(tc.host, tc.user, tc.pass, tc.db, tc.port);
 
+	runQueriesFromFile(cl, workload, true, true, conn, "", false, myStats);
+
+	cerr << "Done on " << workload << "\n";
 	myStats->mspassed = t.lap_ms();
 
 	signal_handler(SIGTERM); //faking a signal receipt
 
 }
 
-static void runExp(EDBProxy * cl, int noWorkers) {
+static void runExp(EDBProxy * cl, int noWorkers, const TestConfig & tc) {
 
         assert_s(system("rm -f pieces/result;") >= 0, "problem removing pieces/result");
         assert_s(system("touch pieces/result;") >= 0, "problem creating pieces/result");
@@ -3957,7 +3980,7 @@ static void runExp(EDBProxy * cl, int noWorkers) {
 		index = i;
 		pid_t pid = fork();
 		if (pid == 0) {
-			workerJob(cl, index);
+			workerJob(cl, index, tc);
 		} else if (pid < 0) {
 			cerr << "failed to fork \n";
 			exit(1);
@@ -4055,7 +4078,7 @@ testTrace(const TestConfig &tc, int argc, char ** argv)
 		    pid_t pid = fork();
 		    if (pid == 0) {
 		        Stats * st = new Stats();
-		        runQueriesFromFile(cl, work, false, false, outputfile, false, st);
+		        runQueriesFromFile(cl, work, false, false, NULL, outputfile, false, st);
 
 		        cerr << "worker " << i << "finished\n";
 		        exit(1);
@@ -4080,8 +4103,8 @@ testTrace(const TestConfig &tc, int argc, char ** argv)
 
 	if (string(argv[1]) == "eval") {
 		if (argc != 7) {
-			//
 			cerr << "trace eval queryfile totallines noworkers noRepeats split? \n";
+			return;
 		}
 
 		string queryfile = argv[2];
@@ -4092,7 +4115,7 @@ testTrace(const TestConfig &tc, int argc, char ** argv)
 
 		assignWork(queryfile, noWorkers, totalLines, noRepeats, split);
 
-		runExp(cl, noWorkers);
+		runExp(cl, noWorkers, tc);
 
 		delete cl;
 
