@@ -94,6 +94,7 @@ function phpbb_insert_forums()
 	{
 		case 'mssql':
 		case 'mssql_odbc':
+		case 'mssqlnative':
 			$db->sql_query('SET IDENTITY_INSERT ' . FORUMS_TABLE . ' ON');
 		break;
 	}
@@ -272,7 +273,7 @@ function phpbb_insert_forums()
 
 		$sql = 'UPDATE ' . FORUMS_TABLE . '
 			SET right_id = right_id + 2
-			WHERE ' . $cat_row['left_id'] . ' >= left_id AND ' . $cat-row['left_id'] . ' <= right_id';
+			WHERE ' . $cat_row['left_id'] . ' BETWEEN left_id AND right_id';
 		$db->sql_query($sql);
 
 		$sql_ary['left_id'] = (int) $cat_row['right_id'];
@@ -291,6 +292,7 @@ function phpbb_insert_forums()
 
 		case 'mssql':
 		case 'mssql_odbc':
+		case 'mssqlnative':
 			$db->sql_query('SET IDENTITY_INSERT ' . FORUMS_TABLE . ' OFF');
 		break;
 
@@ -1239,9 +1241,9 @@ function phpbb_prepare_message($message)
 	// Already the new user id ;)
 	$user_id = $convert->row['poster_id'];
 
+	$message = str_replace('<br />', "\n", $message);
 	$message = str_replace('<', '&lt;', $message);
 	$message = str_replace('>', '&gt;', $message);
-	$message = str_replace('<br />', "\n", $message);
 
 	// make the post UTF-8
 	$message = phpbb_set_encoding($message);
@@ -1727,6 +1729,7 @@ function phpbb_create_userconv_table()
 
 		case 'mssql':
 		case 'mssql_odbc':
+		case 'mssqlnative':
 			$map_dbms = 'mssql';
 		break;
 

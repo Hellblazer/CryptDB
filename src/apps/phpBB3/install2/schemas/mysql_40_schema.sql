@@ -1,12 +1,6 @@
 #
-# $Id$
+# $Id: $
 #
-
-# Table: 'phpbb_active'
-CREATE TABLE phpbb_active (
-	username varchar(255),
-	password varchar(40)
-);
 
 # Table: 'phpbb_attachments'
 CREATE TABLE phpbb_attachments (
@@ -116,7 +110,7 @@ CREATE TABLE phpbb_banlist (
 
 # Table: 'phpbb_bbcodes'
 CREATE TABLE phpbb_bbcodes (
-	bbcode_id tinyint(3) DEFAULT '0' NOT NULL,
+	bbcode_id smallint(4) UNSIGNED DEFAULT '0' NOT NULL,
 	bbcode_tag varbinary(16) DEFAULT '' NOT NULL,
 	bbcode_helpline blob NOT NULL,
 	display_on_posting tinyint(1) UNSIGNED DEFAULT '0' NOT NULL,
@@ -375,6 +369,22 @@ CREATE TABLE phpbb_log (
 );
 
 
+# Table: 'phpbb_login_attempts'
+CREATE TABLE phpbb_login_attempts (
+	attempt_ip varbinary(40) DEFAULT '' NOT NULL,
+	attempt_browser varbinary(150) DEFAULT '' NOT NULL,
+	attempt_forwarded_for varbinary(255) DEFAULT '' NOT NULL,
+	attempt_time int(11) UNSIGNED DEFAULT '0' NOT NULL,
+	user_id mediumint(8) UNSIGNED DEFAULT '0' NOT NULL,
+	username blob NOT NULL,
+	username_clean blob NOT NULL,
+	KEY att_ip (attempt_ip, attempt_time),
+	KEY att_for (attempt_forwarded_for, attempt_time),
+	KEY att_time (attempt_time),
+	KEY user_id (user_id)
+);
+
+
 # Table: 'phpbb_moderator_cache'
 CREATE TABLE phpbb_moderator_cache (
 	forum_id mediumint(8) UNSIGNED DEFAULT '0' NOT NULL,
@@ -448,7 +458,7 @@ CREATE TABLE phpbb_posts (
 	enable_sig tinyint(1) UNSIGNED DEFAULT '1' NOT NULL,
 	post_username blob NOT NULL,
 	post_subject blob NOT NULL,
-	post_text enc mediumblob NOT NULL,
+	post_text mediumblob NOT NULL,
 	post_checksum varbinary(32) DEFAULT '' NOT NULL,
 	post_attachment tinyint(1) UNSIGNED DEFAULT '0' NOT NULL,
 	bbcode_bitfield varbinary(255) DEFAULT '' NOT NULL,

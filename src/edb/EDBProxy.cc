@@ -3199,7 +3199,17 @@ EDBProxy::considerQuery(command com, const string &query)
         return true;
     }
     case cmd::COMMIT: {
-       return true;
+        if (DECRYPTFIRST) {
+            return true;
+        }
+        list<string> words = getSQLWords(query);
+        list<string>::iterator wordsIt = words.begin();
+        wordsIt++;
+        if (wordsIt != words.end() && equalsIgnoreCase(*wordsIt, "annotations")) {
+            return true;
+        }
+        LOG(edb_v) << "commit";
+        return false;
     }
     case cmd::TRAIN: {
         LOG(edb_v) << "training";

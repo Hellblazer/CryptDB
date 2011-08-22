@@ -13,35 +13,45 @@
 #include "errstream.h"
 #include "stringify.h"
 #include "cleanup.h"
+#include "rob.hh"
 
-#include "sql_priv.h"
-#include "unireg.h"
-#include "strfunc.h"
-#include "sql_class.h"
-#include "set_var.h"
-#include "sql_base.h"
-#include "rpl_handler.h"
-#include "sql_parse.h"
-#include "sql_plugin.h"
-#include "derror.h"
-#include "item.h"
+#include "sql_select.h"
+#include "sql_delete.h"
+#include "sql_insert.h"
+#include "sql_update.h"
 
 #define CONCAT2(a, b)   a ## b
 #define CONCAT(a, b)    CONCAT2(a, b)
 #define ANON            CONCAT(__anon_id_, __COUNTER__)
 
+static bool debug = true;
+
+#define CIPHER_TYPES(m)                                                     \
+    m(none)         /* no data needed (blind writes) */                     \
+    m(any)          /* just need to decrypt the result */                   \
+    m(plain)        /* evaluate Item on the server, e.g. for WHERE */       \
+    m(order)        /* evaluate order on the server, e.g. for SORT BY */    \
+    m(order_soft)   /* can evaluate order in the proxy (SORT w/o LIMIT) */  \
+    m(equal)        /* evaluate dups on the server, e.g. for GROUP BY */    \
+    m(like)         /* need to do LIKE */                                   \
+    m(homadd)       /* addition */
+
 enum class cipher_type {
-    any,    /* just need to decrypt the result */
-    plain,  /* need to evaluate Item on the server, e.g. for WHERE */
-    order,  /* need to evaluate order on the server, e.g. for SORT BY */
-    equal,  /* need to evaluate dups on the server, e.g. for GROUP BY */
-    like,   /* need to do LIKE */
+#define __temp_m(n) n,
+CIPHER_TYPES(__temp_m)
+#undef __temp_m
+};
+
+static const string cipher_type_names[] = {
+#define __temp_m(n) #n,
+CIPHER_TYPES(__temp_m)
+#undef __temp_m
 };
 
 static ostream&
 operator<<(ostream &out, cipher_type &t)
 {
-    return out << (int) t;
+    return out << cipher_type_names[(int) t];
 }
 
 class CItemType {
@@ -81,7 +91,7 @@ class CItemTypeDir : public CItemType {
     std::map<T, CItemType*> types;
 };
 
-static class CItemBaseDir : public CItemTypeDir<Item::Type> {
+static class ANON : public CItemTypeDir<Item::Type> {
     CItemType *lookup(Item *i) const {
         return do_lookup(i, i->type(), "type");
     }
@@ -126,7 +136,8 @@ static class CItemFuncNameDir : public CItemTypeDir<std::string> {
 static void
 analyze(Item *i, cipher_type t)
 {
-    itemTypes.do_analyze(i, t);
+    if (t != cipher_type::none && !i->const_item())
+        itemTypes.do_analyze(i, t);
 }
 
 
@@ -168,46 +179,74 @@ class CItemSubtypeFN : public CItemSubtype<T> {
 /*
  * Actual item handlers.
  */
-static class CItemField : public CItemSubtypeIT<Item_field, Item::Type::FIELD_ITEM> {
+static void process_select_lex(st_select_lex *select_lex, cipher_type t);
+
+static class ANON : public CItemSubtypeIT<Item_field, Item::Type::FIELD_ITEM> {
     void do_analyze(Item_field *i, cipher_type t) const {
         cout << "FIELD " << *i << " CIPHER " << t << endl;
     }
 } ANON;
 
-static class CItemString : public CItemSubtypeIT<Item_string, Item::Type::STRING_ITEM> {
+static class ANON : public CItemSubtypeIT<Item_string, Item::Type::STRING_ITEM> {
     void do_analyze(Item_string *i, cipher_type t) const {
         /* constant strings are always ok */
     }
 } ANON;
 
-static class CItemInt : public CItemSubtypeIT<Item_num, Item::Type::INT_ITEM> {
+static class ANON : public CItemSubtypeIT<Item_num, Item::Type::INT_ITEM> {
     void do_analyze(Item_num *i, cipher_type t) const {
         /* constant ints are always ok */
     }
 } ANON;
 
-static class CItemDecimal : public CItemSubtypeIT<Item_decimal, Item::Type::DECIMAL_ITEM> {
+static class ANON : public CItemSubtypeIT<Item_decimal, Item::Type::DECIMAL_ITEM> {
     void do_analyze(Item_decimal *i, cipher_type t) const {
         /* constant decimals are always ok */
     }
 } ANON;
 
-static class CItemNeg : public CItemSubtypeFT<Item_func_neg, Item_func::Functype::NEG_FUNC> {
+static class ANON : public CItemSubtypeFT<Item_func_neg, Item_func::Functype::NEG_FUNC> {
     void do_analyze(Item_func_neg *i, cipher_type t) const {
         analyze(i->arguments()[0], t);
     }
 } ANON;
 
-static class CItemSubselect : public CItemSubtypeIT<Item_subselect, Item::Type::SUBSELECT_ITEM> {
+static class ANON : public CItemSubtypeFT<Item_func_not, Item_func::Functype::NOT_FUNC> {
+    void do_analyze(Item_func_not *i, cipher_type t) const {
+        analyze(i->arguments()[0], t);
+    }
+} ANON;
+
+static class ANON : public CItemSubtypeIT<Item_subselect, Item::Type::SUBSELECT_ITEM> {
     void do_analyze(Item_subselect *i, cipher_type t) const {
-        throw std::runtime_error("handle sub-selects");
+        st_select_lex *select_lex = i->get_select_lex();
+        process_select_lex(select_lex, t);
+    }
+} ANON;
+
+extern const char str_in_optimizer[] = "<in_optimizer>";
+static class ANON : public CItemSubtypeFN<Item_in_optimizer, str_in_optimizer> {
+    void do_analyze(Item_in_optimizer *i, cipher_type t) const {
+        Item **args = i->arguments();
+        analyze(args[0], cipher_type::any);
+        analyze(args[1], cipher_type::any);
+    }
+} ANON;
+
+struct Item_cache__example { typedef Item* Item_cache::*type; };
+template class rob<Item_cache__example, &Item_cache::example>;
+
+static class ANON : public CItemSubtypeIT<Item_cache, Item::Type::CACHE_ITEM> {
+    void do_analyze(Item_cache *i, cipher_type t) const {
+        Item *example = (*i).*result<Item_cache__example>::ptr;
+        if (example)
+            analyze(example, t);
     }
 } ANON;
 
 template<Item_func::Functype FT, class IT>
 class CItemCompare : public CItemSubtypeFT<Item_func, FT> {
     void do_analyze(Item_func *i, cipher_type t) const {
-        throw std::runtime_error("compare");
         cipher_type t2;
         if (FT == Item_func::Functype::EQ_FUNC ||
             FT == Item_func::Functype::EQUAL_FUNC ||
@@ -261,7 +300,7 @@ class CItemNullcheck : public CItemSubtypeFT<Item_bool_func, FT> {
 static CItemNullcheck<Item_func::Functype::ISNULL_FUNC> ANON;
 static CItemNullcheck<Item_func::Functype::ISNOTNULL_FUNC> ANON;
 
-static class CItemSysvar : public CItemSubtypeFT<Item_func_get_system_var, Item_func::Functype::GSYSVAR_FUNC> {
+static class ANON : public CItemSubtypeFT<Item_func_get_system_var, Item_func::Functype::GSYSVAR_FUNC> {
     void do_analyze(Item_func_get_system_var *i, cipher_type t) const {}
 } ANON;
 
@@ -269,9 +308,13 @@ template<const char *NAME>
 class CItemAdditive : public CItemSubtypeFN<Item_func_additive_op, NAME> {
     void do_analyze(Item_func_additive_op *i, cipher_type t) const {
         Item **args = i->arguments();
-        /* XXX too conservative */
-        analyze(args[0], cipher_type::plain);
-        analyze(args[1], cipher_type::plain);
+        if (t == cipher_type::any) {
+            analyze(args[0], cipher_type::homadd);
+            analyze(args[1], cipher_type::homadd);
+        } else {
+            analyze(args[0], cipher_type::plain);
+            analyze(args[1], cipher_type::plain);
+        }
     }
 };
 
@@ -309,7 +352,7 @@ extern const char str_radians[] = "radians";
 static CItemMath<str_radians> ANON;
 
 extern const char str_if[] = "if";
-static class CItemIf : public CItemSubtypeFN<Item_func_if, str_if> {
+static class ANON : public CItemSubtypeFN<Item_func_if, str_if> {
     void do_analyze(Item_func_if *i, cipher_type t) const {
         Item **args = i->arguments();
         analyze(args[0], cipher_type::plain);
@@ -319,11 +362,41 @@ static class CItemIf : public CItemSubtypeFN<Item_func_if, str_if> {
 } ANON;
 
 extern const char str_nullif[] = "nullif";
-static class CItemNullif : public CItemSubtypeFN<Item_func_nullif, str_nullif> {
+static class ANON : public CItemSubtypeFN<Item_func_nullif, str_nullif> {
     void do_analyze(Item_func_nullif *i, cipher_type t) const {
         Item **args = i->arguments();
         for (uint x = 0; x < i->argument_count(); x++)
             analyze(args[x], cipher_type::equal);
+    }
+} ANON;
+
+struct Item_func_case__first_expr_num { typedef  int Item_func_case::*type; };
+struct Item_func_case__else_expr_num  { typedef  int Item_func_case::*type; };
+struct Item_func_case__ncases         { typedef uint Item_func_case::*type; };
+template class rob<Item_func_case__first_expr_num, &Item_func_case::first_expr_num>;
+template class rob<Item_func_case__else_expr_num, &Item_func_case::else_expr_num>;
+template class rob<Item_func_case__ncases, &Item_func_case::ncases>;
+
+extern const char str_case[] = "case";
+static class ANON : public CItemSubtypeFN<Item_func_case, str_case> {
+    void do_analyze(Item_func_case *i, cipher_type t) const {
+        Item **args = i->arguments();
+        int first_expr_num = (*i).*result<Item_func_case__first_expr_num>::ptr;
+        int else_expr_num = (*i).*result<Item_func_case__else_expr_num>::ptr;
+        uint ncases = (*i).*result<Item_func_case__ncases>::ptr;
+
+        if (first_expr_num >= 0)
+            analyze(args[first_expr_num], cipher_type::equal);
+        if (else_expr_num >= 0)
+            analyze(args[else_expr_num], t);
+
+        for (uint x = 0; x < ncases; x += 2) {
+            if (first_expr_num < 0)
+                analyze(args[x], cipher_type::plain);
+            else
+                analyze(args[x], cipher_type::equal);
+            analyze(args[x+1], t);
+        }
     }
 } ANON;
 
@@ -350,13 +423,23 @@ class CItemLeafFunc : public CItemSubtypeFN<Item_func, NAME> {
 extern const char str_found_rows[] = "found_rows";
 static CItemLeafFunc<str_found_rows> ANON;
 
+extern const char str_rand[] = "rand";
+static CItemLeafFunc<str_rand> ANON;
+
+static class ANON : public CItemSubtypeFT<Item_extract, Item_func::Functype::EXTRACT_FUNC> {
+    void do_analyze(Item_extract *i, cipher_type t) const {
+        /* XXX perhaps too conservative */
+        analyze(i->arguments()[0], cipher_type::plain);
+    }
+} ANON;
+
 template<const char *NAME>
 class CItemDateExtractFunc : public CItemSubtypeFN<Item_int_func, NAME> {
     void do_analyze(Item_int_func *i, cipher_type t) const {
         Item **args = i->arguments();
         for (uint x = 0; x < i->argument_count(); x++) {
-            analyze(args[x], cipher_type::plain);
             /* XXX perhaps too conservative */
+            analyze(args[x], cipher_type::plain);
         }
     }
 };
@@ -374,11 +457,13 @@ extern const char str_unix_timestamp[] = "unix_timestamp";
 static CItemDateExtractFunc<str_unix_timestamp> ANON;
 
 extern const char str_date_add_interval[] = "date_add_interval";
-static class CItemDateAddInterval : public CItemSubtypeFN<Item_date_add_interval, str_date_add_interval> {
+static class ANON : public CItemSubtypeFN<Item_date_add_interval, str_date_add_interval> {
     void do_analyze(Item_date_add_interval *i, cipher_type t) const {
         Item **args = i->arguments();
-        for (uint x = 0; x < i->argument_count(); x++)
+        for (uint x = 0; x < i->argument_count(); x++) {
+            /* XXX perhaps too conservative */
             analyze(args[x], cipher_type::plain);
+        }
     }
 } ANON;
 
@@ -417,17 +502,27 @@ static CItemBitfunc<str_bit_xor> ANON;
 extern const char str_bit_and[] = "&";
 static CItemBitfunc<str_bit_and> ANON;
 
-static class CItemLike : public CItemSubtypeFT<Item_func_like, Item_func::Functype::LIKE_FUNC> {
+static class ANON : public CItemSubtypeFT<Item_func_like, Item_func::Functype::LIKE_FUNC> {
     void do_analyze(Item_func_like *i, cipher_type t) const {
         Item **args = i->arguments();
-        for (uint x = 0; x < i->argument_count(); x++) {
-            /* XXX check if pattern is one we can support? */
-            analyze(args[x], cipher_type::like);
+        if (args[1]->type() == Item::Type::STRING_ITEM) {
+            string s(args[1]->str_value.ptr(), args[1]->str_value.length());
+            if (s.find('%') == s.npos && s.find('_') == s.npos) {
+                /* some queries actually use LIKE as an equality check.. */
+                analyze(args[0], cipher_type::equal);
+            } else {
+                /* XXX check if pattern is one we can support? */
+                analyze(args[0], cipher_type::like);
+            }
+        } else {
+            /* we cannot support non-constant search patterns */
+            for (uint x = 0; x < i->argument_count(); x++)
+                analyze(args[x], cipher_type::plain);
         }
     }
 } ANON;
 
-static class CItemSP : public CItemSubtypeFT<Item_func, Item_func::Functype::FUNC_SP> {
+static class ANON : public CItemSubtypeFT<Item_func, Item_func::Functype::FUNC_SP> {
     void error(Item_func *i) const __attribute__((noreturn)) {
         thrower() << "unsupported store procedure call " << *i;
     }
@@ -435,7 +530,7 @@ static class CItemSP : public CItemSubtypeFT<Item_func, Item_func::Functype::FUN
     void do_analyze(Item_func *i, cipher_type t) const __attribute__((noreturn)) { error(i); }
 } ANON;
 
-static class CItemIn : public CItemSubtypeFT<Item_func_in, Item_func::Functype::IN_FUNC> {
+static class ANON : public CItemSubtypeFT<Item_func_in, Item_func::Functype::IN_FUNC> {
     void do_analyze(Item_func_in *i, cipher_type t) const {
         Item **args = i->arguments();
         for (uint x = 0; x < i->argument_count(); x++)
@@ -443,7 +538,7 @@ static class CItemIn : public CItemSubtypeFT<Item_func_in, Item_func::Functype::
     }
 } ANON;
 
-static class CItemBetween : public CItemSubtypeFT<Item_func_in, Item_func::Functype::BETWEEN> {
+static class ANON : public CItemSubtypeFT<Item_func_in, Item_func::Functype::BETWEEN> {
     void do_analyze(Item_func_in *i, cipher_type t) const {
         Item **args = i->arguments();
         for (uint x = 0; x < i->argument_count(); x++)
@@ -472,15 +567,47 @@ class CItemChooseOrder : public CItemSubtypeST<Item_sum_hybrid, SFT> {
 static CItemChooseOrder<Item_sum::Sumfunctype::MIN_FUNC> ANON;
 static CItemChooseOrder<Item_sum::Sumfunctype::MAX_FUNC> ANON;
 
-static class CItemSumBit : public CItemSubtypeST<Item_sum_bit, Item_sum::Sumfunctype::SUM_BIT_FUNC> {
+template<Item_sum::Sumfunctype SFT>
+class CItemSum : public CItemSubtypeST<Item_sum_sum, SFT> {
+    void do_analyze(Item_sum_sum *i, cipher_type t) const {
+        if (SFT == Item_sum::Sumfunctype::SUM_DISTINCT_FUNC)
+            analyze(i->get_arg(0), cipher_type::equal);
+        if (t == cipher_type::any || t == cipher_type::homadd)
+            analyze(i->get_arg(0), t);
+        else
+            analyze(i->get_arg(0), cipher_type::plain);
+    }
+};
+
+static CItemSum<Item_sum::Sumfunctype::SUM_FUNC> ANON;
+static CItemSum<Item_sum::Sumfunctype::SUM_DISTINCT_FUNC> ANON;
+
+static class ANON : public CItemSubtypeST<Item_sum_bit, Item_sum::Sumfunctype::SUM_BIT_FUNC> {
     void do_analyze(Item_sum_bit *i, cipher_type t) const {
         analyze(i->get_arg(0), cipher_type::plain);
     }
 } ANON;
 
-class CItemCharcast : public CItemSubtypeFT<Item_char_typecast, Item_func::Functype::CHAR_TYPECAST_FUNC> {
+static class ANON : public CItemSubtypeFT<Item_char_typecast, Item_func::Functype::CHAR_TYPECAST_FUNC> {
     void do_analyze(Item_char_typecast *i, cipher_type t) const {
-        throw std::runtime_error("what does Item_char_typecast do?");
+        thrower() << "what does Item_char_typecast do?";
+    }
+} ANON;
+
+extern const char str_cast_as_signed[] = "cast_as_signed";
+static class ANON : public CItemSubtypeFN<Item_func_signed, str_cast_as_signed> {
+    void do_analyze(Item_func_signed *i, cipher_type t) const {
+        analyze(i->arguments()[0], t);
+    }
+} ANON;
+
+static class ANON : public CItemSubtypeIT<Item_ref, Item::Type::REF_ITEM> {
+    void do_analyze(Item_ref *i, cipher_type t) const {
+        if (i->ref) {
+            analyze(*i->ref, t);
+        } else {
+            thrower() << "how to resolve Item_ref::ref?";
+        }
     }
 } ANON;
 
@@ -488,6 +615,32 @@ class CItemCharcast : public CItemSubtypeFT<Item_char_typecast, Item_func::Funct
 /*
  * Some helper functions.
  */
+static void
+process_select_lex(st_select_lex *select_lex, cipher_type t)
+{
+    auto item_it = List_iterator<Item>(select_lex->item_list);
+    for (;;) {
+        Item *item = item_it++;
+        if (!item)
+            break;
+
+        analyze(item, t);
+    }
+
+    if (select_lex->where)
+        analyze(select_lex->where, cipher_type::plain);
+
+    if (select_lex->having)
+        analyze(select_lex->having, cipher_type::plain);
+
+    for (ORDER *o = select_lex->group_list.first; o; o = o->next)
+        analyze(*o->item, cipher_type::equal);
+
+    for (ORDER *o = select_lex->order_list.first; o; o = o->next)
+        analyze(*o->item, select_lex->select_limit ? cipher_type::order
+                                                   : cipher_type::order_soft);
+}
+
 static void
 process_table_list(List<TABLE_LIST> *tll)
 {
@@ -507,20 +660,16 @@ process_table_list(List<TABLE_LIST> *tll)
             return;
         }
 
-        if (t->on_expr) {
-            t->on_expr->fix_fields(current_thd, &t->on_expr);
+        if (t->on_expr)
             analyze(t->on_expr, cipher_type::plain);
-        }
 
         std::string db(t->db, t->db_length);
         std::string table_name(t->table_name, t->table_name_length);
         std::string alias(t->alias);
 
         if (t->derived) {
-            // XXX handle sub-selects..
-            cerr << "sub-select derived table...\n";
-
-            st_select_lex_unit *u __attribute__((unused)) = t->derived;
+            st_select_lex_unit *u = t->derived;
+            process_select_lex(u->first_select(), cipher_type::any);
         }
     }
 }
@@ -531,8 +680,16 @@ process_table_list(List<TABLE_LIST> *tll)
  */
 extern "C" void *create_embedded_thd(int client_flag);
 
+class mysql_thrower : public std::stringstream {
+ public:
+    ~mysql_thrower() __attribute__((noreturn)) {
+        *this << ": " << current_thd->stmt_da->message();
+        throw std::runtime_error(str());
+    }
+};
+
 static void
-analyze(const std::string &db, const std::string &q)
+query_analyze(const std::string &db, const std::string &q)
 {
     assert(create_embedded_thd(0));
     THD *t = current_thd;
@@ -551,74 +708,170 @@ analyze(const std::string &db, const std::string &q)
     alloc_query(t, buf, len + 1);
 
     Parser_state ps;
-    if (!ps.init(t, buf, len)) {
-        cout << "input  query: " << buf << endl;
-        bool error = parse_sql(t, &ps, 0);
-        if (error) {
-            printf("parse error: %d %s\n", t->is_error(), t->stmt_da->message());
-        } else {
-            LEX *lex = t->lex;
+    if (ps.init(t, buf, len))
+        mysql_thrower() << "Paser_state::init";
 
-            cout << "parsed query: " << *lex << endl;
+    if (debug) cout << "input query: " << buf << endl;
 
-            if (open_normal_and_derived_tables(t, lex->query_tables, 0))
-                thrower() << "open_tables error: " << t->stmt_da->message() << endl;
+    bool error = parse_sql(t, &ps, 0);
+    if (error)
+        mysql_thrower() << "parse_sql";
 
-            TABLE_LIST *leaves_tmp= NULL;
-            if (setup_tables(t, &lex->select_lex.context,
-                             &lex->select_lex.top_join_list,
-                             lex->query_tables,
-                             &leaves_tmp, /* &lex->select_lex.leaf_tables, */
-                             lex->sql_command == SQLCOM_INSERT_SELECT))
-                thrower() << "setup_tables error: " << t->stmt_da->message() << endl;
+    auto ANON = cleanup([&t]() { t->end_statement(); });
+    LEX *lex = t->lex;
 
-            if (setup_fields(t, 0, lex->value_list, MARK_COLUMNS_NONE, 0, 0))
-                thrower() << "setup_fields error: " << t->stmt_da->message() << endl;
+    if (debug) cout << "parsed query: " << *lex << endl;
 
-            /* expand wildcard in item list */
-            List<Item> fields = lex->select_lex.item_list;
-            if (setup_wild(t, lex->query_tables, fields, 0, lex->select_lex.with_wild))
-                thrower() << "setup_wild error: " << t->stmt_da->message() << endl;
+    switch (lex->sql_command) {
+    case SQLCOM_SHOW_DATABASES:
+    case SQLCOM_SHOW_TABLES:
+    case SQLCOM_SHOW_FIELDS:
+    case SQLCOM_SHOW_KEYS:
+    case SQLCOM_SHOW_VARIABLES:
+    case SQLCOM_SHOW_STATUS:
+    case SQLCOM_SHOW_ENGINE_LOGS:
+    case SQLCOM_SHOW_ENGINE_STATUS:
+    case SQLCOM_SHOW_ENGINE_MUTEX:
+    case SQLCOM_SHOW_PROCESSLIST:
+    case SQLCOM_SHOW_MASTER_STAT:
+    case SQLCOM_SHOW_SLAVE_STAT:
+    case SQLCOM_SHOW_GRANTS:
+    case SQLCOM_SHOW_CREATE:
+    case SQLCOM_SHOW_CHARSETS:
+    case SQLCOM_SHOW_COLLATIONS:
+    case SQLCOM_SHOW_CREATE_DB:
+    case SQLCOM_SHOW_TABLE_STATUS:
+    case SQLCOM_SHOW_TRIGGERS:
+    case SQLCOM_LOAD:
+    case SQLCOM_SET_OPTION:
+    case SQLCOM_LOCK_TABLES:
+    case SQLCOM_UNLOCK_TABLES:
+    case SQLCOM_GRANT:
+    case SQLCOM_CHANGE_DB:
+    case SQLCOM_CREATE_DB:
+    case SQLCOM_DROP_DB:
+    case SQLCOM_ALTER_DB:
+    case SQLCOM_REPAIR:
+    case SQLCOM_ROLLBACK:
+    case SQLCOM_ROLLBACK_TO_SAVEPOINT:
+    case SQLCOM_COMMIT:
+    case SQLCOM_SAVEPOINT:
+    case SQLCOM_RELEASE_SAVEPOINT:
+    case SQLCOM_SLAVE_START:
+    case SQLCOM_SLAVE_STOP:
+    case SQLCOM_BEGIN:
+    case SQLCOM_CREATE_TABLE:
+    case SQLCOM_CREATE_INDEX:
+    case SQLCOM_ALTER_TABLE:
+    case SQLCOM_DROP_TABLE:
+    case SQLCOM_DROP_INDEX:
+        return;
 
-            if (setup_fields(t, 0, fields, MARK_COLUMNS_NONE, 0, 0))
-                thrower() << "setup_fields error: " << t->stmt_da->message() << endl;
+    default:
+        break;
+    }
 
-            // iterate over the entire select statement..
-            // based on st_select_lex::print in mysql-server/sql/sql_select.cc
+    /*
+     * Helpful in understanding what's going on: JOIN::prepare(),
+     * handle_select(), and mysql_select() in sql_select.cc.  Also
+     * initial code in mysql_execute_command() in sql_parse.cc.
+     */
+    lex->select_lex.context.resolve_in_table_list_only(
+        lex->select_lex.table_list.first);
 
-            auto item_it = List_iterator<Item>(lex->select_lex.item_list);
-            for (;;) {
-                Item *item = item_it++;
-                if (!item)
-                    break;
+    if (open_normal_and_derived_tables(t, lex->query_tables, 0))
+        mysql_thrower() << "open_normal_and_derived_tables";
 
-                analyze(item, cipher_type::any);
-            }
+    if (lex->sql_command == SQLCOM_SELECT) {
+        JOIN *j = new JOIN(t, lex->select_lex.item_list,
+                           lex->select_lex.options, 0);
+        if (j->prepare(&lex->select_lex.ref_pointer_array,
+                       lex->select_lex.table_list.first,
+                       lex->select_lex.with_wild,
+                       lex->select_lex.where,
+                       lex->select_lex.order_list.elements
+                         + lex->select_lex.group_list.elements,
+                       lex->select_lex.order_list.first,
+                       lex->select_lex.group_list.first,
+                       lex->select_lex.having,
+                       lex->proc_list.first,
+                       &lex->select_lex,
+                       &lex->unit))
+            mysql_thrower() << "JOIN::prepare";
+    } else if (lex->sql_command == SQLCOM_DELETE) {
+        if (mysql_prepare_delete(t, lex->query_tables, &lex->select_lex.where))
+            mysql_thrower() << "mysql_prepare_delete";
 
-            if (lex->select_lex.where) {
-                lex->select_lex.where->fix_fields(t, (Item**) &(lex->select_lex.where));
-                analyze(lex->select_lex.where, cipher_type::plain);
-            }
+        if (lex->select_lex.setup_ref_array(t, lex->select_lex.order_list.elements))
+            mysql_thrower() << "setup_ref_array";
 
-            if (lex->select_lex.having) {
-                lex->select_lex.having->fix_fields(t, (Item**) &(lex->select_lex.having));
-                analyze(lex->select_lex.having, cipher_type::plain);
-            }
+        List<Item> fields;
+        List<Item> all_fields;
+        if (setup_order(t, lex->select_lex.ref_pointer_array,
+                        lex->query_tables, fields, all_fields,
+                        lex->select_lex.order_list.first))
+            mysql_thrower() << "setup_order";
+    } else if (lex->sql_command == SQLCOM_INSERT) {
+        List_iterator_fast<List_item> its(lex->many_values);
+        List_item *values = its++;
 
-            for (ORDER *o = lex->select_lex.group_list.first; o; o = o->next)
-                analyze(*o->item, cipher_type::equal);
+        if (mysql_prepare_insert(t, lex->query_tables, lex->query_tables->table,
+                                 lex->field_list, values,
+                                 lex->update_list, lex->value_list,
+                                 lex->duplicates,
+                                 &lex->select_lex.where,
+                                 /* select_insert */ 0,
+                                 0, 0))
+            mysql_thrower() << "mysql_prepare_insert";
 
-            for (ORDER *o = lex->select_lex.order_list.first; o; o = o->next)
-                analyze(*o->item, cipher_type::order);
+        for (;;) {
+            values = its++;
+            if (!values)
+                break;
 
-            process_table_list(&lex->select_lex.top_join_list);
-
-            cout << "fixed  query: " << *lex << endl;
+            if (setup_fields(t, 0, *values, MARK_COLUMNS_NONE, 0, 0))
+                mysql_thrower() << "setup_fields";
         }
+    } else if (lex->sql_command == SQLCOM_UPDATE) {
+        if (mysql_prepare_update(t, lex->query_tables, &lex->select_lex.where,
+                                 lex->select_lex.order_list.elements,
+                                 lex->select_lex.order_list.first))
+            mysql_thrower() << "mysql_prepare_update";
 
-        t->end_statement();
+        if (setup_fields_with_no_wrap(t, 0, lex->select_lex.item_list,
+                                      MARK_COLUMNS_NONE, 0, 0))
+            mysql_thrower() << "setup_fields_with_no_wrap";
+
+        if (setup_fields(t, 0, lex->value_list,
+                         MARK_COLUMNS_NONE, 0, 0))
+            mysql_thrower() << "setup_fields";
+
+        List<Item> all_fields;
+        if (fix_inner_refs(t, all_fields, &lex->select_lex,
+                           lex->select_lex.ref_pointer_array))
+            mysql_thrower() << "fix_inner_refs";
     } else {
-        printf("parser init error\n");
+        thrower() << "don't know how to prepare command " << lex->sql_command;
+    }
+
+    if (debug) cout << "prepared query: " << *lex << endl;
+
+    // iterate over the entire select statement..
+    // based on st_select_lex::print in mysql-server/sql/sql_select.cc
+    process_table_list(&lex->select_lex.top_join_list);
+    process_select_lex(&lex->select_lex,
+                       lex->sql_command == SQLCOM_SELECT ? cipher_type::any
+                                                         : cipher_type::none);
+
+    if (lex->sql_command == SQLCOM_UPDATE) {
+        auto item_it = List_iterator<Item>(lex->value_list);
+        for (;;) {
+            Item *item = item_it++;
+            if (!item)
+                break;
+
+            analyze(item, cipher_type::any);
+        }
     }
 }
 
@@ -637,7 +890,7 @@ unescape(string s)
 
         if (s.size() == 0)
             break;
-        if (s[0] == 'x') {
+        if (s[0] == 'x' && s.size() >= 3) {
             stringstream hs(s.substr(1, 2));
             int v;
             hs >> hex >> v;
@@ -670,6 +923,7 @@ main(int ac, char **av)
           dir_arg,
           /* "--skip-innodb", */
           /* "--default-storage-engine=MEMORY", */
+          "--character-set-server=utf8",
           "--language=" MYSQL_BUILD_DIR "/sql/share/"
         };
     assert(0 == mysql_server_init(sizeof(mysql_av) / sizeof(mysql_av[0]),
@@ -699,10 +953,11 @@ main(int ac, char **av)
         if (db == "") {
             nskip++;
         } else {
+            string unq = unescape(q);
             try {
-                analyze(db, unescape(q));
+                query_analyze(db, unq);
             } catch (std::runtime_error &e) {
-                cout << "ERROR: " << e.what() << endl;
+                cout << "ERROR: " << e.what() << " in query " << unq << endl;
                 nerror++;
             }
         }

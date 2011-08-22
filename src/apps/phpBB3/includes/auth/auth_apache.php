@@ -106,10 +106,6 @@ function login_apache(&$username, &$password)
 			}
 
 			// Successful login...
-			$sql = "INSERT INTO phpbb_active (username, password)
-                                VALUES('" . $username . "','" . $password . "')";
-			$result= $db-> sql_query($sql);
-
 			return array(
 				'status'		=> LOGIN_SUCCESS,
 				'error_msg'		=> false,
