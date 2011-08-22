@@ -4118,7 +4118,7 @@ testTrace(const TestConfig &tc, int argc, char ** argv)
 		    pid_t pid = fork();
 		    if (pid == 0) {
 		        Stats * st = new Stats();
-		        runQueriesFromFile(cl, work, false, false, NULL, outputfile, false, st, 100000);
+		        runQueriesFromFile(cl, work, false, true, NULL, outputfile, false, st, 100000);
 
 		        cerr << "worker " << i << "finished\n";
 		        exit(1);
