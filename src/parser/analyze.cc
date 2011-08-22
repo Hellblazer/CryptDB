@@ -305,8 +305,8 @@ class CItemCompare : public CItemSubtypeFT<Item_func, FT> {
         }
 
         Item **args = i->arguments();
-        analyze(args[0], cipher_type_reason(t2, "compare func", i, &tr));
-        analyze(args[1], cipher_type_reason(t2, "compare func", i, &tr));
+        analyze(args[0], cipher_type_reason(t2, "compare_func", i, &tr));
+        analyze(args[1], cipher_type_reason(t2, "compare_func", i, &tr));
     }
 };
 
@@ -417,7 +417,7 @@ extern const char str_if[] = "if";
 static class ANON : public CItemSubtypeFN<Item_func_if, str_if> {
     void do_analyze(Item_func_if *i, const cipher_type_reason &tr) const {
         Item **args = i->arguments();
-        analyze(args[0], cipher_type_reason(cipher_type::plain, "if cond", i, &tr));
+        analyze(args[0], cipher_type_reason(cipher_type::plain, "if_cond", i, &tr));
         analyze(args[1], tr);
         analyze(args[2], tr);
     }
@@ -454,17 +454,17 @@ static class ANON : public CItemSubtypeFN<Item_func_case, str_case> {
 
         if (first_expr_num >= 0)
             analyze(args[first_expr_num],
-                    cipher_type_reason(cipher_type::equal, "case first", i, &tr));
+                    cipher_type_reason(cipher_type::equal, "case_first", i, &tr));
         if (else_expr_num >= 0)
             analyze(args[else_expr_num], tr);
 
         for (uint x = 0; x < ncases; x += 2) {
             if (first_expr_num < 0)
                 analyze(args[x],
-                        cipher_type_reason(cipher_type::plain, "case nofirst", i, &tr));
+                        cipher_type_reason(cipher_type::plain, "case_nofirst", i, &tr));
             else
                 analyze(args[x],
-                        cipher_type_reason(cipher_type::equal, "case w/first", i, &tr));
+                        cipher_type_reason(cipher_type::equal, "case_w/first", i, &tr));
             analyze(args[x+1], tr);
         }
     }
@@ -571,7 +571,7 @@ static class ANON : public CItemSubtypeFN<Item_date_add_interval, str_date_add_i
         Item **args = i->arguments();
         for (uint x = 0; x < i->argument_count(); x++) {
             /* XXX perhaps too conservative */
-            analyze(args[x], cipher_type_reason(cipher_type::plain, "date add", i, &tr));
+            analyze(args[x], cipher_type_reason(cipher_type::plain, "date_add", i, &tr));
         }
     }
 } ANON;
@@ -618,15 +618,17 @@ static class ANON : public CItemSubtypeFT<Item_func_like, Item_func::Functype::L
             string s(args[1]->str_value.ptr(), args[1]->str_value.length());
             if (s.find('%') == s.npos && s.find('_') == s.npos) {
                 /* some queries actually use LIKE as an equality check.. */
-                analyze(args[0], cipher_type_reason(cipher_type::equal, "like eq", i, &tr));
+                analyze(args[0], cipher_type_reason(cipher_type::equal, "like-eq", i, &tr));
             } else {
                 /* XXX check if pattern is one we can support? */
-                analyze(args[0], cipher_type_reason(cipher_type::like, "like", i, &tr));
+                stringstream ss;
+                ss << "like:'" << s << "'";
+                analyze(args[0], cipher_type_reason(cipher_type::like, ss.str(), i, &tr));
             }
         } else {
             /* we cannot support non-constant search patterns */
             for (uint x = 0; x < i->argument_count(); x++)
-                analyze(args[x], cipher_type_reason(cipher_type::plain, "like non-const", i, &tr));
+                analyze(args[x], cipher_type_reason(cipher_type::plain, "like-non-const", i, &tr));
         }
     }
 } ANON;
@@ -693,7 +695,7 @@ static CItemCount<Item_sum::Sumfunctype::COUNT_DISTINCT_FUNC> ANON;
 template<Item_sum::Sumfunctype SFT>
 class CItemChooseOrder : public CItemSubtypeST<Item_sum_hybrid, SFT> {
     void do_analyze(Item_sum_hybrid *i, const cipher_type_reason &tr) const {
-        analyze(i->get_arg(0), cipher_type_reason(cipher_type::order, "min/max agg", i, &tr, false));
+        analyze(i->get_arg(0), cipher_type_reason(cipher_type::order, "min/max_agg", i, &tr, false));
     }
 };
 
@@ -704,11 +706,11 @@ template<Item_sum::Sumfunctype SFT>
 class CItemSum : public CItemSubtypeST<Item_sum_sum, SFT> {
     void do_analyze(Item_sum_sum *i, const cipher_type_reason &tr) const {
         if (i->has_with_distinct())
-            analyze(i->get_arg(0), cipher_type_reason(cipher_type::equal, "agg distinct", i, &tr, false));
+            analyze(i->get_arg(0), cipher_type_reason(cipher_type::equal, "agg_distinct", i, &tr, false));
         if (tr.t == cipher_type::any || tr.t == cipher_type::homadd)
             analyze(i->get_arg(0), cipher_type_reason(cipher_type::homadd, "sum/avg", i, &tr, false));
         else
-            analyze(i->get_arg(0), cipher_type_reason(cipher_type::plain, "sum/avg x", i, &tr, false));
+            analyze(i->get_arg(0), cipher_type_reason(cipher_type::plain, "sum/avg_x", i, &tr, false));
     }
 };
 
@@ -729,7 +731,7 @@ static class ANON : public CItemSubtypeST<Item_func_group_concat, Item_sum::Sumf
             &Item_func_group_concat::arg_count_field>::ptr();
         for (uint x = 0; x < arg_count_field; x++) {
             /* XXX could perform in the proxy.. */
-            analyze(i->get_arg(x), cipher_type_reason(cipher_type::plain, "group concat", i, &tr));
+            analyze(i->get_arg(x), cipher_type_reason(cipher_type::plain, "group_concat", i, &tr));
         }
 
         /* XXX order, unused in trace queries.. */
@@ -809,7 +811,7 @@ process_table_list(List<TABLE_LIST> *tll)
         }
 
         if (t->on_expr)
-            analyze(t->on_expr, cipher_type_reason(cipher_type::plain, "join cond", t->on_expr, 0));
+            analyze(t->on_expr, cipher_type_reason(cipher_type::plain, "join_cond", t->on_expr, 0));
 
         std::string db(t->db, t->db_length);
         std::string table_name(t->table_name, t->table_name_length);
