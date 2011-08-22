@@ -13,6 +13,7 @@
 #include "errstream.h"
 #include "stringify.h"
 #include "cleanup.h"
+#include "rob.hh"
 
 #include "sql_select.h"
 #include "sql_delete.h"
@@ -232,18 +233,12 @@ static class ANON : public CItemSubtypeFN<Item_in_optimizer, str_in_optimizer> {
     }
 } ANON;
 
-class Item_cache_extractor : public Item_cache {
- public:
-    /* Why is Item_cache::example a protected field?  This is ugly.. */
-    static Item *get_example(Item_cache *i) {
-        Item_cache_extractor *ii = (Item_cache_extractor *) i;
-        return ii->example;
-    }
-};
+struct Item_cache__example { typedef Item* Item_cache::*type; };
+template class rob<Item_cache__example, &Item_cache::example>;
 
 static class ANON : public CItemSubtypeIT<Item_cache, Item::Type::CACHE_ITEM> {
     void do_analyze(Item_cache *i, cipher_type t) const {
-        Item *example = Item_cache_extractor::get_example(i);
+        Item *example = (*i).*result<Item_cache__example>::ptr;
         if (example)
             analyze(example, t);
     }
@@ -372,6 +367,36 @@ static class ANON : public CItemSubtypeFN<Item_func_nullif, str_nullif> {
         Item **args = i->arguments();
         for (uint x = 0; x < i->argument_count(); x++)
             analyze(args[x], cipher_type::equal);
+    }
+} ANON;
+
+struct Item_func_case__first_expr_num { typedef  int Item_func_case::*type; };
+struct Item_func_case__else_expr_num  { typedef  int Item_func_case::*type; };
+struct Item_func_case__ncases         { typedef uint Item_func_case::*type; };
+template class rob<Item_func_case__first_expr_num, &Item_func_case::first_expr_num>;
+template class rob<Item_func_case__else_expr_num, &Item_func_case::else_expr_num>;
+template class rob<Item_func_case__ncases, &Item_func_case::ncases>;
+
+extern const char str_case[] = "case";
+static class ANON : public CItemSubtypeFN<Item_func_case, str_case> {
+    void do_analyze(Item_func_case *i, cipher_type t) const {
+        Item **args = i->arguments();
+        int first_expr_num = (*i).*result<Item_func_case__first_expr_num>::ptr;
+        int else_expr_num = (*i).*result<Item_func_case__else_expr_num>::ptr;
+        uint ncases = (*i).*result<Item_func_case__ncases>::ptr;
+
+        if (first_expr_num >= 0)
+            analyze(args[first_expr_num], cipher_type::equal);
+        if (else_expr_num >= 0)
+            analyze(args[else_expr_num], t);
+
+        for (uint x = 0; x < ncases; x += 2) {
+            if (first_expr_num < 0)
+                analyze(args[x], cipher_type::plain);
+            else
+                analyze(args[x], cipher_type::equal);
+            analyze(args[x+1], t);
+        }
     }
 } ANON;
 
