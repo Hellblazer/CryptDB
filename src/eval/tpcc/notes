@@ -1,0 +1,28 @@
+To make proxy log plain queries from benchmark: 
+sudo killall mysql-proxy; pushd ../eval/bench/run ; ../../../edb/tests/test -v all bench ; popd 
+
+mysql -u root -pletmein -e "drop database cryptdbtest; create database cryptdbtest; drop database cryptdbtest_control; create database cryptdbtest_control"
+
+To translate inserts:
+../../edb/tests/test trace encrypt_queries sqlTableCreates emptyindex querypatterns_bench bench_plain_insert_w1 pieces/bench_enc_insert_w1_ 1199076 200
+
+/usr/bin/perl -p -i -e "s/INSERT/;\nINSERT/g" bench_plain_insert_w1
+
+To run a benchmark:
+java -cp  ../build/classes:../lib/edb-jdbc14-8_0_3_14.jar:../lib/ganymed-ssh2-build250.jar:../lib/hsqldb.jar:../lib/mysql-connector-java-5.1.10-bin.jar:../lib/ojdbc14-10.2.jar:../lib/postgresql-8.0.309.jdbc3.jar -Ddriver=com.mysql.jdbc.Driver -Dconn=jdbc:mysql://localhost:3306/tpccplain -Duser=tpccuser -Dpassword=letmein -Dnwarehouses=1 -Dnterminals=1 client.jTPCCHeadless
+
+../../edb/tests/test trace encrypt_queries sqlTableCreates sqlIndexCreates querypatterns_bench plain_queries_w1_t10 pieces/enc_queries_w1_t10_  617397 300
+
+To run tput for any trace file do:
+
+mysql -u root -pletmein -e "drop database tpccenc"; mysql -u root -pletmein -e "create database tpccenc"; mysql -u root -pletmein tpccenc  < ../dumps/new_dump_enc_w1
+mysql -u root -pletmein -e "drop database tpccplain"; mysql -u root -pletmein -e "create database tpccplain"; mysql -u root -pletmein tpccplain < ../dumps/new_dump_plain_w1
+
+ ../../edb/tests/test -d tpccplain -v all trace eval plain_queries_w1_t10 617407 10 1 1 5000
+
+To run transaction tput via benchmark:
+ -- need noTerminals <= 10*noWarehouses
+
+Notes:
+- schema for tpcc was mapped onto integer, text, and timestamp
+- queries were not changed, but all negatives were made positives and all decimals were truncated -- this does not affec the query performance (according to Evan) and also because decisions are made only on integers
