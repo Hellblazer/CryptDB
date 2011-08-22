@@ -527,8 +527,8 @@ class CItemDateExtractFunc : public CItemSubtypeFN<Item_int_func, NAME> {
     void do_analyze(Item_int_func *i, const cipher_type_reason &tr) const {
         Item **args = i->arguments();
         for (uint x = 0; x < i->argument_count(); x++) {
-            /* XXX perhaps too conservative */
-            analyze(args[x], cipher_type_reason(cipher_type::plain, "date extract", i, &tr));
+            /* assuming we separately store different date components */
+            analyze(args[x], tr);
         }
     }
 };
