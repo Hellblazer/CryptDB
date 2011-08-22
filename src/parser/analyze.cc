@@ -76,7 +76,6 @@ operator<<(ostream &out, const cipher_type_reason &r)
     out << r.t << " NEEDED FOR " << r.why_t;
     if (r.why_t_item)
         out << " in " << *r.why_t_item;
-    out << ")";
     if (r.parent)
         out << " BECAUSE " << *r.parent;
     return out;
