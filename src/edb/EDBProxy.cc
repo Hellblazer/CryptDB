@@ -2676,9 +2676,13 @@ getInitValue(TableMetadata * tm, string field, string & insid_query)
         return make_pair(StringFromVal(tm->ai.incvalue), false);
     }
 
-    // use the default value
-    // TODO: record default values
-    return make_pair("", true);
+    // TODO: record and use default values here
+    if (tm->fieldMetaMap[field]->type == TYPE_TEXT) {
+        return make_pair("", false);
+    } else {
+        return make_pair("0", false);
+    }
+
 }
 
 list<string>
