@@ -10,9 +10,9 @@
 
 #include <stdio.h>
 
-#include "errstream.h"
-#include "stringify.h"
-#include "cleanup.h"
+#include "errstream.hh"
+#include "stringify.hh"
+#include "cleanup.hh"
 #include "rob.hh"
 
 #include "sql_select.h"

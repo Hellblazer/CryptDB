@@ -9,9 +9,9 @@
 
 #include <stdio.h>
 
-#include "errstream.h"
-#include "mysql_glue.h"
-#include "stringify.h"
+#include "errstream.hh"
+#include "mysql_glue.hh"
+#include "stringify.hh"
 
 #include "sql_priv.h"
 #include "unireg.h"

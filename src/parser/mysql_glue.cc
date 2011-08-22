@@ -12,7 +12,7 @@
 #include "derror.h"
 #include "init.h"
 
-#include "mysql_glue.h"
+#include "mysql_glue.hh"
 
 void
 mysql_glue_init(void)

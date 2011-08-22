@@ -22,7 +22,7 @@ parsetest xftest: %: %.o mysql_glue.o
 load-schema analyze: %: %.o
 	$(CXX) $^ -o $@ $(LDFLAGS)
 
-%.o: %.cc $(wildcard *.h)
+%.o: %.cc $(wildcard *.hh)
 	$(CXX) $(CXXFLAGS) $< -c -o $@
 
 clean:
