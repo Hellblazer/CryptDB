@@ -351,6 +351,9 @@ static CItemMath<str_round> ANON;
 extern const char str_sin[] = "sin";
 static CItemMath<str_sin> ANON;
 
+extern const char str_cos[] = "cos";
+static CItemMath<str_cos> ANON;
+
 extern const char str_acos[] = "acos";
 static CItemMath<str_acos> ANON;
 
@@ -453,6 +456,9 @@ static CItemStrconv<str_concat_ws> ANON;
 
 extern const char str_md5[] = "md5";
 static CItemStrconv<str_md5> ANON;
+
+extern const char str_left[] = "left";
+static CItemStrconv<str_left> ANON;
 
 extern const char str_regexp[] = "regexp";
 static CItemStrconv<str_regexp> ANON;
