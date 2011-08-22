@@ -556,9 +556,9 @@ throw (CryptDBError)
                     fieldName) == tm->fieldMetaMap.end(),
                     "field %s already exists in table " +  fieldName + " " +
                     tableName);
-        }
 
-        tm->fieldNames.push_back(fieldName);
+            tm->fieldNames.push_back(fieldName);
+        }
 
         FieldMetadata * fm;
 
@@ -567,8 +567,9 @@ throw (CryptDBError)
         } else {
             fm = new FieldMetadata();
             tm->fieldMetaMap[fieldName] =  fm;
+            fm->fieldName = fieldName;
         }
-        fm->fieldName = fieldName;
+
         wordsIt++;
 
         LOG(edb_v) << "fieldname " << fieldName;
@@ -2576,7 +2577,7 @@ EDBProxy::processValsToInsert(string field, string table, uint64_t salt,
         null = true;
     }
 
-    if (DECRYPTFIRST) {
+   /* if (DECRYPTFIRST) {
         string fullname = fullName(field, table);
         fieldType type = fm->type;
         string anonTableName = tableMetaMap[table]->anonTableName;
@@ -2597,7 +2598,7 @@ EDBProxy::processValsToInsert(string field, string table, uint64_t salt,
             return marshallBinary(cipher);
         }
     }
-
+*/
     string res =  "";
 
     string fullname = fullName(field, table);
@@ -2778,29 +2779,35 @@ throw (CryptDBError)
         // increment value
         noFieldsGiven = fields.size();
 
+        cerr << "fieldNames are " << toString(tm->fieldNames, angleBrackets) << "\n";
         //check if we need to add any principal or encrypted field
         for (addit = tm->fieldNames.begin(); addit!=tm->fieldNames.end();
              addit++) {
             if (fieldsIncluded.find(*addit) == fieldsIncluded.end()) {
                 if (tm->fieldMetaMap[*addit]->isEncrypted)  {
-                    encFieldsToAdd.push_back(*addit);
-                } else {
-                    if (mp) {
 
+                    encFieldsToAdd.push_back(*addit);
+                    LOG(edb) << "encfield to add " << *addit;
+
+                } else {
+
+                    if (mp) {
                         if (mp->isPrincipal(fullName(*addit, table))) {
                             LOG(edb_v) << "add to princs " << *addit;
                             princsToAdd.push_back(*addit);
                         }
                     }
-                }
 
+                }
             }
         }
 
         //add fields names from encFieldsToAdd
         for (addit = encFieldsToAdd.begin(); addit != encFieldsToAdd.end();
              addit++) {
-            resultQuery += ", " + processInsert(*addit, table, tm);
+            string addToQuery = processInsert(*addit, table, tm);
+            LOG(edb) << " encfield " << *addit << " adds to query " << addToQuery;
+            resultQuery += ", " + addToQuery;
             fields.push_back(*addit);
         }
 

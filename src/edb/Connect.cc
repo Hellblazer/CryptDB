@@ -48,6 +48,7 @@ Connect::execute(const string &query, DBResult * & res)
 #if MYSQL_S
     if (mysql_query(conn, query.c_str())) {
         LOG(warn) << "mysql_query: " << mysql_error(conn);
+        LOG(warn) << "on query: " << query;
         res = 0;
         return false;
     } else {

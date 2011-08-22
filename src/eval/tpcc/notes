@@ -1,12 +1,20 @@
+A bunch of useful command lines
+-------------------------------
+
 To make proxy log plain queries from benchmark: 
 sudo killall mysql-proxy; pushd ../eval/bench/run ; ../../../edb/tests/test -v all bench ; popd 
 
 mysql -u root -pletmein -e "drop database cryptdbtest; create database cryptdbtest; drop database cryptdbtest_control; create database cryptdbtest_control"
 
+
 To translate inserts:
 ../../edb/tests/test trace encrypt_queries sqlTableCreates emptyindex querypatterns_bench bench_plain_insert_w1 pieces/bench_enc_insert_w1_ 1199076 200
 
 /usr/bin/perl -p -i -e "s/INSERT/;\nINSERT/g" bench_plain_insert_w1
+
+To train from the shell (./tests/test shell)
+train 1 ../eval/tpcc/sqlTableCreates ../eval/tpcc/querypatterns_bench 1
+mysql -u root -pletmein -e "DROP DATABASE cryptdbtest; CREATE DATABASE cryptdbtest"
 
 To run a benchmark:
 java -cp  ../build/classes:../lib/edb-jdbc14-8_0_3_14.jar:../lib/ganymed-ssh2-build250.jar:../lib/hsqldb.jar:../lib/mysql-connector-java-5.1.10-bin.jar:../lib/ojdbc14-10.2.jar:../lib/postgresql-8.0.309.jdbc3.jar -Ddriver=com.mysql.jdbc.Driver -Dconn=jdbc:mysql://localhost:3306/tpccplain -Duser=tpccuser -Dpassword=letmein -Dnwarehouses=1 -Dnterminals=1 client.jTPCCHeadless
@@ -18,7 +26,8 @@ To run tput for any trace file do:
 mysql -u root -pletmein -e "drop database tpccenc"; mysql -u root -pletmein -e "create database tpccenc"; mysql -u root -pletmein tpccenc  < ../dumps/new_dump_enc_w1
 mysql -u root -pletmein -e "drop database tpccplain"; mysql -u root -pletmein -e "create database tpccplain"; mysql -u root -pletmein tpccplain < ../dumps/new_dump_plain_w1
 
- ../../edb/tests/test -d tpccplain -v all trace eval plain_queries_w1_t10 617407 10 1 1 5000
+ ../../edb/tests/test -d tpccplain -v all trace eval ../dumps/plain_queries_w1_t10 617407 24 1 1 5000
+../../edb/tests/test -d tpccenc -v all trace eval ../dumps/enc_queries_w1_t10 617397 24 1 1 5000
 
 To run transaction tput via benchmark:
  -- need noTerminals <= 10*noWarehouses
@@ -26,3 +35,8 @@ To run transaction tput via benchmark:
 Notes:
 - schema for tpcc was mapped onto integer, text, and timestamp
 - queries were not changed, but all negatives were made positives and all decimals were truncated -- this does not affec the query performance (according to Evan) and also because decisions are made only on integers
+
+
+Temp:
+INSERT INTO oorder  (o_id, o_d_id, o_w_id, o_c_id, o_entry_d, o_ol_cnt, o_all_local) VALUES (3001, 1, 1, 266, '2011-08-20 21:03:43.0', 9, 1);
+INSERT INTO table4  (   salt,  field2DET, field2OPE , field1DET , field0DET , field3DET ,  field7DET , field5DET , field6DET , field4DET, field4DET )  VALUES  ( 3037530489978034327,  2571214586960490240, 12436180341144,  -8359164223234149380,  1673969485184555867,  6943467556210445089,  X'80b75954250962ba7243028a8dc14cf9ebdfaa795a',  6104823525741923438,  -1139009803362435220,  NULL ,  NULL );
