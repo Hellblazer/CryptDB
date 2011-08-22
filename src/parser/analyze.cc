@@ -24,7 +24,7 @@
 #define CONCAT(a, b)    CONCAT2(a, b)
 #define ANON            CONCAT(__anon_id_, __COUNTER__)
 
-static bool debug = true;
+static bool debug = false;
 
 #define CIPHER_TYPES(m)                                                 \
     m(none)     /* no data needed (blind writes) */                     \
@@ -63,12 +63,8 @@ class cipher_type_reason {
       why_t(why_t_arg), why_t_item(why_t_item_arg),
       parent(parent_arg)
     {
-        if (parent) {
-            if (parent->t == cipher_type::none || parent->t == cipher_type::any)
-                soft = true;
-            if (parent->soft)
-                soft = true;
-        }
+        if (parent && parent->soft)
+            soft = true;
     }
 
     cipher_type_reason(cipher_type t_arg,
@@ -821,7 +817,12 @@ process_table_list(List<TABLE_LIST> *tll)
 
         if (t->derived) {
             st_select_lex_unit *u = t->derived;
-            process_select_lex(u->first_select(), cipher_type_reason(cipher_type::any, "sub-select", 0, 0));
+            /*
+             * Not quite right, in terms of softness:
+             * should really come from the items that eventually
+             * reference columns in this derived table.
+             */
+            process_select_lex(u->first_select(), cipher_type_reason(cipher_type::any, "sub-select", 0, 0, false));
         }
     }
 }
@@ -1015,7 +1016,7 @@ query_analyze(const std::string &db, const std::string &q)
                        cipher_type_reason(
                            lex->sql_command == SQLCOM_SELECT ? cipher_type::any
                                                              : cipher_type::none,
-                           "select", 0, 0));
+                           "select", 0, 0, true));
 
     if (lex->sql_command == SQLCOM_UPDATE) {
         auto item_it = List_iterator<Item>(lex->value_list);
@@ -1024,7 +1025,7 @@ query_analyze(const std::string &db, const std::string &q)
             if (!item)
                 break;
 
-            analyze(item, cipher_type_reason(cipher_type::any, "update", item, 0));
+            analyze(item, cipher_type_reason(cipher_type::any, "update", item, 0, false));
         }
     }
 }
