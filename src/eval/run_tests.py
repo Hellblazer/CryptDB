@@ -5,9 +5,9 @@ import time
 cookie_file = "cookie"
 output_file = "a.html"
 username = "admin"
-ip = "127.0.0.1"
+ip = "localhost"
 flags = ' -q '
-VERBOSE = False
+VERBOSE = True
 WGET_VERBOSE = False
 time_ls = []
 
@@ -60,7 +60,7 @@ def main(arg):
         print "ERROR: could not login\n\tdoes this user have the password letmein?"
         return -1
     for i in range(0,repeat):
-        time_ls.append(time2-time1)
+        #time_ls.append(time2-time1)
         if readsfirst:
             for j in range(0,read_m):
                 if VERBOSE: print "reading message!"
@@ -127,7 +127,7 @@ def read_forum():
     os.system(index)
     forum = "wget"+flags+"--load-cookie="+cookie_file+" --save-cookies="+cookie_file+" \'http://"+ip+"/phpBB3/viewforum.php?f=2\' -O "+output_file
     os.system(forum)
-    topic = "wget"+flags+"--load-cookie="+cookie_file+" --save-cookies="+cookie_file+" \'http://"+ip+"/phpBB3/viewtopic.php?f=2&t=1&start=1\' -O "+output_file
+    topic = "wget"+flags+"--load-cookie="+cookie_file+" --save-cookies="+cookie_file+" \'http://"+ip+"/phpBB3/viewtopic.php?f=2&t=1\' -O "+output_file
     os.system(topic)
     return
 
@@ -151,11 +151,10 @@ def write_post():
     post_form = "wget"+flags+"--load-cookie="+cookie_file+" --save-cookies="+cookie_file+" \'http://"+ip+"/phpBB3/posting.php?mode=reply&f=2&t=1\' -O "+output_file
     os.system(post_form)
     (form_token,creation_time,last_click) = parse_tokens(output_file)
-    time.sleep(1)
     post = "wget"+flags+"--keep-session-cookies --load-cookie="+cookie_file+" --save-cookies="+cookie_file+" --post-data=\'icon=30&subject=test&addbbcode20=100&message=This is a test post which contains multiple sentences.  They are not, however, very interesting sentences.&topic_cur_post_id=0&lastclick="+last_click+"&post=\"Submit\"&creation_time="+creation_time+"&form_token="+form_token+"\' \'http://"+ip+"/phpBB3/posting.php?mode=reply&f=2&t=1&sid="+sid+"\' -O "+output_file
     os.system(post)
     time2 = time.time()
-    if VERBOSE: print(time2-time1-1)
+    if VERBOSE: print(time2-time1)
     #time_ls.append(time2-time1-1)
     return
 
@@ -185,17 +184,15 @@ def write_message():
     message_form = "wget"+flags+"--load-cookie="+cookie_file+" --save-cookies="+cookie_file+" \'http://"+ip+"/phpBB3/ucp.php?i=175\' -O "+output_file
     os.system(message_form)
     (form_token,creation_time,last_click) = parse_tokens(output_file)
-    time.sleep(2)
     sid = parse_sid(cookie_file)
     message_write = "wget"+flags+"--keep-session-cookies --load-cookie="+cookie_file+" --save-cookies="+cookie_file+" --post-data=\'username_list=admin&icon=0&subject=hello world&addbbcode20=100&message=Hello, admin!  \nI bet you are getting a lot of this exact same message.  :-P&lastclick="+last_click+"&status_switch=0&post=Submit&creation_time="+creation_time+"&form_token="+form_token+"\' \'http://"+ip+"/phpBB3/ucp.php?i=175&sid="+sid+"\' -O "+output_file
     os.system(message_write)
     (form_token,creation_time,last_click) = parse_tokens(output_file)
-    time.sleep(2)
     sid = parse_sid(cookie_file)
     message_send = "wget"+flags+"--keep-session-cookies --load-cookie="+cookie_file+" --save-cookies="+cookie_file+" --post-data=\'username_list=&icon=0&subject=hello world&addbbcode20=100&message=Hello, admin!  \nI bet you are getting a lot of this exact same message.  :-P&address_list%5Bu%5D%5B2%5D=to&lastclick="+last_click+"&status_switch=0&post=Submit&creation_time="+creation_time+"&form_token="+form_token+"\' \'http://"+ip+"/phpBB3/ucp.php?i=175&sid="+sid+"\' -O "+output_file
     os.system(message_send)
     time2 = time.time()
-    if VERBOSE: print time2-time1-4
+    if VERBOSE: print time2-time1
     #time_ls.append(time2-time1-4)
     return
 
