@@ -960,6 +960,8 @@ query_analyze(const std::string &db, const std::string &q)
                            &lex->unit))
                 mysql_thrower() << "JOIN::prepare";
         } else {
+            thrower() << "skip unions for now (union=" << lex->select_lex.master_unit()->is_union()
+                      << ", fake_select_lex=" << lex->select_lex.master_unit()->fake_select_lex << ")";
             if (lex->unit.prepare(t, 0, 0))
                 mysql_thrower() << "UNIT::prepare";
 
