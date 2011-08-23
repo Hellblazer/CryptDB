@@ -629,6 +629,71 @@ latency_Paillier(unsigned int notests, unsigned int notestsagg) {
 }
 
 
+static void
+latency_OPE(unsigned int notests) {
+
+    uint32_t data = 4389839;
+
+    CryptoManager * cm = new CryptoManager("secret key maste");
+
+    uint64_t enc;
+    //eval encryption
+
+    uint64_t prevent_compiler_optimiz = 0;
+
+    OPE * opeKey = cm->get_key_OPE("field0");
+
+    Timer t;
+
+    for (unsigned int i = 0; i < notests ; i++) {
+        enc = cm->encrypt_OPE(data, opeKey);
+        prevent_compiler_optimiz += enc % 10;
+    }
+
+    double timeEnc = t.lap_ms() / notests;
+
+    if (prevent_compiler_optimiz % 297973 == 0) {
+        cerr << "lucky case\n";
+    }
+    //eval decryption
+
+    uint32_t dec;
+    t.lap();
+
+    for (unsigned int i = 0; i < notests ; i++) {
+            dec = cm->decrypt_OPE(enc, opeKey);
+            prevent_compiler_optimiz += dec % 10;
+    }
+
+    double timeDec = t.lap_ms() / notests;
+
+    //sanity check
+    assert_s(data == dec, "something went wrong");
+
+    //evaluate aggregation
+
+   uint64_t a = 3289234;
+
+    t.lap();
+
+
+    for (unsigned int i = 0; i < notests ; i++) {
+
+        prevent_compiler_optimiz += (a>enc);
+    }
+
+    double timeAdd = t.lap_ms()/ notests;
+
+    if (prevent_compiler_optimiz % 297973 == 0) {
+        cerr << "lucky case\n";
+    }
+
+    cerr << "OPE encrypt " << timeEnc << "ms OPE decrypt " << timeDec << "ms OPE compare "
+            << timeAdd << "ms \n";
+
+}
+
+
 
 static void
 latency() {
@@ -636,7 +701,7 @@ latency() {
     latency_join(3000);
     latency_search(10000);
     latency_Paillier(100, 10000);
-
+    latency_OPE(100);
 }
 
 void
