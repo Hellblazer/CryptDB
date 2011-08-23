@@ -941,21 +941,35 @@ query_analyze(const std::string &db, const std::string &q)
         mysql_thrower() << "open_normal_and_derived_tables";
 
     if (lex->sql_command == SQLCOM_SELECT) {
-        JOIN *j = new JOIN(t, lex->select_lex.item_list,
-                           lex->select_lex.options, 0);
-        if (j->prepare(&lex->select_lex.ref_pointer_array,
-                       lex->select_lex.table_list.first,
-                       lex->select_lex.with_wild,
-                       lex->select_lex.where,
-                       lex->select_lex.order_list.elements
-                         + lex->select_lex.group_list.elements,
-                       lex->select_lex.order_list.first,
-                       lex->select_lex.group_list.first,
-                       lex->select_lex.having,
-                       lex->proc_list.first,
-                       &lex->select_lex,
-                       &lex->unit))
-            mysql_thrower() << "JOIN::prepare";
+        if (!lex->select_lex.master_unit()->is_union() &&
+            !lex->select_lex.master_unit()->fake_select_lex)
+        {
+            JOIN *j = new JOIN(t, lex->select_lex.item_list,
+                               lex->select_lex.options, 0);
+            if (j->prepare(&lex->select_lex.ref_pointer_array,
+                           lex->select_lex.table_list.first,
+                           lex->select_lex.with_wild,
+                           lex->select_lex.where,
+                           lex->select_lex.order_list.elements
+                             + lex->select_lex.group_list.elements,
+                           lex->select_lex.order_list.first,
+                           lex->select_lex.group_list.first,
+                           lex->select_lex.having,
+                           lex->proc_list.first,
+                           &lex->select_lex,
+                           &lex->unit))
+                mysql_thrower() << "JOIN::prepare";
+        } else {
+            if (lex->unit.prepare(t, 0, 0))
+                mysql_thrower() << "UNIT::prepare";
+
+            /* XXX unit->cleanup()? */
+
+            /* XXX
+             * for unions, it is insufficient to just print lex->select_lex,
+             * because there are other select_lex's in the unit..
+             */
+        }
     } else if (lex->sql_command == SQLCOM_DELETE) {
         if (mysql_prepare_delete(t, lex->query_tables, &lex->select_lex.where))
             mysql_thrower() << "mysql_prepare_delete";
