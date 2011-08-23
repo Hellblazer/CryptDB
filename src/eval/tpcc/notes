@@ -12,6 +12,10 @@ To translate inserts:
 
 /usr/bin/perl -p -i -e "s/INSERT/;\nINSERT/g" bench_plain_insert_w1
 
+To translate plain queries:
+../../edb/tests/test trace encrypt_queries sqlTableCreates emptyindex querypatterns_bench ../dumps/plain_queries_w1_t10 pieces/enc_queries_w1_  617327 200
+
+
 To train from the shell (./tests/test shell)
 train 1 ../eval/tpcc/sqlTableCreates ../eval/tpcc/querypatterns_bench 1
 mysql -u root -pletmein -e "DROP DATABASE cryptdbtest; CREATE DATABASE cryptdbtest"
@@ -26,8 +30,10 @@ To run tput for any trace file do:
 mysql -u root -pletmein -e "drop database tpccenc"; mysql -u root -pletmein -e "create database tpccenc"; mysql -u root -pletmein tpccenc  < ../dumps/new_dump_enc_w1
 mysql -u root -pletmein -e "drop database tpccplain"; mysql -u root -pletmein -e "create database tpccplain"; mysql -u root -pletmein tpccplain < ../dumps/new_dump_plain_w1
 
- ../../edb/tests/test -d tpccplain -v all trace eval ../dumps/plain_queries_w1_t10 617407 24 1 1 5000
-../../edb/tests/test -d tpccenc -v all trace eval ../dumps/enc_queries_w1_t10 617397 24 1 1 5000
+ ../../edb/tests/test -d tpccplain -v all trace eval ../dumps/plain_queries_w1_t10_notran 594805 32 1 1 5000
+../../edb/tests/test -d tpccenc -v all trace eval ../dumps/enc_queries_w1_t10_notran 594805 32 1 1 5000
+
+Note: when repeating trace, make sure to use: SET GLOBAL query_cache_size = 0; SELECT @@query_cache_size;
 
 To run transaction tput via benchmark:
  -- need noTerminals <= 10*noWarehouses
@@ -40,3 +46,6 @@ Notes:
 Temp:
 INSERT INTO oorder  (o_id, o_d_id, o_w_id, o_c_id, o_entry_d, o_ol_cnt, o_all_local) VALUES (3001, 1, 1, 266, '2011-08-20 21:03:43.0', 9, 1);
 INSERT INTO table4  (   salt,  field2DET, field2OPE , field1DET , field0DET , field3DET ,  field7DET , field5DET , field6DET , field4DET, field4DET )  VALUES  ( 3037530489978034327,  2571214586960490240, 12436180341144,  -8359164223234149380,  1673969485184555867,  6943467556210445089,  X'80b75954250962ba7243028a8dc14cf9ebdfaa795a',  6104823525741923438,  -1139009803362435220,  NULL ,  NULL );
+train 1 ../eval/tpcc/sqlTableCreates ../eval/tpcc/querypatterns_bench 1
+
+CREATE TABLE phpbb_attachments ( attach_id mediumint(8) UNSIGNED NOT NULL auto_increment, post_msg_id encfor attach_id mediumint(8) UNSIGNED DEFAULT '0' NOT NULL, topic_id mediumint(8) UNSIGNED DEFAULT '0' NOT NULL, in_message tinyint(1) UNSIGNED DEFAULT '0' NOT NULL, poster_id mediumint(8) UNSIGNED DEFAULT '0' NOT NULL, attach_comment encfor attach_id text NOT NULL, PRIMARY KEY (attach_id), KEY post_msg_id (post_msg_id), KEY topic_id (topic_id)) CHARACTER SET `utf8` COLLATE `utf8_bin`;
