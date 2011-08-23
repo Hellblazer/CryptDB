@@ -99,9 +99,6 @@ class EDBProxy {
     unsigned int totalTables;
     unsigned int totalIndexes;
 
-    //hack, remove
-    bool REWRITE_QUERIES;
-
     //**************** HELPER FUNCTIONS *******************************/
 
     //returns true if this query has to do with cryptdb

@@ -183,19 +183,6 @@ EDBProxy::EDBProxy(string server, string user, string psswd, string dbname,
     assert_s (!(multiPrinc && defaultEnc), "cannot have fields encrypted by default in multiprinc because we need to know encfor princ");
     this->allDefaultEncrypted = defaultEnc;
 
-    //hack, remove
-    REWRITE_QUERIES = true;
-    char * ev = getenv("REWRITE_QUERIES");
-    if (ev) {
-        string executeQueries = string(ev);
-        if (executeQueries == "false") {
-            LOG(wrapper) << "not executing queries";
-            REWRITE_QUERIES = false;
-        } else {
-            LOG(wrapper) << "executing queries";
-        }
-    }
-
 }
 
 void
@@ -3287,6 +3274,8 @@ throw (CryptDBError)
 
     //It is secure
 
+    cerr << "query " << query << "\n";
+
     command com = getCommand(query);
 
     LOG(edb) << "-------------------";
@@ -3299,10 +3288,6 @@ throw (CryptDBError)
         list<string> res;
         res.push_back(query);
         return res;
-    }
-
-    if (!REWRITE_QUERIES && (com != cmd::TRAIN)) {
-        return list<string>();
     }
 
     //dispatch query to the appropriate rewriterEncryptor
@@ -3611,6 +3596,7 @@ EDBProxy::rewriteEncryptTrain(const string & query) {
     //parse query
     list<string> words = getSQLWords(query);
 
+    cerr << "training\n";
     assert_s(words.size() == 5, "invalid number of inputs to train, expecting: TRAIN are_all_fields_encrypted createsfile queryfile execute?");
 
     list<string>::iterator it = words.begin();
