@@ -25,7 +25,7 @@ user_group_header4 = "INSERT INTO phpbb_user_group VALUES (5, "
 
 user_group_footer = ", 0, 0);\n"
 
-active_users_header = "INSERT INTO activeusers VALUES (";
+active_users_header = "INSERT INTO pwdcryptdb__phpbb_users (username_clean, psswd) VALUES (";
 active_users_footer = ", 'letmein');\n";
 
 

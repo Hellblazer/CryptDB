@@ -79,7 +79,7 @@ function compose_pm($id, $mode, $action, $user_folders = array())
 	$current_time = time();
 
 	// Was cancel pressed? If so then redirect to the appropriate page
-	if ($cancel || ($current_time - $lastclick < 2 && $submit))
+	if ($cancel) // || ($current_time - $lastclick < 2 && $submit))
 	{
 		if ($msg_id)
 		{
