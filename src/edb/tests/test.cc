@@ -4173,13 +4173,13 @@ testBench(const TestConfig & tc, int argc, char ** argv)
 {
     setenv("EDBDIR", tc.edbdir.c_str(), 1);
     setenv("CRYPTDB_LOG", cryptdb_logger::getConf().c_str(), 1);
-    setenv("PLAIN_MODE", "true", 1);
+    //setenv("PLAIN_MODE", "true", 1);
 
     //configure proxy
-    //setenv("TRAIN_QUERY", "train 1 /u/raluca/cryptdb/src/eval/offtrace/sqlTableCreates /u/raluca/cryptdb/src/eval/offtrace/querypatterns_bench", 1);
+    setenv("TRAIN_QUERY", "train 1 /u/raluca/cryptdb/src/eval/offtrace/sqlTableCreates /u/raluca/cryptdb/src/eval/offtrace/querypatterns_bench 0", 1);
 
-    setenv("LOG_PLAIN_QUERIES", (tc.edbdir+"/../eval/tpcc/bench_plain_queries").c_str(), 1);
-    setenv("REWRITE_QUERIES", "false", 1);
+    //setenv("LOG_PLAIN_QUERIES", (tc.edbdir+"/../eval/tpcc/bench_plain_queries").c_str(), 1);
+    //setenv("DO_CRYPT", "true", 1);
     //static bool LOG_ENCRYPT_QUERIES = false;
 
     //static bool EXECUTE_QUERIES = true;
@@ -4233,8 +4233,8 @@ testBench(const TestConfig & tc, int argc, char ** argv)
 
    assert_s(system("java -cp  ../build/classes:../lib/edb-jdbc14-8_0_3_14.jar:../lib/ganymed-ssh2-build250.jar:"
            "../lib/hsqldb.jar:../lib/mysql-connector-java-5.1.10-bin.jar:../lib/ojdbc14-10.2.jar:../lib/postgresql-8.0.309.jdbc3.jar -Ddriver=com.mysql.jdbc.Driver "
-           "-Dconn=jdbc:mysql://localhost:5143/tpccplain "
-           "-Duser=tpccuser -Dpassword=letmein -Dnwarehouses=1 -Dnterminals=10 -DtimeLimit=10 client.jTPCCHeadless")>=0, "problem running benchmark");
+           "-Dconn=jdbc:mysql://localhost:5143/tpccenc "
+           "-Duser=tpccuser -Dpassword=letmein -Dnwarehouses=4 -Dnterminals=1 -DtimeLimit=10 client.jTPCCHeadless")>=0, "problem running benchmark");
 
 
 

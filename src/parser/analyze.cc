@@ -25,6 +25,7 @@
 #define ANON            CONCAT(__anon_id_, __COUNTER__)
 
 static bool debug = false;
+static bool just_strings = false;
 
 #define CIPHER_TYPES(m)                                                 \
     m(none)     /* no data needed (blind writes) */                     \
@@ -233,6 +234,8 @@ static void process_select_lex(st_select_lex *select_lex, const cipher_type_reas
 
 static class ANON : public CItemSubtypeIT<Item_field, Item::Type::FIELD_ITEM> {
     void do_analyze(Item_field *i, const cipher_type_reason &tr) const {
+        if (just_strings && i->result_type() != STRING_RESULT)
+            return;
         cout << "FIELD " << *i << " CIPHER " << tr << endl;
     }
 } ANON;
@@ -938,21 +941,37 @@ query_analyze(const std::string &db, const std::string &q)
         mysql_thrower() << "open_normal_and_derived_tables";
 
     if (lex->sql_command == SQLCOM_SELECT) {
-        JOIN *j = new JOIN(t, lex->select_lex.item_list,
-                           lex->select_lex.options, 0);
-        if (j->prepare(&lex->select_lex.ref_pointer_array,
-                       lex->select_lex.table_list.first,
-                       lex->select_lex.with_wild,
-                       lex->select_lex.where,
-                       lex->select_lex.order_list.elements
-                         + lex->select_lex.group_list.elements,
-                       lex->select_lex.order_list.first,
-                       lex->select_lex.group_list.first,
-                       lex->select_lex.having,
-                       lex->proc_list.first,
-                       &lex->select_lex,
-                       &lex->unit))
-            mysql_thrower() << "JOIN::prepare";
+        if (!lex->select_lex.master_unit()->is_union() &&
+            !lex->select_lex.master_unit()->fake_select_lex)
+        {
+            JOIN *j = new JOIN(t, lex->select_lex.item_list,
+                               lex->select_lex.options, 0);
+            if (j->prepare(&lex->select_lex.ref_pointer_array,
+                           lex->select_lex.table_list.first,
+                           lex->select_lex.with_wild,
+                           lex->select_lex.where,
+                           lex->select_lex.order_list.elements
+                             + lex->select_lex.group_list.elements,
+                           lex->select_lex.order_list.first,
+                           lex->select_lex.group_list.first,
+                           lex->select_lex.having,
+                           lex->proc_list.first,
+                           &lex->select_lex,
+                           &lex->unit))
+                mysql_thrower() << "JOIN::prepare";
+        } else {
+            thrower() << "skip unions for now (union=" << lex->select_lex.master_unit()->is_union()
+                      << ", fake_select_lex=" << lex->select_lex.master_unit()->fake_select_lex << ")";
+            if (lex->unit.prepare(t, 0, 0))
+                mysql_thrower() << "UNIT::prepare";
+
+            /* XXX unit->cleanup()? */
+
+            /* XXX
+             * for unions, it is insufficient to just print lex->select_lex,
+             * because there are other select_lex's in the unit..
+             */
+        }
     } else if (lex->sql_command == SQLCOM_DELETE) {
         if (mysql_prepare_delete(t, lex->query_tables, &lex->select_lex.where))
             mysql_thrower() << "mysql_prepare_delete";

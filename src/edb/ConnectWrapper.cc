@@ -14,12 +14,15 @@ class WrapperState {
 
 static EDBProxy * cl = NULL;
 
-static string TRAIN_QUERY ="";
+static bool DO_CRYPT = true;
 
-static bool PLAIN_MODE = false;
+static bool EXECUTE_QUERIES = true;
+
+static string TRAIN_QUERY ="";
 
 static bool LOG_PLAIN_QUERIES = false;
 static string PLAIN_BASELOG = "";
+
 
 static int counter = 0;
 
@@ -75,22 +78,43 @@ connect(lua_State *L)
             cl = new EDBProxy(server, user, psswd, dbname, port);
         }
 
+        uint64_t mkey = 113341234;  // XXX do not change as it's used for tpcc exps
+        cl->setMasterKey(BytesFromInt(mkey, AES_KEY_BYTES));
+
         //may need to do training
         char * ev = getenv("TRAIN_QUERY");
         if (ev) {
             string trainQuery = ev;
-            LOG(wrapper) << "proxy trains using " << ev;
+            LOG(wrapper) << "proxy trains using " << trainQuery;
             if (trainQuery != "") {
-                cl->execute(trainQuery);
+                cerr << "supposed to rewrite\n";
+                cerr << "train query is " << trainQuery << "\n";
+                cl->rewriteEncryptQuery(trainQuery);
+            } else {
+                cerr << "empty training!\n";
             }
         }
 
-        //may want to run in plain mode
-        ev = getenv("PLAIN_MODE");
+        ev = getenv("DO_CRYPT");
         if (ev) {
-            if (string(ev) == "true") {
-                PLAIN_MODE = true;
-                LOG(wrapper) << "proxy runs in plain mode, just an intermediary\n ";
+            string useCryptDB = string(ev);
+            if (useCryptDB == "false") {
+                LOG(wrapper) << "do not crypt queries/results";
+                DO_CRYPT = false;
+            } else {
+                LOG(wrapper) << "crypt queries/result";
+            }
+        }
+
+
+        ev = getenv("EXECUTE_QUERIES");
+        if (ev) {
+            string execQueries = string(ev);
+            if (execQueries == "false") {
+                LOG(wrapper) << "do not execute queries";
+                EXECUTE_QUERIES = false;
+            } else {
+                LOG(wrapper) << "execute queries";
             }
         }
 
@@ -112,9 +136,6 @@ connect(lua_State *L)
                 LOG_PLAIN_QUERIES = false;
             }
         }
-
-        uint64_t mkey = 113341234;  // XXX do not change as it's used for tpcc exps
-        cl->setMasterKey(BytesFromInt(mkey, AES_KEY_BYTES));
 
 
 
@@ -159,15 +180,18 @@ rewrite(lua_State *L)
     string query = xlua_tolstring(L, 2);
 
     list<string> new_queries;
-    if (PLAIN_MODE) {
-        new_queries.push_back(query);
-    } else {
-        try {
-            new_queries = cl->rewriteEncryptQuery(query);
-        } catch (CryptDBError &e) {
-            LOG(wrapper) << "cannot rewrite " << query << ": " << e.msg;
-            lua_pushnil(L);
-            return 1;
+
+    if (EXECUTE_QUERIES) {
+        if (!DO_CRYPT) {
+            new_queries.push_back(query);
+        } else {
+            try {
+                new_queries = cl->rewriteEncryptQuery(query);
+            } catch (CryptDBError &e) {
+                LOG(wrapper) << "cannot rewrite " << query << ": " << e.msg;
+                lua_pushnil(L);
+                return 1;
+            }
         }
     }
 
@@ -243,7 +267,7 @@ decrypt(lua_State *L)
     }
 
     ResType rd;
-    if (PLAIN_MODE) {
+    if (!DO_CRYPT) {
         rd = r;
     } else {
     try {
