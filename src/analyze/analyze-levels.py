@@ -36,3 +36,4 @@ for cs in field_ciphers.itervalues():
 for cs in sorted(cipherset_count, key=lambda cs: cipherset_count[cs]):
     print '%9d' % cipherset_count[cs], cs
 
+print '%9d' % sum([cipherset_count[cs] for cs in cipherset_count]), 'total'
