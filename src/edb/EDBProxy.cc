@@ -1108,6 +1108,14 @@ ascdesc:
 
     }
 
+    if ((wordsIt != words.end() && (equalsIgnoreCase(*wordsIt, "for")))) {
+          resultQuery = resultQuery + " for ";
+          wordsIt++;
+          assert_s(equalsIgnoreCase(*wordsIt, "update"), "expected that 'for' be followed by 'update'");
+          resultQuery = resultQuery + *wordsIt + " ";
+          wordsIt++;
+      }
+
     if ((wordsIt != words.end() && (equalsIgnoreCase(*wordsIt, "limit")))) {
         resultQuery = resultQuery + " limit ";
         wordsIt++;
