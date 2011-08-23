@@ -3,12 +3,16 @@ zcat ./data/sql.mit.edu-schemata-201108111643.sql.gz \
     | ../parser/load-schema ./schema-db
 
 mkdir ./schema-clone
-for D in a b c d e f g h i j k l m n o p q r s t u v w x y z; do
+for D in `seq 0 25`; do
     mkdir ./schema-clone/schema-db.$D
-    cp ./schema-db/ibdata* ./schema-db/ib_logfile* ./schema-clone/schema-db.$D
+    cp ./schema-db/ibdata* ./schema-db/ib_logfile* ./schema-clone/schema-db.$D &
+done
+wait
+
+for D in `seq 0 25`; do
     for DB in $(cd schema-db && find . -type d | grep -v ^.$); do
         ln -s $(pwd)/schema-db/$DB ./schema-clone/schema-db.$D/$DB
-    done
+    done &
 done
 wait
 
@@ -27,11 +31,18 @@ zcat ./tagged/tagq.*.gz \
     | ./zsplit -l 500000 - ./tagged-split/tsplit.
 
 rm -r ./parsed ; mkdir ./parsed
+DBCOUNT=0
 for D in a b c d e f g h i j k l m n o p q r s t u v w x y z; do
     zcat ./tagged-split/tsplit.?$D.gz \
-        | ../parser/analyze ./schema-clone/schema-db.$D /dev/fd/0 \
+        | ../parser/analyze ./schema-clone/schema-db.$DBCOUNT /dev/fd/0 \
         | gzip \
         > parsed/pq.$D.gz &
+    DBCOUNT=$(($DBCOUNT+1))
+    ## On a smaller machine, only a few schema-clone DBs fit in memory at once
+    if [ "$DBCOUNT" = "9" ]; then
+        DBCOUNT=0
+        wait
+    fi
 done
 wait
 
