@@ -2,6 +2,16 @@ mkdir ./schema-db
 zcat ./data/sql.mit.edu-schemata-201108111643.sql.gz \
     | ../parser/load-schema ./schema-db
 
+mkdir ./schema-clone
+for D in a b c d e f g h i j k l m n o p q r s t u v w x y z; do
+    mkdir ./schema-clone/schema-db.$D
+    cp ./schema-db/ibdata* ./schema-db/ib_logfile* ./schema-clone/schema-db.$D
+    for DB in $(cd schema-db && find . -type d | grep -v ^.$); do
+        ln -s $(pwd)/schema-db/$DB ./schema-clone/schema-db.$D/$DB
+    done
+done
+wait
+
 mkdir ./tagged
 for D in ./data/out.*.log.gz; do
     N=$(echo $D | cut -d/ -f3 | cut -d. -f2,3)
@@ -16,17 +26,7 @@ mkdir ./tagged-split
 zcat ./tagged/tagq.*.gz \
     | ./zsplit -l 500000 - ./tagged-split/tsplit.
 
-mkdir ./schema-clone
-for D in a b c d e f g h i j k l m n o p q r s t u v w x y z; do
-    mkdir ./schema-clone/schema-db.$D
-    cp ./schema-db/ibdata* ./schema-db/ib_logfile* ./schema-clone/schema-db.$D
-    for DB in $(cd schema-db && find . -type d | grep -v ^.$); do
-        ln -s $(pwd)/schema-db/$DB ./schema-clone/schema-db.$D/$DB
-    done
-done
-wait
-
-mkdir ./parsed
+rm -r ./parsed ; mkdir ./parsed
 for D in a b c d e f g h i j k l m n o p q r s t u v w x y z; do
     zcat ./tagged-split/tsplit.?$D.gz \
         | ../parser/analyze ./schema-clone/schema-db.$D /dev/fd/0 \
@@ -35,7 +35,17 @@ for D in a b c d e f g h i j k l m n o p q r s t u v w x y z; do
 done
 wait
 
-zcat parsed/pq.*.gz | awk '/FIELD/ {print $1, $2, $3, $4;}' | ./analyze-levels.py 
+rm -r ./analyze-buf ; mkdir ./analyze-buf
+for D in ./parsed/pq.*.gz; do
+    N=$(echo $D | cut -d/ -f3 | cut -d. -f2)
+    zcat ./parsed/pq.$N.gz \
+        | ./buffer-levels.py \
+        | gzip \
+        > ./analyze-buf/buf.$N.gz &
+done
+wait
+
+zcat analyze-buf/buf.*.gz | ./analyze-levels.py
 
 ### non-parallel plan below ###
 
