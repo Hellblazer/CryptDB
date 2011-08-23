@@ -25,6 +25,7 @@
 #define ANON            CONCAT(__anon_id_, __COUNTER__)
 
 static bool debug = false;
+static bool just_strings = false;
 
 #define CIPHER_TYPES(m)                                                 \
     m(none)     /* no data needed (blind writes) */                     \
@@ -233,6 +234,8 @@ static void process_select_lex(st_select_lex *select_lex, const cipher_type_reas
 
 static class ANON : public CItemSubtypeIT<Item_field, Item::Type::FIELD_ITEM> {
     void do_analyze(Item_field *i, const cipher_type_reason &tr) const {
+        if (just_strings && i->result_type() != STRING_RESULT)
+            return;
         cout << "FIELD " << *i << " CIPHER " << tr << endl;
     }
 } ANON;
