@@ -15,7 +15,7 @@ header = "use phpbb; INSERT INTO activeusers VALUES ('admin', 'letmein'); \
 
 insertheader = "INSERT INTO phpbb_users (user_id, username, username_clean, user_password, group_id) VALUES ("
 unamebase = "user"
-uidstart = 5;
+uidstart = 100;
 insertfooter = "'$H$9Y2okYC6esucbYl91NyweDbXP5ys2x.', 5);\n"
 
 user_group_header1 = "INSERT INTO phpbb_user_group VALUES (2, "
@@ -45,7 +45,7 @@ def main(arg):
     
     f = open(filename, 'w')
     
-    f.write("use phpbb;")
+    #f.write("use phpbb;")
     
     for i in range(0, users):
         userid = uidstart + i
@@ -66,16 +66,16 @@ def main(arg):
         query = user_group_header2 + repr(userid) + user_group_footer
         f.write(query)
         
-          # inserts them into the user group table as new users -- mimicking what phpbb would do
+        # inserts them into the user group table as new users -- mimicking what phpbb would do
         query = user_group_header3 + repr(userid) + user_group_footer
         f.write(query)
         
         query = user_group_header4 + repr(userid) + user_group_footer
         f.write(query)
         
-         
-        
     f.close()
+
+    os.system("mysql -u root -pletmein -h 127.0.0.1 -P 3307 cryptdb_phpbb < "+filename)
     
 main(sys.argv)
 
