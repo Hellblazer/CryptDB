@@ -6,7 +6,7 @@ import os
 import time
 
 
-workers = [1]
+workers = [2, 3, 4, 5, 6]
 
 if len(sys.argv) != 5:
     print 'usage: repeatexp plain_queryfile enc_queryfile nolines needsreload?'
