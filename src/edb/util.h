@@ -68,8 +68,8 @@ const unsigned int AES_KEY_BYTES = AES_KEY_SIZE/bitsPerByte;
 const unsigned int MASTER_KEY_SIZE = AES_KEY_SIZE; //master key
 
 const unsigned int OPE_KEY_SIZE = AES_KEY_SIZE;
-const unsigned int OPE_PLAINTEXT_SIZE = 2048;
-const unsigned int OPE_CIPHERTEXT_SIZE = 3072;
+const unsigned int OPE_PLAINTEXT_SIZE = 32;
+const unsigned int OPE_CIPHERTEXT_SIZE = 64;
 
 const unsigned int EncryptedIntSize = 128;
 

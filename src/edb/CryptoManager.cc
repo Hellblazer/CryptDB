@@ -934,9 +934,9 @@ CryptoManager::setMasterKey(const string &masterKeyArg)
  */
 
 OPE *
-CryptoManager::get_key_OPE(const string &key)
+CryptoManager::get_key_OPE(const string &key, const unsigned int & pTextSize, const unsigned int & cTextSize)
 {
-    return new OPE(key, OPE_PLAINTEXT_SIZE, OPE_CIPHERTEXT_SIZE);
+    return new OPE(key, pTextSize, cTextSize);
 }
 
 string
