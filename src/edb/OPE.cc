@@ -18,8 +18,7 @@
 using namespace NTL;
 using namespace std;
 
-//TODO: use AVL tree for optimization and see if it improves the time
-//TODO: sample HGD properly
+//TODO: add back AVL Tree
 // TO OPTIMIZE: to avoid conversion to ZZ and back, implement the math on
 // uchar vectors
 
@@ -103,34 +102,34 @@ class OPEInternals {
     ZZ
     TapeGen(ZZ & lowD, ZZ & highD, ZZ & y, unsigned int desiredNoBits)
     {
+        assert_s(desiredNoBits % bitsPerByte == 0, "desiredNoBits is not a multiple of bitsPerByte");
+
+        unsigned int desiredBytes = desiredNoBits/bitsPerByte;
+
         string lowDBytes = StringFromZZ(lowD);
         string highDBytes = StringFromZZ(highD);
         string yBytes = StringFromZZ(y);
 
         string concat = lowDBytes + highDBytes + yBytes;
+
+        //hash down the inputs
         unsigned char shaDigest[SHA_DIGEST_LENGTH];
         SHA1((const uint8_t *) concat.data(), concat.length(), shaDigest);
 
         unsigned char seed[AES_BLOCK_BYTES];
         AES_encrypt(shaDigest, seed, &key);
 
-        unsigned int desiredBytes = desiredNoBits/bitsPerByte;
-
-        if (AES_BLOCK_BITS >= desiredNoBits) {
-            // cerr << "seed "; myPrint(seed, AES_BLOCK_BITS/bitsPerByte);
-            // cerr << "\n";
-            string seed_s((char *) seed, AES_BLOCK_BYTES);
-            seed_s.resize(desiredBytes, 0);
-            return ZZFromString(seed_s);
+        if (AES_BLOCK_BYTES >= desiredBytes) {
+            return ZZFromBytes(seed, desiredBytes);
         }
-
         //need to generate more randomness using a PRG
-        RAND_seed(seed, AES_BLOCK_BITS/bitsPerByte);
-        unsigned char * buf = new unsigned char[desiredBytes];
-        RAND_pseudo_bytes(buf, desiredBytes);
-        //cerr << "seed " << seed << " buf " << buf << "\n";
+        SetSeed(ZZFromBytes(seed, AES_BLOCK_BYTES));
+
+        return RandomLen_ZZ(desiredNoBits);
+        // cerr << "seed " << stringToByteInts(string((char *)seed, AES_BLOCK_BYTES)) << " buf "
+        //        << stringToByteInts(string((char *)buf, desiredBytes)) << "\n";
         //cerr << " ============================================= \n";
-        return ZZFromBytes(buf, desiredBytes);
+
     }
 
     ZZ
@@ -145,7 +144,7 @@ class OPEInternals {
         myassert(M > 0);
 
         //cerr << "running encrypt helper with D = [" << lowD << ", " << highD
-        // << "] R= " << lowR <<", " << highR << "]\n";
+         //<< "] R= " << lowR <<", " << highR << "]\n";
 
         ZZ coins;
 
@@ -161,8 +160,7 @@ class OPEInternals {
 
         ZZ x = SampleHGD(lowD, highD, lowR, highR, y, coins, OPEPlaintextSize);
 
-        //cerr << "E lD " << lowD << " hD " << highD << " lR " << lowR << " hR
-        // " << highR << " x " << x << " c " << coins << "\n";
+        //cerr << "E lD " << lowD << " hD " << highD << " lR " << lowR << " hR" << highR << " x " << x << " c " << coins << "\n";
         //cerr << "y " << y << "\n";
         if (m <= x) {
             lowD = d+1;
@@ -188,8 +186,7 @@ class OPEInternals {
         ZZ r = lowR - 1;
         ZZ y = r + (N+1)/2;
 
-        //cerr << "running decrypt helper with D = [" << lowD << ", " << highD
-        // << "], R = [" << lowR << ", " << highR << "]\n";
+        //cerr << "running decrypt helper with D = [" << lowD << ", " << highD << "], R = [" << lowR << ", " << highR << "]\n";
 
         myassert(M > 0);
 
@@ -260,6 +257,9 @@ OPE::encrypt(const string &plaintext)
     ZZ m = ZZFromBytes((const uint8_t *) plaintext.data(),
                        iOPE->OPEPlaintextSize/bitsPerByte);
 
+    //cerr << "ZZ to encrypt " << m << "\n";
+    //cerr <<" size in bytes " << iOPE->OPEPlaintextSize/bitsPerByte << "\n";
+
     //cerr  << "TO ENCRYPT: " << m << "\n";
 
     ZZ lowD = to_ZZ(0);
@@ -268,6 +268,9 @@ OPE::encrypt(const string &plaintext)
     ZZ highR = LeftShift(to_ZZ(1), iOPE->OPECiphertextSize) - 1;
 
     ZZ res = iOPE->encryptHelper(lowD, highD, lowR, highR, m);
+
+
+    //cerr << "ZZ encryption is " << res << "\n";
 
     return StringFromZZ(res);
 }
@@ -286,6 +289,7 @@ OPE::encrypt(uint32_t plaintext)
     ZZ highR = LeftShift(to_ZZ(1), iOPE->OPECiphertextSize) - 1;
 
     ZZ res = iOPE->encryptHelper(lowD, highD, lowR, highR, m);
+
     return uint64FromZZ(res);
 }
 
@@ -324,6 +328,8 @@ OPE::decrypt(const string &ciphertext)
     ZZ highR = LeftShift(to_ZZ(1), iOPE->OPECiphertextSize) - 1;
 
     ZZ res = iOPE->decryptHelper(lowD, highD, lowR, highR, c);
+
+    //cerr << "ZZ decryption is " << res << "\n";
 
     return StringFromZZ(res);
 }

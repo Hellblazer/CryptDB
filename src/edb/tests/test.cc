@@ -4439,10 +4439,7 @@ help(const TestConfig &tc, int ac, char **av)
 int
 main(int argc, char ** argv)
 {
-    cerr << "received ";
-    for (int i = 0; i < argc; i++) {
-        cerr << argv[i] << "\n";
-    }
+
 	TestConfig tc;
 	int c;
 

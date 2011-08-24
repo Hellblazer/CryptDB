@@ -22,27 +22,41 @@ static void
 testOPE()
 {
 
-    const unsigned int OPEPlaintextSize = 32;
-    const unsigned int OPECiphertextSize = 128;
+    LOG(crypto) << "Test OPE";
 
-    unsigned char key[AES_KEY_BYTES] = 
-        {158, 242, 169, 240, 255, 166, 39, 177, 149, 166, 190, 237, 178, 254, 187, 40};
+    unsigned int noSizes = 7;
+    unsigned int plaintextSizes[] = {16,  32, 64,  128, 256, 512, 1024};
+    unsigned int ciphertextSizes[] = {32, 64, 128, 256, 288, 768, 1536};
 
-    OPE * ope = new OPE(string((char *) key, AES_KEY_BYTES), OPEPlaintextSize,
-                        OPECiphertextSize);
+    unsigned int noValues = 1;
 
-    unsigned char plaintext[OPEPlaintextSize/bitsPerByte] = {74, 95, 221, 84};
-    string plaintext_s = string((char *) plaintext,
-                                OPEPlaintextSize/bitsPerByte);
+    string key = "secret aes key!!";
 
-    string ciphertext = ope->encrypt(plaintext_s);
-    string decryption = ope->decrypt(ciphertext);
+    for (unsigned int i = 0; i < noSizes; i++) {
+        unsigned int ptextsize = plaintextSizes[i];
+        unsigned int ctextsize =  ciphertextSizes[i];
+        LOG(crypto) << "-- testing plaintext size " << ptextsize << " and ciphertext size " << ctextsize;
 
-    assert_s(plaintext_s == decryption,
-             "OPE test failed: decryption does not match plaintext");
-    assert_s(plaintext_s.compare(
-                 ciphertext) != 0,
-             "OPE test failed: ciphertext is the same as plaintext");
+        OPE * ope = new OPE(string(key, AES_KEY_BYTES), ptextsize, ctextsize);
+
+        //Test it on "noValues" random values
+        for (unsigned int j = 0; j < noValues; j++) {
+
+            string data = randomBytes(ptextsize/bitsPerByte);
+
+            string enc = ope->encrypt(data);
+            string dec = ope->decrypt(enc);
+
+            //cerr << "data is " << stringToByteInts(data) << "\n";
+            //cerr << "enc is " << stringToByteInts(enc) << "\n";
+            //cerr << "dec is " << stringToByteInts(dec) << "\n";
+            assert_s(dec == data, "decryption does not match original data "  + StringFromVal(ptextsize) + " " + StringFromVal(ctextsize));
+
+        }
+
+    }
+
+    LOG(crypto) << "OPE Test OK \n";
 }
 
 static void
