@@ -4193,8 +4193,9 @@ testBench(const TestConfig & tc, int argc, char ** argv)
     setenv("CRYPTDB_LOG", cryptdb_logger::getConf().c_str(), 1);
     //setenv("PLAIN_MODE", "true", 1);
 
+    string tpccdir = tc.edbdir + "/../eval/tpcc/";
     //configure proxy
-    setenv("TRAIN_QUERY", "train 1 /u/raluca/cryptdb/src/eval/tpcc/sqlTableCreates /u/raluca/cryptdb/src/eval/tpcc/querypatterns_bench 0", 1);
+    setenv("TRAIN_QUERY", ("train 1 " + tpccdir +"sqlTableCreates " + tpccdir + "querypatterns_bench 0").c_str(), 1);
 
     //setenv("LOG_PLAIN_QUERIES", (tc.edbdir+"/../eval/tpcc/bench_plain_queries").c_str(), 1);
     //setenv("DO_CRYPT", "true", 1);
