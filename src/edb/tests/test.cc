@@ -4066,13 +4066,22 @@ static void runExp(EDBProxy * cl, int noWorkers, const TestConfig & tc, int logF
 
 	}
 
+        resultFileIn.close();
+
 	querytput = allQueriesOK*1000.0/interval;
 	querylat = interval * noWorkers/allQueries;
 	cerr <<"overall:  throughput " << querytput << " queries/sec latency " << querylat << " msec/query \n";
 
-	resultFileIn.close();
+	char * ev = getenv("RUNEXP_LOG_RESPONSE");
+	if (ev != NULL) {
+	    //let's log the response
+	    ofstream f(ev);
 
+	    f << querytput << "\n";
+	    f << querylat << "\n";
 
+	    f.close();
+	}
 
 }
 
@@ -4430,6 +4439,10 @@ help(const TestConfig &tc, int ac, char **av)
 int
 main(int argc, char ** argv)
 {
+    cerr << "received ";
+    for (int i = 0; i < argc; i++) {
+        cerr << argv[i] << "\n";
+    }
 	TestConfig tc;
 	int c;
 
