@@ -4180,6 +4180,15 @@ testTrace(const TestConfig &tc, int argc, char ** argv)
 static void
 testBench(const TestConfig & tc, int argc, char ** argv)
 {
+
+    if (argc != 3) {
+        cerr << "usage: bench noWorkers timeLimitMin \n";
+        exit(-1);
+    }
+
+    char * noWorkers = argv[1];
+    char * timeLimit = argv[2];
+
     setenv("EDBDIR", tc.edbdir.c_str(), 1);
     setenv("CRYPTDB_LOG", cryptdb_logger::getConf().c_str(), 1);
     //setenv("PLAIN_MODE", "true", 1);
@@ -4240,10 +4249,10 @@ testBench(const TestConfig & tc, int argc, char ** argv)
 
     */
 
-   assert_s(system("java -cp  ../build/classes:../lib/edb-jdbc14-8_0_3_14.jar:../lib/ganymed-ssh2-build250.jar:"
+   assert_s(system((string("java -cp  ../build/classes:../lib/edb-jdbc14-8_0_3_14.jar:../lib/ganymed-ssh2-build250.jar:"
            "../lib/hsqldb.jar:../lib/mysql-connector-java-5.1.10-bin.jar:../lib/ojdbc14-10.2.jar:../lib/postgresql-8.0.309.jdbc3.jar -Ddriver=com.mysql.jdbc.Driver "
            "-Dconn=jdbc:mysql://localhost:5143/tpccenc "
-           "-Duser=tpccuser -Dpassword=letmein -Dnwarehouses=1 -Dnterminals=1 -DtimeLimit=10 client.jTPCCHeadless &> bench.out")>=0, "problem running benchmark");
+           "-Duser=tpccuser -Dpassword=letmein -Dnwarehouses=1 -Dnterminals=")+noWorkers+" -DtimeLimit="+timeLimit+" client.jTPCCHeadless").c_str())>=0, "problem running benchmark");
 
 
 
