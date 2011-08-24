@@ -124,7 +124,8 @@ class CryptoManager {
     // unsigned char * key);
 
     //OPE
-    static OPE * get_key_OPE(const string &key);     //key must have
+    static OPE * get_key_OPE(const string &key, const unsigned int & pTextBytes = OPE_PLAINTEXT_SIZE,
+            const unsigned int & cTextBytes = OPE_CIPHERTEXT_SIZE);     //key must have
     // OPE_KEY_SIZE
     static uint64_t encrypt_OPE(uint32_t plaintext, OPE * ope);
     static uint32_t decrypt_OPE(uint64_t ciphertext, OPE * ope);

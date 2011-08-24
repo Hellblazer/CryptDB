@@ -35,9 +35,9 @@ throw (CryptDBError)
 ParserMeta::ParserMeta() : clauseKeywords_p(), querySeparators_p()
 {
 
-    const unsigned int noKeywords = 32;
+    const unsigned int noKeywords = 33;
     const string clauseKeywords[] =
-    {"select", "from",  "where",  "order", "group",  "update", "set",
+    {"select", "from",  "where",  "order", "group",  "update", "set", "for",
      "insert",
      "into", "and",  "or",  "distinct",
      "in", "*", "max", "min", "count", "sum", "by", "asc",
@@ -47,9 +47,9 @@ ParserMeta::ParserMeta() : clauseKeywords_p(), querySeparators_p()
      "integer", "bigint", "text",
      "left", "join", "on", "is"};
 
-    const unsigned int noSeparators = 13;
+    const unsigned int noSeparators = 14;
     const string querySeparators[] = {"from", "where", "left", "on", "group",
-                                      "order", "limit","values", ";", "set",
+                                      "order", "limit", "for", "values", ";", "set",
                                       "group",  "asc", "desc"};
 
     for (unsigned int i = 0; i < noKeywords; i++)

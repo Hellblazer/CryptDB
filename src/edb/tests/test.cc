@@ -4066,13 +4066,22 @@ static void runExp(EDBProxy * cl, int noWorkers, const TestConfig & tc, int logF
 
 	}
 
+        resultFileIn.close();
+
 	querytput = allQueriesOK*1000.0/interval;
 	querylat = interval * noWorkers/allQueries;
 	cerr <<"overall:  throughput " << querytput << " queries/sec latency " << querylat << " msec/query \n";
 
-	resultFileIn.close();
+	char * ev = getenv("RUNEXP_LOG_RESPONSE");
+	if (ev != NULL) {
+	    //let's log the response
+	    ofstream f(ev);
 
+	    f << querytput << "\n";
+	    f << querylat << "\n";
 
+	    f.close();
+	}
 
 }
 
@@ -4171,12 +4180,22 @@ testTrace(const TestConfig &tc, int argc, char ** argv)
 static void
 testBench(const TestConfig & tc, int argc, char ** argv)
 {
+
+    if (argc != 3) {
+        cerr << "usage: bench noWorkers timeLimitMin \n";
+        exit(-1);
+    }
+
+    char * noWorkers = argv[1];
+    char * timeLimit = argv[2];
+
     setenv("EDBDIR", tc.edbdir.c_str(), 1);
     setenv("CRYPTDB_LOG", cryptdb_logger::getConf().c_str(), 1);
     //setenv("PLAIN_MODE", "true", 1);
 
+    string tpccdir = tc.edbdir + "/../eval/tpcc/";
     //configure proxy
-    setenv("TRAIN_QUERY", "train 1 /u/raluca/cryptdb/src/eval/tpcc/sqlTableCreates /u/raluca/cryptdb/src/eval/tpcc/querypatterns_bench 0", 1);
+    setenv("TRAIN_QUERY", ("train 1 " + tpccdir +"sqlTableCreates " + tpccdir + "querypatterns_bench 0").c_str(), 1);
 
     //setenv("LOG_PLAIN_QUERIES", (tc.edbdir+"/../eval/tpcc/bench_plain_queries").c_str(), 1);
     //setenv("DO_CRYPT", "true", 1);
@@ -4231,10 +4250,10 @@ testBench(const TestConfig & tc, int argc, char ** argv)
 
     */
 
-   assert_s(system("java -cp  ../build/classes:../lib/edb-jdbc14-8_0_3_14.jar:../lib/ganymed-ssh2-build250.jar:"
+   assert_s(system((string("java -cp  ../build/classes:../lib/edb-jdbc14-8_0_3_14.jar:../lib/ganymed-ssh2-build250.jar:"
            "../lib/hsqldb.jar:../lib/mysql-connector-java-5.1.10-bin.jar:../lib/ojdbc14-10.2.jar:../lib/postgresql-8.0.309.jdbc3.jar -Ddriver=com.mysql.jdbc.Driver "
            "-Dconn=jdbc:mysql://localhost:5143/tpccenc "
-           "-Duser=tpccuser -Dpassword=letmein -Dnwarehouses=4 -Dnterminals=1 -DtimeLimit=10 client.jTPCCHeadless")>=0, "problem running benchmark");
+           "-Duser=tpccuser -Dpassword=letmein -Dnwarehouses=1 -Dnterminals=")+noWorkers+" -DtimeLimit="+timeLimit+" client.jTPCCHeadless").c_str())>=0, "problem running benchmark");
 
 
 
@@ -4430,6 +4449,7 @@ help(const TestConfig &tc, int ac, char **av)
 int
 main(int argc, char ** argv)
 {
+
 	TestConfig tc;
 	int c;
 
