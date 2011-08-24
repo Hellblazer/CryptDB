@@ -4176,7 +4176,7 @@ testBench(const TestConfig & tc, int argc, char ** argv)
     //setenv("PLAIN_MODE", "true", 1);
 
     //configure proxy
-    setenv("TRAIN_QUERY", "train 1 /u/raluca/cryptdb/src/eval/offtrace/sqlTableCreates /u/raluca/cryptdb/src/eval/offtrace/querypatterns_bench 0", 1);
+    setenv("TRAIN_QUERY", "train 1 /u/raluca/cryptdb/src/eval/tpcc/sqlTableCreates /u/raluca/cryptdb/src/eval/tpcc/querypatterns_bench 0", 1);
 
     //setenv("LOG_PLAIN_QUERIES", (tc.edbdir+"/../eval/tpcc/bench_plain_queries").c_str(), 1);
     //setenv("DO_CRYPT", "true", 1);
