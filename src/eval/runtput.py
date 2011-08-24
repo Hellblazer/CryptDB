@@ -11,18 +11,23 @@
 import sys
 import os
 import time
+import signal
+import run_tests
+import random
 
 baseusername = "user"
 basecookie = "cookie"
 basehtml = "htmlfile"
+filename = "stats"
+
 
 noreadm = 1
 noreadp = 1
 noreadm = 1
 nowritem = 1
-
+stat = run_tests.stats()
 #      no_read_m noreadp  nowritem nowritep  norepeats
-task = " 5        5        1        1         1     "  
+task = ["5",     "5",     "1",     "1",      "1"]  
 
 
 def getuserfile(basefile, u, i):
@@ -31,38 +36,58 @@ def getuserfile(basefile, u, i):
 def getusername(u):
 	return baseusername + repr(u)
 
+def workerFinish():
+	assert stat.worker != 0, "not a worker"
+	f = open(filename, 'a')
+	f.write(str(stat.worker) + " " + str(stat.queries_failed) + " " + str(stat.total_queries) + " " + str(stat.spassed) + "\n")
+	f.close()
+	#print "->worker", stat.worker, "queriesfailed", stat.queries_failed, "queriestotal", stat.total_queries, "spassed", stat.spassed
+	exit(os.EX_OK)
+
+def handler(signum, frame):
+	secs = random.random() % 1000
+	time.sleep(secs)
+	workerFinish();
 
 def worker(u, i):
 	username =  getusername(u)
 	# if even, do write first, else do reads first
-	query = "python run_tests.py " + username  +" " +  task  + getuserfile(basehtml, u, i) + " " + getuserfile(basecookie, u, i)
+	query = ["run_tests.py", username]
+	query.extend(task)
+	query.extend([getuserfile(basehtml, u, i),getuserfile(basecookie, u, i)])
 	if u % 2 == 0:
-		query = query + " 1 " # do reads first
+		query.append("1") # do reads first
 	else:
-		query = query + " 0 " # do writes first
-		
-	print query
-	result = os.system(query);
-	print 'and the result is ' +  repr(result)
+		query.append("0") # do writes first
+	assert len(query) == 10, "wrong number of arguments"
+	stat.set(u)
+	assert stat.worker != 0, "not a worker :-("
+	res = run_tests.run(query,stat)
 
-	sys.exit(1)
+	sys.exit(res)
 
 def main(arg):
 	
 	if len(arg) != 4:
 		print("wrong number of arguments: runtput.py nousers useridstart noinstancesperuser")
 		return 
-	
+
 	users = int(arg[1])
 	useridstart = int(arg[2])
 	print 'users ' +  repr(users)
 	instances = int(arg[3])
 	print 'instances ' + repr(instances)
+
+	create = "python createstate.py " + str(users) + " " + str(users) + " h o"
+	os.system(create)
 	
+	try:
+		signal.signal(signal.SIGTERM, handler)
+	except ValueError:
+		assert False, "setting signal failed"
+
 	pids = {}
-	
 	index = -1
-	
 	start = time.time()
 	
 	for u in range(0, users):
@@ -72,19 +97,53 @@ def main(arg):
 			if pid>0:
 				#in parent now
 				pids[index] = pid
+			elif pid<0:
+				#error
+				print "failed to fork"
+				return
 			else:  
 				#out of parent
 				worker(u+useridstart,i)
 				
 	index = -1
+
+	(firstfinished, exit_status) = os.waitpid(-1, 0)
+	assert exit_status == os.EX_OK, "first child exited irregularly"
 	
 	for u in range(0, users):
 		for i in range(0, instances):
 			index = index + 1
-			os.waitpid(pids[index], 0)
-			print 'done'
-			print 'user ' + repr(i) + ' instance  ' + repr(i) + 'finished'
-    		
+			if pids[index] != firstfinished:
+				os.kill(pids[index], signal.SIGTERM)
+	
+	index = -1
+	for u in range(0, users):
+		for i in range(0, instances):
+			index = index + 1
+			if pids[index] != firstfinished:
+				if (os.waitpid(pids[index],0)[1] != os.EX_OK):
+					print "there were problems with process", index
+
+	f = open(filename,'r')
+	total_queries = 0
+	interval = -1
+	good_queries = 0
+	querytput = 0.0
+	querylat = 0.0
+	for line in f:
+		if line == "":
+			continue
+		words = line.split()
+    		assert len(words) == 4, "wrong number of words in output file line"
+		total_queries += int(words[2])
+		good_queries += (int(words[2]) - int(words[1]))
+		interval = max(interval,float(words[3]))
+		#print "worker", words[0], "queriesfailed", words[1], "queriestotal", words[2], "mspassed", words[3]
+
+	querytput = good_queries*1000/interval
+	querylat = (interval*users*instances)/total_queries
+
+
 	end = time.time()
 	print 'interval of time is ' + repr(end-start) 		
  

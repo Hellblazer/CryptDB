@@ -2,18 +2,38 @@ import sys
 import os
 import time
 
+class stats:
+    def set(self, work):
+        self.worker = work
+        self.total_queries = 0
+        self.queries_failed = 0
+        self.spassed = 0
+        self.begin = 0
+        self.begin = time.time()
+
+    def query_good(self):
+        self.total_queries += 1
+        self.spassed = time.time() - self.begin
+    
+    def query_bad(self):
+        self.total_queries += 1
+        self.queries_failed += 1
+        self.spassed = time.time() - self.begin
+
+    
 cookie_file = "cookie"
 output_file = "a.html"
 username = "admin"
 ip = "localhost"
 flags = ' -q '
-VERBOSE = True
+VERBOSE = False
 WGET_VERBOSE = False
 time_ls = []
 
-
-
 def main(arg):
+    print "got run_tests"
+
+def run(arg, myStat):
     #run_tests.py username no_read_email no_read_post no_write_email no_post no_overall_repeats html_filename cookie_filename
     global username
     global cookie_file
@@ -40,6 +60,7 @@ def main(arg):
         print "\t readsfirst if this is 1 the reads are done first"
         return
     if len(arg) != 10:
+        print len(arg)
         print("Wrong number of arguments: try \n>python run_test.py -h")
         return -1 
     if WGET_VERBOSE:
@@ -57,8 +78,11 @@ def main(arg):
     if VERBOSE: print "logging in"
     login()
     if not login_good():
+        myStat.query_bad()
         print "ERROR: could not login\n\tdoes this user have the password letmein?"
         return -1
+    else:
+        myStat.query_good()
     for i in range(0,repeat):
         #time_ls.append(time2-time1)
         if readsfirst:
@@ -66,51 +90,75 @@ def main(arg):
                 if VERBOSE: print "reading message!"
                 read_message()
                 if not read_message_ok():
+                    myStat.query_bad()
                     print "ERROR: messages not read\n\tdoes "+username+" have message?"
                     return -1
+                else:
+                    myStat.query_good()
             for j in range(0,read_p):
                 if VERBOSE: print "reading post!"
                 read_post()
                 if not read_post_ok():
+                    myStat.query_bad()
                     print "ERROR: post not read\n\tdoes this forum have posts?\n\tdoes "+username+" have permission to access this forum?"
                     return -1
+                else:
+                    myStat.query_good()
             for j in range(0,write_m):
                 if VERBOSE: print "writing message!"
                 write_message()
                 if not write_message_ok():
+                    myStat.query_bad()
                     print "ERROR: message not written\n\tdoes "+username+" have permission to write a message?"
                     return -1
+                else:
+                    myStat.query_good()
             for j in range(0,write_p):
                 if VERBOSE: print "writing post!"
                 write_post()
                 if not write_post_ok():
+                    myStat.query_bad()
                     print "ERROR: post not written\n\tdoes "+username+" have permission to post in this forum?"
                     return -1
+                else:
+                    myStat.query_good()
         else:
              for j in range(0,write_m):
                 if VERBOSE: print "writing message!"
                 write_message()
                 if not write_message_ok():
+                    myStat.query_bad()
                     print "ERROR: message not written\n\tdoes "+username+" have permission to write a message?"
                     return -1
+                else:
+                    myStat.query_good()
              for j in range(0,write_p):
                 if VERBOSE: print "writing post!"
                 write_post()
                 if not write_post_ok():
+                    myStat.query_bad()
                     print "ERROR: post not written\n\tdoes "+username+" have permission to post in this forum?"
                     return -1
+                else:
+                    myStat.query_good()
              for j in range(0,read_m):
                 if VERBOSE: print "reading message!"
                 read_message()
                 if not read_message_ok():
+                    myStat.query_bad()
                     print "ERROR: messages not read\n\tdoes "+username+" have message?"
                     return -1
+                else:
+                    myStat.query_good()
              for j in range(0,read_p):
                 if VERBOSE: print "reading post!"
                 read_post()
                 if not read_post_ok():
+                    myStat.query_bad()
                     print "ERROR: post not read\n\tdoes this forum have posts?\n\tdoes "+username+" have permission to access this forum?"
                     return -1
+                else:
+                    myStat.query_good()
     #print time_ls
     #print sum(time_ls)/len(time_ls)
     return 0

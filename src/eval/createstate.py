@@ -33,20 +33,19 @@ active_users_footer = ", 'letmein');\n";
 midstart = 100;
 
 pm_header = "INSERT INTO phpbb_privmsgs (msg_id, root_level, author_id, icon_id, author_ip, message_time, enable_bbcode, enable_smilies, enable_magic_url, enable_sig, message_subject, message_text, message_attachment, bbcode_bitfield, bbcode_uid, to_address, bcc_address, message_reported) VALUES ("
-pm_middle = ", 0, '"
-pm_footer = "', 0, '170.0.0.1', 1314137570, 1, 1, 1, 1, 'subject', 'this is the text of the message.  this is very exciting.  and uncapitalized', 0, '', '', 'u_2', '', 0);\n"
+pm_middle = ", 0, '2', 0, '170.0.0.1', 1314137570, 1, 1, 1, 1, 'subject', 'this is the text of the message.  this is very exciting.  and uncapitalized', 0, '', '', 'u_"
+pm_footer = "', '', 0);\n"
 
 pm_to_send_header = "INSERT INTO phpbb_privmsgs_to (msg_id, user_id, author_id, folder_id, pm_new, pm_unread, pm_forwarded) VALUES ("
-pm_to_send_middle = ", 2, "
-pm_to_send_footer =", -3, 1, 1, 0);\n"
+pm_to_send_middle = ", "
+pm_to_send_footer =", 2, -3, 1, 1, 0);\n"
 
-pm_rec_update = "UPDATE phpbb_users SET user_new_privmsg = user_new_privmsg + 1, user_unread_privmsg = user_unread_privmsg + 1, user_last_privmsg = 1314137570 WHERE user_id = 2;\n"
+pm_rec_update = "UPDATE phpbb_users SET user_new_privmsg = user_new_privmsg + 1, user_unread_privmsg = user_unread_privmsg + 1, user_last_privmsg = 1314137570 WHERE user_id = "
 
-pm_to_rec_header = "INSERT INTO phpbb_privmsgs_to  (msg_id, user_id, author_id, folder_id, pm_new, pm_unread, pm_forwarded) VALUES (82, "
-pm_to_rec_middle = ", "
-pm_to_rec_footer = ", -2, 0, 0, 0);\n"
+pm_to_rec_header = "INSERT INTO phpbb_privmsgs_to  (msg_id, user_id, author_id, folder_id, pm_new, pm_unread, pm_forwarded) VALUES ("
+pm_to_rec_footer = ", 2, 2, -2, 0, 0, 0);\n"
 
-pm_send_update = "UPDATE phpbb_users SET user_lastpost_time = 1314137570 WHERE user_id = "
+pm_send_update = "UPDATE phpbb_users SET user_lastpost_time = 1314137570 WHERE user_id = 2;\n"
 
 
 
@@ -98,21 +97,21 @@ def main(arg):
 
     for i in range(0, messages):
         msg_id = midstart + i
-        author_id = str((msg_id % users) + uidstart)
+        user_id = str((msg_id % users) + uidstart)
         
 
-        query = pm_header + str(msg_id) + pm_middle + author_id + pm_footer
+        query = pm_header + str(msg_id) + pm_middle + user_id + pm_footer
         f.write(query)
         
-        query = pm_to_send_header + str(msg_id) + pm_to_send_middle + str(msg_id) + pm_to_send_footer
+        query = pm_to_send_header + str(msg_id) + pm_to_send_middle + user_id + pm_to_send_footer
         f.write(query)
 
-        f.write(pm_rec_update)
+        f.write(pm_rec_update + user_id + ";\n")
 
-        query = pm_to_rec_header + author_id + pm_to_rec_middle + author_id + pm_to_rec_footer
+        query = pm_to_rec_header + str(msg_id) + pm_to_rec_footer
         f.write(query)
 
-        query = pm_send_update + author_id + ";\n"
+        query = pm_send_update
         f.write(query)
 
     f.close()
