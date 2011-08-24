@@ -120,7 +120,9 @@ class OPEInternals {
         AES_encrypt(shaDigest, seed, &key);
 
         if (AES_BLOCK_BYTES >= desiredBytes) {
-            return ZZFromBytes(seed, desiredBytes);
+            string seed_s((char *)seed, AES_BLOCK_BYTES);
+            seed_s.resize(desiredBytes, 0);
+            return ZZFromBytes((const uint8_t *)seed_s.c_str(), desiredBytes);
         }
         //need to generate more randomness using a PRG
         SetSeed(ZZFromBytes(seed, AES_BLOCK_BYTES));

@@ -3282,8 +3282,6 @@ throw (CryptDBError)
 
     //It is secure
 
-    cerr << "query " << query << "\n";
-
     command com = getCommand(query);
 
     LOG(edb) << "-------------------";

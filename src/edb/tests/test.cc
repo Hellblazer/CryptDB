@@ -4243,7 +4243,7 @@ testBench(const TestConfig & tc, int argc, char ** argv)
    assert_s(system("java -cp  ../build/classes:../lib/edb-jdbc14-8_0_3_14.jar:../lib/ganymed-ssh2-build250.jar:"
            "../lib/hsqldb.jar:../lib/mysql-connector-java-5.1.10-bin.jar:../lib/ojdbc14-10.2.jar:../lib/postgresql-8.0.309.jdbc3.jar -Ddriver=com.mysql.jdbc.Driver "
            "-Dconn=jdbc:mysql://localhost:5143/tpccenc "
-           "-Duser=tpccuser -Dpassword=letmein -Dnwarehouses=4 -Dnterminals=1 -DtimeLimit=10 client.jTPCCHeadless")>=0, "problem running benchmark");
+           "-Duser=tpccuser -Dpassword=letmein -Dnwarehouses=1 -Dnterminals=1 -DtimeLimit=10 client.jTPCCHeadless &> bench.out")>=0, "problem running benchmark");
 
 
 
