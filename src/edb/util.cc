@@ -209,13 +209,7 @@ ZZFromString(const string &s)
     return ZZFromBytes((const uint8_t *) s.data(), s.length());
 }
 
-string
-StringFromVal(uint64_t value, uint padLen)
-{
-    stringstream ss;
-    ss << setfill('0') << setw(padLen) << value;
-    return ss.str();
-}
+
 
 ZZ
 UInt64_tToZZ (uint64_t value)
@@ -257,7 +251,7 @@ string
 strFromVal(uint64_t x)
 {
     stringstream ss;
-    ss << (int64_t) x;
+    ss <<  x;
     return ss.str();
 }
 
@@ -269,13 +263,21 @@ strFromVal(uint32_t x)
     return ss.str();
 }
 
+string
+StringFromVal(uint64_t value, uint padLen)
+{
+    stringstream ss;
+    ss << setfill('0') << setw(padLen) << value;
+    return ss.str();
+}
+
 uint64_t
 valFromStr(const string &str)
 {
     stringstream ss(str);
     uint64_t val;
     ss >> val;
-    return (uint64_t) val;
+    return  val;
 }
 
 #if MYSQL_S
@@ -294,6 +296,24 @@ marshallBinary(const string &s)
     //cerr << "output from marshall  " << result.c_str() << "\n";
     return ss.str();
 }
+
+/*
+string
+marshallSalt(const string &s) {
+    assert_s(s.length() == SALT_LEN_BYTES, "salt for marshall does not have right len");
+
+    return strFromVal(IntFromBytes((const unsigned  char *)s.data(), s.length()));
+}
+
+string
+unmarshallSalt(const string & s) {
+    uint64_t val = valFromStr(s);
+
+    return string(BytesFromInt(val, SALT_LEN_BYTES), SALT_LEN_BYTES);
+
+}
+
+*/
 
 #else
 

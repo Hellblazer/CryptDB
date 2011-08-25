@@ -39,8 +39,8 @@ string
 decrypt_AES_CBC(const string &ctext, const AES_KEY * deckey, string salt, bool pad = true);
 
 //only works for padding unit < 255 bytes
-vector<unsigned char> pad(vector<unsigned char> data, unsigned int unit);
-vector<unsigned char> unpad(vector<unsigned char> data);
+//vector<unsigned char> pad(vector<unsigned char> data, unsigned int unit);
+//vector<unsigned char> unpad(vector<unsigned char> data);
 
 
 string

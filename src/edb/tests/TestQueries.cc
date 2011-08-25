@@ -1024,13 +1024,13 @@ CheckQueryList(const TestConfig &tc, const QueryList &queries) {
 
 static void
 RunTest(const TestConfig &tc) {
-  //  CheckQueryList(tc, Insert);
-  //  CheckQueryList(tc, Select);
+    CheckQueryList(tc, Insert);
+  /*  CheckQueryList(tc, Select);
     CheckQueryList(tc, Join);
-  //  CheckQueryList(tc, Update);
-  //  CheckQueryList(tc, Delete);
-  //  CheckQueryList(tc, Search);
-  //  CheckQueryList(tc, Basic);
+    CheckQueryList(tc, Update);
+    CheckQueryList(tc, Delete);
+    CheckQueryList(tc, Search);
+    CheckQueryList(tc, Basic);*/
     if (test_type == MULTI || test_type == PROXYMULTI) {
         test->restart();
     }

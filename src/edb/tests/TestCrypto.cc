@@ -64,21 +64,33 @@ testOnions () {
 
     CryptoManager * cm = new CryptoManager("secret aes key!!");
 
+    uint64_t salt = 398923;
 
-    string data = "text text text hello world text text text";
+    string data = "24 Rosedale, Toronto, ONT";
     bool isBin;
-    string enc = cm->crypt(cm->getmkey(), data, TYPE_TEXT, "field.table", SECLEVEL::PLAIN_DET, SECLEVEL::SEMANTIC_DET, isBin, 298429);
-    string dec = cm->crypt(cm->getmkey(), enc, TYPE_TEXT, "field.table", SECLEVEL::SEMANTIC_DET, SECLEVEL::PLAIN_DET, isBin, 298429);
+    string enc = cm->crypt(cm->getmkey(), data, TYPE_TEXT, "field.table", SECLEVEL::PLAIN_DET, SECLEVEL::SEMANTIC_DET, isBin, salt);
+    string dec = cm->crypt(cm->getmkey(), enc, TYPE_TEXT, "field.table", SECLEVEL::SEMANTIC_DET, SECLEVEL::PLAIN_DET, isBin, salt);
 
+    cerr << "dec is " << dec << "\n";
     assert_s(data == dec, " decryption incorrect ");
 
     data = "234987";
 
-    enc = cm->crypt(cm->getmkey(), data, TYPE_INTEGER, "field.table", SECLEVEL::PLAIN_DET, SECLEVEL::SEMANTIC_DET, isBin, 298429);
-    dec = cm->crypt(cm->getmkey(), enc, TYPE_INTEGER, "field.table", SECLEVEL::SEMANTIC_DET, SECLEVEL::PLAIN_DET, isBin, 298429);
+    enc = cm->crypt(cm->getmkey(), data, TYPE_INTEGER, "field.table", SECLEVEL::PLAIN_DET, SECLEVEL::SEMANTIC_DET, isBin, salt);
+    dec = cm->crypt(cm->getmkey(), enc, TYPE_INTEGER, "field.table", SECLEVEL::SEMANTIC_DET, SECLEVEL::PLAIN_DET, isBin, salt);
 
     cerr << "Dec is " << dec << "\n";
     assert_s(data == dec, " decryption incorrect ");
+
+/*
+    salt = randomBytes(SALT_LEN_BYTES);
+
+    string marsh_salt = marshallSalt(salt);
+    cerr << "marshalled salt " << marsh_salt << "\n";
+    string unmarsh_salt = unmarshallSalt(marsh_salt);
+
+    assert_s(salt == unmarsh_salt, "marshall/unmarshall Salt does not work well");
+*/
 
 }
 static void

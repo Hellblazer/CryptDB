@@ -659,14 +659,14 @@ interactiveTest(const TestConfig &tc, int ac, char **av)
 			cl->plain_execute("DROP TABLE IF EXISTS table0, table1");
 			cerr << "here \n";
 			assert_res(cl->execute(
-					"CREATE TABLE hi (id enc integer);"),
+					"CREATE TABLE test_insert (id integer primary key auto_increment, age enc integer);"),
 					"failed");
 
 			assert_res(cl->execute(
-					"INSERT INTO hi VALUES (1);"), "failed");
+					"INSERT INTO test_insert VALUES (1, 21);"), "failed");
 
 			assert_res(cl->execute(
-					"SELECT sum(id) FROM hi;"), "failed");
+					"SELECT * FROM test_insert;"), "failed");
 
 			// assert_res(cl->execute(
 			//              "SELECT sum(id) FROM hi;"), "failed");

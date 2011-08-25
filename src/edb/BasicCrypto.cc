@@ -110,7 +110,7 @@ getIVec(string salt)
     return ivec;
 }
 
-vector<unsigned char>
+static vector<unsigned char>
 pad(vector<unsigned char> data, unsigned int unit)
 {
     assert_s(unit < 256, "pad does not work for padding unit more than 256 bytes");
@@ -132,12 +132,14 @@ pad(vector<unsigned char> data, unsigned int unit)
     return res;
 }
 
-vector<unsigned char>
+static vector<unsigned char>
 unpad(vector<unsigned char> data)
 {
     size_t len = data.size();
     // cerr << "padding to remove " << (int)data[len-1] << "\n";
     size_t actualLen = len - (int)data[len-1];
+    cerr << " len is " << len << " and data[len-1] " << (int)data[len-1] << "\n";
+    assert_s(data[len-1] <= len, "invalid pad value when unpadding");
     vector<unsigned char> res(actualLen);
     memcpy(&res[0], &data[0], actualLen);
     return res;
@@ -154,7 +156,6 @@ encrypt_AES_CBC(const string &ptext, const AES_KEY * enckey, string salt, bool d
         ptext_buf = pad(vector<unsigned char>(ptext.begin(), ptext.end()), AES_BLOCK_BYTES);
         // cerr << "padded data is " << stringToByteInts(string((char *) &ptext_buf[0], ptext_buf.size())) << "\n";
     } else {
-        assert_s(ptext.length() % AES_BLOCK_BYTES == 0, " no padding requested but length is not multiple of aes block");
         ptext_buf = vector<unsigned char>(ptext.begin(), ptext.end());
     }
     auto ctext_buf = vector<unsigned char>(ptext_buf.size());
@@ -175,11 +176,9 @@ decrypt_AES_CBC(const string &ctext, const AES_KEY * deckey, string salt, bool d
 
     AES_cbc_encrypt((const unsigned char *) ctext.data(), &ptext_buf[0], ctext.size(), deckey, &ivec[0], AES_DECRYPT);
 
-    // cerr << "padded dec data is " << stringToByteInts(string((char *)&ptext_buf[0], ptext_buf.size())) << "\n";
 
     if (dounpad) {
         auto res = unpad(ptext_buf);
-
         // cerr << "unpadded dec data is " << stringToByteInts(string((char * ) &res[0], res.size())) << "\n";
         return string((char *)&res[0], res.size());
     } else {
@@ -195,7 +194,7 @@ reverse(const string & vec)
     size_t len = vec.length();
     size_t noBlocks = len /AES_BLOCK_BYTES;
 
-    assert_s(len == noBlocks * AES_BLOCK_BYTES, "len is not multiple of AES_BLOCK_BYTES " + StringFromVal(len));
+    assert(len == noBlocks * AES_BLOCK_BYTES);
     string rev;
     rev.resize(len);
 
@@ -227,6 +226,7 @@ decrypt_AES_CMC(const string &ctext, const AES_KEY * deckey)
 
     return decrypt_AES_CBC(reversed, deckey, "0");
 }
+
 uint64_t
 encrypt_BF(uint64_t v, const BF_KEY *key)
 {
@@ -242,7 +242,6 @@ decrypt_BF(uint64_t v, const BF_KEY *key)
     BF_ecb_encrypt((unsigned char *) &v, (unsigned char *) &x, key, BF_DECRYPT);
     return x;
 }
-
 
 BF_KEY *
 get_BF_KEY(const string &key)

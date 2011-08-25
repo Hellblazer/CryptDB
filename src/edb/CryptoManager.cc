@@ -395,10 +395,10 @@ CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft,
 
                 string val = data;
                 if (fromlevel == SECLEVEL::SEMANTIC_DET) {
-                    LOG(crypto) << "at sem det " << data;
+                    LOG(crypto) << "at sem det " << marshallBinary(data);
 
                     AES_KEY * key =
-                        get_key_SEM(getKey(mkey, fullfieldname, fromlevel));
+                        get_AES_dec_key(getKey(mkey, fullfieldname, fromlevel));
                     val = decrypt_SEM(val, key, salt);
                     delete key;
                     fromlevel  = decreaseLevel(fromlevel, ft, oDET);
@@ -413,7 +413,9 @@ CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft,
 
                     AES_KEY * key =
                         get_AES_dec_key(getKey(mkey, fullfieldname, fromlevel));
+                    cerr << "before cmc \n";
                     val = decrypt_AES_CMC(val, key);
+                    cerr << "after cmc \n";
                     delete key;
                     fromlevel = decreaseLevel(fromlevel, ft, oDET);
                     if (fromlevel == tolevel) {
@@ -645,7 +647,7 @@ CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft,
                 fromlevel = increaseLevel(fromlevel, ft, oDET);
 
                 AES_KEY * key =
-                    get_key_SEM(getKey(mkey, fullfieldname, fromlevel));
+                    get_AES_enc_key(getKey(mkey, fullfieldname, fromlevel));
                 data = encrypt_SEM(data, key, salt);
                 delete key;
                 if (fromlevel == tolevel) {
@@ -835,6 +837,7 @@ CryptoManager::get_key_SEM(const string &key)
 
 }
 
+
 static uint64_t
 getXORValue(uint64_t salt, AES_KEY * aes_key)
 {
@@ -844,6 +847,7 @@ getXORValue(uint64_t salt, AES_KEY * aes_key)
 
     return IntFromBytes(ciphertext, AES_BLOCK_BYTES);
 }
+
 
 uint64_t
 CryptoManager::encrypt_SEM(uint64_t ptext, AES_KEY * key, uint64_t salt)
@@ -873,15 +877,15 @@ CryptoManager::decrypt_SEM(uint32_t ctext, AES_KEY * key, uint64_t salt)
 
 
 string
-CryptoManager::encrypt_SEM(const string &ptext, AES_KEY * key, uint64_t salt)
+CryptoManager::encrypt_SEM(const string &ptext, AES_KEY * enckey, uint64_t salt)
 {
-   return encrypt_AES(ptext, key, salt);
+   return encrypt_AES_CBC(ptext, enckey, BytesFromInt(salt, SALT_LEN_BYTES), false);
 }
 
 string
-CryptoManager::decrypt_SEM(const string &ctext, AES_KEY * key, uint64_t salt)
+CryptoManager::decrypt_SEM(const string &ctext, AES_KEY * deckey, uint64_t salt)
 {
-    return decrypt_AES(ctext, key, salt);
+    return decrypt_AES_CBC(ctext, deckey, BytesFromInt(salt, SALT_LEN_BYTES), false);
 }
 
 

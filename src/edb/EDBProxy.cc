@@ -3663,13 +3663,20 @@ EDBProxy::crypt(string data, fieldType ft, string fullname,
                  const vector<SqlItem> &res)
 {
 
-    LOG(crypto) << "crypting data " << data
-                << " type " << ft
-                << " fullname " << fullname
-                << " anonfullname " << anonfullname
-                << " fromlevel " << levelnames[(int) fromlevel]
-                << " tolevel " << levelnames[(int) tolevel]
-                << " salt " << salt;
+    LOG(crypto) << "crypting data ";
+
+    if (ft==TYPE_INTEGER) {
+        LOG(crypto) << data;
+    }
+    else {
+        LOG(crypto) << marshallBinary(data);
+    }
+    LOG(crypto) << " type " << ft
+            << " fullname " << fullname
+            << " anonfullname " << anonfullname
+            << " fromlevel " << levelnames[(int) fromlevel]
+                                           << " tolevel " << levelnames[(int) tolevel]
+                                                                        << " salt " << salt;
 
     if (DECRYPTFIRST) {
         // we don't encrypt values, and they come back decrypted
@@ -3730,6 +3737,11 @@ EDBProxy::crypt(string data, fieldType ft, string fullname,
         mkey, data, ft, anonfullname, fromlevel, tolevel, isBin, salt);
     if (VERBOSE_V) {
         //cerr << "result is " << resu << "\n";
+    }
+    if (isBin) {
+        LOG(crypto) << "result is " << marshallBinary(resu);
+    } else {
+        LOG(crypto) << "result is " << resu;
     }
     return resu;
 }
