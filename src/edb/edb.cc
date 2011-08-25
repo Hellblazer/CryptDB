@@ -112,19 +112,19 @@ get_key_SEM(const string &key)
 {
     return CryptoManager::get_key_SEM(key);
 }
-
+/*
 static AES_KEY *
 get_key_DET(const string &key)
 {
     return CryptoManager::get_key_DET(key);
 }
-
+*/
 static uint64_t
 decrypt_SEM(uint64_t value, AES_KEY * aesKey, uint64_t salt)
 {
     return CryptoManager::decrypt_SEM(value, aesKey, salt);
 }
-
+/*
 static uint64_t
 decrypt_DET(uint64_t ciph, AES_KEY* aesKey)
 {
@@ -136,7 +136,7 @@ encrypt_DET(uint64_t plaintext, AES_KEY * aesKey)
 {
     return CryptoManager::encrypt_DET(plaintext, aesKey);
 }
-
+*/
 static string
 decrypt_SEM(unsigned char *eValueBytes, uint64_t eValueLen,
             AES_KEY * aesKey, uint64_t salt)
@@ -144,14 +144,14 @@ decrypt_SEM(unsigned char *eValueBytes, uint64_t eValueLen,
     string c((char *) eValueBytes, (unsigned int) eValueLen);
     return CryptoManager::decrypt_SEM(c, aesKey, salt);
 }
-
+/*
 static string
 decrypt_DET(unsigned char *eValueBytes, uint64_t eValueLen, AES_KEY * key)
 {
     string c((char *) eValueBytes, (unsigned int) eValueLen);
     return CryptoManager::decrypt_DET(c, key);
 }
-
+*/
 static bool
 search(const Token & token, const Binary & overall_ciph)
 {
@@ -272,9 +272,9 @@ decrypt_int_det(PG_FUNCTION_ARGS)
     for (unsigned int i = 0; i < AES_KEY_BYTES; i++)
         key[i] = getb(ARGS, offset+i);
 
-    AES_KEY *aesKey = get_key_DET(key);
-    uint64_t value = decrypt_DET(eValue, aesKey);
-    delete aesKey;
+    BF_KEY *bfKey = get_BF_KEY(key);
+    uint64_t value = decrypt_BF(eValue, bfKey);
+    delete bfKey;
 
 #if MYSQL_S
     return (longlong) value;
@@ -307,9 +307,9 @@ decrypt_int_det(PG_FUNCTION_ARGS)
     for (unsigned int i = 0; i < AES_KEY_BYTES; i++)
         key[i] = getb(ARGS, offset+i);
 
-    AES_KEY *aesKey = get_key_DET(key);
-    uint64_t value = encrypt_DET(eValue, aesKey);
-    delete aesKey;
+    BF_KEY * bfKey = get_BF_KEY(key);
+    uint64_t value = encrypt_BF(eValue, bfKey);
+    delete bfKey;
 
 #if MYSQL_S
     return (longlong) value;
@@ -416,8 +416,8 @@ decrypt_text_det(PG_FUNCTION_ARGS)
         key[i] = getb(ARGS,offset+i);
     }
 
-    AES_KEY *aesKey = get_key_DET(key);
-    string value = decrypt_DET(eValueBytes, eValueLen, aesKey);
+    AES_KEY * aesKey = get_AES_dec_key(key);
+    string value = decrypt_AES_CMC(string((char *)eValueBytes, (unsigned int)eValueLen), aesKey);
     delete aesKey;
 
 #if MYSQL_S

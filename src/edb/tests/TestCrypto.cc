@@ -21,7 +21,7 @@ TestCrypto::~TestCrypto()
 static void
 testBasics()
 {
-    enum { nround = 100000 };
+    enum { nround = 10000 };
     for (uint i = 0; i < nround; i++) {
         size_t len = randomValue() % 1024;
         string plaintext = randomBytes((uint) len);
@@ -55,8 +55,32 @@ testBasics()
 
         assert_s(plaintext == p2, "BF enc/dec failed");
     }
+
 }
 
+
+static void
+testOnions () {
+
+    CryptoManager * cm = new CryptoManager("secret aes key!!");
+
+
+    string data = "text text text hello world text text text";
+    bool isBin;
+    string enc = cm->crypt(cm->getmkey(), data, TYPE_TEXT, "field.table", SECLEVEL::PLAIN_DET, SECLEVEL::SEMANTIC_DET, isBin, 298429);
+    string dec = cm->crypt(cm->getmkey(), enc, TYPE_TEXT, "field.table", SECLEVEL::SEMANTIC_DET, SECLEVEL::PLAIN_DET, isBin, 298429);
+
+    assert_s(data == dec, " decryption incorrect ");
+
+    data = "234987";
+
+    enc = cm->crypt(cm->getmkey(), data, TYPE_INTEGER, "field.table", SECLEVEL::PLAIN_DET, SECLEVEL::SEMANTIC_DET, isBin, 298429);
+    dec = cm->crypt(cm->getmkey(), enc, TYPE_INTEGER, "field.table", SECLEVEL::SEMANTIC_DET, SECLEVEL::PLAIN_DET, isBin, 298429);
+
+    cerr << "Dec is " << dec << "\n";
+    assert_s(data == dec, " decryption incorrect ");
+
+}
 static void
 testOPE()
 {
@@ -770,6 +794,8 @@ TestCrypto::run(const TestConfig &tc, int argc, char ** argv)
     cerr << "TESTING CRYPTO" << endl;
     cerr << "Testing basics.." << endl;
     testBasics();
+    cerr << "Onion tests .. " << endl;
+    testOnions();
     cerr << "Testing OPE..." << endl;
     testOPE();
     cerr << "Testing HGD..." << endl;
