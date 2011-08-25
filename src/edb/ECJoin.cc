@@ -184,6 +184,8 @@ ECJoin::PRFForEC(const AES_KEY * sk, const string & ptext) {
         }
     }
 
+    // should collapse down to 1 AES_BLOCK_SIZE using SHA1
+
     return encrypt_AES(nptext, sk, 1).substr(0, bytesLong);
 
 }
