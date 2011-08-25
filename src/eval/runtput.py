@@ -28,7 +28,7 @@ nowritem = 1
 stat = run_tests.stats()
 #      no_read_m noreadp  nowritem nowritep  norepeats
 task = ["5",     "5",     "1",     "1",      "1"]  
-
+interval = -1
 
 def getuserfile(basefile, u, i):
 	return basefile + repr(u) + "_" + repr(i)
@@ -64,14 +64,16 @@ def worker(u, i):
 	assert stat.worker != 0, "not a worker :-("
 	res = run_tests.run(query,stat)
 
-	sys.exit(res)
+	workerFinish()
 
 def main(arg):
-	
+	global interval
 	if len(arg) != 4:
 		print("wrong number of arguments: runtput.py nousers useridstart noinstancesperuser")
-		return 
+		return
 
+	os.system("rm cookie* html* "+filename)
+	os.system("touch "+filename)
 	users = int(arg[1])
 	useridstart = int(arg[2])
 	print 'users ' +  repr(users)
@@ -126,25 +128,31 @@ def main(arg):
 
 	f = open(filename,'r')
 	total_queries = 0
-	interval = -1
 	good_queries = 0
 	querytput = 0.0
 	querylat = 0.0
+	#first line has the firstfinished child, so use that interval
+	first = True
 	for line in f:
+		words = line.split()
+		assert len(words) == 4, "wrong number of words in line"
 		if line == "":
 			continue
-		words = line.split()
-    		assert len(words) == 4, "wrong number of words in output file line"
+		if first:
+			interval = float(words[3])			
+			first = False
 		total_queries += int(words[2])
 		good_queries += (int(words[2]) - int(words[1]))
-		interval = max(interval,float(words[3]))
 		#print "worker", words[0], "queriesfailed", words[1], "queriestotal", words[2], "mspassed", words[3]
 
-	querytput = good_queries*1000/interval
+	querytput = good_queries/interval
 	querylat = (interval*users*instances)/total_queries
 
+	os.system("rm html* cookie*")
 
 	end = time.time()
-	print 'interval of time is ' + repr(end-start) 		
+	print 'interval of time is ' + repr(end-start)
+	print "throughput is", querytput
+	print "latency is", querylat
  
 main(sys.argv)  
