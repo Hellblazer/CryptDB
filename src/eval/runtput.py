@@ -68,19 +68,20 @@ def worker(u, i):
 
 def main(arg):
 	global interval
-	if len(arg) != 4:
-		print("wrong number of arguments: runtput.py nousers useridstart noinstancesperuser")
+	if len(arg) != 5:
+		print("wrong number of arguments: runtput.py useridstart nousers noinstancesperuser no-preliminary-posts")
 		return
 
 	os.system("rm cookie* html* "+filename)
 	os.system("touch "+filename)
-	users = int(arg[1])
-	useridstart = int(arg[2])
+	useridstart = int(arg[1])
+	users = int(arg[2])
 	print 'users ' +  repr(users)
 	instances = int(arg[3])
 	print 'instances ' + repr(instances)
+	posts = int(arg[4])
 
-	create = "python createstate.py " + str(users) + " " + str(users) + " h o"
+	create = "python createstate.py " + str(users) + " " + str(users) + " " + str(posts) + " h o"
 	os.system(create)
 	
 	try:
