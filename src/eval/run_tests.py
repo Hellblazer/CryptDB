@@ -9,15 +9,20 @@ class stats:
         self.queries_failed = 0
         self.spassed = 0
         self.begin = 0
+
+    def begin_timer(self):
         self.begin = time.time()
 
-    def query_good(self):
-        self.total_queries += 1
+    def query_good(self, num_http):
+        self.total_queries += num_http
         self.spassed = time.time() - self.begin
     
-    def query_bad(self):
-        self.total_queries += 1
+    def query_bad(self, num_http):
+        self.total_queries += num_http
         self.queries_failed += 1
+        self.spassed = time.time() - self.begin
+
+    def end_timer(self):
         self.spassed = time.time() - self.begin
 
     
@@ -29,6 +34,12 @@ flags = ' -q '
 VERBOSE = False
 WGET_VERBOSE = False
 time_ls = []
+
+HTTP_LOGIN = 1
+HTTP_READ_M = 3
+HTTP_READ_P = 4
+HTTP_WRITE_M = 4
+HTTP_WRITE_P = 5
 
 def main(arg):
     print "got run_tests"
@@ -78,11 +89,12 @@ def run(arg, myStat):
     if VERBOSE: print "logging in"
     login()
     if not login_good():
-        myStat.query_bad()
+        myStat.query_bad(HTTP_LOGIN)
         print "ERROR: could not login\n\tdoes this user have the password letmein?"
         return -1
     else:
-        myStat.query_good()
+        myStat.query_good(HTTP_LOGIN)
+    myStat.begin_timer()
     for i in range(0,repeat):
         #time_ls.append(time2-time1)
         if readsfirst:
@@ -90,77 +102,76 @@ def run(arg, myStat):
                 if VERBOSE: print "reading message!"
                 read_message()
                 if not read_message_ok():
-                    myStat.query_bad()
+                    myStat.query_bad(HTTP_READ_M)
                     print "ERROR: messages not read\n\tdoes "+username+" have message?"
                     return -1
                 else:
-                    myStat.query_good()
+                    myStat.query_good(HTTP_READ_M)
             for j in range(0,read_p):
                 if VERBOSE: print "reading post!"
                 read_post()
                 if not read_post_ok():
-                    myStat.query_bad()
+                    myStat.query_bad(HTTP_READ_P)
                     print "ERROR: post not read\n\tdoes this forum have posts?\n\tdoes "+username+" have permission to access this forum?"
                     return -1
                 else:
-                    myStat.query_good()
+                    myStat.query_good(HTTP_READ_P)
             for j in range(0,write_m):
                 if VERBOSE: print "writing message!"
                 write_message()
                 if not write_message_ok():
-                    myStat.query_bad()
+                    myStat.query_bad(HTTP_WRITE_M)
                     print "ERROR: message not written\n\tdoes "+username+" have permission to write a message?"
                     return -1
                 else:
-                    myStat.query_good()
+                    myStat.query_good(HTTP_WRITE_M)
             for j in range(0,write_p):
                 if VERBOSE: print "writing post!"
                 write_post()
                 if not write_post_ok():
-                    myStat.query_bad()
+                    myStat.query_bad(HTTP_WRITE_P)
                     print "ERROR: post not written\n\tdoes "+username+" have permission to post in this forum?"
                     return -1
                 else:
-                    myStat.query_good()
+                    myStat.query_good(HTTP_WRITE_P)
         else:
              for j in range(0,write_m):
                 if VERBOSE: print "writing message!"
                 write_message()
                 if not write_message_ok():
-                    myStat.query_bad()
+                    myStat.query_bad(HTTP_WRITE_M)
                     print "ERROR: message not written\n\tdoes "+username+" have permission to write a message?"
                     return -1
                 else:
-                    myStat.query_good()
+                    myStat.query_good(HTTP_WRITE_M)
              for j in range(0,write_p):
                 if VERBOSE: print "writing post!"
                 write_post()
                 if not write_post_ok():
-                    myStat.query_bad()
+                    myStat.query_bad(HTTP_WRITE_P)
                     print "ERROR: post not written\n\tdoes "+username+" have permission to post in this forum?"
                     return -1
                 else:
-                    myStat.query_good()
+                    myStat.query_good(HTTP_WRITE_P)
              for j in range(0,read_m):
                 if VERBOSE: print "reading message!"
                 read_message()
                 if not read_message_ok():
-                    myStat.query_bad()
+                    myStat.query_bad(HTTP_READ_M)
                     print "ERROR: messages not read\n\tdoes "+username+" have message?"
                     return -1
                 else:
-                    myStat.query_good()
+                    myStat.query_good(HTTP_READ_M)
              for j in range(0,read_p):
                 if VERBOSE: print "reading post!"
                 read_post()
                 if not read_post_ok():
-                    myStat.query_bad()
+                    myStat.query_bad(HTTP_READ_P)
                     print "ERROR: post not read\n\tdoes this forum have posts?\n\tdoes "+username+" have permission to access this forum?"
                     return -1
                 else:
-                    myStat.query_good()
-    #print time_ls
-    #print sum(time_ls)/len(time_ls)
+                    myStat.query_good(HTTP_READ_P)
+    myStat.end_timer()
     return 0
 
 
@@ -184,8 +195,8 @@ def read_post():
     time1 = time.time()
     post = "wget"+flags+"--load-cookie="+cookie_file+" --save-cookies="+cookie_file+" \'http://"+ip+"/phpBB3/viewtopic.php?f=2&t=1#p=1\' -O "+output_file
     os.system(post)
-    time2 = time.time()
-    if VERBOSE: print time2-time1
+    #time2 = time.time()
+    #if VERBOSE: print time2-time1
     #time_ls.append(time2-time1)
     return
 
@@ -195,14 +206,14 @@ def write_post():
     form_token = ""
     creation_time = ""
     last_click = ""
-    time1 = time.time()
+    #time1 = time.time()
     post_form = "wget"+flags+"--load-cookie="+cookie_file+" --save-cookies="+cookie_file+" \'http://"+ip+"/phpBB3/posting.php?mode=reply&f=2&t=1\' -O "+output_file
     os.system(post_form)
     (form_token,creation_time,last_click) = parse_tokens(output_file)
     post = "wget"+flags+"--keep-session-cookies --load-cookie="+cookie_file+" --save-cookies="+cookie_file+" --post-data=\'icon=30&subject=test&addbbcode20=100&message=This is a test post which contains multiple sentences.  They are not, however, very interesting sentences.&topic_cur_post_id=0&lastclick="+last_click+"&post=\"Submit\"&creation_time="+creation_time+"&form_token="+form_token+"\' \'http://"+ip+"/phpBB3/posting.php?mode=reply&f=2&t=1&sid="+sid+"\' -O "+output_file
     os.system(post)
-    time2 = time.time()
-    if VERBOSE: print(time2-time1)
+    #time2 = time.time()
+    #if VERBOSE: print(time2-time1)
     #time_ls.append(time2-time1-1)
     return
 
@@ -217,10 +228,10 @@ def read_message():
     inbox = "wget"+flags+"--load-cookie="+cookie_file+" --save-cookies="+cookie_file+" \'http://"+ip+"/phpBB3/ucp.php?i=pm&folder=inbox\' -O "+output_file
     os.system(inbox)
     mid = parse_message(output_file)
-    time1 = time.time()
+    #time1 = time.time()
     message = "wget"+flags+"--load-cookie="+cookie_file+" --save-cookies="+cookie_file+" \'http://"+ip+"/phpBB3/ucp.php?i=pm&mode=view&f=0&p="+mid+"\' -O "+output_file
     os.system(message)
-    time2 = time.time()
+    #time2 = time.time()
     if VERBOSE: print time2-time1
     #time_ls.append(time2-time1)
     return
@@ -228,7 +239,7 @@ def read_message():
 def write_message():
     read_ucp()
     sid = parse_sid(cookie_file)
-    time1 = time.time()
+    #time1 = time.time()
     message_form = "wget"+flags+"--load-cookie="+cookie_file+" --save-cookies="+cookie_file+" \'http://"+ip+"/phpBB3/ucp.php?i=175\' -O "+output_file
     os.system(message_form)
     (form_token,creation_time,last_click) = parse_tokens(output_file)
@@ -239,8 +250,8 @@ def write_message():
     sid = parse_sid(cookie_file)
     message_send = "wget"+flags+"--keep-session-cookies --load-cookie="+cookie_file+" --save-cookies="+cookie_file+" --post-data=\'username_list=&icon=0&subject=hello world&addbbcode20=100&message=Hello, admin!  \nI bet you are getting a lot of this exact same message.  :-P&address_list%5Bu%5D%5B2%5D=to&lastclick="+last_click+"&status_switch=0&post=Submit&creation_time="+creation_time+"&form_token="+form_token+"\' \'http://"+ip+"/phpBB3/ucp.php?i=175&sid="+sid+"\' -O "+output_file
     os.system(message_send)
-    time2 = time.time()
-    if VERBOSE: print time2-time1
+    #time2 = time.time()
+    #if VERBOSE: print time2-time1
     #time_ls.append(time2-time1-4)
     return
 
