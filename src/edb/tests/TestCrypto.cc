@@ -19,29 +19,28 @@ TestCrypto::~TestCrypto()
 }
 
 static void
-testBasics() {
+testBasics()
+{
+    for (uint i = 0; i < 100000; i++) {
+        size_t len = randomValue() % 1024;
+        string plaintext = randomBytes((uint) len);
 
-    string plainval = "hello";
+        string secretKey = randomBytes(16);
+        string salt = randomBytes(16);
 
-    string secretKey = "secret key here!";
-    string salt = "salt";
+        AES_KEY * encKey = get_AES_enc_key(secretKey);
+        AES_KEY * decKey = get_AES_dec_key(secretKey);
 
-    AES_KEY * encKey = get_AES_enc_key(secretKey);
-    AES_KEY * decKey = get_AES_dec_key(secretKey);
+        string enc = encrypt_AES_CBC(plaintext, encKey, salt);
+        string dec = decrypt_AES_CBC(enc, decKey, salt);
 
-    string enc = encrypt_AES_CBC(plainval, encKey, salt);
+        assert_s(dec == plaintext, "CBC encryption failed");
 
-    string dec = decrypt_AES_CBC(enc, decKey, salt);
+        enc = encrypt_AES_CMC(plaintext, encKey);
+        dec = decrypt_AES_CMC(enc, decKey);
 
-    cerr << "data " << plainval << " dec " << dec << "\n";
-    cerr << "len of data " << plainval.length() << " len of enc " << enc.length() << " len of dec " << dec.length() << "\n";
-
-    assert_s(dec == plainval, "CBC encryption failed");
-
-    enc = encrypt_AES_CMC(plainval, encKey);
-    dec = decrypt_AES_CMC(enc, decKey);
-
-    assert_s(dec == plainval, "CMC encryption failed");
+        assert_s(dec == plaintext, "CMC encryption failed");
+    }
 }
 
 static void
