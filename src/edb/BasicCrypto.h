@@ -11,6 +11,8 @@
 #include <openssl/rand.h>
 #include <openssl/aes.h>
 #include <openssl/evp.h>
+#include <openssl/blowfish.h>
+
 #include "util.h"
 #include <map>
 #include "params.h"
@@ -47,6 +49,12 @@ encrypt_AES_CMC(const string &ptext, const AES_KEY * enckey);
 string
 decrypt_AES_CMC(const string &ctext, const AES_KEY * deckey);
 
+uint64_t
+encrypt_BF(uint64_t v, const BF_KEY *key);
 
+uint64_t
+decrypt_BF(uint64_t v, const BF_KEY *key);
+
+BF_KEY *get_BF_KEY(const string &key);
 
 #endif /* BASICCRYPTO_H_ */

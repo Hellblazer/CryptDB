@@ -21,7 +21,8 @@ TestCrypto::~TestCrypto()
 static void
 testBasics()
 {
-    for (uint i = 0; i < 100000; i++) {
+    enum { nround = 100000 };
+    for (uint i = 0; i < nround; i++) {
         size_t len = randomValue() % 1024;
         string plaintext = randomBytes((uint) len);
 
@@ -40,6 +41,19 @@ testBasics()
         dec = decrypt_AES_CMC(enc, decKey);
 
         assert_s(dec == plaintext, "CMC encryption failed");
+
+        delete encKey;
+        delete decKey;
+    }
+
+    for (uint i = 0; i < nround; i++) {
+        uint64_t plaintext = randomValue();
+        string key = randomBytes(16);
+        BF_KEY *k = get_BF_KEY(key);
+        uint64_t c = encrypt_BF(plaintext, k);
+        uint64_t p2 = decrypt_BF(c, k);
+
+        assert_s(plaintext == p2, "BF enc/dec failed");
     }
 }
 

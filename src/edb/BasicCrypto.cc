@@ -226,3 +226,27 @@ decrypt_AES_CMC(const string &ctext, const AES_KEY * deckey)
 
     return decrypt_AES_CBC(reversed, deckey, "0");
 }
+
+uint64_t
+encrypt_BF(uint64_t v, const BF_KEY *key)
+{
+    uint64_t x;
+    BF_ecb_encrypt((unsigned char *) &v, (unsigned char *) &x, key, BF_ENCRYPT);
+    return x;
+}
+
+uint64_t
+decrypt_BF(uint64_t v, const BF_KEY *key)
+{
+    uint64_t x;
+    BF_ecb_encrypt((unsigned char *) &v, (unsigned char *) &x, key, BF_DECRYPT);
+    return x;
+}
+
+BF_KEY *
+get_BF_KEY(const string &key)
+{
+    BF_KEY *k = new BF_KEY();
+    BF_set_key(k, (int) key.length(), (unsigned char *) key.data());
+    return k;
+}
