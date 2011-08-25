@@ -1,13 +1,32 @@
 A bunch of useful command lines
 -------------------------------
 
-To make proxy log plain queries from benchmark: 
-sudo killall mysql-proxy; pushd ../eval/bench/run ; ../../../edb/tests/test -v all bench ; popd 
+====To run benchmark against CryptDBproxy====
+
+1. To prepare DB server:
+
+CREATE USER 'tpccuser' IDENTIFIED BY 'letmein';
+GRANT ALL PRIVILEGES ON *.* TO tpccuser;
+
+disable query cache
+allow only one core
+enable ip bind address for external access
+give access to remote user: GRANT ALL ON foo.* TO bar@'202.54.10.20' IDENTIFIED BY 'PASSWORD';
+open TCP port using iptables: /sbin/iptables -A INPUT -i eth0 -p tcp --destination-port 5143 -j ACCEPT
+
+
+
+2. How to run the benchmark aganst cryptdb:
+sudo killall mysql-proxy; sleep 2;  ../../../edb/tests/test bench 1 1 1 castle.csail.mit.edu 1  
 
 mysql -u root -pletmein -e "drop database cryptdbtest; create database cryptdbtest; drop database cryptdbtest_control; create database cryptdbtest_control"
 
+Note that to run transaction tput via benchmark:
+ -- need noTerminals <= 10*noWarehouses
 
-To translate inserts:
+=== To translate any queries ===
+
+Example for inserts:
 ../../edb/tests/test trace encrypt_queries sqlTableCreates emptyindex querypatterns_bench bench_plain_insert_w1 pieces/bench_enc_insert_w1_ 1199076 200
 
 /usr/bin/perl -p -i -e "s/INSERT/;\nINSERT/g" bench_plain_insert_w1
@@ -15,37 +34,35 @@ To translate inserts:
 To translate plain queries:
 ../../edb/tests/test trace encrypt_queries sqlTableCreates emptyindex querypatterns_bench ../dumps/plain_queries_w1_t10 pieces/enc_queries_w1_  617327 200
 
-
-To train from the shell (./tests/test shell)
+=== To train from the shell (./tests/test shell) ====
 train 1 ../eval/tpcc/sqlTableCreates ../eval/tpcc/querypatterns_bench 1
 mysql -u root -pletmein -e "DROP DATABASE cryptdbtest; CREATE DATABASE cryptdbtest"
 
-To run a benchmark:
+==== To run a benchmark======
 java -cp  ../build/classes:../lib/edb-jdbc14-8_0_3_14.jar:../lib/ganymed-ssh2-build250.jar:../lib/hsqldb.jar:../lib/mysql-connector-java-5.1.10-bin.jar:../lib/ojdbc14-10.2.jar:../lib/postgresql-8.0.309.jdbc3.jar -Ddriver=com.mysql.jdbc.Driver -Dconn=jdbc:mysql://localhost:3306/tpccplain -Duser=tpccuser -Dpassword=letmein -Dnwarehouses=1 -Dnterminals=1 client.jTPCCHeadless
 
 ../../edb/tests/test trace encrypt_queries sqlTableCreates sqlIndexCreates querypatterns_bench plain_queries_w1_t10 pieces/enc_queries_w1_t10_  617397 300
 
-To run tput for any trace file do:
+==== To run tput for any trace file do:====
 
 EITHER run the script:
-python repeatexp.py plainqueryfile encqueryfile nolines needtoreload?
+usage: python repeatexp.py plainqueryfile encqueryfile nolines needtoreload?
 python repeatexp.py ../dumps/plain_queries_w1_t10 ../dumps/enc_queries_w1_t10 594805  1
 
 
 OR individual commands:
 
-mysql -u root -pletmein -e "drop database tpccenc"; mysql -u root -pletmein -e "create database tpccenc"; mysql -u root -pletmein tpccenc  < ../dumps/new_dump_enc_w1
-mysql -u root -pletmein -e "drop database tpccplain"; mysql -u root -pletmein -e "create database tpccplain"; mysql -u root -pletmein tpccplain < ../dumps/new_dump_plain_w1
+mysql -u root -pletmein -e "drop database tpccenc"; mysql -u root -pletmein -e "create database tpccenc"; mysql -u root -pletmein tpccenc  < ../dumps/sch2_dump_enc_w1
+mysql -u root -pletmein -e "drop database tpccplain"; mysql -u root -pletmein -e "create database tpccplain"; mysql -u root -pletmein tpccplain < ../dumps/sch2_dump_plain_w1
 
  ../../edb/tests/test -d tpccplain -v all trace eval ../dumps/plain_queries_w1_t10_notran 594805 10  1 1 5000
 ../../edb/tests/test -d tpccenc -v all trace eval ../dumps/enc_queries_w1_t10_notran 594805 10 1 1 5000
 
-Note: when repeating trace, make sure to use: SET GLOBAL query_cache_size = 0; SELECT @@query_cache_size;
+Note: for noRepeats > 1, make sure to use: SET GLOBAL query_cache_size = 0; SELECT @@query_cache_size;
 
-To run transaction tput via benchmark:
- -- need noTerminals <= 10*noWarehouses
+
 
 Notes:
-- schema for tpcc was mapped onto integer, text, and timestamp
-- queries were not changed, but all negatives were made positives and all decimals were truncated -- this does not affec the query performance (according to Evan) and also because decisions are made only on integers
+- schema for tpcc had decimals mapped to integer; all string and timestamp types were unchanged 
+- queries were not changed, but all negatives were made positives and all decimals were truncated -- this does not affect query performance (according to Evan and I also agree) because decisions are made only on integers
 
