@@ -19,6 +19,45 @@ TestCrypto::~TestCrypto()
 }
 
 static void
+testBasics()
+{
+    enum { nround = 100000 };
+    for (uint i = 0; i < nround; i++) {
+        size_t len = randomValue() % 1024;
+        string plaintext = randomBytes((uint) len);
+
+        string secretKey = randomBytes(16);
+        string salt = randomBytes(16);
+
+        AES_KEY * encKey = get_AES_enc_key(secretKey);
+        AES_KEY * decKey = get_AES_dec_key(secretKey);
+
+        string enc = encrypt_AES_CBC(plaintext, encKey, salt);
+        string dec = decrypt_AES_CBC(enc, decKey, salt);
+
+        assert_s(dec == plaintext, "CBC encryption failed");
+
+        enc = encrypt_AES_CMC(plaintext, encKey);
+        dec = decrypt_AES_CMC(enc, decKey);
+
+        assert_s(dec == plaintext, "CMC encryption failed");
+
+        delete encKey;
+        delete decKey;
+    }
+
+    for (uint i = 0; i < nround; i++) {
+        uint64_t plaintext = randomValue();
+        string key = randomBytes(16);
+        BF_KEY *k = get_BF_KEY(key);
+        uint64_t c = encrypt_BF(plaintext, k);
+        uint64_t p2 = decrypt_BF(c, k);
+
+        assert_s(plaintext == p2, "BF enc/dec failed");
+    }
+}
+
+static void
 testOPE()
 {
 
@@ -729,6 +768,8 @@ TestCrypto::run(const TestConfig &tc, int argc, char ** argv)
         }
     }
     cerr << "TESTING CRYPTO" << endl;
+    cerr << "Testing basics.." << endl;
+    testBasics();
     cerr << "Testing OPE..." << endl;
     testOPE();
     cerr << "Testing HGD..." << endl;

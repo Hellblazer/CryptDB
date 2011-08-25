@@ -887,12 +887,15 @@ CryptoManager::decrypt_SEM(const string &ctext, AES_KEY * key, uint64_t salt)
 string
 CryptoManager::encrypt_DET(const string & ptext, AES_KEY * key)
 {
+
+    //todonow
     return CryptoManager::encrypt_SEM(ptext, key, 1);
 }
 
 string
 CryptoManager::decrypt_DET(const string & ctext, AES_KEY * key)
 {
+    //todonow
     return CryptoManager::decrypt_SEM(ctext, key, 1);
 }
 
@@ -1046,7 +1049,7 @@ CryptoManager::get_key_DET(const string &key)
 uint64_t
 CryptoManager::encrypt_DET(uint64_t plaintext, AES_KEY * key)
 {
-
+    //todonow
     return encrypt_SEM(plaintext, key, 1);
     /*
        unsigned char * plainBytes = BytesFromInt(plaintext, AES_BLOCK_BYTES);
@@ -1060,7 +1063,7 @@ CryptoManager::encrypt_DET(uint64_t plaintext, AES_KEY * key)
 uint64_t
 CryptoManager::decrypt_DET(uint64_t ciphertext, AES_KEY * key)
 {
-
+     //todonow
     return decrypt_SEM(ciphertext, key, 1);
     /*
        unsigned char * ciphBytes = BytesFromInt(ciphertext, AES_BLOCK_BYTES);
@@ -1074,7 +1077,7 @@ CryptoManager::decrypt_DET(uint64_t ciphertext, AES_KEY * key)
 uint64_t
 CryptoManager::encrypt_DET(uint32_t plaintext, AES_KEY * key)
 {
-
+     //todonow
     return encrypt_SEM((uint64_t) plaintext, key, 1);
 
     /*
