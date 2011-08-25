@@ -4181,70 +4181,93 @@ static void
 testBench(const TestConfig & tc, int argc, char ** argv)
 {
 
-    if (argc != 6) {
-        cerr << "usage: bench noWorkers noWarehouses timeLimit(mins) host encrypted? \n";
+    if((argc != 3) && (argc != 7)) {
+        cerr << "usage: bench role[client, server, both] encrypted?[1,0] [specify for client: serverhost noWorkers noWarehouses timeLimit(mins)]    \n";
         exit(-1);
     }
 
-    char * noWorkers = argv[1];
-    char * noWarehouses = argv[2];
-    char * timeLimit = argv[3];
-    string host = argv[4];
-    bool encrypted = atoi(argv[5]);
+    string role = argv[1];
+    bool encrypted = atoi(argv[2]);
+
+    bool is_client = false;
+    bool is_server = false;
+
+
+    if (role == "both") {
+        is_client = true;
+        is_server = true;
+    } else {
+        if (role == "server") {
+            is_server = true;
+        } else
+            {
+            if (role != "client") {
+                cerr <<"invalid role\n";
+            } else {
+                is_client = true;
+            }
+            }
+    }
+
+    string host = "localhost", noWorkers = "", timeLimit="", noWarehouses="";
+    if (is_client) {
+        host = argv[3];
+        noWorkers = argv[4];
+        noWarehouses = argv[5];
+        timeLimit = argv[6];
+    }
 
     if (encrypted) {
-        setenv("EDBDIR", tc.edbdir.c_str(), 1);
-        setenv("CRYPTDB_LOG", cryptdb_logger::getConf().c_str(), 1);
-        //setenv("PLAIN_MODE", "true", 1);
 
-        string tpccdir = tc.edbdir + "/../eval/tpcc/";
-        //configure proxy
-        setenv("TRAIN_QUERY", ("train 1 " + tpccdir +"sqlTableCreates " + tpccdir + "querypatterns_bench 0").c_str(), 1);
+        if (is_server) {
+            setenv("EDBDIR", tc.edbdir.c_str(), 1);
+            setenv("CRYPTDB_LOG", cryptdb_logger::getConf().c_str(), 1);
+            //setenv("PLAIN_MODE", "true", 1);
 
-        //setenv("LOG_PLAIN_QUERIES", (tc.edbdir+"/../eval/tpcc/bench_plain_queries").c_str(), 1);
-        //setenv("DO_CRYPT", "true", 1);
-        //static bool LOG_ENCRYPT_QUERIES = false;
+            string tpccdir = tc.edbdir + "/../eval/tpcc/";
+            //configure proxy
+            setenv("TRAIN_QUERY", ("train 1 " + tpccdir +"sqlTableCreates " + tpccdir + "querypatterns_bench 0").c_str(), 1);
 
-        //static bool EXECUTE_QUERIES = true;
+            //setenv("LOG_PLAIN_QUERIES", (tc.edbdir+"/../eval/tpcc/bench_plain_queries").c_str(), 1);
+            //setenv("DO_CRYPT", "true", 1);
+            //static bool LOG_ENCRYPT_QUERIES = false;
 
-        //start proxy
-        pid_t proxy_pid = fork();
-        if (proxy_pid == 0) {
-            LOG(test) << "starting proxy, pid " << getpid();
-            setenv("CRYPTDB_MODE", "single", 1);
+            //static bool EXECUTE_QUERIES = true;
 
-            stringstream script_path, address;
-            script_path << "--proxy-lua-script=" << tc.edbdir << "/../mysqlproxy/wrapper.lua";
-            uint port = 5143;
-            address << "--proxy-address=localhost:" << port;
+            //start proxy
+            pid_t proxy_pid = fork();
+            if (proxy_pid == 0) {
+                LOG(test) << "starting proxy, pid " << getpid();
+                setenv("CRYPTDB_MODE", "single", 1);
 
-            cerr << "starting on port " << port << "\n";
+                stringstream script_path, address;
+                script_path << "--proxy-lua-script=" << tc.edbdir << "/../mysqlproxy/wrapper.lua";
+                uint port = 5143;
+                address << "--proxy-address=localhost:" << port;
 
-            execlp("mysql-proxy",
-                    "mysql-proxy", "--plugins=proxy",
-                    "--max-open-files=1024",
-                    script_path.str().c_str(),
-                    address.str().c_str(),
-                    "--proxy-backend-addresses=localhost:3306",
-                    (char *) 0);
-            LOG(warn) << "could not execlp: " << strerror(errno);
-            exit(-1);
-        } else if (proxy_pid < 0) {
-            assert_s(false,"failed to fork");
-        }
+                cerr << "starting on port " << port << "\n";
 
-        //wait for proxy to start
-        cerr << "waiting for proxy to start\n";
-        sleep(3);
+                execlp("mysql-proxy",
+                        "mysql-proxy", "--plugins=proxy",
+                        "--max-open-files=1024",
+                        script_path.str().c_str(),
+                        address.str().c_str(),
+                        "--proxy-backend-addresses=localhost:3306",
+                        (char *) 0);
+                LOG(warn) << "could not execlp: " << strerror(errno);
+                exit(-1);
+            } else if (proxy_pid < 0) {
+                assert_s(false,"failed to fork");
+            }
 
-        //point benchmark data load to proxy
-        //string path = tc.edbdir + "/../eval/bench/run/";
+            //wait for proxy to start
+            cerr << "waiting for proxy to start\n";
+            sleep(3);
 
-        /*
+            /*
     cerr << "trying to execute " << (path+"loadData.sh") << " " << "mysqlproxy.properties" << "\n";
     execlp((path+"loadData.sh").c_str(),
-            "loadData.sh",
-             "mysqlproxy.properties",
+            "loadData.sh", "mysqlproxy.properties",
              "numWarehouses",
              "4",
              (char *) 0
@@ -4252,26 +4275,29 @@ testBench(const TestConfig & tc, int argc, char ** argv)
 
     LOG(warn) << "could not execlp bench: " << strerror(errno);
 
-         */
+             */
+        }
 
-        assert_s(system((string("java") + " -cp  ../build/classes:../lib/edb-jdbc14-8_0_3_14.jar:../lib/ganymed-ssh2-build250.jar:"
-                "../lib/hsqldb.jar:../lib/mysql-connector-java-5.1.10-bin.jar:../lib/ojdbc14-10.2.jar:../lib/postgresql-8.0.309.jdbc3.jar "
-                "-Ddriver=com.mysql.jdbc.Driver "
-                "-Dconn=jdbc:mysql://"+host+":5143/tpccenc "
-                "-Duser=tpccuser -Dpassword=letmein "
-                "-Dnwarehouses="+noWarehouses+" -Dnterminals=" +noWorkers+" -DtimeLimit="+timeLimit+" client.jTPCCHeadless").c_str())>=0,
-                "problem running benchmark");
-
+        if (is_client) {
+            assert_s(system((string("java") + " -cp  ../build/classes:../lib/edb-jdbc14-8_0_3_14.jar:../lib/ganymed-ssh2-build250.jar:"
+                    "../lib/hsqldb.jar:../lib/mysql-connector-java-5.1.10-bin.jar:../lib/ojdbc14-10.2.jar:../lib/postgresql-8.0.309.jdbc3.jar "
+                    "-Ddriver=com.mysql.jdbc.Driver "
+                    "-Dconn=jdbc:mysql://"+host+":5143/tpccenc "
+                    "-Duser=tpccuser -Dpassword=letmein "
+                    "-Dnwarehouses="+noWarehouses+" -Dnterminals=" +noWorkers+" -DtimeLimit="+timeLimit+" client.jTPCCHeadless").c_str())>=0,
+                    "problem running benchmark");
+        }
     } else {
         //just start the benchmark
-        assert_s(system((string("java") + " -cp  ../build/classes:../lib/edb-jdbc14-8_0_3_14.jar:../lib/ganymed-ssh2-build250.jar:"
-                "../lib/hsqldb.jar:../lib/mysql-connector-java-5.1.10-bin.jar:../lib/ojdbc14-10.2.jar:../lib/postgresql-8.0.309.jdbc3.jar "
-                "-Ddriver=com.mysql.jdbc.Driver "
-                "-Dconn=jdbc:mysql://"+host+":3306/tpccplain "
-                "-Duser=tpccuser -Dpassword=letmein "
-                "-Dnwarehouses="+noWarehouses+" -Dnterminals=" +noWorkers+" -DtimeLimit="+timeLimit+" client.jTPCCHeadless").c_str())>=0,
-                "problem running benchmark");
-
+        if (is_client) {
+            assert_s(system((string("java") + " -cp  ../build/classes:../lib/edb-jdbc14-8_0_3_14.jar:../lib/ganymed-ssh2-build250.jar:"
+                    "../lib/hsqldb.jar:../lib/mysql-connector-java-5.1.10-bin.jar:../lib/ojdbc14-10.2.jar:../lib/postgresql-8.0.309.jdbc3.jar "
+                    "-Ddriver=com.mysql.jdbc.Driver "
+                    "-Dconn=jdbc:mysql://"+host+":3306/tpccplain "
+                    "-Duser=tpccuser -Dpassword=letmein "
+                    "-Dnwarehouses="+noWarehouses+" -Dnterminals=" +noWorkers+" -DtimeLimit="+timeLimit+" client.jTPCCHeadless").c_str())>=0,
+                    "problem running benchmark");
+        }
     }
 
     //don't forget to create indexes!

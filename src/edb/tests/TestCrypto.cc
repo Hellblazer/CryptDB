@@ -19,6 +19,32 @@ TestCrypto::~TestCrypto()
 }
 
 static void
+testBasics() {
+
+    string plainval = "hello";
+
+    string secretKey = "secret key here!";
+    string salt = "salt";
+
+    AES_KEY * encKey = get_AES_enc_key(secretKey);
+    AES_KEY * decKey = get_AES_dec_key(secretKey);
+
+    string enc = encrypt_AES_CBC(plainval, encKey, salt);
+
+    string dec = decrypt_AES_CBC(enc, decKey, salt);
+
+    cerr << "data " << plainval << " dec " << dec << "\n";
+    cerr << "len of data " << plainval.length() << " len of enc " << enc.length() << " len of dec " << dec.length() << "\n";
+
+    assert_s(dec == plainval, "CBC encryption failed");
+
+    enc = encrypt_AES_CMC(plainval, encKey);
+    dec = decrypt_AES_CMC(enc, decKey);
+
+    assert_s(dec == plainval, "CMC encryption failed");
+}
+
+static void
 testOPE()
 {
 
@@ -729,6 +755,8 @@ TestCrypto::run(const TestConfig &tc, int argc, char ** argv)
         }
     }
     cerr << "TESTING CRYPTO" << endl;
+    cerr << "Testing basics.." << endl;
+    testBasics();
     cerr << "Testing OPE..." << endl;
     testOPE();
     cerr << "Testing HGD..." << endl;

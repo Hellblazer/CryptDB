@@ -18,6 +18,8 @@
 
 
 AES_KEY * get_AES_KEY(const string &key);
+AES_KEY * get_AES_enc_key(const string & key);
+AES_KEY * get_AES_dec_key(const string & key);
 
 vector<unsigned char>
 getXorVector(size_t len, const AES_KEY * key, uint64_t salt);
@@ -27,6 +29,24 @@ encrypt_AES(const string & plaintext, const AES_KEY * key,  uint64_t salt);
 
 string
 decrypt_AES(const string & ciphertext, const AES_KEY * key,  uint64_t salt);
+
+string
+encrypt_AES_CBC(const string &ptext, const AES_KEY * enckey, string salt, bool pad = true);
+
+string
+decrypt_AES_CBC(const string &ctext, const AES_KEY * deckey, string salt, bool pad = true);
+
+//only works for padding unit < 255 bytes
+unsigned char *  pad(unsigned char * data, unsigned int len, unsigned int unit, unsigned int & paddedLen);
+unsigned char * unpad(unsigned char * data, unsigned int len, unsigned int & actualLen);
+
+
+string
+encrypt_AES_CMC(const string &ptext, const AES_KEY * enckey);
+
+string
+decrypt_AES_CMC(const string &ctext, const AES_KEY * deckey);
+
 
 
 #endif /* BASICCRYPTO_H_ */

@@ -17,7 +17,14 @@ open TCP port using iptables: /sbin/iptables -A INPUT -i eth0 -p tcp --destinati
 
 
 2. How to run the benchmark aganst cryptdb:
-sudo killall mysql-proxy; sleep 2;  ../../../edb/tests/test bench 1 1 1 castle.csail.mit.edu 1  
+
+usage: bench role[client, server, both] encrypted?[1,0] [specify for client: serverhost noWorkers noWarehouses timeLimit(mins)] 
+
+on different machines:
+../../../edb/tests/test bench client 1  castle.csail.mit.edu 1 1 1  
+sudo killall mysql-proxy; sleep 2; ../../../edb/tests/test bench server 1
+on same machine:
+sudo killall mysql-proxy; sleep 2; ../../../edb/tests/test bench both 1 localhost 1 1 1 
 
 mysql -u root -pletmein -e "drop database cryptdbtest; create database cryptdbtest; drop database cryptdbtest_control; create database cryptdbtest_control"
 
