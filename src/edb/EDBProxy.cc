@@ -268,9 +268,9 @@ setType(list<string>::iterator & it, list<string> & words, FieldMetadata * fm)
 
     string res = *it;
     it++;
-	res += processParen(it, words);
+    res += processParen(it, words);
 
-	return res;
+    return res;
 }
 
 list<string>
@@ -371,7 +371,7 @@ getAnonNameForFilter(FieldMetadata * fm, onion o)
         } else {
             return fm->anonFieldNameDET;
         }*/
-    	return fm->anonFieldNameDET;
+        return fm->anonFieldNameDET;
     }
     if (o == oOPE) {
         return fm->anonFieldNameOPE;
@@ -1897,7 +1897,7 @@ throw (CryptDBError)
 
         if (!DECRYPTFIRST) {
             //cerr <<"w\n";
-        	LOG(edb) << "table " << table << " has encrypted? " << tm->hasEncrypted << "\n";
+            LOG(edb) << "table " << table << " has encrypted? " << tm->hasEncrypted << "\n";
             if (table.compare(oldTable)) {
                 //need to add salt if new table is sensitive
                 oldTable = table;
@@ -2574,13 +2574,6 @@ throw (CryptDBError)
     return res;
 }
 
-static my_ulonglong max (my_ulonglong a, my_ulonglong b) {
-	if (a>b) {
-		return a;
-	}
-	return b;
-}
-
 string
 EDBProxy::processValsToInsert(string field, string table, uint64_t salt,
                                string value, TMKM & tmkm, bool null)
@@ -2590,7 +2583,7 @@ EDBProxy::processValsToInsert(string field, string table, uint64_t salt,
     FieldMetadata * fm = tm->fieldMetaMap[field];
 
     if (tm->ai.field == field) {
-        tm->ai.incvalue = max(tm->ai.incvalue, valFromStr(value));
+        tm->ai.incvalue = max((uint64_t) tm->ai.incvalue, valFromStr(value));
     }
 
     if (!fm->isEncrypted) {
@@ -3182,30 +3175,30 @@ EDBProxy::considerQuery(command com, const string &query)
         break; 
     }
     case cmd::SELECT: {
-    	list<string> words = getSQLWords(query);
-    	//for speed
-    	if (!contains("from", words)) {
-    		return false;
-    	}
+        list<string> words = getSQLWords(query);
+        //for speed
+        if (!contains("from", words)) {
+            return false;
+        }
 
-    	if (mp) {
-    		auto it_from = itAtKeyword(words, "from");
-    		it_from++;
-    		bool table_sense = false;
-    		while(it_from != words.end() && !isKeyword(*it_from)) {
-    			auto table_info = tableMetaMap.find(*it_from);
-    			if (table_info != tableMetaMap.end() && table_info->second->hasEncrypted) {
-    				table_sense = true;
-    			}
-    			it_from++;
-    		}
-    		//it none of the tables selected from are sensitive, ignore the query
-    		if (!table_sense) {
-    			return false;
-    		}
+        if (mp) {
+            auto it_from = itAtKeyword(words, "from");
+            it_from++;
+            bool table_sense = false;
+            while(it_from != words.end() && !isKeyword(*it_from)) {
+                auto table_info = tableMetaMap.find(*it_from);
+                if (table_info != tableMetaMap.end() && table_info->second->hasEncrypted) {
+                    table_sense = true;
+                }
+                it_from++;
+            }
+            //it none of the tables selected from are sensitive, ignore the query
+            if (!table_sense) {
+                return false;
+            }
 
-    		break;
-    	}
+            break;
+        }
     }
     case cmd::DROP: {
         list<string> words = getSQLWords(query);
