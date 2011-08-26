@@ -24,6 +24,7 @@ def do_parse(fn):
 if __name__ == '__main__':
     if len(sys.argv) < 3:
         print 'Usage:', sys.argv[0], 'enctype-to-explain parsed-all/*.gz'
+        sys.exit(0)
 
     enctype = sys.argv[1]
     files = sys.argv[2:]
