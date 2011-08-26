@@ -16,7 +16,8 @@ class TestConfig {
     	// default values
         user = "root";
         pass = "letmein";
-        host = "localhost";
+        host = "127.0.0.1";
+            /* avoid localhost; it's special (talks via unix domain socket) */
         db   = "cryptdbtest";
         port = 3306;
         stop_if_fail = false;
