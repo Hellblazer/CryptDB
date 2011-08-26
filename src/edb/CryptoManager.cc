@@ -3,10 +3,11 @@
  */
 
 #include <stdlib.h>
+#include <sstream>
 
 #include "CryptoManager.h"
 #include "cryptdb_log.h"
-#include <sstream>
+#include "ctr.hh"
 
 // TODO: simplify CryptoManager using a function taking from level to level
 // for a type of data using union for answers or inputs
@@ -292,6 +293,8 @@ CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft,
 
             switch (o) {
             case oDET: {
+                ANON_REGION("decrypt int det", &perf_cg);
+
                 uint64_t val = valFromStr(data);
                 if (fromlevel == SECLEVEL::SEMANTIC_DET) {
                     AES_KEY * key =
@@ -329,6 +332,8 @@ CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft,
                 return "";
             }
             case oOPE: {
+                ANON_REGION("decrypt int ope", &perf_cg);
+
                 uint64_t val = valFromStr(data);
                 if (fromlevel == SECLEVEL::SEMANTIC_OPE) {
                     AES_KEY * key =
@@ -364,6 +369,8 @@ CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft,
                 return "";
             }
             case oAGG: {
+                ANON_REGION("decrypt int agg", &perf_cg);
+
                 string uval = data;
                 if (fromlevel == SECLEVEL::SEMANTIC_AGG) {
                     uint64_t val = decrypt_Paillier(uval);
@@ -390,6 +397,7 @@ CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft,
 
             switch (o) {
             case oDET: {
+                ANON_REGION("decrypt text det", &perf_cg);
 
                 string val = data;
                 if (fromlevel == SECLEVEL::SEMANTIC_DET) {
@@ -438,6 +446,7 @@ CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft,
                 return "";
             }
             case oOPE: {
+                ANON_REGION("decrypt text ope", &perf_cg);
 
                 uint64_t val = valFromStr(data);
                 if (fromlevel == SECLEVEL::SEMANTIC_OPE) {
@@ -485,6 +494,7 @@ CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft,
 
         switch (o) {
         case oDET: {
+            ANON_REGION("encrypt int det", &perf_cg);
 
             uint64_t val;
 
@@ -528,6 +538,7 @@ CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft,
             return "";
         }
         case oOPE: {
+            ANON_REGION("encrypt int ope", &perf_cg);
 
             uint64_t val;
 
@@ -570,6 +581,7 @@ CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft,
             return "";
         }
         case oAGG: {
+            ANON_REGION("encrypt int agg", &perf_cg);
 
             if (fromlevel == SECLEVEL::PLAIN_AGG) {
                 data = removeUnsupportedMath(data);
@@ -598,6 +610,7 @@ CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft,
 
         switch (o) {
         case oDET: {
+            ANON_REGION("encrypt text det", &perf_cg);
 
             if (fromlevel == SECLEVEL::PLAIN_DET) {
                 LOG(crypto) << "at plain det " << data;
@@ -657,6 +670,8 @@ CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft,
             return "";
         }
         case oOPE: {
+            ANON_REGION("encrypt text ope", &perf_cg);
+
             uint64_t val;
 
             if (fromlevel == SECLEVEL::PLAIN_OPE) {
@@ -690,6 +705,7 @@ CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft,
         }
 
         case oSWP: {
+            ANON_REGION("encrypt text swp", &perf_cg);
 
             assert_s(fromlevel == SECLEVEL::PLAIN_SWP,
                      "expected onion level to be SECLEVEL::PLAIN_SWP ");
@@ -828,8 +844,8 @@ CryptoManager::unmarshallKey(const string &key)
 AES_KEY *
 CryptoManager::get_key_SEM(const string &key)
 {
+    ANON_REGION(__func__, &perf_cg);
     return get_AES_KEY(key);
-
 }
 
 
@@ -966,6 +982,7 @@ AES_KEY * CryptoManager::getKey(const string & key) {
 OPE *
 CryptoManager::get_key_OPE(const string &key, const unsigned int & pTextSize, const unsigned int & cTextSize)
 {
+    ANON_REGION(__func__, &perf_cg);
     return new OPE(key, pTextSize, cTextSize);
 }
 

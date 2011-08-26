@@ -5,6 +5,7 @@
 
 #include "MultiPrinc.h"
 #include "cryptdb_log.h"
+#include "ctr.hh"
 
 MultiPrinc::MultiPrinc(Connect * connarg)
 {
@@ -325,6 +326,8 @@ MultiPrinc::getEncForFromFilter(command comm, list<string> query, TMKM & tmkm,
                                                     TableMetadata *> &
                                 tableMetaMap)
 {
+    ANON_REGION(__func__, &perf_cg);
+
     if (!PARSING) {
         tmkm.encForVal = map<string, string>();
 
@@ -384,6 +387,8 @@ MultiPrinc::prepareSelect(list<string> & words, TMKM & tmkm, QueryMeta & qm,
                           map<string,
                               TableMetadata *> & tm)
 {
+    ANON_REGION(__func__, &perf_cg);
+
     // records for which principals some values are encrypted by looking in
     // the where clause as well
     getEncForFromFilter(cmd::SELECT, words, tmkm, qm, tm);
@@ -420,6 +425,8 @@ MultiPrinc::selectEncFor(string table, string field, QueryMeta & qm,
                          TMKM & tmkm, TableMetadata * tm,
                          FieldMetadata * fm)
 {
+    ANON_REGION(__func__, &perf_cg);
+
     string princ = mkm.encForMap[fullName(field, table)];
     if (tmkm.principalsSeen.find(princ) == tmkm.principalsSeen.end()) {
         //need to add principal for which this field is encrypted
@@ -441,6 +448,7 @@ MultiPrinc::processReturnedField(unsigned int index, bool nextIsSalt, string ful
                                  TMKM & tmkm,
                                  bool & ignore)
 {
+    ANON_REGION(__func__, &perf_cg);
 
     ignore = false;
 
@@ -487,6 +495,7 @@ getPsswdTable(string table)
 bool
 MultiPrinc::checkPsswd(command comm, list<string> & words)
 {
+    ANON_REGION(__func__, &perf_cg);
 
     /*
      * checks for
@@ -551,6 +560,8 @@ MultiPrinc::checkPsswd(command comm, list<string> & words)
 bool
 MultiPrinc::checkPredicate(const AccessRelation & accRel, map<string, string> & vals)
 {
+    ANON_REGION(__func__, &perf_cg);
+
 	if (mkm.condAccess.find(accRel) != mkm.condAccess.end()) {
     	Predicate * pred = mkm.condAccess[accRel];
 
@@ -589,6 +600,7 @@ MultiPrinc::insertRelations(const list<pair<string, bool> > & values, string tab
                             list<string> fields,
                             TMKM & tmkm)
 {
+    ANON_REGION(__func__, &perf_cg);
 
     //first collect all values in a list
     map<string, string> vals;
@@ -657,6 +669,7 @@ bool
 MultiPrinc::isPrincipal(string princ) {
     return accMan->isType(princ);
 }
+
 bool
 MultiPrinc::isActiveUsers(const string &query)
 {
@@ -684,6 +697,7 @@ MultiPrinc::isActiveUsers(const string &query)
 string
 MultiPrinc::get_key(string fieldName, TempMKM & tmkm)
 {
+    ANON_REGION(__func__, &perf_cg);
 
     assert_s(mkm.encForMap.find(
                  fieldName) != mkm.encForMap.end(),
@@ -713,6 +727,8 @@ string
 MultiPrinc::get_key(string fieldName, TMKM & tmkm,
                     const vector<SqlItem> &res)
 {
+    ANON_REGION(__func__, &perf_cg);
+
     assert_s(mkm.encForMap.find(
                  fieldName) != mkm.encForMap.end(),
              "cryptappgetkey gets unencrypted field <"+fieldName+">");

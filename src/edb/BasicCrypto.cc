@@ -6,6 +6,7 @@
 
 #include <assert.h>
 #include "BasicCrypto.h"
+#include "ctr.hh"
 
 
 AES_KEY *
@@ -18,6 +19,8 @@ get_AES_KEY(const string &key)
 AES_KEY *
 get_AES_enc_key(const string &key)
 {
+    ANON_REGION(__func__, &perf_cg);
+
     AES_KEY * aes_key = new AES_KEY();
 
     if (AES_set_encrypt_key((const uint8_t*) key.c_str(), AES_KEY_SIZE,
@@ -32,6 +35,8 @@ get_AES_enc_key(const string &key)
 AES_KEY *
 get_AES_dec_key(const string &key)
 {
+    ANON_REGION(__func__, &perf_cg);
+
     AES_KEY * aes_key = new AES_KEY();
 
     if (AES_set_decrypt_key((const uint8_t*) key.c_str(), AES_KEY_SIZE,
