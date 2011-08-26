@@ -697,6 +697,7 @@ Connection::start() {
             cerr << "starting on port " << tc.port << "\n";
             execlp("mysql-proxy",
                    "mysql-proxy", "--plugins=proxy",
+                                  "--event-threads=4",
                                   "--max-open-files=1024",
                                   script_path.str().c_str(),
                                   address.str().c_str(),

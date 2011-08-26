@@ -1,10 +1,11 @@
 #include <sstream>
+#include <fstream>
 #include <assert.h>
 #include <lua5.1/lua.hpp>
 
 #include "EDBProxy.h"
 #include "cryptdb_log.h"
-#include <fstream>
+#include <scoped_lock.hh>
 
 class WrapperState {
  public:
@@ -16,6 +17,7 @@ class WrapperState {
 static Timer t;
 
 static EDBProxy * cl = NULL;
+static pthread_mutex_t big_lock;
 
 static bool DO_CRYPT = true;
 
@@ -48,6 +50,8 @@ xlua_pushlstring(lua_State *l, const string &s)
 static int
 connect(lua_State *L)
 {
+    scoped_lock l(&big_lock);
+
     string client = xlua_tolstring(L, 1);
     string server = xlua_tolstring(L, 2);
     uint port = luaL_checkint(L, 3);
@@ -163,6 +167,8 @@ connect(lua_State *L)
 static int
 disconnect(lua_State *L)
 {
+    scoped_lock l(&big_lock);
+
     string client = xlua_tolstring(L, 1);
     if (clients.find(client) == clients.end())
         return 0;
@@ -177,6 +183,8 @@ disconnect(lua_State *L)
 static int
 rewrite(lua_State *L)
 {
+    scoped_lock l(&big_lock);
+
     string client = xlua_tolstring(L, 1);
     if (clients.find(client) == clients.end())
         return 0;
@@ -224,6 +232,8 @@ rewrite(lua_State *L)
 static int
 decrypt(lua_State *L)
 {
+    scoped_lock l(&big_lock);
+
     string client = xlua_tolstring(L, 1);
     if (clients.find(client) == clients.end())
         return 0;
