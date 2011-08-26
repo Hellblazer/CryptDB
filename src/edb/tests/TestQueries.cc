@@ -1063,9 +1063,6 @@ RunTest(const TestConfig &tc) {
     test->restart();
     control->restart();
     CheckQueryList(tc, ManyConnections);
-
-    test->stop();
-    control->stop();
 }
 
 
@@ -1169,7 +1166,9 @@ TestQueries::run(const TestConfig &tc, int argc, char ** argv) {
     Connection test_(tc, test_type);
     test = &test_;
 
-    RunTest(tc);
+    enum { nrounds = 1 };
+    for (uint i = 0; i < nrounds; i++)
+        RunTest(tc);
 
     cerr << "RESULT: " << npass << "/" << ntest << endl;
 }
