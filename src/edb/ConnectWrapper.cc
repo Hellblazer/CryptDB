@@ -195,7 +195,8 @@ rewrite(lua_State *L)
             } catch (CryptDBError &e) {
                 LOG(wrapper) << "cannot rewrite " << query << ": " << e.msg;
                 lua_pushnil(L);
-                return 1;
+                lua_pushnil(L);
+                return 2;
             }
         }
     }
@@ -203,6 +204,8 @@ rewrite(lua_State *L)
     if (LOG_PLAIN_QUERIES) {
         *(clients[client]->PLAIN_LOG) << query << "\n";
     }
+
+    lua_pushboolean(L, clients[client]->considered);
 
     lua_createtable(L, (int) new_queries.size(), 0);
     int top = lua_gettop(L);
@@ -215,7 +218,7 @@ rewrite(lua_State *L)
     }
 
     clients[client]->last_query = query;
-    return 1;
+    return 2;
 }
 
 static int
