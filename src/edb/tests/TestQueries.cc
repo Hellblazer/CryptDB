@@ -609,11 +609,34 @@ Connection::restart() {
     start();
 }
 
+static bool
+try_connect_localhost(uint port)
+{
+    int fd = socket(AF_INET, SOCK_STREAM, 0);
+    assert(fd >= 0);
+
+    struct sockaddr_in sin;
+    sin.sin_family = AF_INET;
+    sin.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+    sin.sin_port = htons(port);
+    int r = connect(fd, (struct sockaddr *) &sin, sizeof(sin));
+    close(fd);
+
+    if (r == 0)
+        return true;
+    else
+        return false;
+}
+
 static uint
 alloc_port()
 {
     static uint port = 5121;
-    return port++;
+    for (;;) {
+        int myport = port++;
+        if (!try_connect_localhost(myport))
+            return myport;
+    }
 }
 
 void
@@ -685,19 +708,7 @@ Connection::start() {
             for (uint i = 0; i < 100; i++) {
                 usleep(100000);
                 LOG(test) << "checking if proxy is running yet..";
-
-                int fd = socket(AF_INET, SOCK_STREAM, 0);
-                assert(fd >= 0);
-
-                struct sockaddr_in sin;
-                sin.sin_family = AF_INET;
-                sin.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
-                sin.sin_port = htons(tc.port);
-                int r = connect(fd, (struct sockaddr *) &sin, sizeof(sin));
-                LOG(test) << "connect: " << r;
-                close(fd);
-
-                if (r == 0)
+                if (try_connect_localhost(tc.port))
                     break;
             }
 
