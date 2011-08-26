@@ -126,7 +126,8 @@ class perfsum_base {
     auto sums = get_sums();
     std::sort(sums->begin(), sums->end(),
 	      [](perfsum_base *a, perfsum_base *b) { return a->name < b->name; });
-    for (perfsum_base *ps: *sums) {
+    for (auto psi = sums->begin(); psi != sums->end(); psi++) {
+      perfsum_base *ps = *psi;
       if (!ps->get_enabled())
 	continue;
       auto p = ps->get_stats();
@@ -151,8 +152,10 @@ class perfsum_base {
 			int w0, int w, Callback f)
   {
     std::cout << std::left << std::setw(w0) << rowname;
-    for (const auto &elem: r)
+    for (auto iter = r.begin(); iter != r.end(); iter++) {
+      auto elem = *iter;
       std::cout << std::left << std::setw(w) << f(elem) << " ";
+    }
     std::cout << std::endl;
   }
 
