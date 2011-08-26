@@ -12,33 +12,66 @@
 #ifndef TESTQUERIES_H_
 #define TESTQUERIES_H_
 
-struct QueryList {
-    string name;
-    vector<string> plain_create;
-    vector<string> single_create;
-    vector<string> multi_create;
-    vector<Query> common;
-    vector<string> plain_drop;
-    vector<string> single_drop;
-    vector<string> multi_drop;
+typedef enum test_mode {
+    UNENCRYPTED, SINGLE, MULTI,
+    PROXYPLAIN, PROXYPLAINMP, PROXYSINGLE, PROXYMULTI
+} test_mode;
 
-    QueryList() 
+struct QueryChoice {
+    const vector<string> plain;
+    const vector<string> single;
+    const vector<string> multi;
+
+    QueryChoice(const vector<string> &plain_arg,
+                const vector<string> &single_arg,
+                const vector<string> &multi_arg)
+        : plain(plain_arg), single(single_arg), multi(multi_arg)
     {
+        assert(plain_arg.size() == single_arg.size());
+        assert(plain_arg.size() == multi_arg.size());
     }
 
-    QueryList(string namearg, vector<string> pc, vector<string> sc, vector<string> mc, vector<Query> c, vector<string> pd, vector<string> sd, vector<string> md) {
-        name = namearg;
-        plain_create = pc;
-        single_create = sc;
-        multi_create = mc;
-        common = c;
-        plain_drop = pd;
-        single_drop = sd;
-        multi_drop = md;
+    const vector<string> &choose(test_mode t) const {
+        switch (t) {
+        case UNENCRYPTED:
+        case PROXYPLAIN:
+        case PROXYPLAINMP:
+            return plain;
+
+        case SINGLE:
+        case PROXYSINGLE:
+            return single;
+
+        case MULTI:
+        case PROXYMULTI:
+            return multi;
+
+        default:
+            assert(0);
+        }
+    }
+
+    size_t size() const {
+        return plain.size();
     }
 };
 
-typedef enum test_mode {UNENCRYPTED, SINGLE, MULTI, PROXYPLAIN, PROXYSINGLE, PROXYMULTI} test_mode;
+struct QueryList {
+    string name;
+    QueryChoice create;
+    vector<Query> common;
+    QueryChoice drop;
+
+    QueryList(string namearg,
+              vector<string> pc, vector<string> sc, vector<string> mc,
+              vector<Query> c,
+              vector<string> pd, vector<string> sd, vector<string> md)
+        : name(namearg),
+          create(pc, sc, mc),
+          common(c),
+          drop(pd, sd, md)
+    {}
+};
 
 class Connection {
  public:

@@ -643,6 +643,7 @@ Connection::start() {
         break;
         //proxy -- start proxy in separate process and initialize connection
     case PROXYPLAIN:
+    case PROXYPLAINMP:
     case PROXYSINGLE:
     case PROXYMULTI:
         tc.port = alloc_port();
@@ -657,7 +658,7 @@ Connection::start() {
             setenv("CRYPTDB_DB", tc.db.c_str(), 1);
             if (type == PROXYSINGLE) {
                 setenv("CRYPTDB_MODE", "single", 1);
-            } else if (type == PROXYMULTI) {
+            } else if (type == PROXYMULTI || type == PROXYPLAINMP) {
                 setenv("CRYPTDB_MODE", "multi", 1);
             } else {
                 setenv("CRYPTDB_MODE", "plain", 1);
@@ -728,6 +729,7 @@ Connection::stop() {
         }
         break;
     case PROXYPLAIN:
+    case PROXYPLAINMP:
     case PROXYSINGLE:
     case PROXYMULTI:
         if (proxy_pid > 0)
@@ -748,6 +750,7 @@ Connection::execute(string query) {
     switch (type) {
     case UNENCRYPTED:
     case PROXYPLAIN:
+    case PROXYPLAINMP:
     case PROXYSINGLE:
     case PROXYMULTI:
         return executeConn(query);
@@ -798,6 +801,7 @@ Connection::executeLast() {
         return executeLastEDB();
     case UNENCRYPTED:
     case PROXYPLAIN:
+    case PROXYPLAINMP:
     case PROXYSINGLE:
     case PROXYMULTI:
         return executeLastConn();
@@ -893,6 +897,7 @@ CheckQuery(const TestConfig &tc, string query) {
         switch(test_type) {
         case UNENCRYPTED:
         case PROXYPLAIN:
+        case PROXYPLAINMP:
         case PROXYSINGLE:
         case PROXYMULTI:
             if (control_type != SINGLE && control_type != MULTI) {
@@ -920,104 +925,39 @@ CheckQuery(const TestConfig &tc, string query) {
 
 static void
 CheckQueryList(const TestConfig &tc, const QueryList &queries) {
-    assert_s(queries.plain_create.size() == queries.single_create.size() && queries.plain_create.size() == queries.multi_create.size(), "create query lists are not the same size");
-    assert_s(queries.plain_drop.size() == queries.single_drop.size() && queries.plain_drop.size() == queries.multi_drop.size(), "drop query lists are not the same size");
-
-    for (unsigned int i = 0; i < queries.plain_create.size(); i++) {
-        string control_query;
-        string test_query;
-        switch(control_type) {
-        case 0:
-        case 3:
-            control_query = queries.plain_create[i];
-            break;
-        case 1:
-        case 4:
-            control_query = queries.single_create[i];
-            break;
-        case 2:
-        case 5:
-            control_query = queries.multi_create[i];
-            break;
-        default:
-            assert_s(false, "control_type invalid");
-        }
-
-        switch(test_type) {
-        case 0:
-        case 3:
-            test_query = queries.plain_create[i];
-            break;
-        case 1:
-        case 4:
-            test_query = queries.single_create[i];
-            break;
-        case 2:
-        case 5:
-            test_query = queries.multi_create[i];
-            break;
-        default:
-            assert_s(false, "test_type invalid");
-        }
+    for (unsigned int i = 0; i < queries.create.size(); i++) {
+        string control_query = queries.create.choose(control_type)[i];
+        string test_query = queries.create.choose(test_type)[i];
         CheckAnnotatedQuery(tc, control_query, test_query);
     }
 
     for (auto q = queries.common.begin(); q != queries.common.end(); q++) {
         switch (test_type) {
-        case 0:
-        case 1:
-        case 3:
-        case 4:
+        case PLAIN:
+        case SINGLE:
+        case PROXYPLAIN:
+        case PROXYPLAINMP:
+        case PROXYSINGLE:
             CheckQuery(tc, q->query);
             break;
-        case 2:
-        case 5:
+
+        case MULTI:
+        case PROXYMULTI:
             if (q->test_res) {
                 CheckNULL(tc, q->query);
             } else {
                 CheckQuery(tc, q->query);
             }
             break;
+
         default:
             assert_s(false, "test_type invalid");
         }
     }
 
-    for (unsigned int i = 0; i < queries.plain_drop.size(); i++) {
-        string control_query;
-        string test_query;
-        switch(control_type) {
-        case 0:
-        case 3:
-            control_query = queries.plain_drop[i];
-            break;
-        case 1:
-        case 4:
-            control_query = queries.single_drop[i];
-            break;
-        case 2:
-        case 5:
-            control_query = queries.multi_drop[i];
-            break;
-        default:
-            assert_s(false, "control_type invalid");
-        }
-        switch(test_type) {
-        case 0:
-        case 3:
-            test_query = queries.plain_drop[i];
-            break;
-        case 1:
-        case 4:
-            test_query = queries.single_drop[i];
-            break;
-        case 2:
-        case 5:
-            test_query = queries.multi_drop[i];
-            break;
-        default:
-            assert_s(false, "test_type invalid");
-        }
+    for (unsigned int i = 0; i < queries.drop.size(); i++) {
+        string control_query = queries.drop.choose(control_type)[i];
+        string test_query = queries.drop.choose(test_type)[i];
         CheckAnnotatedQuery(tc, control_query, test_query);
     }
 }
@@ -1074,6 +1014,27 @@ TestQueries::TestQueries() {
 TestQueries::~TestQueries() {
 }
 
+static test_mode
+string_to_test_mode(const string &s)
+{
+    if (s == "plain")
+        return UNENCRYPTED;
+    else if (s == "single")
+        return SINGLE;
+    else if (s == "multi")
+        return MULTI;
+    else if (s == "proxy-plain")
+        return PROXYPLAIN;
+    else if (s == "proxy-plainmp")
+        return PROXYPLAINMP;
+    else if (s == "proxy-single")
+        return PROXYSINGLE;
+    else if (s == "proxy-multi")
+        return PROXYMULTI;
+    else
+        throw std::runtime_error("unknown test mode");
+}
+
 void
 TestQueries::run(const TestConfig &tc, int argc, char ** argv) {
     switch(argc) {
@@ -1081,40 +1042,8 @@ TestQueries::run(const TestConfig &tc, int argc, char ** argv) {
         //TODO check that argv[3] is a proper int-string
         no_conn = valFromStr(argv[3]);
     case 3:
-        if (strncmp(argv[1],"plain",5) == 0) {
-            control_type = UNENCRYPTED;
-        } else if (strncmp(argv[1], "single", 6) == 0) {
-            control_type = SINGLE;
-        } else if (strncmp(argv[1], "multi", 5) == 0) {
-            control_type = MULTI;
-        } else if (strncmp(argv[1], "proxy-plain", 11) == 0) {
-            control_type = PROXYPLAIN;
-        } else if (strncmp(argv[1], "proxy-single", 12) == 0) {
-            control_type = PROXYSINGLE;
-        } else if (strncmp(argv[1], "proxy-multi", 11) == 0) {
-            control_type = PROXYMULTI;
-        } else {
-            cerr << "control is not recognized" << endl;
-            return;
-        }
-
-        if (strncmp(argv[2],"plain",5) == 0) {
-            test_type = UNENCRYPTED;
-        } else if (strncmp(argv[2], "single", 6) == 0) {
-            test_type = SINGLE;
-        } else if (strncmp(argv[2], "multi", 5) == 0) {
-            test_type = MULTI;
-        } else if (strncmp(argv[2], "proxy-plain", 11) == 0) {
-            test_type = PROXYPLAIN;
-        } else if (strncmp(argv[2], "proxy-single", 12) == 0) {
-            test_type = PROXYSINGLE;
-        } else if (strncmp(argv[2], "proxy-multi", 11) == 0) {
-            test_type = PROXYMULTI;
-        } else {
-            cerr << "test is not recognized" << endl;
-            return;
-        }
-        
+        control_type = string_to_test_mode(argv[1]);
+        test_type = string_to_test_mode(argv[2]);
         break;
     default:
         cerr << "Usage:" << endl
@@ -1124,6 +1053,7 @@ TestQueries::run(const TestConfig &tc, int argc, char ** argv) {
              << "    single" << endl
              << "    multi" << endl
              << "    proxy-plain" << endl
+             << "    proxy-plainmp" << endl
              << "    proxy-single" << endl
              << "    proxy-multi" << endl
              << "single and multi make connections through EDBProxy" << endl
@@ -1138,15 +1068,20 @@ TestQueries::run(const TestConfig &tc, int argc, char ** argv) {
         case UNENCRYPTED:
         case SINGLE:
         case MULTI:
-            if (control_type == PROXYPLAIN || control_type == PROXYSINGLE || control_type == PROXYMULTI) {
+            if (control_type == PROXYPLAIN || control_type == PROXYPLAINMP ||
+                control_type == PROXYSINGLE || control_type == PROXYMULTI)
+            {
                 cerr << "cannot compare proxy-* vs non-proxy-* when there are multiple connections" << endl;
                 return;
             }
             break;
         case PROXYPLAIN:
+        case PROXYPLAINMP:
         case PROXYSINGLE:
         case PROXYMULTI:
-            if (control_type == UNENCRYPTED || control_type == SINGLE || control_type == MULTI) {
+            if (control_type == UNENCRYPTED || control_type == SINGLE ||
+                control_type == MULTI)
+            {
                 cerr << "cannot compare proxy-* vs non-proxy-* when there are multiple connections" << endl;
                 return;
             }
