@@ -280,7 +280,12 @@ class KeyAccess {
     // if there are more keys than THRESHOLD, this Prin.type->Prin.type
     //   information is stored in uncached_keys
     //assumption: only terminal principals have > THRESHOLD keys
+    //note: if we already hold a key for Prin gives in, it has no new keys and
+    //        therefore no keys are loaded
     //requires: psswd be of length AES_KEY_BYTES
+    //returns: 0 if insertPsswd inserted correctly
+    //         1 if Prin gives key is already held
+    //         <0 if there is an error in inserting any keys gives has access to
     int insertPsswd(Prin gives, const string &psswd);
 
     //removes a givesPsswd value

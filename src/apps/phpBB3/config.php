@@ -2,7 +2,7 @@
 // phpBB 3.0.x auto-generated configuration file
 // Do not change anything in this file!
 $dbms = 'mysqli';
-$dbhost = '127.0.0.1';
+$dbhost = '18.26.5.16';
 $dbport = '3307';
 $dbname = 'cryptdb_phpbb';
 $dbuser = 'root';
@@ -12,6 +12,6 @@ $acm_type = 'file';
 $load_extensions = '';
 
 @define('PHPBB_INSTALLED', true);
- @define('DEBUG', true);
- @define('DEBUG_EXTRA', true);
+// @define('DEBUG', true);
+// @define('DEBUG_EXTRA', true);
 ?>

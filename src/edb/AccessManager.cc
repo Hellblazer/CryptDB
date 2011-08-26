@@ -535,7 +535,8 @@ MetaAccess::CreateTables()
                   " " +  PRINCVALUE + ", " + *it_s + " " + PRINCVALUE +
                   ", Sym_Key " TN_SYM_KEY ", Salt bigint, Asym_Key "
                   TN_PK_KEY
-                  ", PRIMARY KEY (" + it->first + "," + *it_s + "))";
+                  ", PRIMARY KEY (" + it->first + "," + *it_s + ")" +
+                  ", KEY (" + *it_s + ") )";
             if(!conn->execute(sql)) {
                 LOG(am) << "error with sql query " << sql;
                 return -1;
@@ -1089,6 +1090,7 @@ KeyAccess::getPrinKey(Prin prin)
         assert_s(
             keys[prin].key.length() == AES_KEY_BYTES,
             "getKey is trying to return a key of the wrong length");
+        LOG(am) << "got key from local map";
         return keys[prin];
     }
 
@@ -1207,7 +1209,15 @@ KeyAccess::insertPsswd(Prin gives, const string &psswd)
 
     // put password into local keys
     PrinKey password = buildKey(gives, psswd);
-    addToKeys(gives, password);
+    int is_new_key = addToKeys(gives, password);
+
+    if (is_new_key < 0) {
+        LOG(am) << gives.type << " " << gives.value << " tried to log in with wrong password";
+        return -1;
+    } else if (is_new_key > 0) {
+        LOG(am) << gives.type << " " << gives.value << " is already logged in; not loading keys";
+        return 1;
+    }
 
     //check if this person has a asym key (that is, if gives is an instance
     // that has been inserted before)
@@ -1657,6 +1667,7 @@ KeyAccess::GenerateAsymKeys(Prin prin, PrinKey prin_key)
     string encrypted_sec_key_string = "NULL";
     string salt_string = "NULL";
     if (meta->getGenHasAccessTo(prin.gen).size() > 1) {
+        LOG(am) << "generating pkcs for " << prin.gen << "=" << prin.value;
         AES_KEY * aes = crypt_man->get_key_SEM(prin_key.key);
         uint64_t salt = randomValue();
         PKCS * rsa_pub_key;

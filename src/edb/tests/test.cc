@@ -450,7 +450,8 @@ tester::testClientParser()
 	for (; it != queries.end(); it++) {   //TODO: check against expected...at
 		// this point is more of a manual
 		// check
-		list<string> response = rewriteEncryptQuery(it->c_str());
+        bool temp;
+		list<string> response = rewriteEncryptQuery(it->c_str(), temp);
 		LOG(test) << "query issued/response: " << *it << ", " << toString(response, stringToByteInts);
 	}
 
@@ -3796,7 +3797,8 @@ throw (CryptDBError)
 		if (query.length() > 0) {
 		    if (encryptQuery) {
 		        try{
-		            queries = cl->rewriteEncryptQuery(query+";");
+                    bool temp;
+		            queries = cl->rewriteEncryptQuery(query+";", temp);
 		        } catch(...) {
 		            cerr << "query " << query << "failed";
 		            cerr << "worker exits\n";

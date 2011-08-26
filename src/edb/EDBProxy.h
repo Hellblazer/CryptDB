@@ -45,7 +45,7 @@ class EDBProxy {
 
     //Mode 2: Only translations
     //query must be \0 terminated
-    list<string> rewriteEncryptQuery(const string &query)
+    list<string> rewriteEncryptQuery(const string &query, bool &considered)
         throw (CryptDBError);
 
     //query should be the original, untranslated query

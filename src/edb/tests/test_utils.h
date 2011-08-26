@@ -16,7 +16,7 @@ class TestConfig {
     	// default values
         user = "root";
         pass = "letmein";
-        host = "127.0.0.1";
+        host = "18.26.5.16";
         db   = "cryptdbtest";
         port = 3306;
         stop_if_fail = false;
