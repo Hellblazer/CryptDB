@@ -41,6 +41,7 @@ using namespace std;
 #define TN_TEXT "blob"
 #define TN_HOM "varbinary(" SVAL(PAILLIER_LEN_BYTES) ")"
 #define TN_PTEXT "text"
+#define TN_SALT "bigint unsigned"
 #else
 #define TN_I32 "integer"
 #define TN_I64 "bigint"
@@ -49,8 +50,8 @@ using namespace std;
 #define TN_PTEXT "text"
 #endif
 
-#define TN_SYM_KEY "varbinary(16)"
-#define TN_PK_KEY  "varbinary(1200)"
+#define TN_SYM_KEY "varbinary(40)"
+#define TN_PK_KEY  "varbinary(1220)"
 
 #define psswdtable "activeusers"
 

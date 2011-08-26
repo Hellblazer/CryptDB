@@ -63,11 +63,18 @@ function read_query_real(packet)
         local query = string.sub(packet, 2)
         dprint("read_query: " .. query)
 
-        considered, new_queries = CryptDB.rewrite(proxy.connection.client.src.name, query)
+        consider, new_queries =
+            CryptDB.rewrite(proxy.connection.client.src.name, query)
+
         if not new_queries then
             proxy.response.type = proxy.MYSQLD_PACKET_ERR
             proxy.response.errmsg = "query failed"
             return proxy.PROXY_SEND_RESULT
+        end
+
+        if not consider then
+            -- no need to decrypt results
+            return
         end
 
         if table.maxn(new_queries) == 0 then
@@ -79,11 +86,6 @@ function read_query_real(packet)
             dprint("new query[" .. i .. "]: " .. v)
             local result_key
             if i == table.maxn(new_queries) then
-                if not considered then
-                    -- no need to decrypt results
-                    return
-                end
-
                 result_key = RES_DECRYPT
             else
                 result_key = RES_IGNORE
