@@ -65,7 +65,7 @@ class MultiPrinc {
 
     // fills tmkm.encForReturned and decides if the next field was added by us
     // and should not be returned to the user
-    void processReturnedField(unsigned int index, string fullname, onion o,
+    void processReturnedField(unsigned int index, bool isNextSalt, string fullname, onion o,
                               TMKM & tmkm,
                               bool & ignore);
 

@@ -437,7 +437,7 @@ MultiPrinc::selectEncFor(string table, string field, QueryMeta & qm,
 // fills tmkm.encForReturned and decides if the next field was added by us and
 // should not be returned to the user
 void
-MultiPrinc::processReturnedField(unsigned int index, string fullname, onion o,
+MultiPrinc::processReturnedField(unsigned int index, bool nextIsSalt, string fullname, onion o,
                                  TMKM & tmkm,
                                  bool & ignore)
 {
@@ -448,8 +448,12 @@ MultiPrinc::processReturnedField(unsigned int index, string fullname, onion o,
         //figure out where is the principal we want
         string princ = mkm.encForMap[fullname];
         if (tmkm.principalsSeen.find(princ) == tmkm.principalsSeen.end()) {
-            //it must be value after because we inserted it
-            tmkm.encForReturned[princ] = index+1;
+            //it must be value after because we inserted it (but skipping salt)
+            if (nextIsSalt) {
+                tmkm.encForReturned[princ] = index+2;
+            } else {
+                tmkm.encForReturned[princ] = index+1;
+            }
             tmkm.principalsSeen[princ] = true;
             ignore = true;
 
@@ -457,7 +461,12 @@ MultiPrinc::processReturnedField(unsigned int index, string fullname, onion o,
     }
 
     tmkm.returnBitMap[index] = true;
-    tmkm.returnBitMap[index+1] = !ignore;
+    if (nextIsSalt) {
+        tmkm.returnBitMap[index+2] = !ignore;
+    } else {
+        tmkm.returnBitMap[index+1] = !ignore;
+
+    }
 }
 
 //returns the name of the table if given an expression of the form

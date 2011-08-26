@@ -64,6 +64,7 @@ FieldMetadata::FieldMetadata()
 
     can_be_null = true;
 
+
     type = TYPE_TEXT;
 
 
@@ -78,12 +79,15 @@ FieldMetadata::FieldMetadata()
     has_ope = true;
     has_agg = true;
     has_search = false;
+    has_salt = true;
+
+    salt_name = "";
 
     //none of the onions used yet
     ope_used = false;
     agg_used = false;
     search_used = false;
-
+    needs_own_salt = false;
 }
 
 TableMetadata::TableMetadata() {

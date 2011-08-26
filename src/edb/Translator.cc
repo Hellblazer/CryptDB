@@ -59,20 +59,15 @@ FieldMetadata::exists(const string &val)
 }
 
 
-
 string
-processInsert(string field, string table, TableMetadata * tm)
+processInsert(string field, string table, FieldMetadata * fm, TableMetadata * tm)
 {
-
-    assert_s(tm->fieldMetaMap.find(
-                 field) != tm->fieldMetaMap.end(),
-             "invalid field or you forgot keyword 'values' ");
-
-    FieldMetadata * fm =  tm->fieldMetaMap[field];
 
     if (!fm->isEncrypted) {
         return field;
     }
+    //field is encrypted
+
     string res = "";
     if (fm->type == TYPE_INTEGER) {
         res =  fm->anonFieldNameDET;
@@ -95,6 +90,10 @@ processInsert(string field, string table, TableMetadata * tm)
         } else {
             assert_s(false, "invalid type");
         }
+    }
+
+    if (fm->has_salt) {
+        res += ", " + fm->salt_name;
     }
 
     return res;
@@ -124,6 +123,7 @@ getFieldName(FieldMetadata *fm)
         return fm->fieldName;
     }
 }
+
 
 string
 processCreate(fieldType type, string fieldName, unsigned int index,
@@ -168,6 +168,12 @@ throw (CryptDBError)
                 res = res + ", " + anonFieldNameAGG + "  "+TN_HOM+" ";
             } else {
                 fm->anonFieldNameAGG = "";
+            }
+
+            if (fm->has_salt) {
+                string fieldsalt = getFieldSalt(index, tm->anonTableName);
+                res += ", " + fieldsalt + " " + TN_SALT;
+                fm->salt_name = fieldsalt;
             }
 
             fm->has_search = false;
@@ -219,6 +225,12 @@ throw (CryptDBError)
                 res = res + ", " + fm->anonFieldNameSWP + "  "+TN_TEXT+" ";
             } else {
                 fm->anonFieldNameSWP = "";
+            }
+
+            if (fm->has_salt) {
+                string fieldsalt = getFieldSalt(index, tm->anonTableName);
+                res += ", " + fieldsalt + " " + TN_SALT;
+                fm->salt_name = fieldsalt;
             }
 
             break;
@@ -418,18 +430,35 @@ throw (CryptDBError)
 
 }
 
+string
+getTableSalt(string anonTableName) {
+    return BASE_SALT_NAME + "_t_" + anonTableName;
+}
+string
+getFieldSalt(unsigned int index, string anonTableName) {
+    return BASE_SALT_NAME + "_f_" + StringFromVal(index)+"_"+anonTableName;
+}
+
+
 bool
-isFieldSalt(string id)
+isSalt(string id, bool & isTableSalt)
 {
-    if (id.compare("salt") == 0) {
+    if (id.find(BASE_SALT_NAME) == 0 || (isTableField(id) && (getField(id).find(BASE_SALT_NAME) == 0))) {
+        if (id.find(BASE_SALT_NAME+"_t_") == 0) {
+            isTableSalt = true;
+        } else {
+            isTableSalt = false;
+        }
         return true;
     }
-    if (isTableField(id)) {
-        if (getField(id).compare("salt") == 0) {
-            return true;
-        }
-    }
+
     return false;
+}
+
+string
+getTableOfSalt(string salt_name) {
+
+    return salt_name.substr(BASE_SALT_NAME.length() + 3, salt_name.length() - 3 - BASE_SALT_NAME.length());
 }
 
 bool

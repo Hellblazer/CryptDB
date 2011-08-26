@@ -660,23 +660,27 @@ interactiveTest(const TestConfig &tc, int ac, char **av)
 			cl->plain_execute("DROP TABLE IF EXISTS table0, table1");
 			cerr << "here \n";
 			assert_res(cl->execute(
-					"CREATE TABLE test_insert (id integer primary key auto_increment, age enc integer);"),
+					"CREATE TABLE t(id enc integer, name enc text);"),
 					"failed");
 
 			assert_res(cl->execute(
-					"INSERT INTO test_insert VALUES (1, 5);"), "failed");
-			assert_res(cl->execute(  "INSERT INTO test_insert VALUES (2, 5);"), "failed");
+					"INSERT INTO t VALUES (1, '5');"), "failed");
 
-			assert_res(cl->execute( "SELECT * FROM test_insert WHERE age = 5;"),
+			assert_res(cl->execute(  "INSERT INTO t VALUES (2, 'alice');"), "failed");
+
+			assert_res(cl->execute( "UPDATE t SET id = 10;"),
+			        "failed");
+
+			assert_res(cl->execute( "SELECT * FROM t;"),
 			                                        "failed");
-
+/*
 			assert_res(cl->execute(  "CREATE TABLE t2 (age enc integer);"),
 			                                        "failed");
 			assert_res(cl->execute(  "INSERT INTO t2 VALUES (5);"), "failed");
 
                         assert_res(cl->execute(
                                         "SELECT t2.age FROM test_insert, t2 WHERE test_insert.age = t2.age;"), "failed");
-
+*/
                         //assert_res(cl->execute("SELECT * FROM test_insert;"), "failed");
 
 			// assert_res(cl->execute(

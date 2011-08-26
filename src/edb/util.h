@@ -177,6 +177,8 @@ typedef enum class cmd {
     COMMIT, ALTER, TRAIN, OTHER
 } command;
 
+const string BASE_SALT_NAME = "cdb_salt";
+
 typedef struct FieldMetadata {
 
     bool isEncrypted;     //indicates if this field is encrypted or not
@@ -196,6 +198,9 @@ typedef struct FieldMetadata {
     bool has_ope;
     bool has_agg;
     bool has_search;
+    bool has_salt; //whether this field has its own salt
+
+    string salt_name;
 
     FieldMetadata();
 
@@ -207,6 +212,7 @@ typedef struct FieldMetadata {
     bool ope_used;
     bool agg_used;
     bool search_used;
+    bool needs_own_salt;
 
     //returns true if the given field exists in the database
     static bool exists(const string &field);
@@ -227,6 +233,7 @@ typedef struct TableMetadata { //each anonymized field
                                           // true field name
     map<string, FieldMetadata *> fieldMetaMap;     //map of true field name to
                                                    // field metadata
+    string salt_name;
 
     AutoInc ai;     //autoincrement
 
@@ -273,6 +280,9 @@ typedef struct ResMeta {
        response from the DBMS */
 
     bool * isSalt;     //isSalt[i] = true if i-th entry is salt
+
+    //maps not anonymized full field name or anonymized table name to salt index in the results
+    map<string, int> SaltIndexes;
 
     string * table;     //real table of each field
     string * field;     //real name of each field

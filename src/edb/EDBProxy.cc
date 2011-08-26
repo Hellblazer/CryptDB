@@ -625,16 +625,13 @@ throw (CryptDBError)
     }
     resultQuery = resultQuery + tm->anonTableName + " ( ";
 
-
-    if (!DECRYPTFIRST) {
-        if (tm->hasEncrypted) {
-            resultQuery += " salt " TN_I64 ", ";
-
-            FieldMetadata * fmsalt = new FieldMetadata();
-            fmsalt->type = TYPE_INTEGER;
-            fmsalt->fieldName = "salt";
-            tm->fieldMetaMap[fmsalt->fieldName] = fmsalt;
-        }
+    if (tm->hasEncrypted) {
+        tm->salt_name = getTableSalt(tm->anonTableName);
+        resultQuery += " " + tm->salt_name + " " + TN_SALT + ", ";
+        FieldMetadata * fmsalt = new FieldMetadata();
+        fmsalt->type = TYPE_INTEGER;
+        fmsalt->fieldName = tm->salt_name;
+        tm->fieldMetaMap[fmsalt->fieldName] = fmsalt;
     }
 
 
@@ -679,7 +676,10 @@ throw (CryptDBError)
                  *wordsIt) != tableMetaMap.end(),
              " table to update does not exist" );
 
-    resultQuery = resultQuery + tableMetaMap[*wordsIt]->anonTableName;
+    string table = *wordsIt;
+    TableMetadata * tm  = tableMetaMap[table];
+
+    resultQuery = resultQuery + tm->anonTableName;
     wordsIt++;
 
     //skip over SET
@@ -688,16 +688,15 @@ throw (CryptDBError)
 
     while ((wordsIt != words.end()) &&
            (!equalsIgnoreCase(*wordsIt,"where"))) {
-        string table, field;
-        string currentField = *wordsIt;
-        getTableField(*wordsIt, table, field, qm, tableMetaMap);
+
+        string field = * wordsIt;
 
         wordsIt++;
 
         std::set<string> term = {",", "where"};
-        FieldMetadata * fm1 = tableMetaMap[table]->fieldMetaMap[field];
+        FieldMetadata * fm = tm->fieldMetaMap[field];
 
-        if (!fm1->isEncrypted) {
+        if (!fm->isEncrypted) {
             resultQuery = resultQuery + " " + field +  mirrorUntilTerm(
                 wordsIt, words, term, 0, 1);
             if (wordsIt == words.end()) {
@@ -710,68 +709,55 @@ throw (CryptDBError)
             continue;
         }
 
-        string anonTableName = tableMetaMap[table]->anonTableName;
+        //FIELD IS ENCRYPTED
+
+
+        string anonTableName = tm->anonTableName;
         wordsIt++;
-        fieldType ft = fm1->type;
+        fieldType ft = fm->type;
 
         //detect if it is an increment
         if (isField(*wordsIt)) {         //this is an increment
 
             if (VERBOSE) { LOG(edb_v) << "increment for " << field; }
 
-            fm1->INCREMENT_HAPPENED = true;
-            string anonFieldName = getOnionName(
-                tableMetaMap[table]->fieldMetaMap[field], oAGG);
+            assert_s(wordsIt->compare(field) == 0, "must increment its own value not some other field");
 
-            // get information about the field on the right of =
-            string table2, field2;
-            getTableField(*wordsIt, table2, field2, qm, tableMetaMap);
-            FieldMetadata * fm2 = tableMetaMap[table2]->fieldMetaMap[field2];
-            string anonName2 = fieldNameForQuery(
-                tableMetaMap[table2]->anonTableName, table2,
-                getOnionName(fm2, oAGG),fm2, qm);
+            fm->INCREMENT_HAPPENED = true;
+            fm->agg_used = true;
+
+            string anonFieldName = getOnionName(fm, oAGG);
 
             wordsIt++;
-            bool isEncrypted1 = fm1->isEncrypted;
-            assert_s(
-                isEncrypted1 == fm2->isEncrypted,
-                "must both be encrypted or not\n");
-            assert_s((!isEncrypted1) || wordsIt->compare(
-                         "+") == 0, "can only update with plus");
+
+            assert_s(wordsIt->compare("+") == 0, "can only update with plus");
             string op = *wordsIt;
             wordsIt++;             // points to value now
 
-            fm1->agg_used = true;
-            fm2->agg_used = true;
 
-            if (isEncrypted1) {
 
-                if (DECRYPTFIRST) {
-                    resultQuery += field + " =  encrypt_int_det( "+
-                            fieldNameForQuery(
-                                    tableMetaMap[table]->anonTableName,
-                                    table, field2,
-                                    fm2, qm) +  " + " +
-                                    *wordsIt + ", "+
-                                    CryptoManager::marshallKey(
-                                            dec_first_key) + ") ";
-                } else {
-                    resultQuery += anonFieldName + " =  func_add_set (" +
-                            anonName2 +  ", "
-                            + dataForQuery(*wordsIt, ft,
-                                    fullName(field,
-                                            table),
-                                            fullName(anonFieldName,
-                                                    tableMetaMap[table]->
-                                                    anonTableName),
-                                                    SECLEVEL::PLAIN_AGG, SECLEVEL::SEMANTIC_AGG, 0,
-                                                    tmkm) + ", "
-                                                    + marshallBinary(cm->getPKInfo()) + ") ";
-                }
+            if (DECRYPTFIRST) {
+                resultQuery += field + " =  encrypt_int_det( "+
+                        fieldNameForQuery(
+                                tableMetaMap[table]->anonTableName,
+                                table, field,
+                                fm, qm) +  " + " +
+                                *wordsIt + ", "+
+                                CryptoManager::marshallKey(
+                                        dec_first_key) + ") ";
             } else {
-                resultQuery = resultQuery + anonFieldName + " = " +
-                        anonName2 + op + " " + *wordsIt;
+                resultQuery += anonFieldName + " =  func_add_set (" +
+                        anonFieldName +  ", "
+                        + dataForQuery(*wordsIt, ft,
+                                fullName(field,
+                                        table),
+                                        fullName(anonFieldName,
+                                                anonTableName),
+                                                SECLEVEL::PLAIN_AGG, SECLEVEL::SEMANTIC_AGG, 0,
+                                                tmkm) + ", "
+                                                + marshallBinary(cm->getPKInfo()) + ") ";
             }
+
 
             wordsIt++;
 
@@ -781,62 +767,50 @@ throw (CryptDBError)
 
         //encryption fields that are not increments
 
+        uint64_t salt = 0;
+        if (fm->has_salt) {
+            salt = randomValue();
+        } else {
+            //this field must be at DET and OPE or lower
+            assert_s((fm->secLevelDET != SECLEVEL::SEMANTIC_DET) && (fm->secLevelOPE != SECLEVEL::SEMANTIC_OPE), "this field cannot have a semantic level yet not have a salt");
+        }
+
         if (ft == TYPE_INTEGER) {
             string val = *wordsIt;
 
             //pass over value
             wordsIt++;
 
-            SECLEVEL sldet = fm1->secLevelDET;
-            string anonfieldName = getOnionName(fm1, oDET);
-
+            string anonfieldName = getOnionName(fm, oDET);
             resultQuery = resultQuery + anonfieldName  + " = ";
 
             if (DECRYPTFIRST) {
-                resultQuery += processValsToInsert(field, table, 0, val, tmkm);
+                resultQuery += processValsToInsert(field, fm, table, tm, salt, val, tmkm);
             } else {
-                if (sldet == SECLEVEL::SEMANTIC_DET) {
-                    //we need to lower the security level of the column
-                    addIfNotContained(fullName(field,
-                                               table), fieldsDec.DETFields);
-                    resultQuery +=
+
+                resultQuery = resultQuery +
                         dataForQuery(val, TYPE_INTEGER,
-                              fullName(field,
-                                       table), fullName(anonfieldName,
-                                                        anonTableName),
-                              SECLEVEL::PLAIN_DET, SECLEVEL::DET, 0, tmkm);
-
-                } else {
-                    resultQuery = resultQuery +
-                                  dataForQuery(val, TYPE_INTEGER,
-                                        fullName(field,
-                                                 table),
+                                fullName(field,
+                                        table),
                                         fullName(anonfieldName,
-                                                 anonTableName),
-                                        SECLEVEL::PLAIN_DET, sldet, 0, tmkm);
-                }
+                                                anonTableName),
+                                                SECLEVEL::PLAIN_DET, fm->secLevelDET, salt, tmkm);
 
-                if (FieldMetadata::exists(fm1->anonFieldNameOPE)) {
-
-                    SECLEVEL slope = fm1->secLevelOPE;
-                    anonfieldName = fm1->anonFieldNameOPE;
+                if (fm->has_ope) {
+                    anonfieldName = fm->anonFieldNameOPE;
                     resultQuery = resultQuery  + ", " + anonfieldName + " = ";
-                    if (slope == SECLEVEL::SEMANTIC_OPE) {
-                        addIfNotContained(fullName(field,
-                                                   table),
-                                          fieldsDec.OPEFields);
-                    }
+
                     resultQuery = resultQuery +
                                   dataForQuery(val, TYPE_INTEGER,
                                         fullName(field,
                                                  table),
                                         fullName(anonfieldName,
                                                  anonTableName),
-                                        SECLEVEL::PLAIN_OPE, SECLEVEL::OPE, 0, tmkm);
+                                        SECLEVEL::PLAIN_OPE, fm->secLevelOPE, salt, tmkm);
 
                 }
-                if (FieldMetadata::exists(fm1->anonFieldNameAGG)) {
-                    anonfieldName = fm1->anonFieldNameAGG;
+                if (fm->has_agg) {
+                    anonfieldName = fm->anonFieldNameAGG;
                     resultQuery = resultQuery  + ", " + anonfieldName +
                                   " = " +
                                   dataForQuery(val, TYPE_INTEGER,
@@ -844,81 +818,69 @@ throw (CryptDBError)
                                                  table),
                                         fullName(anonfieldName,
                                                  anonTableName),
-                                        SECLEVEL::PLAIN_AGG, SECLEVEL::SEMANTIC_AGG, 0, tmkm);
+                                        SECLEVEL::PLAIN_AGG, SECLEVEL::SEMANTIC_AGG, salt, tmkm);
                 }
+
             }
         }
         if (ft == TYPE_TEXT) {
 
+            string val = *wordsIt;
+            //pass over value
+            wordsIt++;
+
             assert_s(hasApostrophe(
-                         *wordsIt), "missing apostrophe for type text");
+                    val), "missing apostrophe for type text");
 
             if (DECRYPTFIRST) {
                 resultQuery = resultQuery + " "  + field + " = " +
-                              processValsToInsert(field, table, 0, *wordsIt,
-                                                  tmkm);
+                        processValsToInsert(field, fm, table, tm, 0, val,
+                                tmkm);
             } else {
 
-                if (fm1->isEncrypted) {
-                    //DET onion
-                    if (fm1->secLevelDET == SECLEVEL::SEMANTIC_DET) {
-                        addIfNotContained(fullName(field,
-                                                   table),
-                                          fieldsDec.DETFields);
-                        fm1->secLevelDET = SECLEVEL::DET;
-                    }
+                //DET onion
 
-                    //encrypt the value
-                    string anonfieldname = getOnionName(fm1, oDET);
+                //encrypt the value
+                string anonfieldname = getOnionName(fm, oDET);
 
-                    resultQuery = resultQuery + " "  + anonfieldname +
-                                  " = " +
-                                  dataForQuery(*wordsIt, TYPE_TEXT,
-                                        fullName(field,
-                                                 table),
+                resultQuery = resultQuery + " "  + anonfieldname +
+                        " = " +
+                        dataForQuery(val, TYPE_TEXT,
+                                fullName(field,
+                                        table),
                                         fullName(anonfieldname,
-                                                 anonTableName),
-                                        SECLEVEL::PLAIN_DET, fm1->secLevelDET, 0, tmkm);
+                                                anonTableName),
+                                                SECLEVEL::PLAIN_DET, fm->secLevelDET, salt, tmkm);
 
-                    //OPE onion
-                    if (fm1->exists(fm1->anonFieldNameOPE)) {
-                        string anonName = fm1->anonFieldNameOPE;
+                //OPE onion
+                if (fm->has_ope) {
+                    string anonName = fm->anonFieldNameOPE;
 
-                        if (fm1->secLevelOPE == SECLEVEL::SEMANTIC_OPE) {
-                            addIfNotContained(fullName(field,
-                                                       table),
-                                              fieldsDec.OPEFields);
-                            fm1->secLevelOPE = SECLEVEL::OPE;
-                        }
-
-                        resultQuery += ", " + anonName + " = " +
-                                       dataForQuery(*wordsIt, TYPE_TEXT,
-                                             fullName(field,table),
-                                             fullName(anonName,
-                                                      anonTableName),
-                                             SECLEVEL::PLAIN_OPE, fm1->secLevelOPE, 0,
-                                             tmkm);
-                    }
-
-                    //OPE onion
-                    if (fm1->exists(fm1->anonFieldNameSWP)) {
-                        string anonName = fm1->anonFieldNameSWP;
-
-                        resultQuery += ", " + anonName + " = " +
-                                       dataForQuery(*wordsIt, TYPE_TEXT,
-                                             fullName(field,table),
-                                             fullName(anonName, anonTableName),
-                                             SECLEVEL::PLAIN_SWP, SECLEVEL::SWP, 0, tmkm);
-                    }
-
-                } else {
-                    resultQuery = resultQuery + " " + field + " = " +
-                                  *wordsIt;
+                    resultQuery += ", " + anonName + " = " +
+                            dataForQuery(val, TYPE_TEXT,
+                                    fullName(field,table),
+                                    fullName(anonName,
+                                            anonTableName),
+                                            SECLEVEL::PLAIN_OPE, fm->secLevelOPE, salt,
+                                            tmkm);
                 }
 
-            }
-            wordsIt++;
+                //OPE onion
+                if (fm->has_search) {
+                    string anonName = fm->anonFieldNameSWP;
 
+                    resultQuery += ", " + anonName + " = " +
+                            dataForQuery(val, TYPE_TEXT,
+                                    fullName(field,table),
+                                    fullName(anonName, anonTableName),
+                                    SECLEVEL::PLAIN_SWP, SECLEVEL::SWP, salt, tmkm);
+                }
+            }
+
+        }
+
+        if (fm->has_salt) {
+            resultQuery += ", " + fm->salt_name + " = " + StringFromVal(salt);
         }
 
         resultQuery += checkStr(wordsIt, words, ",", "");
@@ -928,6 +890,8 @@ throw (CryptDBError)
         processFilters(wordsIt, words, qm,  resultQuery, fieldsDec,
                        tmkm);
 
+    LOG(edb) << " no. of translated queries " << res.size() << "\n";
+    LOG(edb) << "Translated query: " << res.front() << "\n";
     return res;
 }
 
@@ -1155,7 +1119,10 @@ throw (CryptDBError)
         string table, field;
         getTableField(*it, table, field, qm, tableMetaMap);
 
-        if (!tableMetaMap[table]->fieldMetaMap[field]->isEncrypted) {
+        TableMetadata * tm = tableMetaMap[table];
+        FieldMetadata * fm = tm->fieldMetaMap[field];
+
+        if (!fm->isEncrypted) {
             continue;
         }
 
@@ -1176,21 +1143,28 @@ throw (CryptDBError)
                    " + tmkm.encForVal[mkm.encForMap[fname]] + whereClause;
            }*/
 
-        string anonTableName = tableMetaMap[table]->anonTableName;
-        string anonfieldName = getOnionName(
-            tableMetaMap[table]->fieldMetaMap[field], oDET);
+        string anonTableName = tm->anonTableName;
+        string anonfieldName = getOnionName(fm, oDET);
 
-        fieldType ft = tableMetaMap[table]->fieldMetaMap[field]->type;
+        fieldType ft = fm->type;
 
         string decryptS;
         //first prepare the decryption call string
+
+        string salt_name;
+        if (fm->has_salt) {
+            salt_name = fm->salt_name;
+        } else {
+            salt_name = tm->salt_name;
+        }
+
         switch (ft) {
         case TYPE_INTEGER: {
             decryptS = "decrypt_int_sem(" + anonfieldName + "," +
                        cm->marshallKey(cm->getKey(fullName(anonfieldName,
                                                            anonTableName),
-                                                  SECLEVEL::SEMANTIC_DET)) + ", " +
-                       "salt)" + whereClause;
+                                                  SECLEVEL::SEMANTIC_DET)) + ", " + salt_name
+                       + ")" + whereClause;
             //cout << "KEY USED TO DECRYPT field from SEM " << anonfieldName
             // << " " << cm->marshallKey(cm->getKey(anonTableName
             // +"."+anonfieldName, SECLEVEL::SEMANTIC)) << "\n"; fflush(stdout);
@@ -1201,7 +1175,7 @@ throw (CryptDBError)
                        cm->marshallKey(cm->getKey(fullName(anonfieldName,
                                                            anonTableName),
                                                   SECLEVEL::SEMANTIC_DET)) + ", " +
-                       "salt)" + whereClause;
+                        salt_name + ")" + whereClause;
             break;
         }
 
@@ -1215,7 +1189,7 @@ throw (CryptDBError)
 
         result.push_back(resultQ);
 
-        tableMetaMap[table]->fieldMetaMap[field]->secLevelDET = SECLEVEL::DET;
+        fm->secLevelDET = SECLEVEL::DET;
     }
 
     for (list<string>::iterator it = fieldsDec.OPEFields.begin();
@@ -1224,8 +1198,9 @@ throw (CryptDBError)
         getTableField(*it, table, field, qm, tableMetaMap);
 
         TableMetadata * tm = tableMetaMap[table];
+        FieldMetadata * fm = tm->fieldMetaMap[field];
 
-        if (!tm->fieldMetaMap[field]->isEncrypted) {
+        if (!fm->isEncrypted) {
             continue;
         }
 
@@ -1235,6 +1210,13 @@ throw (CryptDBError)
         }
         string whereClause = ";";
         string fname = fullName(field, table);
+
+        string salt_name;
+        if (fm->has_salt) {
+            salt_name = fm->salt_name;
+        } else {
+            salt_name = tm->salt_name;
+        }
 
         /*if (mp) {
                 assert_s((mkm.encForMap.find(fname) != mkm.encForMap.end()) &&
@@ -1252,13 +1234,13 @@ throw (CryptDBError)
                           cm->marshallKey(cm->getKey(fullName(anonfieldName,
                                                               anonTableName),
                                                      SECLEVEL::SEMANTIC_OPE)) +
-                          ", " +  "salt)" + whereClause;
+                          ", " +  salt_name + ")" + whereClause;
 
         string resultQ = string("UPDATE ") + tm->anonTableName +
                          " SET " + anonfieldName + "= " + decryptS;
         result.push_back(resultQ);
 
-        tm->fieldMetaMap[field]->secLevelOPE = SECLEVEL::OPE;
+        fm->secLevelOPE = SECLEVEL::OPE;
 
 
 
@@ -1272,18 +1254,20 @@ throw (CryptDBError)
         string table, field;
         getTableField(*it, table, field, qm, tableMetaMap);
 
-        if (!tableMetaMap[table]->fieldMetaMap[field]->isEncrypted) {
+        TableMetadata * tm = tableMetaMap[table];
+        FieldMetadata * fm = tm->fieldMetaMap[field];
+
+        if (!fm->isEncrypted) {
             continue;
         }
         if (mp) {
             assert_s(false, "join not supported for multi-user ");
         }
 
-        string anonTableName = tableMetaMap[table]->anonTableName;
-        string anonfieldName = getOnionName(
-            tableMetaMap[table]->fieldMetaMap[field], oDET);
+        string anonTableName = tm->anonTableName;
+        string anonfieldName = getOnionName(fm, oDET);
 
-        fieldType ft = tableMetaMap[table]->fieldMetaMap[field]->type;
+        fieldType ft = fm->type;
 
         string decryptS;
         //first prepare the decryption call string
@@ -1326,13 +1310,16 @@ throw (CryptDBError)
         getTableField(*it, table, field, qm, tableMetaMap);
         assert_s(false, "this is not fully impl");
 
+        TableMetadata * tm = tableMetaMap[table];
+        FieldMetadata * fm = tm->fieldMetaMap[field];
+
         //for now, do nothing
         //result.push_back(getCStr(string("UPDATE ") +
         // tableMetaMap[table]->anonTableName +
         //" SET " + tableMetaMap[table]->fieldMetaMap[field]->anonFieldNameDET
         //+ " = DECRYPT(0);")); //TODO: link in the right key here
 
-        tableMetaMap[table]->fieldMetaMap[field]->secLevelOPE = SECLEVEL::OPEJOIN;
+        fm->secLevelOPE = SECLEVEL::OPEJOIN;
 
         if (mp) {
             assert_s(false,
@@ -1681,10 +1668,9 @@ throw (CryptDBError)
         wordsIt++;
     }
 
-    string oldTable = "";
+    std::set<string> tablesAddedSalt;
 
     while (!equalsIgnoreCase(*wordsIt, "from")) {
-        if (VERBOSE_V) {LOG(edb_v) << "query so far: " << resultQuery;}
 
         string table, field;
 
@@ -1888,7 +1874,7 @@ throw (CryptDBError)
             continue;
         }
 
-        //must be field
+        //CASE: field
 
         //cerr << "y\n";
         string origname = *wordsIt;
@@ -1896,18 +1882,16 @@ throw (CryptDBError)
         TableMetadata * tm = tableMetaMap[table];
         FieldMetadata * fm = tm->fieldMetaMap[field];
 
-        if (!DECRYPTFIRST) {
-            //cerr <<"w\n";
-            LOG(edb) << "table " << table << " has encrypted? " << tm->hasEncrypted << "\n";
-            if (table.compare(oldTable)) {
-                //need to add salt if new table is sensitive
-                oldTable = table;
-                if (tm->hasEncrypted && (!isSubquery)) {
-                    resultQuery = resultQuery + " " + fieldNameForQuery(
-                        tm->anonTableName, table, "salt", tm->fieldMetaMap["salt"],
-                        qm) + " ,";
-                }
+
+        //cerr <<"w\n";
+        LOG(edb) << "table " << table << " has encrypted? " << tm->hasEncrypted << "\n";
+
+        if (tablesAddedSalt.find(table) == tablesAddedSalt.end()) {
+            //need to add salt if new table is sensitive
+            if (tm->hasEncrypted) {
+                resultQuery = resultQuery + " " + tm->salt_name + " ,";
             }
+            tablesAddedSalt.insert(table);
         }
 
         if (!fm->isEncrypted) {
@@ -1918,47 +1902,25 @@ throw (CryptDBError)
             continue;
         }
 
-        //encrypted field
+        //CASE: encrypted field
 
-        if (isSubquery) {
-            resultQuery = resultQuery + " " +
-                          fieldNameForQuery(
-                tm->anonTableName, table,
-                getOnionName(tm->fieldMetaMap[field], oDET), fm, qm);
+        if (detToAll && (fm->secLevelDET == SECLEVEL::SEMANTIC_DET)) {
+            addIfNotContained(fullName(field, table), fieldsDec.DETFields);
+            fm->secLevelDET = SECLEVEL::DET;
+        }
+        resultQuery = resultQuery + " " +
+                fieldNameForQuery(tm->anonTableName, table,
+                        anonFieldNameForDecrypt(
+                                fm), fm, qm);
 
-            if (mp) {
-                resultQuery += mp->selectEncFor(table, field, qm, tmkm, tm,
-                                                fm);
-            }
+        if (fm->secLevelDET == SECLEVEL::SEMANTIC_DET) {
+            assert_s(fm->has_salt, "field is at RND and does not have salt");
+            resultQuery += ", " + fm->salt_name;
+        }
 
-            if (tm->fieldMetaMap[field]->secLevelDET == SECLEVEL::SEMANTIC_DET) {
-                addIfNotContained(fullName(field, table), fieldsDec.DETFields);
-                addIfNotContained(fullName(field,
-                                           table), fieldsDec.DETJoinFields);
-            }
-            if (tm->fieldMetaMap[field]->secLevelDET == SECLEVEL::DET) {
-                addIfNotContained(fullName(field,
-                                           table), fieldsDec.DETJoinFields);
-            }
-        } else {
-            FieldMetadata * fm2 = tm->fieldMetaMap[field];
-            if (detToAll && (fm2->secLevelDET == SECLEVEL::SEMANTIC_DET)) {
-                addIfNotContained(fullName(field, table), fieldsDec.DETFields);
-            }
-            if (DECRYPTFIRST) {
-                resultQuery = resultQuery + " " +
-                              fieldNameForQuery(tm->anonTableName, table,
-                                                field, fm2, qm);
-            } else {
-                resultQuery = resultQuery + " " +
-                              fieldNameForQuery(tm->anonTableName, table,
-                                                anonFieldNameForDecrypt(
-                                                    fm2), fm2, qm);
-            }
-            if (mp) {
-                resultQuery += mp->selectEncFor(table, field, qm, tmkm, tm,
-                                                fm2);
-            }
+        if (mp) {
+            resultQuery += mp->selectEncFor(table, field, qm, tmkm, tm,
+                    fm);
         }
 
         wordsIt++;
@@ -1997,6 +1959,20 @@ throw (CryptDBError)
     return res;
 }
 
+static bool
+isNextSalt(unsigned int index, const ResType & vals, unsigned int nFields) {
+    if (index >= nFields-1) {
+        return false;
+    }
+
+    bool aux;
+    if (isSalt(vals.names[index+1], aux)) {
+        return true;
+    } else {
+        return false;
+    }
+
+}
 //words are the keywords of expanded unanonymized queries
 //words is unencrypted and unmodified query
 static ResMeta
@@ -2028,6 +2004,24 @@ getResMeta(list<string> words, const ResType &vals, QueryMeta & qm,
 
     for (unsigned int i = 0; i < nFields; i++) {
 
+        //case : salt
+        bool isTableSalt;
+        if (isSalt(vals.names[i], isTableSalt)) {
+            cerr << "salt " << vals.names[i] << "\n";
+            rm.isSalt[i] = true;
+            if (isTableSalt) {
+                cerr << "table salt \n";
+                rm.SaltIndexes[getTableOfSalt(vals.names[i])] = i;
+                cerr << "salt " << vals.names[i] << " added for table " << getTableOfSalt(vals.names[i]) << "\n";
+            } else {
+                cerr << "field salt\n";
+                rm.SaltIndexes[fullName(rm.field[i-1], rm.table[i-1])] = i;
+                cerr << "salt " << vals.names[i] << " added for field " << fullName(rm.field[i-1], rm.table[i-1]) << "\n";
+            }
+            rm.o[i] = oNONE;
+            continue;
+        }
+
         //case : fields we added to help with multi princ enc
         if (ignore) {
             rm.isSalt[i] = false;
@@ -2035,14 +2029,9 @@ getResMeta(list<string> words, const ResType &vals, QueryMeta & qm,
             continue;
         }
 
-        //case : salt
-        if (isFieldSalt(vals.names[i])) {
-            rm.isSalt[i] = true;
-            rm.o[i] = oNONE;
-            continue;
-        }
-
         //case : fields requested by user
+
+        cerr << "field " << vals.names[i] << "\n";
 
         rm.isSalt[i] =  false;
         rm.nTrueFields++;
@@ -2055,11 +2044,9 @@ getResMeta(list<string> words, const ResType &vals, QueryMeta & qm,
             //cerr << "before process agg \n";
             rm.namesForRes[i] =
                 processAgg(wordsIt, words, rm.field[i], rm.table[i], rm.o[i],
-                           qm,
-                           tm,
-                           0);
+                           qm, tm, 0);
             if (mp) {
-                mp->processReturnedField(i, fullName(rm.field[i],
+                mp->processReturnedField(i, isNextSalt(i, vals, nFields),  fullName(rm.field[i],
                                                      rm.table[i]), rm.o[i],
                                          tmkm, ignore);
             }
@@ -2090,7 +2077,7 @@ getResMeta(list<string> words, const ResType &vals, QueryMeta & qm,
         }
 
         if (mp) {
-            mp->processReturnedField(i, fullName(rm.field[i],
+            mp->processReturnedField(i, isNextSalt(i, vals, nFields), fullName(rm.field[i],
                                                  rm.table[i]), rm.o[i], tmkm,
                                      ignore);
         }
@@ -2201,13 +2188,12 @@ EDBProxy::rewriteDecryptSelect(const string &query, const ResType &dbAnswer)
     {
         rets.rows[i].resize(nTrueFields);
         unsigned int index = 0;
-        uint64_t salt = 0;
+
 
         for (unsigned int j = 0; j < nFields; j++) {
 
             if (rm.isSalt[j]) {             // this is salt
                 LOG(edb) << "salt";
-                salt = valFromStr(dbAnswer.rows[i][j].data);
                 continue;
             }
 
@@ -2220,12 +2206,13 @@ EDBProxy::rewriteDecryptSelect(const string &query, const ResType &dbAnswer)
                 }
             }
 
-            // this is a value, we need to decrypt it
+            // CASE: this is a typical value
 
             string table = rm.table[j];
             string field = rm.field[j];
+            string fullname = fullName(field, table);
 
-            LOG(edb) << fullName(field, table);
+            LOG(edb) << fullname;
 
             if (rm.o[j] == oNONE) {             //not encrypted
                 LOG(edb) << "its not enc";
@@ -2234,27 +2221,44 @@ EDBProxy::rewriteDecryptSelect(const string &query, const ResType &dbAnswer)
                 continue;
             }
 
-            //the field is encrypted
-            FieldMetadata * fm = tableMetaMap[table]->fieldMetaMap[field];
+            //CASE: the field is encrypted
+            TableMetadata * tm = tableMetaMap[table];
+            FieldMetadata * fm = tm->fieldMetaMap[field];
 
             string fullAnonName = fullName(getOnionName(fm,
                                                         rm.o[j]),
-                                           tableMetaMap[table]->anonTableName);
+                                           tm->anonTableName);
             bool isBin;
             rets.rows[i][index].null = dbAnswer.rows[i][j].null;
             rets.rows[i][index].type = fm->mysql_type;
+
             if (!rets.rows[i][index].null) {
+                cerr << "looking for salt now \n";
+                //get salt to use
+                uint64_t salt = 0;
+                if (fm->has_salt && (rm.SaltIndexes.find(fullname) != rm.SaltIndexes.end())) {
+                    cerr << "using salt index " << rm.SaltIndexes[fullname] << "\n";
+                    salt = valFromStr(dbAnswer.rows[i][rm.SaltIndexes[fullname]].data);
+                    cerr << "retrieved \n";
+                } else { //maybe there is table salt
+                    if (rm.SaltIndexes.find(tm->anonTableName) != rm.SaltIndexes.end()) {
+                        cerr << "using salt index " << rm.SaltIndexes[tm->anonTableName] << "\n";
+                        salt = valFromStr(dbAnswer.rows[i][rm.SaltIndexes[tm->anonTableName]].data);
+                        cerr << "retrieved\n";
+                    }
+                }
+
                 rets.rows[i][index].data =
                         crypt(dbAnswer.rows[i][j].data, fm->type,
                                 fullName(field, table), fullAnonName,
                                 getLevelForOnion(fm, rm.o[j]),
                                 getLevelPlain(rm.o[j]), salt,
                                 tmkm, isBin, dbAnswer.rows[i]);
+                cerr << "decrypted \n";
             }
             index++;
         }
     }
-
     return rets;
 }
 
@@ -2575,12 +2579,9 @@ throw (CryptDBError)
 }
 
 string
-EDBProxy::processValsToInsert(string field, string table, uint64_t salt,
+EDBProxy::processValsToInsert(string field, FieldMetadata * fm, string table, TableMetadata * tm, uint64_t salt,
                                string value, TMKM & tmkm, bool null)
 {
-
-    TableMetadata * tm = tableMetaMap[table];
-    FieldMetadata * fm = tm->fieldMetaMap[field];
 
     if (tm->ai.field == field) {
         tm->ai.incvalue = max((uint64_t) tm->ai.incvalue, valFromStr(value));
@@ -2589,6 +2590,8 @@ EDBProxy::processValsToInsert(string field, string table, uint64_t salt,
     if (!fm->isEncrypted) {
         return value;
     }
+
+    // all fields encrypted
 
     /* XXX */
     if (equalsIgnoreCase(value, "null")) {
@@ -2621,7 +2624,7 @@ EDBProxy::processValsToInsert(string field, string table, uint64_t salt,
 
     string fullname = fullName(field, table);
 
-    string anonTableName = tableMetaMap[table]->anonTableName;
+    string anonTableName = tm->anonTableName;
 
     if (null) {
         if (mp) {
@@ -2637,13 +2640,22 @@ EDBProxy::processValsToInsert(string field, string table, uint64_t salt,
         if (fm->has_search) {
             res += ", NULL ";
         }
+        if (fm->has_salt) {
+            res += ", 0 ";
+        }
     } else {
+
+        uint64_t mySalt = salt;
+
+        if (fm->has_salt) {
+            mySalt = randomValue();
+        }
 
         res +=  " " +
                dataForQuery(value, fm->type, fullname,
                      fullName(fm->anonFieldNameDET,
                               anonTableName), SECLEVEL::PLAIN_DET, fm->secLevelDET,
-                     salt, tmkm);
+                     mySalt, tmkm);
 
         LOG(edb_v) << "just added key from crypt";
 
@@ -2652,7 +2664,7 @@ EDBProxy::processValsToInsert(string field, string table, uint64_t salt,
                    dataForQuery(value, fm->type, fullname,
                          fullName(fm->anonFieldNameOPE,
                                   anonTableName), SECLEVEL::PLAIN_OPE, fm->secLevelOPE,
-                         salt, tmkm);
+                         mySalt, tmkm);
 
         }
 
@@ -2661,7 +2673,7 @@ EDBProxy::processValsToInsert(string field, string table, uint64_t salt,
                    dataForQuery(value, fm->type, fullname,
                          fullName(fm->anonFieldNameAGG,
                                   anonTableName), SECLEVEL::PLAIN_AGG, SECLEVEL::SEMANTIC_AGG,
-                         salt, tmkm);
+                         mySalt, tmkm);
         }
 
         if (fm->has_search) {
@@ -2669,7 +2681,11 @@ EDBProxy::processValsToInsert(string field, string table, uint64_t salt,
                    dataForQuery(value, fm->type, fullname,
                          fullName(fm->anonFieldNameSWP,
                                   anonTableName), SECLEVEL::PLAIN_SWP, SECLEVEL::SWP,
-                         salt, tmkm);
+                         mySalt, tmkm);
+        }
+
+        if (fm->has_salt) {
+            res+= ", " + StringFromVal(mySalt);
         }
 
     }
@@ -2752,7 +2768,7 @@ throw (CryptDBError)
 
     TableMetadata * tm = tableMetaMap[table];
 
-    resultQuery = resultQuery + tableMetaMap[table]->anonTableName + " ";
+    resultQuery = resultQuery + tm->anonTableName + " ";
     roll<string>(wordsIt, 1);
 
     std::set<string> fieldsIncluded;
@@ -2781,20 +2797,23 @@ throw (CryptDBError)
         //new order for the fields
         resultQuery = resultQuery + " (  ";
 
-        if (!DECRYPTFIRST) {
-            if (tableMetaMap[table]->hasEncrypted) {
-                resultQuery += " salt, ";
-            }
+        if (tm->hasEncrypted) {
+            resultQuery += " " + tm->salt_name + ", ";
         }
 
         wordsIt++;
 
         // add all regular fields to be inserted
         while (wordsIt->compare(")") != 0) {
-            fields.push_back(*wordsIt);
-            fieldsIncluded.insert(*wordsIt);
+            string fieldname = *wordsIt;
+            fields.push_back(fieldname);
+            fieldsIncluded.insert(fieldname);
+            assert_s(tm->fieldMetaMap.find(
+                             fieldname) != tm->fieldMetaMap.end(),
+                         "invalid field or you forgot keyword 'values' ");
+            FieldMetadata * fm = tm->fieldMetaMap[fieldname];
             resultQuery = resultQuery + " " + processInsert(*wordsIt, table,
-                                                            tm);
+                                                            fm, tm);
             wordsIt++;
             resultQuery += " " + checkStr(wordsIt, words, ",", ")");
         }
@@ -2833,7 +2852,7 @@ throw (CryptDBError)
         //add fields names from encFieldsToAdd
         for (addit = encFieldsToAdd.begin(); addit != encFieldsToAdd.end();
              addit++) {
-            string addToQuery = processInsert(*addit, table, tm);
+            string addToQuery = processInsert(*addit, table, tm->fieldMetaMap[*addit], tm);
             LOG(edb) << " encfield " << *addit << " adds to query " << addToQuery;
             resultQuery += ", " + addToQuery;
             fields.push_back(*addit);
@@ -2843,7 +2862,7 @@ throw (CryptDBError)
             //add fields names from princsToAdd
             for (addit = princsToAdd.begin(); addit != princsToAdd.end();
                  addit++) {
-                resultQuery += ", " + processInsert(*addit, table, tm);
+                resultQuery += ", " + processInsert(*addit, table, tm->fieldMetaMap[*addit], tm);
                 fields.push_back(*addit);
             }
         }
@@ -2928,7 +2947,7 @@ throw (CryptDBError)
 
             //cerr << "processing for field " << *fieldIt << " with given
             // value " << *valIt << "\n";
-            resultQuery += processValsToInsert(*fieldIt, table, salt, valIt->first,
+            resultQuery += processValsToInsert(*fieldIt, tm->fieldMetaMap[*fieldIt], table, tm, salt, valIt->first,
                                                tmkm, valIt->second);
             valIt++;
             fieldIt++;
@@ -2941,7 +2960,7 @@ throw (CryptDBError)
         for (addit = encFieldsToAdd.begin(); addit != encFieldsToAdd.end();
              addit++) {
             string field = *addit;
-            resultQuery += ", " + processValsToInsert(field, table, salt,
+            resultQuery += ", " + processValsToInsert(field, tm->fieldMetaMap[field], table, tm, salt,
                                                       valIt->first,
                                                       tmkm, valIt->second);
             valIt++;
@@ -2954,7 +2973,7 @@ throw (CryptDBError)
                 string field = *addit;
                 string fullname = fullName(field, table);
                 resultQuery += ", " +
-                               processValsToInsert(field, table, salt, valIt->first,
+                               processValsToInsert(field, tm->fieldMetaMap[field], table, tm, salt, valIt->first,
                                                    tmkm, valIt->second);
                 valIt++;
             }
@@ -3336,8 +3355,9 @@ throw (CryptDBError)
 ResType
 EDBProxy::decryptResults(const string &query, const ResType &dbAnswer)
 {
-    if (DECRYPTFIRST)
+    if (DECRYPTFIRST) {
         return dbAnswer;
+    }
 
     if (dbAnswer.rows.size() == 0)
         return dbAnswer;

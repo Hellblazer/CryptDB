@@ -214,7 +214,7 @@ reverse(const string & vec)
 string
 encrypt_AES_CMC(const string &ptext, const AES_KEY * enckey)
 {
-    string firstenc = encrypt_AES_CBC(ptext, enckey, "0");
+    string firstenc = encrypt_AES_CBC(ptext, enckey, "0",true);
 
     string rev = reverse(firstenc);
 
@@ -228,6 +228,6 @@ decrypt_AES_CMC(const string &ctext, const AES_KEY * deckey)
 
     string reversed = reverse(firstdec);
 
-    return decrypt_AES_CBC(reversed, deckey, "0");
+    return decrypt_AES_CBC(reversed, deckey, "0", true);
 }
 
