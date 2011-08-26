@@ -72,7 +72,7 @@ def main(arg):
 		print("wrong number of arguments: runtput.py useridstart nousers noinstancesperuser no-preliminary-posts")
 		return
 
-	os.system("rm cookie* html* "+filename)
+	os.system("rm "+filename)
 	os.system("touch "+filename)
 	useridstart = int(arg[1])
 	users = int(arg[2])
@@ -149,7 +149,7 @@ def main(arg):
 	querytput = good_queries/interval
 	querylat = (interval*users*instances)/total_queries
 
-	os.system("rm html* cookie*")
+	os.system("rm html* cookie* h o")
 
 	end = time.time()
 	print 'interval of time is ' + repr(end-start)
