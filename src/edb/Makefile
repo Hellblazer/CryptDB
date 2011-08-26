@@ -19,7 +19,8 @@ LDFLAGS	 := -L. -lmysqlclient -lz -llua5.1 \
 HEADERS	 := $(wildcard *.h)
 
 CRYPTO_OBJS  := OPE.o util.o HGD.o Binary.o SWPSearch.o BasicCrypto.o ECJoin.o \
-		CryptoManager.o Equation.o cryptdb_log.o pbkdf2.o blowfish.o
+		CryptoManager.o Equation.o cryptdb_log.o pbkdf2.o blowfish.o \
+		ctr.o
 CRYPTDB_OBJS := AccessManager.o EDBProxy.o Connect.o Translator.o MultiPrinc.o
 PROXY_OBJS   := ConnectWrapper.o
 TEST_OBJS    := tests/test.o tests/TestSinglePrinc.o tests/TestCrypto.o tests/test_utils.o tests/TestMultiPrinc.o tests/TestAccessManager.o tests/TestProxy.o tests/TestQueries.o tests/TestNotConsider.o

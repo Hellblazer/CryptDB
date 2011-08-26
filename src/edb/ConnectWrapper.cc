@@ -5,6 +5,7 @@
 
 #include "EDBProxy.h"
 #include "cryptdb_log.h"
+#include "ctr.hh"
 #include <scoped_lock.hh>
 
 class WrapperState {
@@ -50,6 +51,7 @@ xlua_pushlstring(lua_State *l, const string &s)
 static int
 connect(lua_State *L)
 {
+    ANON_REGION(__func__, &perf_cg);
     scoped_lock l(&big_lock);
 
     string client = xlua_tolstring(L, 1);
@@ -167,6 +169,7 @@ connect(lua_State *L)
 static int
 disconnect(lua_State *L)
 {
+    ANON_REGION(__func__, &perf_cg);
     scoped_lock l(&big_lock);
 
     string client = xlua_tolstring(L, 1);
@@ -183,6 +186,7 @@ disconnect(lua_State *L)
 static int
 rewrite(lua_State *L)
 {
+    ANON_REGION(__func__, &perf_cg);
     scoped_lock l(&big_lock);
 
     string client = xlua_tolstring(L, 1);
@@ -232,6 +236,7 @@ rewrite(lua_State *L)
 static int
 decrypt(lua_State *L)
 {
+    ANON_REGION(__func__, &perf_cg);
     scoped_lock l(&big_lock);
 
     string client = xlua_tolstring(L, 1);

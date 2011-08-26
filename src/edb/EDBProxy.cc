@@ -5,6 +5,7 @@
 #include <fstream>
 #include <set>
 #include <cleanup.hh>
+#include "ctr.hh"
 
 #if MYSQL_S
 
@@ -3272,6 +3273,15 @@ list<string>
 EDBProxy::rewriteEncryptQuery(const string &query, bool &considered)
 throw (CryptDBError)
 {
+    static default_enabler ena;
+    if (ena.enabled()) {
+        static int callCount;
+        if (!(callCount++ % 2000))
+            perfsum_base::printall();
+    }
+
+    ANON_REGION(__func__, &perf_cg);
+
     considered = true;
     if (!isSecure) {
         considered = false;
@@ -3660,6 +3670,7 @@ EDBProxy::crypt(string data, fieldType ft, string fullname,
                  TMKM & tmkm, bool & isBin,
                  const vector<SqlItem> &res)
 {
+    ANON_REGION(__func__, &perf_cg);
 
     LOG(crypto) << "crypting data ";
 

@@ -15,7 +15,7 @@
  */
 class default_enabler {
  public:
-  bool enabled() const { return true; }
+  bool enabled() const { return false; }
 };
 
 
@@ -133,7 +133,7 @@ class perfsum_base {
       print_row(ps->name, ps->get_names(), w0, w, [](const std::string &name)
 		{ return name; });
       print_row("  avg",   p, w0, w, [](const std::pair<uint64_t, uint64_t> &e)
-	        { return ((double) e.second) / e.first; });
+	        { return ((double) e.second) / (double) e.first; });
       print_row("  total", p, w0, w, [](const std::pair<uint64_t, uint64_t> &e)
 		{ return e.second; });
       print_row("  count", p, w0, w, [](const std::pair<uint64_t, uint64_t> &e)
