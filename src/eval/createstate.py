@@ -149,7 +149,7 @@ def main(arg):
 
     f.close()
 
-    os.system("mysql -u root -pletmein -h 127.0.0.1 -P 3307 cryptdb_phpbb < "+filename)
+    os.system("mysql -u root -pletmein -h 18.26.5.16 -P 3307 cryptdb_phpbb < "+filename)
     
 main(sys.argv)
 
