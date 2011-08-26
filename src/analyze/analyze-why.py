@@ -11,8 +11,6 @@ def do_parse(fn):
             return field_info
 
         w = l.strip().split(' ')
-        
-        w = l.strip().split(' ')
         if len(w) < 4 or w[0] != 'FIELD' or w[2] != 'CIPHER' or w[3] != enctype:
             continue
 
