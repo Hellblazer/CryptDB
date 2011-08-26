@@ -515,7 +515,7 @@ MetaAccess::CreateTables()
     sql = "CREATE TABLE " + public_table + " (Type " +  PRINCTYPE +
           ", Value " PRINCVALUE ", Asym_Public_Key " TN_PK_KEY
           ", Asym_Secret_Key " TN_PK_KEY
-          ", Salt bigint, PRIMARY KEY (Type,Value))";
+          ", Salt " + TN_SALT + ", PRIMARY KEY (Type,Value))";
     if(!conn->execute(sql)) {
         LOG(am) << "error with sql query " << sql;
         return -1;
@@ -533,7 +533,7 @@ MetaAccess::CreateTables()
             }
             sql = "CREATE TABLE " + table_name + num + " (" + it->first +
                   " " +  PRINCVALUE + ", " + *it_s + " " + PRINCVALUE +
-                  ", Sym_Key " TN_SYM_KEY ", Salt bigint, Asym_Key "
+                  ", Sym_Key " TN_SYM_KEY ", Salt " + TN_SALT + ", Asym_Key "
                   TN_PK_KEY
                   ", PRIMARY KEY (" + it->first + "," + *it_s + ")" +
                   ", KEY (" + *it_s + ") )";
@@ -830,7 +830,7 @@ KeyAccess::insert(Prin hasAccess, Prin accessTo)
     if(hasAccessKey.length() != 0) {
         uint64_t salt = randomValue();
         AES_KEY * aes = get_AES_enc_key(hasAccessKey);
-        encrypted_accessToKey = crypt_man->encrypt_SEM(accessToKey, aes, salt);
+        encrypted_accessToKey = encrypt_AES_CBC(accessToKey, aes, BytesFromInt(salt, SALT_LEN_BYTES));
         string string_salt = strFromVal(salt);
         string_encrypted_accessToKey = marshallBinary(encrypted_accessToKey);
         sql = "INSERT INTO " + table + "(" + hasAccess.gen + ", " +
@@ -1675,7 +1675,7 @@ KeyAccess::GenerateAsymKeys(Prin prin, PrinKey prin_key)
         crypt_man->generateKeys(rsa_pub_key,rsa_sec_key);
         string pub_key = crypt_man->marshallKey(rsa_pub_key,true);
         string sec_key = crypt_man->marshallKey(rsa_sec_key,false);
-        string encrypted_sec_key = crypt_man->encrypt_SEM(sec_key, aes, salt);
+        string encrypted_sec_key = encrypt_AES_CBC(sec_key, aes, BytesFromInt(salt, SALT_LEN_BYTES));
         salt_string = strFromVal(salt);
         encrypted_sec_key_string = marshallBinary(encrypted_sec_key);
         pub_key_string = marshallBinary(pub_key);
@@ -1703,7 +1703,7 @@ KeyAccess::decryptSym(const SqlItem &sql_encrypted_key,
     string encrypted_key = sql_encrypted_key.data;
     uint64_t salt = valFromStr(sql_salt.data);
     AES_KEY * aes = get_AES_dec_key(key_for_decrypting);
-    string key = crypt_man->decrypt_SEM(encrypted_key, aes, salt);
+    string key = decrypt_AES_CBC(encrypted_key, aes, BytesFromInt(salt, SALT_LEN_BYTES));
     PrinKey result;
     result.key = key;
     return result;

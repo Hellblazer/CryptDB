@@ -920,6 +920,7 @@ CheckQuery(const TestConfig &tc, string query) {
 
 static void
 CheckQueryList(const TestConfig &tc, const QueryList &queries) {
+    cerr << "check quwery list \n";
     assert_s(queries.plain_create.size() == queries.single_create.size() && queries.plain_create.size() == queries.multi_create.size(), "create query lists are not the same size");
     assert_s(queries.plain_drop.size() == queries.single_drop.size() && queries.plain_drop.size() == queries.multi_drop.size(), "drop query lists are not the same size");
 
