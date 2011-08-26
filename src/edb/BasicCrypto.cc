@@ -151,6 +151,8 @@ encrypt_AES_CBC(const string &ptext, const AES_KEY * enckey, string salt, bool d
 {
     //TODO: separately for numbers to avoid need for padding
 
+    assert(dopad || ((ptext.size() % 16) == 0));
+
     vector<unsigned char> ptext_buf;
     if (dopad) {
         ptext_buf = pad(vector<unsigned char>(ptext.begin(), ptext.end()), AES_BLOCK_BYTES);
@@ -171,6 +173,8 @@ encrypt_AES_CBC(const string &ptext, const AES_KEY * enckey, string salt, bool d
 string
 decrypt_AES_CBC(const string &ctext, const AES_KEY * deckey, string salt, bool dounpad)
 {
+    assert((ctext.size() % 16) == 0);
+
     vector<unsigned char> ptext_buf(ctext.size());
     auto ivec = getIVec(salt);
 
