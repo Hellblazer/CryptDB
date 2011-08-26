@@ -85,13 +85,13 @@ static void
 createAll(Connect * conn)
 {
     myassert(conn->execute(
-                 "CREATE FUNCTION "DECRYPT_int_sem" RETURNS INTEGER SONAME 'edb.so'; "),
+                 "CREATE FUNCTION "DECRYPT_int_sem" RETURNS INT UNSIGNED SONAME 'edb.so'; "),
              "failed to create udf decrypt_int_sem ");
     myassert(conn->execute(
-                 "CREATE FUNCTION "DECRYPT_int_det" RETURNS INTEGER SONAME 'edb.so'; "),
+                 "CREATE FUNCTION "DECRYPT_int_det" RETURNS UNSIGNED INTEGER SONAME 'edb.so'; "),
              "failed to create udf decrypt_int_det");
     myassert(conn->execute(
-                 "CREATE FUNCTION "ENCRYPT_int_det" RETURNS INTEGER SONAME 'edb.so'; "),
+                 "CREATE FUNCTION "ENCRYPT_int_det" RETURNS UNSIGNED INTEGER SONAME 'edb.so'; "),
              "failed to create udf encrypt_int_det");
     myassert(conn->execute(
                  "CREATE FUNCTION "DECRYPT_text_sem" RETURNS STRING SONAME 'edb.so'; "),
@@ -100,7 +100,7 @@ createAll(Connect * conn)
                  "CREATE FUNCTION "DECRYPT_text_det" RETURNS STRING SONAME 'edb.so'; "),
              "failed to create udf decrypt_text_det");
     myassert(conn->execute(
-                 "CREATE FUNCTION "SEARCH" RETURNS INTEGER SONAME 'edb.so'; "),
+                 "CREATE FUNCTION "SEARCH" RETURNS UNSIGNED INTEGER SONAME 'edb.so'; "),
              "failed to create udf search");
     myassert(conn->execute(
                  "CREATE AGGREGATE FUNCTION agg RETURNS STRING SONAME 'edb.so'; "),
@@ -109,7 +109,7 @@ createAll(Connect * conn)
                  "CREATE FUNCTION func_add_set RETURNS STRING SONAME 'edb.so'; "),
              "failed to create udf func_add_set");
     myassert(conn->execute(
-                 "CREATE FUNCTION "SEARCHSWP" RETURNS INTEGER SONAME 'edb.so'; "),
+                 "CREATE FUNCTION "SEARCHSWP" RETURNS UNSIGNED INTEGER SONAME 'edb.so'; "),
              "failed to create udf searchSWP");
 
     /* old Postgres statements: */

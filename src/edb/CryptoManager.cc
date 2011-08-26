@@ -845,7 +845,10 @@ getXORValue(uint64_t salt, AES_KEY * aes_key)
     unsigned char ciphertext[AES_BLOCK_BYTES];
     AES_encrypt((const uint8_t*)plaintext.c_str(), ciphertext, aes_key);
 
-    return IntFromBytes(ciphertext, AES_BLOCK_BYTES);
+
+    uint64_t v = IntFromBytes(ciphertext, AES_BLOCK_BYTES);
+
+    return v;
 }
 
 
@@ -859,7 +862,9 @@ CryptoManager::encrypt_SEM(uint64_t ptext, AES_KEY * key, uint64_t salt)
 uint64_t
 CryptoManager::decrypt_SEM(uint64_t ctext, AES_KEY * key, uint64_t salt)
 {
-    return ctext ^ getXORValue(salt, key);
+    uint64_t v =  ctext ^ getXORValue(salt, key);
+
+    return v;
 }
 
 uint32_t

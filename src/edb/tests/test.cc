@@ -663,10 +663,13 @@ interactiveTest(const TestConfig &tc, int ac, char **av)
 					"failed");
 
 			assert_res(cl->execute(
-					"INSERT INTO test_insert VALUES (1, 21);"), "failed");
+					"INSERT INTO test_insert VALUES (1, 5);"), "failed");
+			assert_res(cl->execute(  "INSERT INTO test_insert VALUES (2, 5);"), "failed");
 
-			assert_res(cl->execute(
-					"SELECT * FROM test_insert;"), "failed");
+                        assert_res(cl->execute(
+                                        "SELECT COUNT(DISTINCT age) FROM test_insert;"), "failed");
+
+                        assert_res(cl->execute("SELECT * FROM test_insert;"), "failed");
 
 			// assert_res(cl->execute(
 			//              "SELECT sum(id) FROM hi;"), "failed");

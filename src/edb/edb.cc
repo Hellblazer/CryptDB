@@ -29,11 +29,11 @@ typedef long long longlong;
 #include <ctype.h>
 
 my_bool  decrypt_int_sem_init(UDF_INIT *initid, UDF_ARGS *args, char *message);
-longlong decrypt_int_sem(UDF_INIT *initid, UDF_ARGS *args, char *is_null,
+ulonglong decrypt_int_sem(UDF_INIT *initid, UDF_ARGS *args, char *is_null,
                          char *error);
 
 my_bool  decrypt_int_det_init(UDF_INIT *initid, UDF_ARGS *args, char *message);
-longlong decrypt_int_det(UDF_INIT *initid, UDF_ARGS *args, char *is_null,
+ulonglong decrypt_int_det(UDF_INIT *initid, UDF_ARGS *args, char *is_null,
                          char *error);
 
 my_bool  decrypt_text_sem_init(UDF_INIT *initid, UDF_ARGS *args,
@@ -43,7 +43,7 @@ char *   decrypt_text_sem(UDF_INIT *initid, UDF_ARGS *args, char *result,
                           unsigned long *length, char *is_null, char *error);
 
 my_bool  encrypt_int_det_init(UDF_INIT *initid, UDF_ARGS *args, char *message);
-longlong encrypt_int_det(UDF_INIT *initid, UDF_ARGS *args, char *is_null,
+ulonglong encrypt_int_det(UDF_INIT *initid, UDF_ARGS *args, char *is_null,
                          char *error);
 
 my_bool  decrypt_text_det_init(UDF_INIT *initid, UDF_ARGS *args,
@@ -53,7 +53,7 @@ char *   decrypt_text_det(UDF_INIT *initid, UDF_ARGS *args, char *result,
                           unsigned long *length, char *is_null, char *error);
 
 my_bool  search_init(UDF_INIT *initid, UDF_ARGS *args, char *message);
-longlong search(UDF_INIT *initid, UDF_ARGS *args, char *is_null, char *error);
+ulonglong search(UDF_INIT *initid, UDF_ARGS *args, char *is_null, char *error);
 
 my_bool  agg_init(UDF_INIT *initid, UDF_ARGS *args, char *message);
 void     agg_deinit(UDF_INIT *initid);
@@ -68,7 +68,7 @@ char *   func_add_set(UDF_INIT *initid, UDF_ARGS *args, char *result,
 
 my_bool  searchSWP_init(UDF_INIT *initid, UDF_ARGS *args, char *message);
 void     searchSWP_deinit(UDF_INIT *initid);
-longlong searchSWP(UDF_INIT *initid, UDF_ARGS *args, char *is_null,
+ulonglong searchSWP(UDF_INIT *initid, UDF_ARGS *args, char *is_null,
                    char *error);
 
 #else /* Postgres */
@@ -220,7 +220,7 @@ decrypt_int_sem_init(UDF_INIT *initid, UDF_ARGS *args, char *message)
     return 0;
 }
 
-longlong
+ulonglong
 decrypt_int_sem(UDF_INIT *initid, UDF_ARGS *args, char *is_null, char *error)
 #else /*postgres*/
 Datum
@@ -243,7 +243,7 @@ decrypt_int_sem(PG_FUNCTION_ARGS)
     delete aesKey;
 
 #if MYSQL_S
-    return (longlong) value;
+    return (ulonglong) value;
 #else /* postgres */
     PG_RETURN_INT64(value);
 #endif
@@ -256,7 +256,7 @@ decrypt_int_det_init(UDF_INIT *initid, UDF_ARGS *args, char *message)
     return 0;
 }
 
-longlong
+ulonglong
 decrypt_int_det(UDF_INIT *initid, UDF_ARGS *args, char *is_null, char *error)
 #else /* postgres */
 Datum
@@ -277,7 +277,7 @@ decrypt_int_det(PG_FUNCTION_ARGS)
     delete bfKey;
 
 #if MYSQL_S
-    return (longlong) value;
+    return (ulonglong) value;
 #else /* postgres */
     PG_RETURN_INT64(value);
 #endif
@@ -291,7 +291,7 @@ encrypt_int_det_init(UDF_INIT *initid, UDF_ARGS *args, char *message)
     return 0;
 }
 
-longlong
+ulonglong
 encrypt_int_det(UDF_INIT *initid, UDF_ARGS *args, char *is_null, char *error)
 #else /* postgres */
 Datum
@@ -312,7 +312,7 @@ decrypt_int_det(PG_FUNCTION_ARGS)
     delete bfKey;
 
 #if MYSQL_S
-    return (longlong) value;
+    return (ulonglong) value;
 #else /* postgres */
     PG_RETURN_INT64(value);
 #endif
@@ -359,7 +359,7 @@ decrypt_text_sem(PG_FUNCTION_ARGS)
 
     uint64_t salt = getui(ARGS, offset + AES_KEY_BYTES);
 
-    AES_KEY *aesKey = get_key_SEM(key);
+    AES_KEY *aesKey = get_AES_dec_key(key);
     string value = decrypt_SEM(eValueBytes, eValueLen, aesKey, salt);
     delete aesKey;
 
@@ -449,7 +449,7 @@ search_init(UDF_INIT *initid, UDF_ARGS *args, char *message)
     return 0;
 }
 
-longlong
+ulonglong
 search(UDF_INIT *initid, UDF_ARGS *args, char *is_null, char *error)
 #else
 Datum
@@ -534,7 +534,7 @@ searchSWP_deinit(UDF_INIT *initid)
     delete t;
 }
 
-longlong
+ulonglong
 searchSWP(UDF_INIT *initid, UDF_ARGS *args, char *is_null, char *error)
 {
     uint64_t allciphLen;
