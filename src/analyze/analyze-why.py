@@ -3,15 +3,13 @@
 import sys, collections, multiprocessing, gzip
 
 def do_parse(fn):
-    reason_fields = collections.defaultdict(set)
+    field_info = collections.defaultdict(set)
     f = gzip.open(fn)
     while True:
         l = f.readline()
         if l == '':
-            return reason_fields
+            return field_info
 
-        w = l.strip().split(' ')
-        
         w = l.strip().split(' ')
         if len(w) < 4 or w[0] != 'FIELD' or w[2] != 'CIPHER' or w[3] != enctype:
             continue
@@ -19,7 +17,7 @@ def do_parse(fn):
         field = w[1]
         cipher = w[3]
         reason = w[6]
-        reason_fields[reason].add(field)
+        field_info[field].add(reason)
 
 if __name__ == '__main__':
     if len(sys.argv) < 3:
@@ -32,10 +30,14 @@ if __name__ == '__main__':
     p = multiprocessing.Pool(processes = len(files))
 
     merged = collections.defaultdict(set)
-    for x in p.map(do_parse, files):
-        for k in x:
-            merged[k].update(x[k])
+    for field_info in p.map(do_parse, files):
+        for field in field_info:
+            merged[field].update(field_info[field])
 
-    for reason in merged:
-        print '%9d' % len(merged[reason]), reason
+    set_to_fieldcount = collections.defaultdict(int)
+    for xset in merged.itervalues():
+        set_to_fieldcount[str(sorted(xset))] += 1
+
+    for x in set_to_fieldcount:
+        print '%9d' % set_to_fieldcount[x], x
 
