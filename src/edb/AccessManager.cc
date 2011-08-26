@@ -828,7 +828,7 @@ KeyAccess::insert(Prin hasAccess, Prin accessTo)
 
     if(hasAccessKey.length() != 0) {
         uint64_t salt = randomValue();
-        AES_KEY * aes = crypt_man->get_key_SEM(hasAccessKey);
+        AES_KEY * aes = get_AES_enc_key(hasAccessKey);
         encrypted_accessToKey = crypt_man->encrypt_SEM(accessToKey, aes, salt);
         string string_salt = strFromVal(salt);
         string_encrypted_accessToKey = marshallBinary(encrypted_accessToKey);
@@ -1213,6 +1213,7 @@ KeyAccess::insertPsswd(Prin gives, const string &psswd)
     // that has been inserted before)
     if (!isInstance(gives)) {
         GenerateAsymKeys(gives, password);
+        cerr << "returning from insert psswd \n";
         return 0;
     }
 
@@ -1657,7 +1658,7 @@ KeyAccess::GenerateAsymKeys(Prin prin, PrinKey prin_key)
     string encrypted_sec_key_string = "NULL";
     string salt_string = "NULL";
     if (meta->getGenHasAccessTo(prin.gen).size() > 1) {
-        AES_KEY * aes = crypt_man->get_key_SEM(prin_key.key);
+        AES_KEY * aes = get_AES_enc_key(prin_key.key);
         uint64_t salt = randomValue();
         PKCS * rsa_pub_key;
         PKCS * rsa_sec_key;
@@ -1677,6 +1678,7 @@ KeyAccess::GenerateAsymKeys(Prin prin, PrinKey prin_key)
         LOG(am) << "SQL error on query " << sql;
         return -1;
     }
+    cerr << "returning from asym keys \n";
     return 0;
 }
 
@@ -1690,7 +1692,7 @@ KeyAccess::decryptSym(const SqlItem &sql_encrypted_key,
     }
     string encrypted_key = sql_encrypted_key.data;
     uint64_t salt = valFromStr(sql_salt.data);
-    AES_KEY * aes = crypt_man->get_key_SEM(key_for_decrypting);
+    AES_KEY * aes = get_AES_dec_key(key_for_decrypting);
     string key = crypt_man->decrypt_SEM(encrypted_key, aes, salt);
     PrinKey result;
     result.key = key;

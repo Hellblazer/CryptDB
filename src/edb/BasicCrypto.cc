@@ -11,21 +11,21 @@
 AES_KEY *
 get_AES_KEY(const string &key)
 {
-    AES_KEY * aes_key = new AES_KEY();
-
-    if (AES_set_encrypt_key((const uint8_t*) key.c_str(), AES_KEY_SIZE,
-                            aes_key) <0) {
-        myassert(false, "problem with AES set encrypt ");
-    }
-
-    return aes_key;
+    return get_AES_enc_key(key);
 
 }
 
 AES_KEY *
 get_AES_enc_key(const string &key)
 {
-    return get_AES_KEY(key);
+    AES_KEY * aes_key = new AES_KEY();
+
+    if (AES_set_encrypt_key((const uint8_t*) key.c_str(), AES_KEY_SIZE,
+            aes_key) <0) {
+        myassert(false, "problem with AES set encrypt ");
+    }
+
+    return aes_key;
 }
 
 

@@ -21,7 +21,7 @@ TestCrypto::~TestCrypto()
 static void
 testBasics()
 {
-    enum { nround = 100000 };
+    enum { nround = 10000 };
     for (uint i = 0; i < nround; i++) {
         size_t len = randomValue() % 1024;
         string plaintext = randomBytes((uint) len);
