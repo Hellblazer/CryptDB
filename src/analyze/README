@@ -58,6 +58,8 @@ wait
 
 zcat analyze-buf/buf.*.gz | ./analyze-levels.py
 
+./analyze-why.py plain parsed/*.gz
+
 ### non-parallel plan below ###
 
 ./extract-query.sh ./data/out.1313204583.15205.log \
