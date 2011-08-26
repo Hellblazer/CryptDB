@@ -15,6 +15,10 @@ Connect::Connect(string server, string user, string passwd,
 #if MYSQL_S
     conn = mysql_init(NULL);
 
+    /* Make sure we always connect via TCP, and not via Unix domain sockets */
+    uint proto = MYSQL_PROTOCOL_TCP;
+    mysql_options(conn, MYSQL_OPT_PROTOCOL, &proto);
+
     /* Connect to database */
     if (!mysql_real_connect(conn, server.c_str(), user.c_str(),
                             passwd.c_str(), dbname.c_str(), port, 0, 0)) {
