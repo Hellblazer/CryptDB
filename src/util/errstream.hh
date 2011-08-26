@@ -2,6 +2,7 @@
 
 #include <iostream>
 #include <sstream>
+#include <stdexcept>
 
 class fatal : public std::stringstream {
  public:
@@ -17,4 +18,3 @@ class thrower : public std::stringstream {
         throw std::runtime_error(str());
     }
 };
-

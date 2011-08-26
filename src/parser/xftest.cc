@@ -9,7 +9,8 @@
 
 #include <stdio.h>
 
-#include "errstream.hh"
+#include <errstream.hh>
+#include <cleanup.hh>
 #include "mysql_glue.hh"
 #include "stringify.hh"
 
@@ -24,10 +25,6 @@
 #include "sql_plugin.h"
 #include "derror.h"
 #include "item.h"
-
-#define CONCAT2(a, b)   a ## b
-#define CONCAT(a, b)    CONCAT2(a, b)
-#define ANON            CONCAT(__anon_id_, __LINE__)
 
 enum class Cipher   { AES, OPE, Paillier, SWP };
 enum class DataType { integer, string };

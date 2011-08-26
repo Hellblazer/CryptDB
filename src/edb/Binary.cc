@@ -8,6 +8,7 @@
 #include "Binary.h"
 #include <list>
 #include <iostream>
+#include <errstream.hh>
 
 Binary::Binary()
 {
@@ -125,11 +126,10 @@ Binary::subbinary(unsigned int pos, unsigned int no) const
     Binary res;
 
     if (this->len < pos + no) {
-        string msg =  "subbinary problem: len < pos + no";
-        cerr << "len is " << len << " pos is " << pos << " no is " << no <<
-        "\n";
-        cerr << msg << "\n";
-        throw (void *) msg.c_str();
+        thrower() << "subbinary problem: len < pos + no:"
+                  << " len is " << len
+                  << " pos is " << pos
+                  << " no is "  << no;
     }
     res.len = no;
     res.content = new unsigned char[no];
@@ -227,8 +227,7 @@ Binary::split(unsigned int plen) const
 {
 
     if (len % plen != 0) {
-        cerr <<  "split receives invalid input \n";
-        throw "split receives invalid input";
+        thrower() << "split receives invalid input";
     }
 
     unsigned int num = len / plen;

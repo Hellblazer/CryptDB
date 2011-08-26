@@ -10,19 +10,15 @@
 
 #include <stdio.h>
 
-#include "errstream.hh"
+#include <errstream.hh>
+#include <cleanup.hh>
 #include "stringify.hh"
-#include "cleanup.hh"
 #include "rob.hh"
 
 #include "sql_select.h"
 #include "sql_delete.h"
 #include "sql_insert.h"
 #include "sql_update.h"
-
-#define CONCAT2(a, b)   a ## b
-#define CONCAT(a, b)    CONCAT2(a, b)
-#define ANON            CONCAT(__anon_id_, __COUNTER__)
 
 static bool debug = false;
 static bool just_strings = false;

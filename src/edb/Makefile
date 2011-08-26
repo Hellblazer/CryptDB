@@ -45,10 +45,10 @@ tests/test: libcryptdb.so $(TEST_OBJS)
 	$(CXX) -o $@ $(TEST_OBJS) $(LDFLAGS) -lcryptdb -ldl -lcrypto -lntl -ledbcrypto
 
 %.o: %.cc $(HEADERS)
-	$(CXX) $(CXXFLAGS) $< -c -o $@
+	$(CXX) $(CXXFLAGS) $< -c -o $@ -I../util
 
 $(TEST_OBJS): %.o: %.cc $(HEADERS) $(wildcard tests/*.h)
-	$(CXX) $(CXXFLAGS) $< -c -o $@ -I.
+	$(CXX) $(CXXFLAGS) $< -c -o $@ -I../util -I.
 
 install: libedbcrypto.so edb.so
 	install -m 644 libedbcrypto.so /usr/lib

@@ -4,6 +4,7 @@
 #include <iostream>
 #include <fstream>
 #include <set>
+#include <cleanup.hh>
 
 #if MYSQL_S
 
@@ -659,6 +660,7 @@ throw (CryptDBError)
 
     list<string> words = getSQLWords(query);
     QueryMeta qm = getQueryMeta(cmd::UPDATE, words, tableMetaMap);
+    auto ANON = cleanup([&qm]() { qm.cleanup(); });
 
     TMKM tmkm;
     if (mp) {
@@ -926,7 +928,6 @@ throw (CryptDBError)
         processFilters(wordsIt, words, qm,  resultQuery, fieldsDec,
                        tmkm);
 
-    qm.cleanup();
     return res;
 }
 
@@ -1993,7 +1994,6 @@ throw (CryptDBError)
         processFilters(wordsIt, words, qm, resultQuery, fieldsDec, tmkm,
                        subqueries);
 
-    qm.cleanup();
     return res;
 }
 
@@ -2148,6 +2148,7 @@ EDBProxy::rewriteDecryptSelect(const string &query, const ResType &dbAnswer)
     list<string> words = getSQLWords(query);
 
     QueryMeta qm = getQueryMeta(cmd::SELECT, words, tableMetaMap);
+    auto ANON = cleanup([&qm]() { qm.cleanup(); });
 
     expandWildCard(words, qm, tableMetaMap);
 
@@ -2164,6 +2165,7 @@ EDBProxy::rewriteDecryptSelect(const string &query, const ResType &dbAnswer)
     }
 
     ResMeta rm = getResMeta(words, dbAnswer, qm, tableMetaMap, mp, tmkm);
+    auto ANON = cleanup([&rm]() { rm.cleanup(); });
 
     //====================================================
 
@@ -2253,8 +2255,6 @@ EDBProxy::rewriteDecryptSelect(const string &query, const ResType &dbAnswer)
         }
     }
 
-    qm.cleanup();
-    rm.cleanup();
     return rets;
 }
 
@@ -2531,6 +2531,7 @@ throw (CryptDBError)
 
     //first figure out what tables are involved to know what fields refer to
     QueryMeta qm = getQueryMeta(cmd::DELETE, words, tableMetaMap);
+    auto ANON = cleanup([&qm]() { qm.cleanup(); });
 
     TMKM tmkm;
     if (mp) {
@@ -2570,7 +2571,6 @@ throw (CryptDBError)
         processFilters(wordsIt, words, qm, resultQuery, ftd,
                        tmkm);
 
-    qm.cleanup();
     return res;
 }
 

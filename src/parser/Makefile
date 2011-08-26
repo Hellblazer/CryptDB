@@ -1,6 +1,6 @@
 include config.mk
 
-CXXFLAGS := -I. \
+CXXFLAGS := -I. -I../util \
 	    -I$(MYBUILD)/include \
 	    -I$(MYSRC)/include \
 	    -I$(MYSRC)/sql \

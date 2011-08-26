@@ -10,7 +10,7 @@
 
 #include <stdio.h>
 
-#include "errstream.hh"
+#include <errstream.hh>
 
 #include "sql_priv.h"
 #include "unireg.h"

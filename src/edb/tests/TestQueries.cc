@@ -7,6 +7,8 @@
 
 #include <stdexcept>
 #include <netinet/in.h>
+
+#include <errstream.hh>
 #include "TestQueries.h"
 #include "cryptdb_log.h"
 
@@ -703,7 +705,7 @@ Connection::start() {
             exit(-1);
         } else if (proxy_pid < 0) {
             LOG(warn) << "failed to fork";
-            throw runtime_error("failed to fork");
+            thrower() << "failed to fork: " << strerror(errno);
         } else {
             for (uint i = 0; i < 100; i++) {
                 usleep(100000);
@@ -881,14 +883,14 @@ CheckAnnotatedQuery(const TestConfig &tc, string control_query, string test_quer
                   << " for query: " << test_query;
 
         if (tc.stop_if_fail)
-            throw runtime_error("stop on failure");
+            thrower() << "stop on failure";
     } else if (!match(test_res, control_res)) {
         LOG(warn) << "result mismatch for query: " << test_query;
         PrintRes(control_res);
         PrintRes(test_res);
 
         if (tc.stop_if_fail)
-            throw runtime_error("stop on failure");
+            thrower() << "stop on failure";
     } else {
         npass++;
     }
@@ -1035,7 +1037,7 @@ string_to_test_mode(const string &s)
     else if (s == "proxy-multi")
         return PROXYMULTI;
     else
-        throw std::runtime_error("unknown test mode");
+        thrower() << "unknown test mode " << s;
 }
 
 void
