@@ -664,17 +664,17 @@ Connection::start() {
             }
             //setenv("CRYPTDB_PROXY_DEBUG","true",1);
 
-            stringstream script_path, address;
+            stringstream script_path, address, backend;
             script_path << "--proxy-lua-script=" << tc.edbdir << "/../mysqlproxy/wrapper.lua";
-            address << "--proxy-address=localhost:" << tc.port;
-
+            address << "--proxy-address=" << tc.host << ":" << tc.port;
+            backend << "--proxy-backend-addresses=" << tc.host << ":3306";
             cerr << "starting on port " << tc.port << "\n";
             execlp("mysql-proxy",
                    "mysql-proxy", "--plugins=proxy",
                                   "--max-open-files=1024",
                                   script_path.str().c_str(),
                                   address.str().c_str(),
-                                  "--proxy-backend-addresses=localhost:3306",
+                                  backend.str().c_str(),
                                   (char *) 0);
             LOG(warn) << "could not execlp: " << strerror(errno);
             exit(-1);

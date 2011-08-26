@@ -420,7 +420,7 @@ processAnnotation(MultiPrinc * mp, list<string>::iterator & wordsIt,
             if (annot == "encfor") {
                 fm->isEncrypted = true;
             }
-            cerr << "before mp-process an \n";
+            //cerr << "before mp-process an \n";
             mp->processAnnotation(wordsIt, words, tableName, fieldName,
                     fm->isEncrypted,
                     tm);
@@ -554,7 +554,7 @@ throw (CryptDBError)
 
         //primary key, index, other metadata about data layout
         if (contains(fieldName, createMetaKeywords)) {
-            if (VERBOSE) { cerr << fieldName << " is meta \n"; }
+            //if (VERBOSE) { cerr << fieldName << " is meta \n"; }
             //mirrorUntilTerm should stop at the comma
             fieldSeq +=  mirrorUntilTerm(wordsIt, words, {","}, 1, 1);
             continue;
@@ -3194,7 +3194,7 @@ EDBProxy::considerQuery(command com, const string &query)
     		bool table_sense = false;
     		while(it_from != words.end() && !isKeyword(*it_from)) {
     			auto table_info = tableMetaMap.find(*it_from);
-    			if (table_info != tableMetaMap.end() && table_info->second->hasSensitive) {
+    			if (table_info != tableMetaMap.end() && table_info->second->hasEncrypted) {
     				table_sense = true;
     			}
     			it_from++;
@@ -3276,11 +3276,14 @@ EDBProxy::considerQuery(command com, const string &query)
 }
 
 list<string>
-EDBProxy::rewriteEncryptQuery(const string &query)
+EDBProxy::rewriteEncryptQuery(const string &query, bool &considered)
 throw (CryptDBError)
 {
-    if (!isSecure)
+    considered = true;
+    if (!isSecure) {
+        considered = false;
         return list<string>(1, query);
+    }
 
     //It is secure
 
@@ -3291,10 +3294,10 @@ throw (CryptDBError)
 
     //some queries do not need to be encrypted
     if (!considerQuery(com, query)) {
-
         LOG(edb_v) << "query not considered: " << query;
         list<string> res;
         res.push_back(query);
+        considered = false;
         return res;
     }
 
@@ -3327,12 +3330,12 @@ throw (CryptDBError)
     }
     case cmd::OTHER:
     default: {
-        cerr << "other query\n";
+        //cerr << "other query\n";
         if (DECRYPTFIRST)
             return list<string>(1, query);
     }
     }
-    cerr << "e" << endl;
+    //cerr << "e" << endl;
     assert_s(false, "invalid control path");
     return list<string>();
 }
@@ -3431,7 +3434,8 @@ EDBProxy::execute(const string &query)
     list<string> queries;
 
     try {
-        queries = rewriteEncryptQuery(query);
+        bool temp;
+        queries = rewriteEncryptQuery(query, temp);
         LOG(edb_perf) << "rewrite latency: " << t.lap();
     } catch (CryptDBError se) {
         LOG(warn) << "problem with query " << query << ": " << se.msg;
@@ -3571,7 +3575,8 @@ throw (CryptDBError)
         }
 
         if (query.length() > 0) {
-            queries = rewriteEncryptQuery(query+";");
+            bool temp;
+            queries = rewriteEncryptQuery(query+";",temp);
             if (execquery) {
                 for (auto it = queries.begin(); it != queries.end(); it++) {
                     assert_s(conn->execute(*it), "failed to execute query " + *it);
@@ -3604,7 +3609,7 @@ EDBProxy::rewriteEncryptTrain(const string & query) {
     //parse query
     list<string> words = getSQLWords(query);
 
-    cerr << "training\n";
+    //cerr << "training\n";
     assert_s(words.size() == 5, "invalid number of inputs to train, expecting: TRAIN are_all_fields_encrypted createsfile queryfile execute?");
 
     list<string>::iterator it = words.begin();

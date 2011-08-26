@@ -9,8 +9,11 @@
 class WrapperState {
  public:
     string last_query;
+    bool considered;
     ofstream * PLAIN_LOG;
 };
+
+static Timer t;
 
 static EDBProxy * cl = NULL;
 
@@ -89,7 +92,8 @@ connect(lua_State *L)
             if (trainQuery != "") {
                 cerr << "supposed to rewrite\n";
                 cerr << "train query is " << trainQuery << "\n";
-                cl->rewriteEncryptQuery(trainQuery);
+                bool consider;
+                cl->rewriteEncryptQuery(trainQuery, consider);
             } else {
                 cerr << "empty training!\n";
             }
@@ -181,12 +185,13 @@ rewrite(lua_State *L)
 
     list<string> new_queries;
 
+    t.lap_ms();
     if (EXECUTE_QUERIES) {
         if (!DO_CRYPT) {
             new_queries.push_back(query);
         } else {
             try {
-                new_queries = cl->rewriteEncryptQuery(query);
+                new_queries = cl->rewriteEncryptQuery(query, clients[client]->considered);
             } catch (CryptDBError &e) {
                 LOG(wrapper) << "cannot rewrite " << query << ": " << e.msg;
                 lua_pushnil(L);
@@ -267,7 +272,7 @@ decrypt(lua_State *L)
     }
 
     ResType rd;
-    if (!DO_CRYPT) {
+    if (!DO_CRYPT || !clients[client]->considered) {
         rd = r;
     } else {
     try {
@@ -324,6 +329,7 @@ decrypt(lua_State *L)
         lua_settable(L, t_rows);
     }
 
+    //cerr << clients[client]->last_query << " took (too long) " << t.lap_ms() << endl;;
     return 2;
 }
 

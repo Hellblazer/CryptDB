@@ -1,6 +1,12 @@
 #
-# $Id$
+# $Id: $
 #
+
+# Table: 'pwdcryptdb__phpbb_users'
+CREATE TABLE pwdcryptdb__phpbb_users (
+    username_clean text,
+    psswd blob
+);
 
 # Table: 'phpbb_attachments'
 CREATE TABLE phpbb_attachments (
@@ -30,8 +36,8 @@ CREATE TABLE phpbb_attachments (
 
 # Table: 'phpbb_acl_groups'
 CREATE TABLE phpbb_acl_groups (
-	group_id hasaccessto forum_id mediumint(8) UNSIGNED DEFAULT '0' NOT NULL,
-	forum_id equals phpbb_forums.forum_id mediumint(8) UNSIGNED DEFAULT '0' NOT NULL,
+	group_id mediumint(8) UNSIGNED DEFAULT '0' NOT NULL,
+	forum_id mediumint(8) UNSIGNED DEFAULT '0' NOT NULL,
 	auth_option_id mediumint(8) UNSIGNED DEFAULT '0' NOT NULL,
 	auth_role_id mediumint(8) UNSIGNED DEFAULT '0' NOT NULL,
 	auth_setting tinyint(2) DEFAULT '0' NOT NULL,
@@ -110,7 +116,7 @@ CREATE TABLE phpbb_banlist (
 
 # Table: 'phpbb_bbcodes'
 CREATE TABLE phpbb_bbcodes (
-	bbcode_id tinyint(3) DEFAULT '0' NOT NULL,
+	bbcode_id smallint(4) UNSIGNED DEFAULT '0' NOT NULL,
 	bbcode_tag varchar(16) DEFAULT '' NOT NULL,
 	bbcode_helpline varchar(255) DEFAULT '' NOT NULL,
 	display_on_posting tinyint(1) UNSIGNED DEFAULT '0' NOT NULL,
@@ -222,7 +228,7 @@ CREATE TABLE phpbb_forums (
 	left_id mediumint(8) UNSIGNED DEFAULT '0' NOT NULL,
 	right_id mediumint(8) UNSIGNED DEFAULT '0' NOT NULL,
 	forum_parents mediumtext NOT NULL,
-	forum_name encfor forum_id varchar(255) NOT NULL,
+	forum_name varchar(255) DEFAULT '' NOT NULL,
 	forum_desc text NOT NULL,
 	forum_desc_bitfield varchar(255) DEFAULT '' NOT NULL,
 	forum_desc_options int(11) UNSIGNED DEFAULT '7' NOT NULL,
@@ -230,7 +236,7 @@ CREATE TABLE phpbb_forums (
 	forum_link varchar(255) DEFAULT '' NOT NULL,
 	forum_password varchar(40) DEFAULT '' NOT NULL,
 	forum_style mediumint(8) UNSIGNED DEFAULT '0' NOT NULL,
-	forum_image encfor forum_id varchar(255) NOT NULL,
+	forum_image varchar(255) DEFAULT '' NOT NULL,
 	forum_rules text NOT NULL,
 	forum_rules_link varchar(255) DEFAULT '' NOT NULL,
 	forum_rules_bitfield varchar(255) DEFAULT '' NOT NULL,
@@ -244,7 +250,7 @@ CREATE TABLE phpbb_forums (
 	forum_topics_real mediumint(8) UNSIGNED DEFAULT '0' NOT NULL,
 	forum_last_post_id mediumint(8) UNSIGNED DEFAULT '0' NOT NULL,
 	forum_last_poster_id mediumint(8) UNSIGNED DEFAULT '0' NOT NULL,
-	forum_last_post_subject encfor forum_id det varchar(255),
+	forum_last_post_subject varchar(255) DEFAULT '' NOT NULL,
 	forum_last_post_time int(11) UNSIGNED DEFAULT '0' NOT NULL,
 	forum_last_poster_name varchar(255) DEFAULT '' NOT NULL,
 	forum_last_poster_colour varchar(6) DEFAULT '' NOT NULL,
@@ -369,6 +375,22 @@ CREATE TABLE phpbb_log (
 ) CHARACTER SET `utf8` COLLATE `utf8_bin`;
 
 
+# Table: 'phpbb_login_attempts'
+CREATE TABLE phpbb_login_attempts (
+	attempt_ip varchar(40) DEFAULT '' NOT NULL,
+	attempt_browser varchar(150) DEFAULT '' NOT NULL,
+	attempt_forwarded_for varchar(255) DEFAULT '' NOT NULL,
+	attempt_time int(11) UNSIGNED DEFAULT '0' NOT NULL,
+	user_id mediumint(8) UNSIGNED DEFAULT '0' NOT NULL,
+	username varchar(255) DEFAULT '0' NOT NULL,
+	username_clean varchar(255) DEFAULT '0' NOT NULL,
+	KEY att_ip (attempt_ip, attempt_time),
+	KEY att_for (attempt_forwarded_for, attempt_time),
+	KEY att_time (attempt_time),
+	KEY user_id (user_id)
+) CHARACTER SET `utf8` COLLATE `utf8_bin`;
+
+
 # Table: 'phpbb_moderator_cache'
 CREATE TABLE phpbb_moderator_cache (
 	forum_id mediumint(8) UNSIGNED DEFAULT '0' NOT NULL,
@@ -429,7 +451,7 @@ CREATE TABLE phpbb_poll_votes (
 CREATE TABLE phpbb_posts (
 	post_id mediumint(8) UNSIGNED NOT NULL auto_increment,
 	topic_id mediumint(8) UNSIGNED DEFAULT '0' NOT NULL,
-	forum_id equals phpbb_acl_groups.forum_id mediumint(8) UNSIGNED DEFAULT '0' NOT NULL,
+	forum_id mediumint(8) UNSIGNED DEFAULT '0' NOT NULL,
 	poster_id mediumint(8) UNSIGNED DEFAULT '0' NOT NULL,
 	icon_id mediumint(8) UNSIGNED DEFAULT '0' NOT NULL,
 	poster_ip varchar(40) DEFAULT '' NOT NULL,
@@ -441,17 +463,17 @@ CREATE TABLE phpbb_posts (
 	enable_magic_url tinyint(1) UNSIGNED DEFAULT '1' NOT NULL,
 	enable_sig tinyint(1) UNSIGNED DEFAULT '1' NOT NULL,
 	post_username varchar(255) DEFAULT '' NOT NULL,
-	post_subject encfor forum_id varchar(255) NOT NULL,
-	post_text encfor forum_id mediumtext NOT NULL,
+	post_subject varchar(255) DEFAULT '' NOT NULL COLLATE utf8_unicode_ci,
+	post_text mediumtext NOT NULL,
 	post_checksum varchar(32) DEFAULT '' NOT NULL,
-	post_attachment encfor forum_id tinyint(1) UNSIGNED DEFAULT '0',
+	post_attachment tinyint(1) UNSIGNED DEFAULT '0' NOT NULL,
 	bbcode_bitfield varchar(255) DEFAULT '' NOT NULL,
 	bbcode_uid varchar(8) DEFAULT '' NOT NULL,
 	post_postcount tinyint(1) UNSIGNED DEFAULT '1' NOT NULL,
 	post_edit_time int(11) UNSIGNED DEFAULT '0' NOT NULL,
-	post_edit_reason encfor forum_id varchar(255),
-	post_edit_user encfor forum_id mediumint(8) UNSIGNED DEFAULT '0',
-	post_edit_count encfor forum_id smallint(4) UNSIGNED DEFAULT '0',
+	post_edit_reason varchar(255) DEFAULT '' NOT NULL,
+	post_edit_user mediumint(8) UNSIGNED DEFAULT '0' NOT NULL,
+	post_edit_count smallint(4) UNSIGNED DEFAULT '0' NOT NULL,
 	post_edit_locked tinyint(1) UNSIGNED DEFAULT '0' NOT NULL,
 	PRIMARY KEY (post_id),
 	KEY forum_id (forum_id),
@@ -477,17 +499,17 @@ CREATE TABLE phpbb_privmsgs (
 	enable_magic_url tinyint(1) UNSIGNED DEFAULT '1' NOT NULL,
 	enable_sig tinyint(1) UNSIGNED DEFAULT '1' NOT NULL,
 	message_subject varchar(255) DEFAULT '' NOT NULL,
-	message_text encfor msg_id mediumtext NOT NULL,
-	message_edit_reason encfor msg_id varchar(255) NOT NULL,
-	message_edit_user encfor msg_id mediumint(8) UNSIGNED DEFAULT '0' NOT NULL,
-	message_attachment encfor msg_id tinyint(1) UNSIGNED DEFAULT '0' NOT NULL,
+	message_text mediumtext NOT NULL,
+	message_edit_reason varchar(255) DEFAULT '' NOT NULL,
+	message_edit_user mediumint(8) UNSIGNED DEFAULT '0' NOT NULL,
+	message_attachment tinyint(1) UNSIGNED DEFAULT '0' NOT NULL,
 	bbcode_bitfield varchar(255) DEFAULT '' NOT NULL,
 	bbcode_uid varchar(8) DEFAULT '' NOT NULL,
-	message_edit_time encfor msg_id int(11) UNSIGNED DEFAULT '0' NOT NULL,
-	message_edit_count encfor msg_id smallint(4) UNSIGNED DEFAULT '0' NOT NULL,
-	to_address encfor msg_id text NOT NULL,
-	bcc_address encfor msg_id text NOT NULL,
-	message_reported encfor msg_id tinyint(1) UNSIGNED DEFAULT '0' NOT NULL,
+	message_edit_time int(11) UNSIGNED DEFAULT '0' NOT NULL,
+	message_edit_count smallint(4) UNSIGNED DEFAULT '0' NOT NULL,
+	to_address text NOT NULL,
+	bcc_address text NOT NULL,
+	message_reported tinyint(1) UNSIGNED DEFAULT '0' NOT NULL,
 	PRIMARY KEY (msg_id),
 	KEY author_ip (author_ip),
 	KEY message_time (message_time),
@@ -525,9 +547,9 @@ CREATE TABLE phpbb_privmsgs_rules (
 
 # Table: 'phpbb_privmsgs_to'
 CREATE TABLE phpbb_privmsgs_to (
-	msg_id equals phpbb_privmsgs.msg_id mediumint(8) UNSIGNED DEFAULT '0' NOT NULL,
-	user_id hasaccessto msg_id equals usergroup.user_id mediumint(8) UNSIGNED DEFAULT '0' NOT NULL,
-	author_id equals phpbb_users.user_id hasaccessto msg_id mediumint(8) UNSIGNED DEFAULT '0' NOT NULL,
+	msg_id mediumint(8) UNSIGNED DEFAULT '0' NOT NULL,
+	user_id mediumint(8) UNSIGNED DEFAULT '0' NOT NULL,
+	author_id mediumint(8) UNSIGNED DEFAULT '0' NOT NULL,
 	pm_deleted tinyint(1) UNSIGNED DEFAULT '0' NOT NULL,
 	pm_new tinyint(1) UNSIGNED DEFAULT '1' NOT NULL,
 	pm_unread tinyint(1) UNSIGNED DEFAULT '1' NOT NULL,
@@ -888,8 +910,8 @@ CREATE TABLE phpbb_topics_watch (
 
 # Table: 'phpbb_user_group'
 CREATE TABLE phpbb_user_group (
-	group_id equals phpbb_acl_groups.group_id mediumint(8) UNSIGNED DEFAULT '0' NOT NULL,
-	user_id equals phpbb_privmsgs_to.author_id hasaccessto group_id mediumint(8) UNSIGNED DEFAULT '0' NOT NULL,
+	group_id mediumint(8) UNSIGNED DEFAULT '0' NOT NULL,
+	user_id mediumint(8) UNSIGNED DEFAULT '0' NOT NULL,
 	group_leader tinyint(1) UNSIGNED DEFAULT '0' NOT NULL,
 	user_pending tinyint(1) UNSIGNED DEFAULT '1' NOT NULL,
 	KEY group_id (group_id),
@@ -900,7 +922,7 @@ CREATE TABLE phpbb_user_group (
 
 # Table: 'phpbb_users'
 CREATE TABLE phpbb_users (
-	user_id equals phpbb_privmsgs_to.user_id  mediumint(8) UNSIGNED NOT NULL auto_increment,
+	user_id mediumint(8) UNSIGNED NOT NULL auto_increment,
 	user_type tinyint(2) DEFAULT '0' NOT NULL,
 	group_id mediumint(8) UNSIGNED DEFAULT '3' NOT NULL,
 	user_permissions mediumtext NOT NULL,
@@ -908,7 +930,7 @@ CREATE TABLE phpbb_users (
 	user_ip varchar(40) DEFAULT '' NOT NULL,
 	user_regdate int(11) UNSIGNED DEFAULT '0' NOT NULL,
 	username varchar(255) DEFAULT '' NOT NULL,
-	username_clean givespsswd user_id varchar(255) DEFAULT '' NOT NULL,
+	username_clean varchar(255) DEFAULT '' NOT NULL,
 	user_password varchar(40) DEFAULT '' NOT NULL,
 	user_passchg int(11) UNSIGNED DEFAULT '0' NOT NULL,
 	user_pass_convert tinyint(1) UNSIGNED DEFAULT '0' NOT NULL,
