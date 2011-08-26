@@ -14,7 +14,7 @@
 
 typedef enum test_mode {
     UNENCRYPTED, SINGLE, MULTI,
-    PROXYPLAIN, PROXYPLAINMP, PROXYSINGLE, PROXYMULTI
+    PROXYPLAIN, PROXYSINGLE, PROXYMULTI
 } test_mode;
 
 struct QueryChoice {
@@ -35,7 +35,6 @@ struct QueryChoice {
         switch (t) {
         case UNENCRYPTED:
         case PROXYPLAIN:
-        case PROXYPLAINMP:
             return plain;
 
         case SINGLE:

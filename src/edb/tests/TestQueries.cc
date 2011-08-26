@@ -643,7 +643,6 @@ Connection::start() {
         break;
         //proxy -- start proxy in separate process and initialize connection
     case PROXYPLAIN:
-    case PROXYPLAINMP:
     case PROXYSINGLE:
     case PROXYMULTI:
         tc.port = alloc_port();
@@ -658,7 +657,7 @@ Connection::start() {
             setenv("CRYPTDB_DB", tc.db.c_str(), 1);
             if (type == PROXYSINGLE) {
                 setenv("CRYPTDB_MODE", "single", 1);
-            } else if (type == PROXYMULTI || type == PROXYPLAINMP) {
+            } else if (type == PROXYMULTI) {
                 setenv("CRYPTDB_MODE", "multi", 1);
             } else {
                 setenv("CRYPTDB_MODE", "plain", 1);
@@ -729,7 +728,6 @@ Connection::stop() {
         }
         break;
     case PROXYPLAIN:
-    case PROXYPLAINMP:
     case PROXYSINGLE:
     case PROXYMULTI:
         if (proxy_pid > 0)
@@ -750,7 +748,6 @@ Connection::execute(string query) {
     switch (type) {
     case UNENCRYPTED:
     case PROXYPLAIN:
-    case PROXYPLAINMP:
     case PROXYSINGLE:
     case PROXYMULTI:
         return executeConn(query);
@@ -801,7 +798,6 @@ Connection::executeLast() {
         return executeLastEDB();
     case UNENCRYPTED:
     case PROXYPLAIN:
-    case PROXYPLAINMP:
     case PROXYSINGLE:
     case PROXYMULTI:
         return executeLastConn();
@@ -897,7 +893,6 @@ CheckQuery(const TestConfig &tc, string query) {
         switch(test_type) {
         case UNENCRYPTED:
         case PROXYPLAIN:
-        case PROXYPLAINMP:
         case PROXYSINGLE:
         case PROXYMULTI:
             if (control_type != SINGLE && control_type != MULTI) {
@@ -936,7 +931,6 @@ CheckQueryList(const TestConfig &tc, const QueryList &queries) {
         case PLAIN:
         case SINGLE:
         case PROXYPLAIN:
-        case PROXYPLAINMP:
         case PROXYSINGLE:
             CheckQuery(tc, q->query);
             break;
@@ -1025,8 +1019,6 @@ string_to_test_mode(const string &s)
         return MULTI;
     else if (s == "proxy-plain")
         return PROXYPLAIN;
-    else if (s == "proxy-plainmp")
-        return PROXYPLAINMP;
     else if (s == "proxy-single")
         return PROXYSINGLE;
     else if (s == "proxy-multi")
@@ -1053,7 +1045,6 @@ TestQueries::run(const TestConfig &tc, int argc, char ** argv) {
              << "    single" << endl
              << "    multi" << endl
              << "    proxy-plain" << endl
-             << "    proxy-plainmp" << endl
              << "    proxy-single" << endl
              << "    proxy-multi" << endl
              << "single and multi make connections through EDBProxy" << endl
@@ -1068,7 +1059,7 @@ TestQueries::run(const TestConfig &tc, int argc, char ** argv) {
         case UNENCRYPTED:
         case SINGLE:
         case MULTI:
-            if (control_type == PROXYPLAIN || control_type == PROXYPLAINMP ||
+            if (control_type == PROXYPLAIN ||
                 control_type == PROXYSINGLE || control_type == PROXYMULTI)
             {
                 cerr << "cannot compare proxy-* vs non-proxy-* when there are multiple connections" << endl;
@@ -1076,7 +1067,6 @@ TestQueries::run(const TestConfig &tc, int argc, char ** argv) {
             }
             break;
         case PROXYPLAIN:
-        case PROXYPLAINMP:
         case PROXYSINGLE:
         case PROXYMULTI:
             if (control_type == UNENCRYPTED || control_type == SINGLE ||
