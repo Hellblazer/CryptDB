@@ -9,6 +9,7 @@
 #include <netinet/in.h>
 
 #include <errstream.hh>
+#include <cleanup.hh>
 #include "TestQueries.h"
 #include "cryptdb_log.h"
 
@@ -790,7 +791,9 @@ Connection::executeEDBProxy(string query) {
     
 ResType
 Connection::executeConn(string query) {
-    DBResult * dbres;
+    DBResult * dbres = 0;
+    auto ANON = cleanup([&dbres]() { if (dbres) delete dbres; });
+
     //cycle through connections of which should execute query
     conn++;
     if (conn == conn_set.end()) {
