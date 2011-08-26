@@ -2,6 +2,8 @@
 #include "BasicCrypto.h"
 #include "blowfish_data.h"
 
+#include "ctr.hh"
+
 /*
  * Based on lib/bf60.c from HiStar.
  */
@@ -278,6 +280,8 @@ blowfish::decrypt(uint64_t v)
 
 blowfish::blowfish(const string &key)
 {
+    ANON_REGION(__func__, &perf_cg);
+
     // BF_set_key(&k, (int) key.length(), (unsigned char *) key.data());
     bf_setkey(&k, (void *) key.data(), key.length());
 }

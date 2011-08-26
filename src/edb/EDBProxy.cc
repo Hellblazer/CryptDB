@@ -3276,8 +3276,8 @@ throw (CryptDBError)
     static default_enabler ena;
     if (ena.enabled()) {
         static int callCount;
-        if (!(callCount++ % 2000))
-            perfsum_base::printall();
+        if (!(callCount++ % 1000))
+            perfsum_base::printall(30);
     }
 
     ANON_REGION(__func__, &perf_cg);
