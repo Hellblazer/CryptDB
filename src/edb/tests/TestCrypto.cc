@@ -49,9 +49,9 @@ testBasics()
     for (uint i = 0; i < nround; i++) {
         uint64_t plaintext = randomValue();
         string key = randomBytes(16);
-        BF_KEY *k = get_BF_KEY(key);
-        uint64_t c = encrypt_BF(plaintext, k);
-        uint64_t p2 = decrypt_BF(c, k);
+        blowfish k(key);
+        uint64_t c = k.encrypt(plaintext);
+        uint64_t p2 = k.decrypt(c);
 
         assert_s(plaintext == p2, "BF enc/dec failed");
     }

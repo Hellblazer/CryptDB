@@ -49,12 +49,15 @@ encrypt_AES_CMC(const string &ptext, const AES_KEY * enckey);
 string
 decrypt_AES_CMC(const string &ctext, const AES_KEY * deckey);
 
-uint64_t
-encrypt_BF(uint64_t v, const BF_KEY *key);
 
-uint64_t
-decrypt_BF(uint64_t v, const BF_KEY *key);
+class blowfish {
+ public:
+    blowfish(const string &key);
+    uint64_t encrypt(uint64_t v);
+    uint64_t decrypt(uint64_t v);
 
-BF_KEY *get_BF_KEY(const string &key);
+ private:
+    BF_KEY k;
+};
 
 #endif /* BASICCRYPTO_H_ */

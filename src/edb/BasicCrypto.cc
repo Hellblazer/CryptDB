@@ -138,7 +138,7 @@ unpad(vector<unsigned char> data)
     size_t len = data.size();
     // cerr << "padding to remove " << (int)data[len-1] << "\n";
     size_t actualLen = len - (int)data[len-1];
-    cerr << " len is " << len << " and data[len-1] " << (int)data[len-1] << "\n";
+    // cerr << " len is " << len << " and data[len-1] " << (int)data[len-1] << "\n";
     assert_s(data[len-1] <= len, "invalid pad value when unpadding");
     vector<unsigned char> res(actualLen);
     memcpy(&res[0], &data[0], actualLen);
@@ -228,25 +228,22 @@ decrypt_AES_CMC(const string &ctext, const AES_KEY * deckey)
 }
 
 uint64_t
-encrypt_BF(uint64_t v, const BF_KEY *key)
+blowfish::encrypt(uint64_t v)
 {
     uint64_t x;
-    BF_ecb_encrypt((unsigned char *) &v, (unsigned char *) &x, key, BF_ENCRYPT);
+    BF_ecb_encrypt((unsigned char *) &v, (unsigned char *) &x, &k, BF_ENCRYPT);
     return x;
 }
 
 uint64_t
-decrypt_BF(uint64_t v, const BF_KEY *key)
+blowfish::decrypt(uint64_t v)
 {
     uint64_t x;
-    BF_ecb_encrypt((unsigned char *) &v, (unsigned char *) &x, key, BF_DECRYPT);
+    BF_ecb_encrypt((unsigned char *) &v, (unsigned char *) &x, &k, BF_DECRYPT);
     return x;
 }
 
-BF_KEY *
-get_BF_KEY(const string &key)
+blowfish::blowfish(const string &key)
 {
-    BF_KEY *k = new BF_KEY();
-    BF_set_key(k, (int) key.length(), (unsigned char *) key.data());
-    return k;
+    BF_set_key(&k, (int) key.length(), (unsigned char *) key.data());
 }

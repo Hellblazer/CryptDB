@@ -305,10 +305,9 @@ CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft,
                 }
 
                 if (fromlevel == SECLEVEL::DET) {
-                    BF_KEY * key =
-                        get_BF_KEY(getKey(mkey, fullfieldname, fromlevel));
-                    val = decrypt_BF(val, key);
-                    delete key;
+                    blowfish key(getKey(mkey, fullfieldname, fromlevel));
+                    val = key.decrypt(val);
+
                     fromlevel = decreaseLevel(fromlevel, ft, oDET);
                     if (fromlevel == tolevel) {
                         return strFromVal(val);
@@ -316,10 +315,9 @@ CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft,
                 }
 
                 if (fromlevel == SECLEVEL::DETJOIN) {
-                    BF_KEY * key =
-                        get_BF_KEY(getKey(mkey, "join", fromlevel));
-                    val = decrypt_BF(val, key);
-                    delete key;
+                    blowfish key(getKey(mkey, "join", fromlevel));
+                    val = key.decrypt(val);
+
                     fromlevel = decreaseLevel(fromlevel, ft, oDET);
                     if (fromlevel == tolevel) {
                         return strFromVal(val);
@@ -496,9 +494,9 @@ CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft,
                 data = removeUnsupportedMath(data);
                 val = valFromStr(data);
                 fromlevel = increaseLevel(fromlevel, ft, oDET);
-                BF_KEY * key = get_BF_KEY(getKey(mkey, "join", fromlevel));
-                val = encrypt_BF(val, key);
-                delete key;
+                blowfish key(getKey(mkey, "join", fromlevel));
+                val = key.encrypt(val);
+
                 if (fromlevel == tolevel) {
                     return strFromVal(val);
                 }
@@ -508,10 +506,9 @@ CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft,
 
             if (fromlevel == SECLEVEL::DETJOIN) {
                 fromlevel = increaseLevel(fromlevel, ft, oDET);
-                BF_KEY * key =
-                    get_BF_KEY(getKey(mkey, fullfieldname, fromlevel));
-                val = encrypt_BF(val, key);
-                delete key;
+                blowfish key(getKey(mkey, fullfieldname, fromlevel));
+                val = key.encrypt(val);
+
                 if (fromlevel == tolevel) {
                     return strFromVal(val);
                 }

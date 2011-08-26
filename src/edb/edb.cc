@@ -272,9 +272,8 @@ decrypt_int_det(PG_FUNCTION_ARGS)
     for (unsigned int i = 0; i < AES_KEY_BYTES; i++)
         key[i] = getb(ARGS, offset+i);
 
-    BF_KEY *bfKey = get_BF_KEY(key);
-    uint64_t value = decrypt_BF(eValue, bfKey);
-    delete bfKey;
+    blowfish bf(key);
+    uint64_t value = bf.decrypt(eValue);
 
 #if MYSQL_S
     return (ulonglong) value;
@@ -307,9 +306,8 @@ decrypt_int_det(PG_FUNCTION_ARGS)
     for (unsigned int i = 0; i < AES_KEY_BYTES; i++)
         key[i] = getb(ARGS, offset+i);
 
-    BF_KEY * bfKey = get_BF_KEY(key);
-    uint64_t value = encrypt_BF(eValue, bfKey);
-    delete bfKey;
+    blowfish bf(key);
+    uint64_t value = bf.encrypt(eValue);
 
 #if MYSQL_S
     return (ulonglong) value;
