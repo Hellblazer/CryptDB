@@ -50,6 +50,16 @@ string
 decrypt_AES_CMC(const string &ctext, const AES_KEY * deckey);
 
 
+/*
+ * Blowfish
+ */
+
+#define BF_N 16
+struct bf_ctx {
+  uint32_t P[BF_N + 2];
+  uint32_t S[4][256];
+};
+
 class blowfish {
  public:
     blowfish(const string &key);
@@ -57,7 +67,8 @@ class blowfish {
     uint64_t decrypt(uint64_t v);
 
  private:
-    BF_KEY k;
+    // BF_KEY k;
+    bf_ctx k;
 };
 
 #endif /* BASICCRYPTO_H_ */

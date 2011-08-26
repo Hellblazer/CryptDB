@@ -21,7 +21,7 @@ TestCrypto::~TestCrypto()
 static void
 testBasics()
 {
-    enum { nround = 10000 };
+    enum { nround = 100000 };
     for (uint i = 0; i < nround; i++) {
         size_t len = randomValue() % 1024;
         string plaintext = randomBytes((uint) len);
@@ -47,12 +47,17 @@ testBasics()
     }
 
     for (uint i = 0; i < nround; i++) {
-        uint64_t plaintext = randomValue();
+        // our blowfish is hacked up to do just 60 bits rather than 64
+        uint64_t plaintext = randomValue() >> 4;
         string key = randomBytes(16);
         blowfish k(key);
         uint64_t c = k.encrypt(plaintext);
         uint64_t p2 = k.decrypt(c);
 
+        if (plaintext != p2)
+            cerr << "plaintext:  " << hex << plaintext << endl
+                 << "ciphertext: " << hex << c << endl
+                 << "plaintext2: " << hex << p2 << endl;
         assert_s(plaintext == p2, "BF enc/dec failed");
     }
 
