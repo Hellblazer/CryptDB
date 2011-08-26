@@ -37,7 +37,7 @@ using namespace std;
 
 #if MYSQL_S
 #define TN_I32 "integer"
-#define TN_I64 "bigint"
+#define TN_I64 "bigint unsigned"
 #define TN_TEXT "blob"
 #define TN_HOM "varbinary(" SVAL(PAILLIER_LEN_BYTES) ")"
 #define TN_PTEXT "text"
@@ -59,6 +59,8 @@ const unsigned int bytesPerInt = 4;
 
 const uint32_t MAX_UINT32_T = -1;
 const uint64_t MAX_UINT64_T = -1;
+
+const unsigned int SALT_LEN_BYTES = 8;
 
 const unsigned int AES_BLOCK_BITS = 128;
 const unsigned int AES_BLOCK_BYTES = AES_BLOCK_BITS/bitsPerByte;
@@ -496,6 +498,11 @@ uint64_t valFromStr(const string & str);
 
 //marshalls a binary value into characters readable by Postgres
 string marshallBinary(const string &s);
+/*
+string  marshallSalt(const string & s);
+string unmarshallSalt(const string & s);
+*/
+
 
 // unmarshalls a char * received from Postgres into a binary and
 // sets newlen to the length of the result..

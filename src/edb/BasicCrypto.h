@@ -39,8 +39,8 @@ string
 decrypt_AES_CBC(const string &ctext, const AES_KEY * deckey, string salt, bool pad = true);
 
 //only works for padding unit < 255 bytes
-vector<unsigned char> pad(vector<unsigned char> data, unsigned int unit);
-vector<unsigned char> unpad(vector<unsigned char> data);
+//vector<unsigned char> pad(vector<unsigned char> data, unsigned int unit);
+//vector<unsigned char> unpad(vector<unsigned char> data);
 
 
 string
@@ -49,12 +49,26 @@ encrypt_AES_CMC(const string &ptext, const AES_KEY * enckey);
 string
 decrypt_AES_CMC(const string &ctext, const AES_KEY * deckey);
 
-uint64_t
-encrypt_BF(uint64_t v, const BF_KEY *key);
 
-uint64_t
-decrypt_BF(uint64_t v, const BF_KEY *key);
+/*
+ * Blowfish
+ */
 
-BF_KEY *get_BF_KEY(const string &key);
+#define BF_N 16
+struct bf_ctx {
+  uint32_t P[BF_N + 2];
+  uint32_t S[4][256];
+};
+
+class blowfish {
+ public:
+    blowfish(const string &key);
+    uint64_t encrypt(uint64_t v);
+    uint64_t decrypt(uint64_t v);
+
+ private:
+    // BF_KEY k;
+    bf_ctx k;
+};
 
 #endif /* BASICCRYPTO_H_ */

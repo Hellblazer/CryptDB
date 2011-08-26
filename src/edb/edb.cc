@@ -29,11 +29,11 @@ typedef long long longlong;
 #include <ctype.h>
 
 my_bool  decrypt_int_sem_init(UDF_INIT *initid, UDF_ARGS *args, char *message);
-longlong decrypt_int_sem(UDF_INIT *initid, UDF_ARGS *args, char *is_null,
+ulonglong decrypt_int_sem(UDF_INIT *initid, UDF_ARGS *args, char *is_null,
                          char *error);
 
 my_bool  decrypt_int_det_init(UDF_INIT *initid, UDF_ARGS *args, char *message);
-longlong decrypt_int_det(UDF_INIT *initid, UDF_ARGS *args, char *is_null,
+ulonglong decrypt_int_det(UDF_INIT *initid, UDF_ARGS *args, char *is_null,
                          char *error);
 
 my_bool  decrypt_text_sem_init(UDF_INIT *initid, UDF_ARGS *args,
@@ -43,7 +43,7 @@ char *   decrypt_text_sem(UDF_INIT *initid, UDF_ARGS *args, char *result,
                           unsigned long *length, char *is_null, char *error);
 
 my_bool  encrypt_int_det_init(UDF_INIT *initid, UDF_ARGS *args, char *message);
-longlong encrypt_int_det(UDF_INIT *initid, UDF_ARGS *args, char *is_null,
+ulonglong encrypt_int_det(UDF_INIT *initid, UDF_ARGS *args, char *is_null,
                          char *error);
 
 my_bool  decrypt_text_det_init(UDF_INIT *initid, UDF_ARGS *args,
@@ -53,7 +53,7 @@ char *   decrypt_text_det(UDF_INIT *initid, UDF_ARGS *args, char *result,
                           unsigned long *length, char *is_null, char *error);
 
 my_bool  search_init(UDF_INIT *initid, UDF_ARGS *args, char *message);
-longlong search(UDF_INIT *initid, UDF_ARGS *args, char *is_null, char *error);
+ulonglong search(UDF_INIT *initid, UDF_ARGS *args, char *is_null, char *error);
 
 my_bool  agg_init(UDF_INIT *initid, UDF_ARGS *args, char *message);
 void     agg_deinit(UDF_INIT *initid);
@@ -68,7 +68,7 @@ char *   func_add_set(UDF_INIT *initid, UDF_ARGS *args, char *result,
 
 my_bool  searchSWP_init(UDF_INIT *initid, UDF_ARGS *args, char *message);
 void     searchSWP_deinit(UDF_INIT *initid);
-longlong searchSWP(UDF_INIT *initid, UDF_ARGS *args, char *is_null,
+ulonglong searchSWP(UDF_INIT *initid, UDF_ARGS *args, char *is_null,
                    char *error);
 
 #else /* Postgres */
@@ -112,19 +112,19 @@ get_key_SEM(const string &key)
 {
     return CryptoManager::get_key_SEM(key);
 }
-
+/*
 static AES_KEY *
 get_key_DET(const string &key)
 {
     return CryptoManager::get_key_DET(key);
 }
-
+*/
 static uint64_t
 decrypt_SEM(uint64_t value, AES_KEY * aesKey, uint64_t salt)
 {
     return CryptoManager::decrypt_SEM(value, aesKey, salt);
 }
-
+/*
 static uint64_t
 decrypt_DET(uint64_t ciph, AES_KEY* aesKey)
 {
@@ -136,7 +136,7 @@ encrypt_DET(uint64_t plaintext, AES_KEY * aesKey)
 {
     return CryptoManager::encrypt_DET(plaintext, aesKey);
 }
-
+*/
 static string
 decrypt_SEM(unsigned char *eValueBytes, uint64_t eValueLen,
             AES_KEY * aesKey, uint64_t salt)
@@ -144,14 +144,14 @@ decrypt_SEM(unsigned char *eValueBytes, uint64_t eValueLen,
     string c((char *) eValueBytes, (unsigned int) eValueLen);
     return CryptoManager::decrypt_SEM(c, aesKey, salt);
 }
-
+/*
 static string
 decrypt_DET(unsigned char *eValueBytes, uint64_t eValueLen, AES_KEY * key)
 {
     string c((char *) eValueBytes, (unsigned int) eValueLen);
     return CryptoManager::decrypt_DET(c, key);
 }
-
+*/
 static bool
 search(const Token & token, const Binary & overall_ciph)
 {
@@ -220,7 +220,7 @@ decrypt_int_sem_init(UDF_INIT *initid, UDF_ARGS *args, char *message)
     return 0;
 }
 
-longlong
+ulonglong
 decrypt_int_sem(UDF_INIT *initid, UDF_ARGS *args, char *is_null, char *error)
 #else /*postgres*/
 Datum
@@ -243,7 +243,7 @@ decrypt_int_sem(PG_FUNCTION_ARGS)
     delete aesKey;
 
 #if MYSQL_S
-    return (longlong) value;
+    return (ulonglong) value;
 #else /* postgres */
     PG_RETURN_INT64(value);
 #endif
@@ -256,7 +256,7 @@ decrypt_int_det_init(UDF_INIT *initid, UDF_ARGS *args, char *message)
     return 0;
 }
 
-longlong
+ulonglong
 decrypt_int_det(UDF_INIT *initid, UDF_ARGS *args, char *is_null, char *error)
 #else /* postgres */
 Datum
@@ -272,12 +272,11 @@ decrypt_int_det(PG_FUNCTION_ARGS)
     for (unsigned int i = 0; i < AES_KEY_BYTES; i++)
         key[i] = getb(ARGS, offset+i);
 
-    AES_KEY *aesKey = get_key_DET(key);
-    uint64_t value = decrypt_DET(eValue, aesKey);
-    delete aesKey;
+    blowfish bf(key);
+    uint64_t value = bf.decrypt(eValue);
 
 #if MYSQL_S
-    return (longlong) value;
+    return (ulonglong) value;
 #else /* postgres */
     PG_RETURN_INT64(value);
 #endif
@@ -291,7 +290,7 @@ encrypt_int_det_init(UDF_INIT *initid, UDF_ARGS *args, char *message)
     return 0;
 }
 
-longlong
+ulonglong
 encrypt_int_det(UDF_INIT *initid, UDF_ARGS *args, char *is_null, char *error)
 #else /* postgres */
 Datum
@@ -307,12 +306,11 @@ decrypt_int_det(PG_FUNCTION_ARGS)
     for (unsigned int i = 0; i < AES_KEY_BYTES; i++)
         key[i] = getb(ARGS, offset+i);
 
-    AES_KEY *aesKey = get_key_DET(key);
-    uint64_t value = encrypt_DET(eValue, aesKey);
-    delete aesKey;
+    blowfish bf(key);
+    uint64_t value = bf.encrypt(eValue);
 
 #if MYSQL_S
-    return (longlong) value;
+    return (ulonglong) value;
 #else /* postgres */
     PG_RETURN_INT64(value);
 #endif
@@ -359,7 +357,7 @@ decrypt_text_sem(PG_FUNCTION_ARGS)
 
     uint64_t salt = getui(ARGS, offset + AES_KEY_BYTES);
 
-    AES_KEY *aesKey = get_key_SEM(key);
+    AES_KEY *aesKey = get_AES_dec_key(key);
     string value = decrypt_SEM(eValueBytes, eValueLen, aesKey, salt);
     delete aesKey;
 
@@ -416,8 +414,8 @@ decrypt_text_det(PG_FUNCTION_ARGS)
         key[i] = getb(ARGS,offset+i);
     }
 
-    AES_KEY *aesKey = get_key_DET(key);
-    string value = decrypt_DET(eValueBytes, eValueLen, aesKey);
+    AES_KEY * aesKey = get_AES_dec_key(key);
+    string value = decrypt_AES_CMC(string((char *)eValueBytes, (unsigned int)eValueLen), aesKey);
     delete aesKey;
 
 #if MYSQL_S
@@ -449,7 +447,7 @@ search_init(UDF_INIT *initid, UDF_ARGS *args, char *message)
     return 0;
 }
 
-longlong
+ulonglong
 search(UDF_INIT *initid, UDF_ARGS *args, char *is_null, char *error)
 #else
 Datum
@@ -534,7 +532,7 @@ searchSWP_deinit(UDF_INIT *initid)
     delete t;
 }
 
-longlong
+ulonglong
 searchSWP(UDF_INIT *initid, UDF_ARGS *args, char *is_null, char *error)
 {
     uint64_t allciphLen;

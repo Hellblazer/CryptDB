@@ -2298,14 +2298,16 @@ throw (CryptDBError)
             assert_s(false,
                      "MULTIPRINC first operand of operation should be field");
         }
-        AES_KEY * aesKeyJoin =
+        assert_s(false, "this condition needs rewriting");
+        /*AES_KEY * aesKeyJoin =
             CryptoManager::get_key_DET(cm->getKey("join", SECLEVEL::DETJOIN));
         string res = "";
         res =
             strFromVal(cm->encrypt_DET((uint64_t) valFromStr(op1),
                                         aesKeyJoin)) + " IN " +
             encryptedsubquery + " ";
-        return res;
+        return res; */
+        return "";
     }
 
     // the first operand is a field
@@ -3666,13 +3668,20 @@ EDBProxy::crypt(string data, fieldType ft, string fullname,
                  const vector<SqlItem> &res)
 {
 
-    LOG(crypto) << "crypting data " << data
-                << " type " << ft
-                << " fullname " << fullname
-                << " anonfullname " << anonfullname
-                << " fromlevel " << levelnames[(int) fromlevel]
-                << " tolevel " << levelnames[(int) tolevel]
-                << " salt " << salt;
+    LOG(crypto) << "crypting data ";
+
+    if (ft==TYPE_INTEGER) {
+        LOG(crypto) << data;
+    }
+    else {
+        LOG(crypto) << marshallBinary(data);
+    }
+    LOG(crypto) << " type " << ft
+            << " fullname " << fullname
+            << " anonfullname " << anonfullname
+            << " fromlevel " << levelnames[(int) fromlevel]
+                                           << " tolevel " << levelnames[(int) tolevel]
+                                                                        << " salt " << salt;
 
     if (DECRYPTFIRST) {
         // we don't encrypt values, and they come back decrypted
@@ -3695,10 +3704,13 @@ EDBProxy::crypt(string data, fieldType ft, string fullname,
         return data;
     }
 
+    AES_KEY * mkey;
+
     if (mp) {
         if (tmkm.processingQuery) {
             string key = mp->get_key(fullname, tmkm);
-            cm->setMasterKey(key);
+            //cm->setMasterKey(key);
+            mkey = cm->getKey(key);
             if (VERBOSE_V) {
                 // cerr<<"++> crypting " << anonfullname << " contents " <<
                 // data << " fromlevel " << fromlevel;
@@ -3710,7 +3722,8 @@ EDBProxy::crypt(string data, fieldType ft, string fullname,
 
         } else {
             string key = mp->get_key(fullname, tmkm, res);
-            cm->setMasterKey(key);
+            //cm->setMasterKey(key);
+            mkey = cm->getKey(key);
             if (VERBOSE_V) {
                 // cerr<<"++> crypting " << anonfullname << " contents " <<
                 // data << " fromlevel " << fromlevel;
@@ -3721,12 +3734,19 @@ EDBProxy::crypt(string data, fieldType ft, string fullname,
             // AES_KEY_BYTES); cerr << "\n";
 
         }
+    } else {
+        mkey = cm->getmkey();
     }
 
     string resu = cm->crypt(
-        cm->getmkey(), data, ft, anonfullname, fromlevel, tolevel, isBin, salt);
+        mkey, data, ft, anonfullname, fromlevel, tolevel, isBin, salt);
     if (VERBOSE_V) {
         //cerr << "result is " << resu << "\n";
+    }
+    if (isBin) {
+        LOG(crypto) << "result is " << marshallBinary(resu);
+    } else {
+        LOG(crypto) << "result is " << resu;
     }
     return resu;
 }

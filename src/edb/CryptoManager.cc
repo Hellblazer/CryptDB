@@ -305,10 +305,9 @@ CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft,
                 }
 
                 if (fromlevel == SECLEVEL::DET) {
-                    AES_KEY * key =
-                        get_key_DET(getKey(mkey, fullfieldname, fromlevel));
-                    val = decrypt_DET(val, key);
-                    delete key;
+                    blowfish key(getKey(mkey, fullfieldname, fromlevel));
+                    val = key.decrypt(val);
+
                     fromlevel = decreaseLevel(fromlevel, ft, oDET);
                     if (fromlevel == tolevel) {
                         return strFromVal(val);
@@ -316,10 +315,9 @@ CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft,
                 }
 
                 if (fromlevel == SECLEVEL::DETJOIN) {
-                    AES_KEY * key =
-                        get_key_DET(getKey(mkey, "join", fromlevel));
-                    val = decrypt_DET(val, key);
-                    delete key;
+                    blowfish key(getKey(mkey, "join", fromlevel));
+                    val = key.decrypt(val);
+
                     fromlevel = decreaseLevel(fromlevel, ft, oDET);
                     if (fromlevel == tolevel) {
                         return strFromVal(val);
@@ -395,10 +393,10 @@ CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft,
 
                 string val = data;
                 if (fromlevel == SECLEVEL::SEMANTIC_DET) {
-                    LOG(crypto) << "at sem det " << data;
+                    LOG(crypto) << "at sem det " << marshallBinary(data);
 
                     AES_KEY * key =
-                        get_key_SEM(getKey(mkey, fullfieldname, fromlevel));
+                        get_AES_dec_key(getKey(mkey, fullfieldname, fromlevel));
                     val = decrypt_SEM(val, key, salt);
                     delete key;
                     fromlevel  = decreaseLevel(fromlevel, ft, oDET);
@@ -412,8 +410,10 @@ CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft,
                     LOG(crypto) << "at det " << marshallBinary(val);
 
                     AES_KEY * key =
-                        get_key_DET(getKey(mkey, fullfieldname, fromlevel));
-                    val = decrypt_DET(val, key);
+                        get_AES_dec_key(getKey(mkey, fullfieldname, fromlevel));
+                    cerr << "before cmc \n";
+                    val = decrypt_AES_CMC(val, key);
+                    cerr << "after cmc \n";
                     delete key;
                     fromlevel = decreaseLevel(fromlevel, ft, oDET);
                     if (fromlevel == tolevel) {
@@ -426,8 +426,8 @@ CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft,
                     LOG(crypto) << "at det join " << marshallBinary(val);
 
                     AES_KEY * key =
-                        get_key_DET(getKey(mkey, "join", fromlevel));
-                    val = decrypt_DET(val, key);
+                        get_AES_dec_key(getKey(mkey, "join", fromlevel));
+                    val = decrypt_AES_CMC(val, key);
                     delete key;
                     fromlevel = decreaseLevel(fromlevel, ft, oDET);
                     if (fromlevel == tolevel) {
@@ -494,9 +494,9 @@ CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft,
                 data = removeUnsupportedMath(data);
                 val = valFromStr(data);
                 fromlevel = increaseLevel(fromlevel, ft, oDET);
-                AES_KEY * key = get_key_DET(getKey(mkey, "join", fromlevel));
-                val = encrypt_DET(val, key);
-                delete key;
+                blowfish key(getKey(mkey, "join", fromlevel));
+                val = key.encrypt(val);
+
                 if (fromlevel == tolevel) {
                     return strFromVal(val);
                 }
@@ -506,10 +506,9 @@ CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft,
 
             if (fromlevel == SECLEVEL::DETJOIN) {
                 fromlevel = increaseLevel(fromlevel, ft, oDET);
-                AES_KEY * key =
-                    get_key_DET(getKey(mkey, fullfieldname, fromlevel));
-                val = encrypt_DET(val, key);
-                delete key;
+                blowfish key(getKey(mkey, fullfieldname, fromlevel));
+                val = key.encrypt(val);
+
                 if (fromlevel == tolevel) {
                     return strFromVal(val);
                 }
@@ -612,8 +611,8 @@ CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft,
 
                 fromlevel  = increaseLevel(fromlevel, ft, oDET);
                 AES_KEY * key =
-                    get_key_DET(getKey(mkey, "join", fromlevel));
-                data = encrypt_DET(data, key);
+                    get_AES_enc_key(getKey(mkey, "join", fromlevel));
+                data = encrypt_AES_CMC(data, key);
                 delete key;
                 if (fromlevel == tolevel) {
                     //cerr << "result is " << marshallBinary(uval, newlen);
@@ -630,8 +629,8 @@ CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft,
 
                 fromlevel = increaseLevel(fromlevel, ft, oDET);
                 AES_KEY * key =
-                    get_key_DET(getKey(mkey, fullfieldname, fromlevel));
-                data = encrypt_DET(data, key);
+                    get_AES_enc_key(getKey(mkey, fullfieldname, fromlevel));
+                data = encrypt_AES_CMC(data, key);
                 delete key;
                 if (fromlevel == tolevel) {
                     isBin = true;
@@ -645,7 +644,7 @@ CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft,
                 fromlevel = increaseLevel(fromlevel, ft, oDET);
 
                 AES_KEY * key =
-                    get_key_SEM(getKey(mkey, fullfieldname, fromlevel));
+                    get_AES_enc_key(getKey(mkey, fullfieldname, fromlevel));
                 data = encrypt_SEM(data, key, salt);
                 delete key;
                 if (fromlevel == tolevel) {
@@ -835,6 +834,7 @@ CryptoManager::get_key_SEM(const string &key)
 
 }
 
+
 static uint64_t
 getXORValue(uint64_t salt, AES_KEY * aes_key)
 {
@@ -842,8 +842,12 @@ getXORValue(uint64_t salt, AES_KEY * aes_key)
     unsigned char ciphertext[AES_BLOCK_BYTES];
     AES_encrypt((const uint8_t*)plaintext.c_str(), ciphertext, aes_key);
 
-    return IntFromBytes(ciphertext, AES_BLOCK_BYTES);
+
+    uint64_t v = IntFromBytes(ciphertext, AES_BLOCK_BYTES);
+
+    return v;
 }
+
 
 uint64_t
 CryptoManager::encrypt_SEM(uint64_t ptext, AES_KEY * key, uint64_t salt)
@@ -855,7 +859,9 @@ CryptoManager::encrypt_SEM(uint64_t ptext, AES_KEY * key, uint64_t salt)
 uint64_t
 CryptoManager::decrypt_SEM(uint64_t ctext, AES_KEY * key, uint64_t salt)
 {
-    return ctext ^ getXORValue(salt, key);
+    uint64_t v =  ctext ^ getXORValue(salt, key);
+
+    return v;
 }
 
 uint32_t
@@ -873,48 +879,71 @@ CryptoManager::decrypt_SEM(uint32_t ctext, AES_KEY * key, uint64_t salt)
 
 
 string
-CryptoManager::encrypt_SEM(const string &ptext, AES_KEY * key, uint64_t salt)
+CryptoManager::encrypt_SEM(const string &ptext, AES_KEY * enckey, uint64_t salt)
 {
-   return encrypt_AES(ptext, key, salt);
+   return encrypt_AES_CBC(ptext, enckey, BytesFromInt(salt, SALT_LEN_BYTES), false);
 }
 
 string
-CryptoManager::decrypt_SEM(const string &ctext, AES_KEY * key, uint64_t salt)
+CryptoManager::decrypt_SEM(const string &ctext, AES_KEY * deckey, uint64_t salt)
 {
-    return decrypt_AES(ctext, key, salt);
+    return decrypt_AES_CBC(ctext, deckey, BytesFromInt(salt, SALT_LEN_BYTES), false);
+}
+
+
+/*
+uint64_t
+CryptoManager::encrypt_DET(uint64_t plaintext, BF_KEY * key)
+{
+
+    return encrypt_BF(plaintext, key);
+
+}
+
+uint64_t
+CryptoManager::decrypt_DET(uint64_t ciphertext, BF_KEY * key)
+{
+    return decrypt_BF(ciphertext, key);
+
 }
 
 string
-CryptoManager::encrypt_DET(const string & ptext, AES_KEY * key)
+CryptoManager::encrypt_DET(const string & ptext, AES_KEY * enckey)
 {
 
-    //todonow
-    return CryptoManager::encrypt_SEM(ptext, key, 1);
+   return encrypt_AES_CMC(ptext, enckey);
 }
 
 string
-CryptoManager::decrypt_DET(const string & ctext, AES_KEY * key)
+CryptoManager::decrypt_DET(const string & ctext, AES_KEY * deckey)
 {
-    //todonow
-    return CryptoManager::decrypt_SEM(ctext, key, 1);
+    return decrypt_AES_CMC(ctext, deckey);
 }
-
+*/
 void
 CryptoManager::setMasterKey(const string &masterKeyArg)
 {
     if (masterKey)
         delete masterKey;
 
-    masterKey = new AES_KEY();
-
-    AES_set_encrypt_key(
-        (const uint8_t *) masterKeyArg.c_str(), AES_KEY_SIZE, masterKey);
+    masterKey = getKey(masterKeyArg);
 
     RAND_seed((const uint8_t *) masterKeyArg.c_str(),
               (int) masterKeyArg.size());
 
     SetSeed(ZZFromString(masterKeyArg));
 }
+
+AES_KEY * CryptoManager::getKey(const string & key) {
+    AES_KEY * resKey = new AES_KEY();
+
+    AES_set_encrypt_key(
+            (const uint8_t *) key.c_str(), AES_KEY_SIZE, resKey);
+
+    return resKey;
+
+}
+
 
 /*
    string CryptoManager::decrypt_SEM_toString(unsigned char * etext, unsigned
@@ -1019,7 +1048,7 @@ CryptoManager::encrypt_OPE(uint32_t plaintext, string uniqueFieldName)
 
     return encrypt_OPE(plaintext, get_key_OPE(getKey(uniqueFieldName, SECLEVEL::OPE)));
 }
-
+/*
 AES_KEY *
 CryptoManager::get_key_DET(const string &key)
 {
@@ -1032,6 +1061,7 @@ CryptoManager::get_key_DET(const string &key)
     return aes_key;
 
 }
+*/
 
 /*
    AES_KEY * CryptoManager::get_dkey_DET(unsigned char * key) {
@@ -1045,53 +1075,7 @@ CryptoManager::get_key_DET(const string &key)
 
    }
  */
-//TODO: this needs to be fixed, perhaps use evp
-uint64_t
-CryptoManager::encrypt_DET(uint64_t plaintext, AES_KEY * key)
-{
-    //todonow
-    return encrypt_SEM(plaintext, key, 1);
-    /*
-       unsigned char * plainBytes = BytesFromInt(plaintext, AES_BLOCK_BYTES);
-       unsigned char * ciphertext = new unsigned char[AES_BLOCK_BYTES];
-       AES_encrypt(plainBytes, ciphertext, key);
 
-       return IntFromBytes(ciphertext, AES_BLOCK_BYTES);
-     */
-}
-
-uint64_t
-CryptoManager::decrypt_DET(uint64_t ciphertext, AES_KEY * key)
-{
-     //todonow
-    return decrypt_SEM(ciphertext, key, 1);
-    /*
-       unsigned char * ciphBytes = BytesFromInt(ciphertext, AES_BLOCK_BYTES);
-       unsigned char * plaintext = new unsigned char[AES_BLOCK_BYTES];
-       AES_decrypt(ciphBytes, plaintext, key);
-
-       return IntFromBytes(plaintext, AES_BLOCK_BYTES);
-     */
-}
-
-uint64_t
-CryptoManager::encrypt_DET(uint32_t plaintext, AES_KEY * key)
-{
-     //todonow
-    return encrypt_SEM((uint64_t) plaintext, key, 1);
-
-    /*
-       unsigned char * plainBytes = BytesFromInt((uint64_t)plaintext,
-          AES_BLOCK_BYTES);
-       unsigned char * ciphertext = new unsigned char[AES_BLOCK_BYTES];
-       AES_encrypt(plainBytes, ciphertext, key);
-
-       cout << "to encrypt for JOIN <" << plaintext << "> result is " <<
-          IntFromBytes(ciphertext, AES_BLOCK_BYTES) << "\n"; fflush(stdout);
-
-       return IntFromBytes(ciphertext, AES_BLOCK_BYTES);*/
-
-}
 /*
    //AES_K(hash(test))
    uint64_t

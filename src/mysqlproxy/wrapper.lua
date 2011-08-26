@@ -76,9 +76,14 @@ function read_query_real(packet)
         end
 
         for i, v in pairs(new_queries) do
-            dprint("new queries: " .. v)
+            dprint("new query[" .. i .. "]: " .. v)
             local result_key
             if i == table.maxn(new_queries) then
+                if v == query then
+                    -- no need to decrypt results
+                    return
+                end
+
                 result_key = RES_DECRYPT
             else
                 result_key = RES_IGNORE

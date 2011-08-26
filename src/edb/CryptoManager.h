@@ -40,6 +40,8 @@ class CryptoManager {
                  string fullfieldname, SECLEVEL fromlevel, SECLEVEL tolevel, bool & isBin,
                  uint64_t salt = 0);
 
+    static AES_KEY * getKey(const string & key);
+
     //SPECIFIC FUNCTIONS
 
     //expects AES_KEY_BYTES long key
@@ -97,16 +99,14 @@ class CryptoManager {
             uint64_t salt);
 
 
-    //DET: one-way functions
-    static AES_KEY * get_key_DET(const string &key);
-    static uint64_t encrypt_DET(uint32_t plaintext, AES_KEY * key);
-    static uint64_t encrypt_DET(uint64_t plaintext, AES_KEY * key);
-    //static uint64_t encrypt_DET(const string &plaintext, AES_KEY *key);
-    static uint64_t decrypt_DET(uint64_t ciphertext, AES_KEY * key);
+
+/*    static AES_KEY * get_key_DET(const string &key);
+    static uint64_t encrypt_DET(uint64_t plaintext, BF_KEY * key);
+    static uint64_t decrypt_DET(uint64_t ciphertext, BF_KEY * key);
 
     static string encrypt_DET(const string & plaintext, AES_KEY * key);
     static string decrypt_DET(const string & ciphertext, AES_KEY * key);
-
+*/
 
     /**
      * Returns the key corresponding to the security level given for some
