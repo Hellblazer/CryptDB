@@ -51,6 +51,7 @@ end
 
 RES_IGNORE  = 1
 RES_DECRYPT = 2
+NOT_CONSIDERED = 3
 
 function dprint(x)
     if os.getenv("CRYPTDB_PROXY_DEBUG") then
@@ -74,7 +75,10 @@ function read_query_real(packet)
 
         if not consider then
             -- no need to decrypt results
-            return
+            proxy.queries:append(NOT_CONSIDERED,
+                                 string.char(proxy.COM_QUERY) .. query,
+                                 { resultset_is_needed = false })
+            return proxy.PROXY_SEND_QUERY
         end
 
         if table.maxn(new_queries) == 0 then
@@ -140,6 +144,8 @@ function read_query_result_real(inj)
         end
 
         return proxy.PROXY_SEND_RESULT
+    elseif inj.id == NOT_CONSIDERED then
+        return
     else
         print("unexpected inj.id " .. inj.id)
     end

@@ -1223,7 +1223,6 @@ KeyAccess::insertPsswd(Prin gives, const string &psswd)
     // that has been inserted before)
     if (!isInstance(gives)) {
         GenerateAsymKeys(gives, password);
-        cerr << "returning from insert psswd \n";
         return 0;
     }
 
@@ -1688,7 +1687,6 @@ KeyAccess::GenerateAsymKeys(Prin prin, PrinKey prin_key)
         LOG(am) << "SQL error on query " << sql;
         return -1;
     }
-    cerr << "returning from asym keys \n";
     return 0;
 }
 

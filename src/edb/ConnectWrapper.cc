@@ -206,10 +206,7 @@ rewrite(lua_State *L)
     }
 
     lua_pushboolean(L, clients[client]->considered);
-<<<<<<< HEAD
 
-=======
->>>>>>> 2e87112c32eec2cefe75aeb1216d42138c722003
     lua_createtable(L, (int) new_queries.size(), 0);
     int top = lua_gettop(L);
     int index = 1;

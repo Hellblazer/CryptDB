@@ -350,22 +350,38 @@ CREATE TABLE phpbb_lang (
 
 # Table: 'phpbb_log'
 CREATE TABLE phpbb_log (
-	log_id mediumint(8) UNSIGNED NOT NULL auto_increment,
-	log_type tinyint(4) DEFAULT '0' NOT NULL,
-	user_id mediumint(8) UNSIGNED DEFAULT '0' NOT NULL,
-	forum_id mediumint(8) UNSIGNED DEFAULT '0' NOT NULL,
-	topic_id mediumint(8) UNSIGNED DEFAULT '0' NOT NULL,
-	reportee_id mediumint(8) UNSIGNED DEFAULT '0' NOT NULL,
-	log_ip varchar(40) DEFAULT '' NOT NULL,
-	log_time int(11) UNSIGNED DEFAULT '0' NOT NULL,
-	log_operation text NOT NULL,
-	log_data mediumtext NOT NULL,
-	PRIMARY KEY (log_id),
-	KEY log_type (log_type),
-	KEY forum_id (forum_id),
-	KEY topic_id (topic_id),
-	KEY reportee_id (reportee_id),
-	KEY user_id (user_id)
+    log_id mediumint(8) UNSIGNED NOT NULL auto_increment,
+    log_type tinyint(4) DEFAULT '0' NOT NULL,
+    user_id mediumint(8) UNSIGNED DEFAULT '0' NOT NULL,
+    forum_id mediumint(8) UNSIGNED DEFAULT '0' NOT NULL,
+    topic_id mediumint(8) UNSIGNED DEFAULT '0' NOT NULL,
+    reportee_id mediumint(8) UNSIGNED DEFAULT '0' NOT NULL,
+    log_ip varchar(40) DEFAULT '' NOT NULL,
+    log_time int(11) UNSIGNED DEFAULT '0' NOT NULL,
+    log_operation text NOT NULL,
+    log_data mediumtext NOT NULL,
+    PRIMARY KEY (log_id),
+    KEY log_type (log_type),
+    KEY forum_id (forum_id),
+    KEY topic_id (topic_id),
+    KEY reportee_id (reportee_id),
+    KEY user_id (user_id)
+) CHARACTER SET `utf8` COLLATE `utf8_bin`;
+
+
+# Table: 'phpbb_login_attempts'
+CREATE TABLE phpbb_login_attempts (
+    attempt_ip varchar(40) DEFAULT '' NOT NULL,
+    attempt_browser varchar(150) DEFAULT '' NOT NULL,
+    attempt_forwarded_for varchar(255) DEFAULT '' NOT NULL,
+    attempt_time int(11) UNSIGNED DEFAULT '0' NOT NULL,
+    user_id mediumint(8) UNSIGNED DEFAULT '0' NOT NULL,
+    username varchar(255) DEFAULT '0' NOT NULL,
+    username_clean varchar(255) DEFAULT '0' NOT NULL,
+    KEY att_ip (attempt_ip, attempt_time),
+    KEY att_for (attempt_forwarded_for, attempt_time),
+    KEY att_time (attempt_time),
+    KEY user_id (user_id)
 ) CHARACTER SET `utf8` COLLATE `utf8_bin`;
 
 

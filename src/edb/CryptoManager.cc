@@ -411,9 +411,7 @@ CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft,
 
                     AES_KEY * key =
                         get_AES_dec_key(getKey(mkey, fullfieldname, fromlevel));
-                    cerr << "before cmc \n";
                     val = decrypt_AES_CMC(val, key);
-                    cerr << "after cmc \n";
                     delete key;
                     fromlevel = decreaseLevel(fromlevel, ft, oDET);
                     if (fromlevel == tolevel) {
