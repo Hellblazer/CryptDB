@@ -76,7 +76,11 @@ CryptoManager::CryptoManager(const string &masterKeyArg)
 static list<Binary> *
 tokenize(string text)
 {
-    list<string> tokens = parse(text, "", " ,;:.", "");
+    static const std::set<char> myDelimsStay = {};
+    static const std::set<char> myDelimsGo   = {' ', ',', ';', ':', '.'};
+    static const std::set<char> myKeepIntact = {};
+
+    list<string> tokens = parse(text, myDelimsStay, myDelimsGo, myKeepIntact);
 
     std::set<string> search_tokens;
 
@@ -818,7 +822,11 @@ CryptoManager::marshallKey(const string &key)
 string
 CryptoManager::unmarshallKey(const string &key)
 {
-    list<string> words = parse(key, "", ", );", "");
+    static const std::set<char> myDelimsStay = {};
+    static const std::set<char> myDelimsGo   = {',', ' ', ')', ';'};
+    static const std::set<char> myKeepIntact = {};
+
+    list<string> words = parse(key, myDelimsStay, myDelimsGo, myKeepIntact);
 
     myassert(
         words.size() == AES_KEY_BYTES, "the given key string " + key +
