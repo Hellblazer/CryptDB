@@ -306,47 +306,40 @@ decrypt(lua_State *L)
     }
 
     /* return decrypted result set */
-    lua_newtable(L);
+    lua_createtable(L, (int) rd.names.size(), 0);
     int t_fields = lua_gettop(L);
     for (uint i = 0; i < rd.names.size(); i++) {
-        /* pre-configure stack for inserting field into fields table at i+1 */
-        lua_pushinteger(L, i+1);
-        lua_newtable(L);
+        lua_createtable(L, 0, 2);
         int t_field = lua_gettop(L);
 
         /* set name for field */
-        xlua_pushlstring(L, "name");
         xlua_pushlstring(L, rd.names[i]);
-        lua_settable(L, t_field);
+        lua_setfield(L, t_field, "name");
 
         /* set type for field */
-        xlua_pushlstring(L, "type");
         lua_pushinteger(L, rd.types[i]);
-        lua_settable(L, t_field);
+        lua_setfield(L, t_field, "type");
 
-        /* insert field element into fields table */
-        lua_settable(L, t_fields);
+        /* insert field element into fields table at i+1 */
+        lua_rawseti(L, t_fields, i+1);
     }
 
-    lua_newtable(L);
+    lua_createtable(L, (int) rd.rows.size(), 0);
     int t_rows = lua_gettop(L);
     for (uint i = 0; i < rd.rows.size(); i++) {
-        /* pre-configure stack for inserting row table */
-        lua_pushinteger(L, i+1);
-        lua_newtable(L);
+        lua_createtable(L, (int) rd.rows[i].size(), 0);
         int t_row = lua_gettop(L);
 
         for (uint j = 0; j < rd.rows[i].size(); j++) {
-            lua_pushinteger(L, j+1);
             if (rd.rows[i][j].null) {
                 lua_pushnil(L);
             } else {
                 xlua_pushlstring(L, rd.rows[i][j].data);
             }
-            lua_settable(L, t_row);
+            lua_rawseti(L, t_row, j+1);
         }
 
-        lua_settable(L, t_rows);
+        lua_rawseti(L, t_rows, i+1);
     }
 
     //cerr << clients[client]->last_query << " took (too long) " << t.lap_ms() << endl;;

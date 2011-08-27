@@ -1,0 +1,79 @@
+One core:
+
+workers 1 plain tput '10421.7\n' enc tput '8098.72\n'
+          plain lat '0.0959533\n'   enc lat '0.123476\n'
+workers 2 plain tput '10188.6\n' enc tput '8002.98\n'
+          plain lat '0.196299\n'   enc lat '0.249907\n'
+workers 4 plain tput '10100.2\n' enc tput '7980.08\n'
+          plain lat '0.39603\n'   enc lat '0.501248\n'
+workers 6 plain tput '10137.6\n' enc tput '8027.54\n'
+          plain lat '0.591858\n'   enc lat '0.747427\n'
+workers 8 plain tput '10128.8\n' enc tput '8059.04\n'
+          plain lat '0.789826\n'   enc lat '0.992674\n'
+
+
+Two cores:
+
+workers 1 plain tput '12781.7\n' enc tput '8825.51\n'
+          plain lat '0.0782366\n'   enc lat '0.113308\n'
+workers 2 plain tput '20074.6\n' enc tput '15729\n'
+          plain lat '0.0996284\n'   enc lat '0.127154\n'
+workers 3 plain tput '19593.3\n' enc tput '13427.4\n'
+          plain lat '0.153114\n'   enc lat '0.223424\n'
+workers 4 plain tput '19574.9\n' enc tput '15169.9\n'
+          plain lat '0.204344\n'   enc lat '0.26368\n'
+
+
+
+Three cores:
+
+
+workers 3 plain tput '27010.6\n' enc tput '18203.8\n'
+          plain lat '0.111067\n'   enc lat '0.1648\n'
+workers 4 plain tput '26593.1\n' enc tput '20558.7\n'
+          plain lat '0.150415\n'   enc lat '0.194565\n'
+
+
+
+Four cores:
+
+workers 3 plain tput '28887.8\n' enc tput '21603.2\n'
+          plain lat '0.10385\n'   enc lat '0.138869\n'
+workers 4 plain tput '32868.2\n' enc tput '25515.9\n'
+          plain lat '0.121698\n'   enc lat '0.156765\n'
+workers 5 plain tput '32878.6\n' enc tput '25779.5\n'
+          plain lat '0.152074\n'   enc lat '0.193952\n'
+
+
+
+Five cores:
+
+
+workers 4 plain tput '32003.1\n' enc tput '23985.8\n'
+          plain lat '0.124988\n'   enc lat '0.166765\n'
+workers 5 plain tput '32820.5\n' enc tput '24857.8\n'
+          plain lat '0.152344\n'   enc lat '0.201144\n'
+workers 6 plain tput '34529\n' enc tput '25569.2\n'
+          plain lat '0.173767\n'   enc lat '0.234658\n'
+
+Six cores:
+
+workers 6 plain tput '36913.4\n' enc tput '29412.7\n'
+          plain lat '0.162543\n'   enc lat '0.203994\n'
+workers 7 plain tput '38280.2\n' enc tput '28998.6\n'
+          plain lat '0.182862\n'   enc lat '0.241391\n'
+workers 8 plain tput '38914.4\n' enc tput '29879.2\n'
+          plain lat '0.205579\n'   enc lat '0.267745\n'
+
+Seven cores:
+
+workers 7 plain tput '40840.3\n' enc tput '32330.8\n'
+          plain lat '0.171399\n'   enc lat '0.216512\n'
+workers 8 plain tput '41345.5\n' enc tput '32086\n'
+          plain lat '0.193491\n'   enc lat '0.24933\n'
+workers 9 plain tput '41728.7\n' enc tput '32094.6\n'
+          plain lat '0.215679\n'   enc lat '0.280421\n'
+
+
+
+Eight cores:

@@ -115,8 +115,8 @@ function read_query_result_real(inj)
         local resfields = resultset.fields
         local fields = {}
         for i = 1, #resfields do
-            fields[i] = { type = resfields[i].type,
-                          name = resfields[i].name }
+            rfi = resfields[i]
+            fields[i] = { type = rfi.type, name = rfi.name }
         end
 
         local resrows = resultset.rows
