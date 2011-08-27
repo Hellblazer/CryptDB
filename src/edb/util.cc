@@ -2,6 +2,7 @@
 #include <string>
 #include <iomanip>
 #include <stdexcept>
+#include <assert.h>
 
 #include "openssl/rand.h"
 #include "util.h"
@@ -451,15 +452,17 @@ parse(const string &query,
                     break;
                 }
 
-                word = word + query[index];
+                word += query[index];
                 index++;
             }
 
-            string msg = "keepIntact was not closed in <";
-            msg = msg + query + "> at index " + strFromVal(index);
-            assert_s((index < len)  &&
-                     matches(&query[index], keepIntactArg, index), msg);
-            word = word + query[index];
+            /*
+             * check whether keepIntact was closed at index
+             */
+            assert((index < len)  &&
+                   matches(&query[index], keepIntactArg, index));
+
+            word += query[index];
             res.push_back(word);
 
             index++;
@@ -473,7 +476,7 @@ parse(const string &query,
                (!matches(&query[index], delimsStayArg)) &&
                (!matches(&query[index], delimsGoArg)) &&
                (!matches(&query[index], keepIntactArg))) {
-            word = word + query[index];
+            word += query[index];
             index++;
         }
 
