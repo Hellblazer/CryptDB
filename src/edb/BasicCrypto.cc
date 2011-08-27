@@ -217,9 +217,9 @@ reverse(const string & vec)
 
 //DID WE DECIDE ON ONE OR TWO KEYS?!
 string
-encrypt_AES_CMC(const string &ptext, const AES_KEY * enckey)
+encrypt_AES_CMC(const string &ptext, const AES_KEY * enckey, bool dopad)
 {
-    string firstenc = encrypt_AES_CBC(ptext, enckey, "0",true);
+    string firstenc = encrypt_AES_CBC(ptext, enckey, "0", dopad);
 
     string rev = reverse(firstenc);
 
@@ -227,12 +227,12 @@ encrypt_AES_CMC(const string &ptext, const AES_KEY * enckey)
 }
 
 string
-decrypt_AES_CMC(const string &ctext, const AES_KEY * deckey)
+decrypt_AES_CMC(const string &ctext, const AES_KEY * deckey, bool dopad)
 {
     string firstdec = decrypt_AES_CBC(ctext, deckey, "0", false);
 
     string reversed = reverse(firstdec);
 
-    return decrypt_AES_CBC(reversed, deckey, "0", true);
+    return decrypt_AES_CBC(reversed, deckey, "0", dopad);
 }
 

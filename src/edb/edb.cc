@@ -415,7 +415,7 @@ decrypt_text_det(PG_FUNCTION_ARGS)
     }
 
     AES_KEY * aesKey = get_AES_dec_key(key);
-    string value = decrypt_AES_CMC(string((char *)eValueBytes, (unsigned int)eValueLen), aesKey);
+    string value = decrypt_AES_CMC(string((char *)eValueBytes, (unsigned int)eValueLen), aesKey, false);
     delete aesKey;
 
 #if MYSQL_S

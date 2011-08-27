@@ -50,7 +50,7 @@ using namespace std;
 #define TN_PTEXT "text"
 #endif
 
-#define TN_SYM_KEY "varbinary(40)"
+#define TN_SYM_KEY "varbinary(32)"
 #define TN_PK_KEY  "varbinary(1220)"
 
 #define psswdtable "activeusers"
