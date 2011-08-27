@@ -421,7 +421,7 @@ parse(const string &query,
 
     unsigned int index = 0;
 
-    stringstream word_buf;
+    string word = "";
 
     while (index < len) {
         while ((index < len) &&
@@ -441,7 +441,7 @@ parse(const string &query,
 
         if (matches(&query[index], keepIntactArg, true, index)) {
 
-            word_buf << query[index];
+            word = query[index];
 
             index++;
 
@@ -452,7 +452,7 @@ parse(const string &query,
                     break;
                 }
 
-                word_buf << query[index];
+                word += query[index];
                 index++;
             }
 
@@ -462,29 +462,25 @@ parse(const string &query,
             assert((index < len)  &&
                    matches(&query[index], keepIntactArg, index));
 
-            word_buf << query[index];
-            res.push_back(word_buf.str());
-            word_buf.str("");
+            word += query[index];
+            res.push_back(word);
 
             index++;
 
         }
 
-        if (index >= len)
-            break;
+        if (index >= len) {break; }
 
-        word_buf.str("");
+        word = "";
         while ((index < len) &&
                (!matches(&query[index], delimsStayArg)) &&
                (!matches(&query[index], delimsGoArg)) &&
                (!matches(&query[index], keepIntactArg))) {
-            word_buf << query[index];
+            word += query[index];
             index++;
         }
 
-        if (word_buf.str().length() > 0) {
-            res.push_back(word_buf.str());
-        }
+        if (word.length() > 0) {res.push_back(word)); }
     }
 
     return res;
