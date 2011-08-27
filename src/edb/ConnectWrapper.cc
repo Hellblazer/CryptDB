@@ -303,30 +303,28 @@ decrypt(lua_State *L)
     }
 
     /* return decrypted result set */
-    lua_newtable(L);
+    lua_createtable(L, (int) rd.names.size(), 0);
     int t_fields = lua_gettop(L);
     for (uint i = 0; i < rd.names.size(); i++) {
-        lua_newtable(L);
+        lua_createtable(L, 0, 2);
         int t_field = lua_gettop(L);
 
         /* set name for field */
-        xlua_pushlstring(L, "name");
         xlua_pushlstring(L, rd.names[i]);
-        lua_rawset(L, t_field);
+        lua_setfield(L, t_field, "name");
 
         /* set type for field */
-        xlua_pushlstring(L, "type");
         lua_pushinteger(L, rd.types[i]);
-        lua_rawset(L, t_field);
+        lua_setfield(L, t_field, "type");
 
         /* insert field element into fields table at i+1 */
         lua_rawseti(L, t_fields, i+1);
     }
 
-    lua_newtable(L);
+    lua_createtable(L, (int) rd.rows.size(), 0);
     int t_rows = lua_gettop(L);
     for (uint i = 0; i < rd.rows.size(); i++) {
-        lua_newtable(L);
+        lua_createtable(L, (int) rd.rows[i].size(), 0);
         int t_row = lua_gettop(L);
 
         for (uint j = 0; j < rd.rows[i].size(); j++) {
