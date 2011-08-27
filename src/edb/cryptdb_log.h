@@ -106,7 +106,7 @@ class cryptdb_logger : public std::stringstream {
  * XXX
  * This seems dangerous, but perhaps it'll be OK for now..
  */
-enum { log_static_enable = 1 };
+enum { log_static_enable = 0 };
 
 #define LOG(g) \
     if (log_static_enable) \

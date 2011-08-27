@@ -29,6 +29,8 @@ def prepare():
     os.system("chmod 666 $EDBDIR/../apps/phpBB3/config.php")
     os.system("mv $EDBDIR/../apps/phpBB3/install2 $EDBDIR/../apps/phpBB3/install")
     os.system("cp $EDBDIR/../apps/phpBB3/install/schemas/mysql_will_build_annot.sql $EDBDIR/../apps/phpBB3/install/schemas/mysql_41_schema.sql")
+    #uncomment below line for plain text
+    #os.system("cp $EDBDIR/../apps/phpBB3/install/schemas/mysql_unannotated.sql $EDBDIR/../apps/phpBB3/install/schemas/mysql_41_schema.sql")
 
 def proxy():
     pid = os.fork()
@@ -41,6 +43,8 @@ def proxy():
         time.sleep(1)
         db = "mysql -u root -pletmein -h " + ip + " -P " + port  +  " cryptdb_phpbb -e 'DROP FUNCTION IF EXISTS groupaccess; CREATE FUNCTION groupaccess (auth_option_id mediumint(8), auth_role_id mediumint(8)) RETURNS bool RETURN ((auth_option_id = 14) OR (auth_role_id IN (1, 2, 4, 6, 10, 11, 12, 13, 14, 15, 17, 22, 23, 24)));' "
         os.system(db)
+        install_phpBB()
+        print "Done! You can run tests now!"
 
 
 def install_phpBB():
@@ -104,5 +108,3 @@ def install_phpBB():
 
 prepare()
 proxy()
-install_phpBB()
-print "Done! You can run tests now..."
