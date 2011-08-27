@@ -2015,7 +2015,7 @@ getResMeta(list<string> words, const ResType &vals, QueryMeta & qm,
                 rm.SaltIndexes[getTableOfSalt(vals.names[i])] = i;
                 cerr << "salt " << vals.names[i] << " added for table " << getTableOfSalt(vals.names[i]) << "\n";
             } else {
-                cerr << "field salt\n";
+                LOG(edb_v) << "field salt";
                 rm.SaltIndexes[fullName(rm.field[i-1], rm.table[i-1])] = i;
                 cerr << "salt " << vals.names[i] << " added for field " << fullName(rm.field[i-1], rm.table[i-1]) << "\n";
             }
@@ -2032,7 +2032,7 @@ getResMeta(list<string> words, const ResType &vals, QueryMeta & qm,
 
         //case : fields requested by user
 
-        cerr << "field " << vals.names[i] << "\n";
+        LOG(edb_v) << "field " << vals.names[i];
 
         rm.isSalt[i] =  false;
         rm.nTrueFields++;
