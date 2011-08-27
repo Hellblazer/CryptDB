@@ -111,15 +111,16 @@ function read_query_result_real(inj)
         local query = inj.query:sub(2)
 
         -- mysqlproxy doesn't return real lua arrays, so re-package them..
+        local resultset = inj.resultset
         local fields = {}
-        for i = 1, #inj.resultset.fields do
-            fields[i] = { type = inj.resultset.fields[i].type,
-                          name = inj.resultset.fields[i].name }
+        for i = 1, #resultset.fields do
+            fields[i] = { type = resultset.fields[i].type,
+                          name = resultset.fields[i].name }
         end
 
         local rows = {}
-        if inj.resultset.rows then
-            for row in inj.resultset.rows do
+        if resultset.rows then
+            for row in resultset.rows do
                 table.insert(rows, row)
             end
         end
@@ -129,8 +130,8 @@ function read_query_result_real(inj)
 
         if dfields and drows then
             proxy.response.type = proxy.MYSQLD_PACKET_OK
-            proxy.response.affected_rows = inj.resultset.affected_rows
-            proxy.response.insert_id = inj.resultset.insert_id
+            proxy.response.affected_rows = resultset.affected_rows
+            proxy.response.insert_id = resultset.insert_id
             if table.maxn(dfields) > 0 then
                 proxy.response.resultset = { fields = dfields, rows = drows }
             end
