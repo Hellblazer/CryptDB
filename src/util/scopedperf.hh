@@ -298,9 +298,13 @@ class tsc_ctr : public namedctr {
  public:
   tsc_ctr() : namedctr("tsc") {}
   static uint64_t sample() {
+#if __LONG_MAX__==2147483647L
+    uint32_t a, d;
+#else
     uint64_t a, d;
+#endif
     __asm __volatile("rdtsc" : "=a" (a), "=d" (d));
-    return a | (d << 32);
+    return ((uint64_t) a) | (((uint64_t) d) << 32);
   }
 };
 
@@ -308,9 +312,13 @@ class tscp_ctr : public namedctr {
  public:
   tscp_ctr() : namedctr("tscp") {}
   static uint64_t sample() {
-    uint64_t a, d, c;
+#if __LONG_MAX__==2147483647L
+    uint32_t a, c, d;
+#else
+    uint64_t a, c, d;
+#endif
     __asm __volatile("rdtscp" : "=a" (a), "=d" (d), "=c" (c));
-    return a | (d << 32);
+    return ((uint64_t) a) | (((uint64_t) d) << 32);
   }
 };
 
@@ -319,9 +327,13 @@ class pmc_ctr : public namedctr {
   pmc_ctr(int n) : namedctr(mkname(n)), cn(n) {}
   pmc_ctr(int n, const std::string &nm) : namedctr(nm), cn(n) {}
   uint64_t sample() const {
+#if __LONG_MAX__==2147483647L
+    uint32_t a, d;
+#else
     uint64_t a, d;
+#endif
     __asm __volatile("rdpmc" : "=a" (a), "=d" (d) : "c" (cn));
-    return a | (d << 32);
+    return ((uint64_t) a) | (((uint64_t) d) << 32);
   }
 
  private:
