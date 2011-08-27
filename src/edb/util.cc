@@ -2,6 +2,7 @@
 #include <string>
 #include <iomanip>
 #include <stdexcept>
+#include <assert.h>
 
 #include "openssl/rand.h"
 #include "util.h"
@@ -420,7 +421,7 @@ parse(const string &query,
 
     unsigned int index = 0;
 
-    string word = "";
+    stringstream word_buf;
 
     while (index < len) {
         while ((index < len) &&
@@ -440,7 +441,7 @@ parse(const string &query,
 
         if (matches(&query[index], keepIntactArg, true, index)) {
 
-            word = query[index];
+            word_buf << query[index];
 
             index++;
 
@@ -451,33 +452,39 @@ parse(const string &query,
                     break;
                 }
 
-                word = word + query[index];
+                word_buf << query[index];
                 index++;
             }
 
-            string msg = "keepIntact was not closed in <";
-            msg = msg + query + "> at index " + strFromVal(index);
-            assert_s((index < len)  &&
-                     matches(&query[index], keepIntactArg, index), msg);
-            word = word + query[index];
-            res.push_back(word);
+            /*
+             * check whether keepIntact was closed at index
+             */
+            assert((index < len)  &&
+                   matches(&query[index], keepIntactArg, index));
+
+            word_buf << query[index];
+            res.push_back(word_buf.str());
+            word_buf.str("");
 
             index++;
 
         }
 
-        if (index >= len) {break; }
+        if (index >= len)
+            break;
 
-        word = "";
+        word_buf.str("");
         while ((index < len) &&
                (!matches(&query[index], delimsStayArg)) &&
                (!matches(&query[index], delimsGoArg)) &&
                (!matches(&query[index], keepIntactArg))) {
-            word = word + query[index];
+            word_buf << query[index];
             index++;
         }
 
-        if (word.length() > 0) {res.push_back(word); }
+        if (word_buf.str().length() > 0) {
+            res.push_back(word_buf.str());
+        }
     }
 
     return res;
