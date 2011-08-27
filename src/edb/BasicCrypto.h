@@ -44,10 +44,10 @@ decrypt_AES_CBC(const string &ctext, const AES_KEY * deckey, string salt, bool p
 
 
 string
-encrypt_AES_CMC(const string &ptext, const AES_KEY * enckey);
+encrypt_AES_CMC(const string &ptext, const AES_KEY * enckey, bool dopad = true);
 
 string
-decrypt_AES_CMC(const string &ctext, const AES_KEY * deckey);
+decrypt_AES_CMC(const string &ctext, const AES_KEY * deckey, bool dopad = true);
 
 
 /*

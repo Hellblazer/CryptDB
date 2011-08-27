@@ -419,7 +419,7 @@ CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft,
 
                     AES_KEY * key =
                         get_AES_dec_key(getKey(mkey, fullfieldname, fromlevel));
-                    val = decrypt_AES_CMC(val, key);
+                    val = decrypt_AES_CMC(val, key, false);
                     delete key;
                     fromlevel = decreaseLevel(fromlevel, ft, oDET);
                     if (fromlevel == tolevel) {
@@ -641,7 +641,7 @@ CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft,
                 fromlevel = increaseLevel(fromlevel, ft, oDET);
                 AES_KEY * key =
                     get_AES_enc_key(getKey(mkey, fullfieldname, fromlevel));
-                data = encrypt_AES_CMC(data, key);
+                data = encrypt_AES_CMC(data, key, false);
                 delete key;
                 if (fromlevel == tolevel) {
                     isBin = true;
