@@ -595,6 +595,7 @@ throw (CryptDBError)
         if (fm->isEncrypted) {
             LOG(edb_v) << "encrypted field";
             tm->hasEncrypted = true;
+            tm->hasSensitive = true;
         } else {
             LOG(edb_v) << "not enc " << fieldName;
             //record auto increments:
@@ -1877,10 +1878,9 @@ throw (CryptDBError)
         }
 
         //CASE: field
-
-        //cerr << "y\n";
         string origname = *wordsIt;
         getTableField(origname, table, field, qm, tableMetaMap);
+
         TableMetadata * tm = tableMetaMap[table];
         FieldMetadata * fm = tm->fieldMetaMap[field];
 
@@ -1916,8 +1916,9 @@ throw (CryptDBError)
                                 fm), fm, qm);
 
         if (fm->secLevelDET == SECLEVEL::SEMANTIC_DET) {
-            assert_s(fm->has_salt, "field is at RND and does not have salt");
-            resultQuery += ", " + fm->salt_name;
+            if (fm->has_salt) {
+                resultQuery += ", " + fm->salt_name;
+            } //without a salt, the table's salt will be used
         }
 
         if (mp) {
@@ -3570,6 +3571,9 @@ EDBProxy::outputOnionState()
                     if (f->has_search) {
                         printf(" %-14s", levelnames[(int) SECLEVEL::SWP].c_str());
                     }
+                    if (f->has_salt) {
+                        printf(" %-14s", f->salt_name.c_str());
+                    }
                     cout << "\n";
                 }
             }
@@ -3623,7 +3627,7 @@ EDBProxy::setStateFromTraining() {
             fm->has_agg = fm->agg_used;
 
             //determine if field needs its own salt
-            if (fm->update_set_performed && ((fm->secLevelDET == SECLEVEL::SEMANTIC_DET) || (fm->secLevelOPE == SECLEVEL::SEMANTIC_OPE))) {
+            if (fm->isEncrypted && fm->update_set_performed && ((fm->secLevelDET == SECLEVEL::SEMANTIC_DET) || (fm->secLevelOPE == SECLEVEL::SEMANTIC_OPE))) {
                 fm->has_salt = true;
             } else {
                 fm->has_salt = false;
