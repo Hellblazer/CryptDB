@@ -2047,9 +2047,9 @@ getResMeta(list<string> words, const ResType &vals, QueryMeta & qm,
                 processAgg(wordsIt, words, rm.field[i], rm.table[i], rm.o[i],
                            qm, tm, 0);
             if (mp) {
-                mp->processReturnedField(i, isNextSalt(i, vals, nFields),  fullName(rm.field[i],
-                                                     rm.table[i]), rm.o[i],
-                                         tmkm, ignore);
+                mp->processReturnedField(i, isNextSalt(i, vals, (uint) nFields),
+                                         fullName(rm.field[i], rm.table[i]),
+                                         rm.o[i], tmkm, ignore);
             }
 
 //            cerr << "field, " << rm.field[i] << " table  " <<
@@ -2078,9 +2078,9 @@ getResMeta(list<string> words, const ResType &vals, QueryMeta & qm,
         }
 
         if (mp) {
-            mp->processReturnedField(i, isNextSalt(i, vals, nFields), fullName(rm.field[i],
-                                                 rm.table[i]), rm.o[i], tmkm,
-                                     ignore);
+            mp->processReturnedField(i, isNextSalt(i, vals, (uint) nFields),
+                                     fullName(rm.field[i], rm.table[i]),
+                                     rm.o[i], tmkm, ignore);
         }
 
         wordsIt++;
