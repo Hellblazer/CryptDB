@@ -229,7 +229,6 @@ rewrite(lua_State *L)
         xlua_pushlstring(L, *it);
         lua_rawseti(L, top, index);
         index++;
-
     }
 
     clients[client]->last_query = query;
