@@ -3813,7 +3813,7 @@ function msg_handler($errno, $msg_text, $errfile, $errline)
 			}
 
 			// Do not send 200 OK, but service unavailable on errors
-			send_status_line(503, 'Service Unavailable');
+			//send_status_line(503, 'Service Unavailable');
 
 			garbage_collection();
 
