@@ -70,6 +70,12 @@ class cryptdb_logger : public std::stringstream {
             enable_mask &= ~mask(g);
     }
 
+    static bool
+    enabled(log_group g)
+    {
+        return enable_mask & mask(g);
+    }
+
     static uint64_t
     mask(log_group g)
     {
@@ -100,7 +106,7 @@ class cryptdb_logger : public std::stringstream {
  * XXX
  * This seems dangerous, but perhaps it'll be OK for now..
  */
-enum { log_static_enable = 0 };
+enum { log_static_enable = 1 };
 
 #define LOG(g) \
     if (log_static_enable) \

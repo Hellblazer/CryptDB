@@ -73,7 +73,7 @@ class EDBProxy {
     void
     runQueries(string queryFile, bool execute=false) throw (CryptDBError);
     void
-    setOnionsFromTraining();
+    setStateFromTraining();
 
     //=========== DEBUGGING AND INFO ==============================//
 
@@ -123,7 +123,7 @@ class EDBProxy {
         throw (CryptDBError);
     //returns the value to be included in an insert a given value of a
     // field/table
-    string processValsToInsert(string field, string table, uint64_t salt,
+    string processValsToInsert(string field, FieldMetadata * fm, string table, TableMetadata * tm, uint64_t salt,
                                string value, TMKM & tmkm, bool null = false);
 
 

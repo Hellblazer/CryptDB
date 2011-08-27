@@ -72,7 +72,17 @@ bool isField(string token);
 // table
 string getField(string tablefield);
 string getTable(string tablefield);
-bool isFieldSalt(string id);
+
+//returns the name of the salt for a field with index in the table
+string getFieldSalt(unsigned int index, string anontablename);
+//returns true if "id" is the name of salt; isTableSalt set to true  if it is
+string
+getTableSalt(string anonTableName);
+// a table salt
+bool isSalt(string id, bool & isTableSalt);
+//returns the anonymized name of the table with this salt
+string getTableOfSalt(string salt_name);
+
 
 //given a token representing a field, it returns the unanonymized table and
 // field; these are original names and ignore aliases
@@ -114,7 +124,7 @@ string processCreate(fieldType type, string fieldName, unsigned int index,
     throw (CryptDBError);
 
 //returns what should be included in an insert query for a certain field
-string processInsert(string field, string table, TableMetadata *  tm);
+string processInsert(string field, string table, FieldMetadata * fm, TableMetadata *  tm);
 
 //expects it to point to an expression from a where clause
 // if this clause contains only sensitive fields, it returns true and it

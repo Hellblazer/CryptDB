@@ -50,7 +50,7 @@ using namespace std;
 #define TN_PTEXT "text"
 #endif
 
-#define TN_SYM_KEY "varbinary(40)"
+#define TN_SYM_KEY "varbinary(32)"
 #define TN_PK_KEY  "varbinary(1220)"
 
 #define psswdtable "activeusers"
@@ -177,6 +177,8 @@ typedef enum class cmd {
     COMMIT, ALTER, TRAIN, OTHER
 } command;
 
+const string BASE_SALT_NAME = "cdb_salt";
+
 typedef struct FieldMetadata {
 
     bool isEncrypted;     //indicates if this field is encrypted or not
@@ -196,6 +198,9 @@ typedef struct FieldMetadata {
     bool has_ope;
     bool has_agg;
     bool has_search;
+    bool has_salt; //whether this field has its own salt
+
+    string salt_name;
 
     FieldMetadata();
 
@@ -207,6 +212,7 @@ typedef struct FieldMetadata {
     bool ope_used;
     bool agg_used;
     bool search_used;
+    bool update_set_performed;
 
     //returns true if the given field exists in the database
     static bool exists(const string &field);
@@ -227,6 +233,7 @@ typedef struct TableMetadata { //each anonymized field
                                           // true field name
     map<string, FieldMetadata *> fieldMetaMap;     //map of true field name to
                                                    // field metadata
+    string salt_name;
 
     AutoInc ai;     //autoincrement
 
@@ -273,6 +280,9 @@ typedef struct ResMeta {
        response from the DBMS */
 
     bool * isSalt;     //isSalt[i] = true if i-th entry is salt
+
+    //maps not anonymized full field name or anonymized table name to salt index in the results
+    map<string, int> SaltIndexes;
 
     string * table;     //real table of each field
     string * field;     //real name of each field
@@ -407,9 +417,9 @@ void myassert(bool value, const string &mess = "assertion failed");
 double timeInSec(struct timeval tvstart, struct timeval tvend);
 
 //parsing
-const char delimsStay[] = {'(', ')', '=', ',', '>', '<', '\0'};
-const char delimsGo[] = {';', ' ', '\t', '\n', '\0'};
-const char keepIntact[] ={'\'', '\0'};
+const std::set<char> delimsStay = {'(', ')', '=', ',', '>', '<'};
+const std::set<char> delimsGo   = {';', ' ', '\t', '\n'};
+const std::set<char> keepIntact = {'\''};
 
 bool isKeyword(const string &token);
 bool isAgg(const string &token);
@@ -527,8 +537,10 @@ list<string> getSQLWords(const string &query);
 // if this string
 //contains delimiters; delimsStay are kept in the result, delimsGo are
 // discarded
-list<string> parse(const string &str, const string &delimsStay,
-                   const string &delimsGo, const string &keepIntact);
+list<string> parse(const string &str,
+                   const std::set<char> &delimsStay,
+                   const std::set<char> &delimsGo,
+                   const std::set<char> &keepIntact);
 
 command getCommand(const string &query)
     throw (CryptDBError);

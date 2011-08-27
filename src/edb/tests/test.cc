@@ -514,6 +514,52 @@ testCryptoManager()
 
 }
 
+static void
+testTrain(const TestConfig &tc, int ac, char **a) {
+    EDBProxy * pr = new EDBProxy(tc.host, tc.user, tc.pass, tc.db, tc.port, false, true);
+
+    pr->plain_execute("drop database cryptdbtest;");
+    pr->plain_execute("create database cryptdbtest;");
+    pr->plain_execute("use cryptdbtest;");
+
+    string mkey = randomBytes(AES_BLOCK_BYTES);
+    pr->setMasterKey(mkey);
+
+    pr->execute("train 1 testtraincreate testpatterns 1");
+
+
+    LOG(test) << "\n \n ";
+    LOG(test) << "done training";
+    LOG(test) << "\n \n ";
+
+    ifstream fc("testtraincreate");
+
+    while (!fc.eof()) {
+        string query = getQuery(fc);
+        pr->plain_execute(query);
+    }
+
+    fc.close();
+
+    ifstream f("testpatterns");
+
+    while (!f.eof()) {
+        string query = getQuery(f);
+
+        ResType r1 = pr->execute(query);
+        ResType r2 = pr->plain_execute(query);
+
+        assert_s(r1.ok, "query failed: " + query);
+        assert_s(r2.ok, "query failed for plain: " + query);
+
+        assert_s(match(r1, r2), "plain and trained cryptdb give different results on query " + query);
+        LOG(test) << "MATCH!";
+    }
+
+    f.close();
+    cerr << "Test train passed\n";
+
+}
 //do not change: has been used in creating the dbs for experiments
 const uint64_t mkey = 113341234;
 
@@ -660,23 +706,27 @@ interactiveTest(const TestConfig &tc, int ac, char **av)
 			cl->plain_execute("DROP TABLE IF EXISTS table0, table1");
 			cerr << "here \n";
 			assert_res(cl->execute(
-					"CREATE TABLE test_insert (id integer primary key auto_increment, age enc integer);"),
+					"CREATE TABLE t(id enc integer, name enc text);"),
 					"failed");
 
 			assert_res(cl->execute(
-					"INSERT INTO test_insert VALUES (1, 5);"), "failed");
-			assert_res(cl->execute(  "INSERT INTO test_insert VALUES (2, 5);"), "failed");
+					"INSERT INTO t VALUES (1, '5');"), "failed");
 
-			assert_res(cl->execute( "SELECT * FROM test_insert WHERE age = 5;"),
+			assert_res(cl->execute(  "INSERT INTO t VALUES (2, 'alice');"), "failed");
+
+			assert_res(cl->execute( "UPDATE t SET id = 10;"),
+			        "failed");
+
+			assert_res(cl->execute( "SELECT * FROM t;"),
 			                                        "failed");
-
+/*
 			assert_res(cl->execute(  "CREATE TABLE t2 (age enc integer);"),
 			                                        "failed");
 			assert_res(cl->execute(  "INSERT INTO t2 VALUES (5);"), "failed");
 
                         assert_res(cl->execute(
                                         "SELECT t2.age FROM test_insert, t2 WHERE test_insert.age = t2.age;"), "failed");
-
+*/
                         //assert_res(cl->execute("SELECT * FROM test_insert;"), "failed");
 
 			// assert_res(cl->execute(
@@ -4476,8 +4526,9 @@ static struct {
 		{ "trace",          "trace eval",             		&testTrace },
 		{ "bench",          "TPC-C benchmark eval",         &testBench },
 		{ "utils",          "",                             &testUtils },
+		{ "train",          "",                             &testTrain },
 
-		{ "help",  "",      &help },
+		{ "help",             "",                           &help },
 };
 
 static void

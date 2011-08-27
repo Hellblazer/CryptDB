@@ -18,6 +18,16 @@ class default_enabler {
   bool enabled() const { return false; }
 };
 
+class always_enabled {
+ public:
+  bool enabled() const { return true; }
+};
+
+class always_disabled {
+ public:
+  bool enabled() const { return false; }
+};
+
 
 /*
  * spinlock: mostly to avoid pthread mutex sleeping.
@@ -114,11 +124,9 @@ class perfsum_base {
  public:
   enum display_opt { show, hide };
 
-  perfsum_base(const std::string &n, display_opt d) : name(n) {
-    if (d == show) {
-      scoped_spinlock x(get_sums_lock());
-      get_sums()->push_back(this);
-    }
+  perfsum_base(const std::string &n, display_opt d) : name(n), disp(d) {
+    scoped_spinlock x(get_sums_lock());
+    get_sums()->push_back(this);
   }
 
   static void printall(int w0 = 17, int w = 13) {
@@ -128,7 +136,7 @@ class perfsum_base {
 	      [](perfsum_base *a, perfsum_base *b) { return a->name < b->name; });
     for (auto psi = sums->begin(); psi != sums->end(); psi++) {
       perfsum_base *ps = *psi;
-      if (!ps->get_enabled())
+      if (ps->disp == hide || !ps->get_enabled())
 	continue;
       auto p = ps->get_stats();
       print_row(ps->name, ps->get_names(), w0, w, [](const std::string &name)
@@ -142,9 +150,19 @@ class perfsum_base {
     }
   }
 
+  static void resetall() {
+    scoped_spinlock x(get_sums_lock());
+    auto sums = get_sums();
+    for (auto psi = sums->begin(); psi != sums->end(); psi++) {
+      perfsum_base *ps = *psi;
+      ps->reset();
+    }
+  }
+
   virtual std::vector<std::pair<uint64_t, uint64_t> > get_stats() const = 0;
   virtual std::vector<std::string> get_names() const = 0;
   virtual bool get_enabled() const = 0;
+  virtual void reset() = 0;
 
  private:
   template<class Row, class Callback>
@@ -170,6 +188,7 @@ class perfsum_base {
   }
 
   const std::string name;
+  const display_opt disp;
 };
 
 template<typename Enabler, typename... Counters>
@@ -179,7 +198,7 @@ class perfsum_ctr : public perfsum_base, public Enabler {
 	      const perfsum_ctr<Enabler, Counters...> *basesum, display_opt d)
     : perfsum_base(n, d), cg(c), base(basesum)
   {
-    memset(stat, 0, sizeof(stat));
+    reset();
   }
 
   void get_samples(uint64_t *s) const {
@@ -222,6 +241,10 @@ class perfsum_ctr : public perfsum_base, public Enabler {
 
   bool get_enabled() const /* override */ {
     return Enabler::enabled();
+  }
+
+  void reset() /* override */ {
+    memset(stat, 0, sizeof(stat));
   }
 
  private:
@@ -275,9 +298,13 @@ class tsc_ctr : public namedctr {
  public:
   tsc_ctr() : namedctr("tsc") {}
   static uint64_t sample() {
+#if __LONG_MAX__==2147483647L
+    uint32_t a, d;
+#else
     uint64_t a, d;
+#endif
     __asm __volatile("rdtsc" : "=a" (a), "=d" (d));
-    return a | (d << 32);
+    return ((uint64_t) a) | (((uint64_t) d) << 32);
   }
 };
 
@@ -285,9 +312,13 @@ class tscp_ctr : public namedctr {
  public:
   tscp_ctr() : namedctr("tscp") {}
   static uint64_t sample() {
-    uint64_t a, d, c;
+#if __LONG_MAX__==2147483647L
+    uint32_t a, c, d;
+#else
+    uint64_t a, c, d;
+#endif
     __asm __volatile("rdtscp" : "=a" (a), "=d" (d), "=c" (c));
-    return a | (d << 32);
+    return ((uint64_t) a) | (((uint64_t) d) << 32);
   }
 };
 
@@ -296,9 +327,13 @@ class pmc_ctr : public namedctr {
   pmc_ctr(int n) : namedctr(mkname(n)), cn(n) {}
   pmc_ctr(int n, const std::string &nm) : namedctr(nm), cn(n) {}
   uint64_t sample() const {
+#if __LONG_MAX__==2147483647L
+    uint32_t a, d;
+#else
     uint64_t a, d;
+#endif
     __asm __volatile("rdpmc" : "=a" (a), "=d" (d) : "c" (cn));
-    return a | (d << 32);
+    return ((uint64_t) a) | (((uint64_t) d) << 32);
   }
 
  private:
