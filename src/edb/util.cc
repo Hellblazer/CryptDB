@@ -480,7 +480,7 @@ parse(const string &query,
             index++;
         }
 
-        if (word.length() > 0) {res.push_back(word)); }
+        if (word.length() > 0) {res.push_back(word); }
     }
 
     return res;
