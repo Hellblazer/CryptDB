@@ -766,7 +766,8 @@ throw (CryptDBError)
             continue;
         }
 
-        //encryption fields that are not increments
+        //encryption fields that are not increment
+        fm->update_set_performed = true;
 
         uint64_t salt = 0;
         if (fm->has_salt) {
@@ -3607,7 +3608,7 @@ throw (CryptDBError)
 }
 
 void
-EDBProxy::setOnionsFromTraining() {
+EDBProxy::setStateFromTraining() {
     //go through all tables and all fields, and set "has_[onion]" to false if "used_[onion]" is false except for DET
 
     for (auto tit = tableMetaMap.begin(); tit != tableMetaMap.end(); tit++) {
@@ -3617,8 +3618,16 @@ EDBProxy::setOnionsFromTraining() {
             fm->has_ope = fm->ope_used;
             fm->has_search = fm->search_used;
             fm->has_agg = fm->agg_used;
+
+            //determine if field needs its own salt
+            if (fm->update_set_performed && ((fm->secLevelDET == SECLEVEL::SEMANTIC_DET) || (fm->secLevelOPE == SECLEVEL::SEMANTIC_OPE))) {
+                fm->has_salt = true;
+            } else {
+                fm->has_salt = false;
+            }
         }
     }
+
 }
 
 list<string>
@@ -3645,7 +3654,7 @@ EDBProxy::rewriteEncryptTrain(const string & query) {
     runQueries(queryfile, 0);
 
     //update onion state
-    setOnionsFromTraining();
+    setStateFromTraining();
 
     //recreate tables
     overwrite_creates = true;

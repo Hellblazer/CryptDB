@@ -73,7 +73,7 @@ class EDBProxy {
     void
     runQueries(string queryFile, bool execute=false) throw (CryptDBError);
     void
-    setOnionsFromTraining();
+    setStateFromTraining();
 
     //=========== DEBUGGING AND INFO ==============================//
 

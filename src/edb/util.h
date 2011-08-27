@@ -212,7 +212,7 @@ typedef struct FieldMetadata {
     bool ope_used;
     bool agg_used;
     bool search_used;
-    bool needs_own_salt;
+    bool update_set_performed;
 
     //returns true if the given field exists in the database
     static bool exists(const string &field);

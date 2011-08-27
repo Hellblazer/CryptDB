@@ -87,7 +87,7 @@ FieldMetadata::FieldMetadata()
     ope_used = false;
     agg_used = false;
     search_used = false;
-    needs_own_salt = false;
+    update_set_performed = false;
 }
 
 TableMetadata::TableMetadata() {
