@@ -20,7 +20,7 @@ static Timer t;
 static EDBProxy * cl = NULL;
 static pthread_mutex_t big_lock;
 
-static bool DO_CRYPT = true;
+static bool DO_CRYPT = false;
 
 static bool EXECUTE_QUERIES = true;
 
@@ -195,6 +195,8 @@ rewrite(lua_State *L)
 
     string query = xlua_tolstring(L, 2);
 
+    clients[client]->considered = true;
+
     list<string> new_queries;
 
     t.lap_ms();
@@ -218,6 +220,7 @@ rewrite(lua_State *L)
     }
 
     lua_pushboolean(L, clients[client]->considered);
+    //lua_pushboolean(L, true);
 
     lua_createtable(L, (int) new_queries.size(), 0);
     int top = lua_gettop(L);

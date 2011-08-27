@@ -19,7 +19,7 @@ def prepare():
     os.putenv("CRYPTDB_DB","cryptdb_phpbb")
     #uncomment next two lines for verbosity
     #os.putenv("CRYPTDB_LOG","11111111111111111111111111111111")
-    #os.putenv("CRYPTDB_PROXY_DEBUG","true")
+    os.putenv("CRYPTDB_PROXY_DEBUG","true")
     #comment out next line for verbosity
     os.putenv("CRYPTDB_LOG","00000000000000000000000000000000")
     os.putenv("CRYPTDB_MODE","multi")
@@ -30,7 +30,7 @@ def prepare():
     os.system("mv $EDBDIR/../apps/phpBB3/install2 $EDBDIR/../apps/phpBB3/install")
     os.system("cp $EDBDIR/../apps/phpBB3/install/schemas/mysql_will_build_annot.sql $EDBDIR/../apps/phpBB3/install/schemas/mysql_41_schema.sql")
     #uncomment below line for plain text
-    #os.system("cp $EDBDIR/../apps/phpBB3/install/schemas/mysql_unannotated.sql $EDBDIR/../apps/phpBB3/install/schemas/mysql_41_schema.sql")
+    #os.system("cp $EDBDIR/../apps/phpBB3/install/schemas/mysql_unannoted.sql $EDBDIR/../apps/phpBB3/install/schemas/mysql_41_schema.sql")
 
 def proxy():
     pid = os.fork()

@@ -1,7 +1,7 @@
 Notes on tput tests:
 
 startphpBB.py is configured for castle, and has cat's home director as EDBDIR
-
+make sure one core on castle is running (or enable threads in phpBB, but that has it's own set of difficulties)
 
 For running through CRYPTDB:
 
@@ -9,14 +9,6 @@ For running through CRYPTDB:
 python startphpBB.py
 
 check that L1198 of phpBB3/install/install_install.php is uncommented (this should maybe be added to the schema?)
-
-go to a browser, and install phpBB according to the directions
---mysql server is at (for castle running startphpBB): 18.26.5.16:3307
---DB name, user, password: cryptdb_phpbb, root, letmein
---Administrator name/password *must be* admin, letmein
-
-after phpBB is installed, log in as admin and go to the Administrator Control Panel-->Permissions-->Group Permissions-->Newly Registered Users and set permissions to All Yes
-
 
 
 ----on tom----
