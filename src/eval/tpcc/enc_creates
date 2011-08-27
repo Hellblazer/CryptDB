@@ -59,7 +59,7 @@ CREATE TABLE `table2` (
   `field19DET` varbinary(16),
   `field20DET` varbinary(512),
   `cdb_salt_f_20_table2` bigint(20) unsigned DEFAULT NULL
-) 
+); 
 
 
 CREATE TABLE `table3` (

@@ -6,7 +6,7 @@ import os
 import time
 
 
-workers = [2, 3, 4, 5, 6]
+workers = [2]
 
 if len(sys.argv) != 5:
     print 'usage: repeatexp plain_queryfile enc_queryfile nolines needsreload?'
@@ -83,7 +83,7 @@ for w in workers:
             print "error when dropping tpccenc"
             exit(-1)
         
-        cmd = "mysql -u root -pletmein tpccenc < ../dumps/sch2_dump_enc_w1"
+        cmd = "mysql -u root -pletmein tpccenc < ../dumps/up_dump_enc_w1"
         print cmd
         if os.system(cmd) < 0:
             print "error when loading enc"
