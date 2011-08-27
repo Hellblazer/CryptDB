@@ -417,9 +417,9 @@ void myassert(bool value, const string &mess = "assertion failed");
 double timeInSec(struct timeval tvstart, struct timeval tvend);
 
 //parsing
-const char delimsStay[] = {'(', ')', '=', ',', '>', '<', '\0'};
-const char delimsGo[] = {';', ' ', '\t', '\n', '\0'};
-const char keepIntact[] ={'\'', '\0'};
+const std::set<char> delimsStay = {'(', ')', '=', ',', '>', '<'};
+const std::set<char> delimsGo   = {';', ' ', '\t', '\n'};
+const std::set<char> keepIntact = {'\''};
 
 bool isKeyword(const string &token);
 bool isAgg(const string &token);
@@ -537,8 +537,10 @@ list<string> getSQLWords(const string &query);
 // if this string
 //contains delimiters; delimsStay are kept in the result, delimsGo are
 // discarded
-list<string> parse(const string &str, const string &delimsStay,
-                   const string &delimsGo, const string &keepIntact);
+list<string> parse(const string &str,
+                   const std::set<char> &delimsStay,
+                   const std::set<char> &delimsGo,
+                   const std::set<char> &keepIntact);
 
 command getCommand(const string &query)
     throw (CryptDBError);

@@ -70,6 +70,12 @@ class cryptdb_logger : public std::stringstream {
             enable_mask &= ~mask(g);
     }
 
+    static bool
+    enabled(log_group g)
+    {
+        return enable_mask & mask(g);
+    }
+
     static uint64_t
     mask(log_group g)
     {

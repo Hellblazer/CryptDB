@@ -392,10 +392,12 @@ unmarshallBinary(const string &s)
 }
 
 static bool
-matches(const char * query, const char * delims, bool ignoreOnEscape = false,
+matches(const char * query,
+        const std::set<char> &delims,
+        bool ignoreOnEscape = false,
         int index = 0)
 {
-    bool res = (strchr(delims, query[0]) != NULL);
+    bool res = (delims.find(query[0]) != delims.end());
 
     if (res && (index > 0)) {
         char c = *(query-1);
@@ -408,9 +410,10 @@ matches(const char * query, const char * delims, bool ignoreOnEscape = false,
 }
 
 list<string>
-parse(const string &query, const string &delimsStayArg,
-      const string &delimsGoArg,
-      const string &keepIntactArg)
+parse(const string &query,
+      const std::set<char> &delimsStayArg,
+      const std::set<char> &delimsGoArg,
+      const std::set<char> &keepIntactArg)
 {
     list<string> res;
     size_t len = query.length();
@@ -421,12 +424,12 @@ parse(const string &query, const string &delimsStayArg,
 
     while (index < len) {
         while ((index < len) &&
-               matches(&query[index], delimsGoArg.c_str())) {
+               matches(&query[index], delimsGoArg)) {
             index = index + 1;
         }
 
         while ((index < len) &&
-               matches(&query[index], delimsStayArg.c_str())) {
+               matches(&query[index], delimsStayArg)) {
             string sep = "";
             sep = sep + query[index];
             res.push_back(sep);
@@ -435,7 +438,7 @@ parse(const string &query, const string &delimsStayArg,
 
         if (index >= len) {break; }
 
-        if (matches(&query[index], keepIntactArg.c_str(), true, index)) {
+        if (matches(&query[index], keepIntactArg, true, index)) {
 
             word = query[index];
 
@@ -443,7 +446,7 @@ parse(const string &query, const string &delimsStayArg,
 
             while (index < len)  {
 
-                if (matches(&query[index], keepIntactArg.c_str(), true,
+                if (matches(&query[index], keepIntactArg, true,
                             index)) {
                     break;
                 }
@@ -455,8 +458,7 @@ parse(const string &query, const string &delimsStayArg,
             string msg = "keepIntact was not closed in <";
             msg = msg + query + "> at index " + strFromVal(index);
             assert_s((index < len)  &&
-                     matches(&query[index],
-                             keepIntactArg.c_str(), index), msg);
+                     matches(&query[index], keepIntactArg, index), msg);
             word = word + query[index];
             res.push_back(word);
 
@@ -468,9 +470,9 @@ parse(const string &query, const string &delimsStayArg,
 
         word = "";
         while ((index < len) &&
-               (!matches(&query[index], delimsStayArg.c_str())) &&
-               (!matches(&query[index], delimsGoArg.c_str())) &&
-               (!matches(&query[index], keepIntactArg.c_str()))) {
+               (!matches(&query[index], delimsStayArg)) &&
+               (!matches(&query[index], delimsGoArg)) &&
+               (!matches(&query[index], keepIntactArg))) {
             word = word + query[index];
             index++;
         }
@@ -744,14 +746,14 @@ getCommand(const string &query)
 throw (CryptDBError)
 {
     static struct { const char *s; command c; } s2c[] =
-    { { "create", cmd::CREATE },
-      { "update", cmd::UPDATE },
+    { { "select", cmd::SELECT },
       { "insert", cmd::INSERT },
-      { "select", cmd::SELECT },
-      { "drop",   cmd::DROP   },
+      { "update", cmd::UPDATE },
       { "delete", cmd::DELETE },
       { "commit", cmd::COMMIT },
       { "begin",  cmd::BEGIN  },
+      { "create", cmd::CREATE },
+      { "drop",   cmd::DROP   },
       { "alter",  cmd::ALTER  },
       { "train",  cmd::TRAIN  },
       { 0,        cmd::OTHER  } };
