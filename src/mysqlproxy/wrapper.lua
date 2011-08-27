@@ -112,15 +112,17 @@ function read_query_result_real(inj)
 
         -- mysqlproxy doesn't return real lua arrays, so re-package them..
         local resultset = inj.resultset
+        local resfields = resultset.fields
         local fields = {}
-        for i = 1, #resultset.fields do
-            fields[i] = { type = resultset.fields[i].type,
-                          name = resultset.fields[i].name }
+        for i = 1, #resfields do
+            fields[i] = { type = resfields[i].type,
+                          name = resfields[i].name }
         end
 
+        local resrows = resultset.rows
         local rows = {}
-        if resultset.rows then
-            for row in resultset.rows do
+        if resrows then
+            for row in resrows do
                 table.insert(rows, row)
             end
         end
