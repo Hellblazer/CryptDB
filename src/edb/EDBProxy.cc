@@ -2008,16 +2008,12 @@ getResMeta(list<string> words, const ResType &vals, QueryMeta & qm,
         //case : salt
         bool isTableSalt;
         if (isSalt(vals.names[i], isTableSalt)) {
-            cerr << "salt " << vals.names[i] << "\n";
             rm.isSalt[i] = true;
             if (isTableSalt) {
-                cerr << "table salt \n";
                 rm.SaltIndexes[getTableOfSalt(vals.names[i])] = i;
-                cerr << "salt " << vals.names[i] << " added for table " << getTableOfSalt(vals.names[i]) << "\n";
             } else {
                 LOG(edb_v) << "field salt";
                 rm.SaltIndexes[fullName(rm.field[i-1], rm.table[i-1])] = i;
-                cerr << "salt " << vals.names[i] << " added for field " << fullName(rm.field[i-1], rm.table[i-1]) << "\n";
             }
             rm.o[i] = oNONE;
             continue;
@@ -2059,7 +2055,6 @@ getResMeta(list<string> words, const ResType &vals, QueryMeta & qm,
         }
 
         //subcase: field
-        LOG(edb_v) << "current field " << currToken;
 
         string table, field;
         getTableField(currToken, table, field, qm, tm);
@@ -2097,7 +2092,6 @@ getResMeta(list<string> words, const ResType &vals, QueryMeta & qm,
 
     }
 
-    LOG(edb_v) << "leaving get res meta";
     return rm;
 }
 
@@ -2234,18 +2228,16 @@ EDBProxy::rewriteDecryptSelect(const string &query, const ResType &dbAnswer)
             rets.rows[i][index].type = fm->mysql_type;
 
             if (!rets.rows[i][index].null) {
-                cerr << "looking for salt now \n";
+
                 //get salt to use
                 uint64_t salt = 0;
                 if (fm->has_salt && (rm.SaltIndexes.find(fullname) != rm.SaltIndexes.end())) {
-                    cerr << "using salt index " << rm.SaltIndexes[fullname] << "\n";
                     salt = valFromStr(dbAnswer.rows[i][rm.SaltIndexes[fullname]].data);
-                    cerr << "retrieved \n";
+
                 } else { //maybe there is table salt
                     if (rm.SaltIndexes.find(tm->anonTableName) != rm.SaltIndexes.end()) {
-                        cerr << "using salt index " << rm.SaltIndexes[tm->anonTableName] << "\n";
                         salt = valFromStr(dbAnswer.rows[i][rm.SaltIndexes[tm->anonTableName]].data);
-                        cerr << "retrieved\n";
+
                     }
                 }
 
@@ -2255,7 +2247,7 @@ EDBProxy::rewriteDecryptSelect(const string &query, const ResType &dbAnswer)
                                 getLevelForOnion(fm, rm.o[j]),
                                 getLevelPlain(rm.o[j]), salt,
                                 tmkm, isBin, dbAnswer.rows[i]);
-                cerr << "decrypted \n";
+
             }
             index++;
         }
