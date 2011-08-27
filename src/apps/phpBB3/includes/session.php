@@ -764,11 +764,11 @@ class session
 				$row = $db->sql_fetchrow($result);
 				$db->sql_freeresult($result);
 
-				if ((int) $row['sessions'] > (int) $config['active_sessions'])
+				/*if ((int) $row['sessions'] > (int) $config['active_sessions'])
 				{
 					send_status_line(503, 'Service Unavailable');
 					trigger_error('BOARD_UNAVAILABLE');
-				}
+				}*/
 			}
 		}
 
@@ -1847,10 +1847,10 @@ class user extends session
 		// Is board disabled and user not an admin or moderator?
 		if ($config['board_disable'] && !defined('IN_LOGIN') && !$auth->acl_gets('a_', 'm_') && !$auth->acl_getf_global('m_'))
 		{
-			if ($this->data['is_bot'])
+			/*if ($this->data['is_bot'])
 			{
 				send_status_line(503, 'Service Unavailable');
-			}
+			}*/
 
 			$message = (!empty($config['board_disable_msg'])) ? $config['board_disable_msg'] : 'BOARD_DISABLE';
 			trigger_error($message);
@@ -1866,10 +1866,10 @@ class user extends session
 
 				if (!$auth->acl_gets('a_', 'm_') && !$auth->acl_getf_global('m_'))
 				{
-					if ($this->data['is_bot'])
+					/*if ($this->data['is_bot'])
 					{
 						send_status_line(503, 'Service Unavailable');
-					}
+					}*/
 					trigger_error('BOARD_UNAVAILABLE');
 				}
 			}

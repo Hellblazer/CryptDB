@@ -1,9 +1,15 @@
 import sys
 import os
 import time
+import re
+import mechanize
 
 flags = "-v"
 output_file = "out.html"
+
+ip = "18.26.5.16"
+port = "3307"
+edbdir = "/home/cat/cryptdb/src/edb"
 
 def prepare():
     db = "mysql -u root -pletmein -e 'DROP DATABASE cryptdb_phpbb; CREATE DATABASE cryptdb_phpbb'"
@@ -17,12 +23,14 @@ def prepare():
     #comment out next line for verbosity
     os.putenv("CRYPTDB_LOG","00000000000000000000000000000000")
     os.putenv("CRYPTDB_MODE","multi")
-    os.putenv("EDBDIR","/home/cat/cryptdb/src/edb")
+    os.putenv("EDBDIR",edbdir)
     os.system("rm $EDBDIR/../apps/phpBB3/config.php")
     os.system("touch $EDBDIR/../apps/phpBB3/config.php")
     os.system("chmod 666 $EDBDIR/../apps/phpBB3/config.php")
     os.system("mv $EDBDIR/../apps/phpBB3/install2 $EDBDIR/../apps/phpBB3/install")
     os.system("cp $EDBDIR/../apps/phpBB3/install/schemas/mysql_will_build_annot.sql $EDBDIR/../apps/phpBB3/install/schemas/mysql_41_schema.sql")
+    #uncomment below line for plain text
+    #os.system("cp $EDBDIR/../apps/phpBB3/install/schemas/mysql_unannotated.sql $EDBDIR/../apps/phpBB3/install/schemas/mysql_41_schema.sql")
 
 def proxy():
     pid = os.fork()
@@ -33,19 +41,70 @@ def proxy():
         print("failed to fork")
     else:
         time.sleep(1)
-        db = "mysql -u root -pletmein -h 18.26.5.16 -P 3307 cryptdb_phpbb -e 'DROP FUNCTION IF EXISTS groupaccess; CREATE FUNCTION groupaccess (auth_option_id mediumint(8), auth_role_id mediumint(8)) RETURNS bool RETURN ((auth_option_id = 14) OR (auth_role_id IN (1, 2, 4, 6, 10, 11, 12, 13, 14, 15, 17, 22, 23, 24)));' "
-        #db = "mysql -u root -pletmein cryptdb_phpbb2 -e 'DROP FUNCTION IF EXISTS groupaccess; CREATE FUNCTION groupaccess (auth_option_id mediumint(8), auth_role_id mediumint(8)) RETURNS bool RETURN ((auth_option_id = 14) OR (auth_role_id IN (1, 2, 4, 6, 10, 11, 12, 13, 14, 15, 17, 22, 23, 24)));'"
+        db = "mysql -u root -pletmein -h " + ip + " -P " + port  +  " cryptdb_phpbb -e 'DROP FUNCTION IF EXISTS groupaccess; CREATE FUNCTION groupaccess (auth_option_id mediumint(8), auth_role_id mediumint(8)) RETURNS bool RETURN ((auth_option_id = 14) OR (auth_role_id IN (1, 2, 4, 6, 10, 11, 12, 13, 14, 15, 17, 22, 23, 24)));' "
         os.system(db)
-        #install_phpBB()
+        install_phpBB()
+        print "Done! You can run tests now!"
 
 
 def install_phpBB():
-    post = "dbms=mysqli&dbhost=127.0.0.1&dbport=3307&dbname=crypdb_phpbb&dbuser=root'&dbpasswd=letmein&table_prefix=phpbb_&admin_name=admin&admin_pass1=letmein&admin_pass2=letmein&board_email=cat_red@mit.edu&board_email2=cat_red@mit.edu"
-    config = "wget "+flags+" --post-data=\'"+post+"\' \'http://"+ip+"/phpBB/install/index.php?mode=install&sub=config_file\' -O "+output_file
-    os.system(config)
-    post = post + "email_enable=1&smtp_delivery=0&smtp_auth=PLAIN&cookie_secure=0&force_server_vars=0&server_protocol=http://&server_name=localhost&server_port=80&script_path=/phpBB"
-    create_table = "wget "+flags+" --post-data=\'"+post+"\' \'http://localhost/phpBB/install/index.php?mode=install&sub=create_table\' -O "+output_file
-    os.system(create_table)
+    print "installing phpBB..."
+    #create forum
+    url = "http://" + ip + "/phpBB3/"
+    install_url = url + "install/index.php?mode=install&sub="
+    br = mechanize.Browser()
+    post = "dbms=mysqli&dbhost=" + ip  +  "&dbport=" + port +  "&dbname=cryptdb_phpbb&dbuser=root&dbpasswd=letmein&table_prefix=phpbb_&admin_name=admin&admin_pass1=letmein&admin_pass2=letmein&board_email=cat_red@mit.edu&board_email2=cat_red@mit.edu"
+    config = mechanize.urlopen(install_url+"config_file", data=post);
+    br.set_response(config)
+    post += "&email_enable=1&smtp_delivery=0&smtp_host=&smtp_auth=PLAIN&smtp_user=&smtp_pass=&cookie_secure=0&force_server_vars=0&server_protocol=http://&server_name=18.26.5.16&server_port=80&script_path=/phpBB"
+    advanced = mechanize.urlopen(install_url+"advanced", data=post);
+    br.set_response(advanced)
+    br.select_form(nr=0)
+    br.submit()
+    br.select_form(nr=0)
+    br.submit()
+
+    os.system("mv $EDBDIR/../apps/phpBB3/install $EDBDIR/../apps/phpBB3/install2")
+
+    print "logging in..."
+    #login
+    br.open(url+"ucp.php?mode=login")
+    br.select_form(nr=1)
+    br["username"] = "admin"
+    br["password"] = "letmein"
+    br.submit()
+    print "to ACP..."
+    #authenticate to go to ACP
+    br.follow_link(text="Administration Control Panel")
+    br.select_form(nr=1)
+    i = str(br.form).find("password")
+    j = str(br.form).find("=)",i)
+    br[str(br.form)[i:j]] = "letmein"
+    br.submit()
+    print "getting permissions page..."
+    #navigate to group permissions
+    br.follow_link(text="Permissions")
+    br.follow_link(text="Groups\xe2\x80\x99 permissions")
+    #select Newly Registered Users
+    br.select_form(nr=0)
+    br["group_id[]"] = ["7"]
+    br.submit()
+    #set all permissions to yes
+    print "setting permissions..."
+    br.select_form(nr=1)
+    i = 1
+    while i > 0:
+        start = str(br.form).find("setting[7][0][",i)
+        if (start < 0):
+            break
+        end = str(br.form).find("=[",start)
+        if (end < 0):
+            break
+        br[str(br.form)[start:end]] = ["1"]
+        i = end
+    br.submit()
+
+
 
 prepare()
 proxy()
