@@ -298,7 +298,7 @@ throw (CryptDBError)
         assert_s(
             fmfirst->INCREMENT_HAPPENED == false &&
             fmsecond->INCREMENT_HAPPENED == false,
-            "cannot perform comparison on field that was incremented!");
+            "cannot perform comparison on field that was incremented! (" + firstField + ", " + secondField + ")");
 
         if (Operation::isDET(operation)) {
             //join by equality
@@ -411,7 +411,7 @@ throw (CryptDBError)
     if (Operation::isDET(operation)) {
 
         assert_s(fmField->INCREMENT_HAPPENED == false,
-                 "cannot perform comparison on field that was incremented \n");
+                 "cannot perform comparison on field that was incremented: " + firstField);
         //filter with equality
         if (fmField->secLevelDET == SECLEVEL::SEMANTIC_DET) {
             addIfNotContained(tableField, fieldsDec.DETFields);
