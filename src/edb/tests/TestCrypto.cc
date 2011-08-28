@@ -761,6 +761,9 @@ latency_OPE(unsigned int notests) {
 
     double timeDec = t.lap_ms() / notests;
 
+    if (prevent_compiler_optimiz % 297973 == 0) {
+        cerr << "lucky case\n";
+    }
     //sanity check
     assert_s(data == dec, "something went wrong");
 
@@ -788,6 +791,135 @@ latency_OPE(unsigned int notests) {
 }
 
 
+static void
+latency_basics(unsigned int notests) {
+
+    uint64_t int_data = 2742935345345384;
+    string str_data = "2742935345345384";
+    string salt = "2742935345345384";
+    uint64_t int_enc, int_dec;
+    string   str_enc, str_dec;
+    string key = "secret key maste";
+
+    AES_KEY * enckey = get_AES_enc_key(key);
+    AES_KEY * deckey = get_AES_dec_key(key);
+
+    blowfish * bf = new blowfish(key);
+
+
+    //============ BLOWFISH ==============
+
+    uint64_t prevent_compiler_optimiz = 0;
+
+    Timer t;
+
+    for (unsigned int i = 0; i < notests ; i++) {
+        int_enc = bf->encrypt(int_data);
+        prevent_compiler_optimiz += int_enc % 10;
+    }
+
+    double timeEnc = t.lap_ms() / notests;
+
+    if (prevent_compiler_optimiz % 297973 == 0) {
+        cerr << "lucky case\n";
+    }
+    //eval decryption
+
+    t.lap();
+
+    for (unsigned int i = 0; i < notests ; i++) {
+        int_dec = bf->decrypt(int_enc);
+        prevent_compiler_optimiz += int_dec % 10;
+    }
+
+    double timeDec = t.lap_ms() / notests;
+
+    if (prevent_compiler_optimiz % 297973 == 0) {
+        cerr << "lucky case\n";
+    }
+    //sanity check
+    assert_s(int_data == int_dec, "something went wrong with blowfish");
+
+    cerr << "Blowfish encrypt " << timeEnc << "ms Blowfish decrypt " << timeDec << "ms \n";
+
+    //============= CBC = RND ===================
+
+    prevent_compiler_optimiz = 0;
+
+    t.lap();
+
+    for (unsigned int i = 0; i < notests ; i++) {
+        str_enc = encrypt_AES_CBC(str_data, enckey, salt);
+        prevent_compiler_optimiz += (int)str_enc[0];
+    }
+
+    timeEnc = t.lap_ms() / notests;
+
+    if (prevent_compiler_optimiz % 297973 == 0) {
+        cerr << "lucky case\n";
+    }
+    //eval decryption
+
+    t.lap();
+
+    for (unsigned int i = 0; i < notests ; i++) {
+        str_dec = decrypt_AES_CBC(str_enc, deckey, salt);
+        prevent_compiler_optimiz += (int)str_dec[0];
+    }
+
+    timeDec = t.lap_ms() / notests;
+
+    if (prevent_compiler_optimiz % 297973 == 0) {
+        cerr << "lucky case\n";
+    }
+    //sanity check
+    assert_s(str_data == str_dec, "something went wrong with blowfish");
+
+    cerr << "CBC encrypt " << timeEnc << "ms CBC decrypt " << timeDec << "ms \n";
+
+
+
+    //============== CMC = DET ====================
+
+    prevent_compiler_optimiz = 0;
+
+    t.lap();
+
+    for (unsigned int i = 0; i < notests ; i++) {
+        str_enc = encrypt_AES_CMC(str_data, enckey);
+        prevent_compiler_optimiz += (int)str_enc[0];
+    }
+
+    timeEnc = t.lap_ms() / notests;
+
+    if (prevent_compiler_optimiz % 297973 == 0) {
+        cerr << "lucky case\n";
+    }
+    //eval decryption
+
+    t.lap();
+
+    for (unsigned int i = 0; i < notests ; i++) {
+        str_dec = decrypt_AES_CMC(str_enc, deckey);
+        prevent_compiler_optimiz += (int)str_dec[0];
+    }
+
+
+    timeDec = t.lap_ms() / notests;
+
+    if (prevent_compiler_optimiz % 297973 == 0) {
+        cerr << "lucky case\n";
+    }
+
+    //sanity check
+    assert_s(str_data == str_dec, "something went wrong with blowfish");
+
+    cerr << "CMC encrypt " << timeEnc << "ms CMC decrypt " << timeDec << "ms \n";
+
+
+
+}
+
 
 static void
 latency() {
@@ -796,6 +928,7 @@ latency() {
     latency_search(10000);
     latency_Paillier(100, 10000);
     latency_OPE(100);
+    latency_basics(10000);
 }
 
 void

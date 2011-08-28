@@ -77,3 +77,90 @@ workers 9 plain tput '41728.7\n' enc tput '32094.6\n'
 
 
 Eight cores:
+
+
+One core:
+
+Select equality:
+
+python repeatexp.py ../dumps/plain_eqsel ../dumps/enc_eqsel 266512  0
+
+workers 1 plain tput '10021.1\n' enc tput '9282.57\n'
+          plain lat '0.0997899\n'   enc lat '0.107729\n'
+workers 2 plain tput '9986.75\n' enc tput '9244.83\n'
+          plain lat '0.200265\n'   enc lat '0.216337\n'
+workers 3 plain tput '9953.14\n' enc tput '9223.93\n'
+          plain lat '0.301412\n'   enc lat '0.325241\n'
+
+
+select sum:
+
+workers 1 plain tput '8958.22\n' enc tput '4533.43\n'
+          plain lat '0.111629\n'   enc lat '0.220584\n'
+workers 2 plain tput '8894.91\n' enc tput '4545.91\n'
+          plain lat '0.224848\n'   enc lat '0.439956\n'
+workers 3 plain tput '8938.56\n' enc tput '4544.79\n'
+          plain lat '0.335625\n'   enc lat '0.660097\n'
+
+
+
+select range:
+
+python repeatexp.py ../dumps/plain_range ../dumps/enc_range 922  0 20
+
+workers 1 plain tput '6419.16\n' enc tput '5636.8\n'
+          plain lat '0.155784\n'   enc lat '0.177406\n'
+workers 2 plain tput '6386.75\n' enc tput '5622.18\n'
+          plain lat '0.313148\n'   enc lat '0.355734\n'
+
+
+select join:
+
+python repeatexp.py ../dumps/plain_join ../dumps/enc_join 10246  0 5
+
+workers 1 plain tput '9638.29\n' enc tput '9025.79\n'
+          plain lat '0.103753\n'   enc lat '0.110794\n'
+workers 2 plain tput '9543.19\n' enc tput '8819.19\n'
+          plain lat '0.209574\n'   enc lat '0.226778\n'
+
+
+
+delete:
+
+python repeatexp.py ../dumps/plain_delete ../dumps/enc_delete 8982  1 20
+
+
+workers 1 plain tput '14647.5\n' enc tput '12695\n'
+          plain lat '0.0682712\n'   enc lat '0.0787711\n'
+workers 2 plain tput '13451.4\n' enc tput '12248.6\n'
+          plain lat '0.148684\n'   enc lat '0.163284\n'
+
+
+insert:
+
+python repeatexp.py ../dumps/plain_insert ../dumps/enc_insert 131529  1 1
+
+workers 1 plain tput '12660.2\n' enc tput '9891.56\n'
+          plain lat '0.0789879\n'   enc lat '0.101096\n'
+workers 2 plain tput '12488.5\n' enc tput '9921.09\n'
+          plain lat '0.160147\n'   enc lat '0.201591\n'
+
+
+update set:
+
+python repeatexp.py ../dumps/plain_upset ../dumps/enc_upset 27625  1 5
+
+workers 1 plain tput '9395.43\n' enc tput '7292.54\n'
+          plain lat '0.106435\n'   enc lat '0.137127\n'
+workers 2 plain tput '9302.42\n' enc tput '7244.77\n'
+          plain lat '0.214998\n'   enc lat '0.276061\n'
+
+
+update inc:
+
+python repeatexp.py ../dumps/plain_upinc ../dumps/enc_upinc 129918  1 1
+
+workers 1 plain tput '10476.9\n' enc tput '6052.92\n'
+          plain lat '0.0954479\n'   enc lat '0.16521\n'
+workers 2 plain tput '10323\n' enc tput '6505.08\n'
+          plain lat '0.193741\n'   enc lat '0.307452\n'

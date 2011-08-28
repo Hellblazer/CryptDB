@@ -3,7 +3,7 @@ A bunch of useful command lines
 
 ====To run benchmark against CryptDBproxy====
 
-1. To prepare DB server:
+1. To prepare:
 
 CREATE USER 'tpccuser' IDENTIFIED BY 'letmein';
 GRANT ALL PRIVILEGES ON *.* TO tpccuser;
@@ -14,7 +14,7 @@ enable ip bind address for external access
 give access to remote user: GRANT ALL ON foo.* TO bar@'202.54.10.20' IDENTIFIED BY 'PASSWORD';
 open TCP port using iptables: /sbin/iptables -A INPUT -i eth0 -p tcp --destination-port 5143 -j ACCEPT
 
-
+- make sure logging is turned off
 
 2. How to run the benchmark aganst cryptdb:
 
@@ -39,7 +39,7 @@ Example for inserts:
 /usr/bin/perl -p -i -e "s/INSERT/;\nINSERT/g" bench_plain_insert_w1
 
 To translate plain queries:
-../../edb/tests/test trace encrypt_queries sqlTableCreates2 emptyindex querypatterns_bench ../dumps/plain_queries_w1_t10 pieces/enc_queries_w1_  617327 200
+../../edb/tests/test trace encrypt_queries sqlTableCreates emptyindex querypatterns_bench ../dumps/plain_queries_w1_t10 pieces/enc_queries_w1_  617327 200
 
 === To train from the shell (./tests/test shell) ====
 train 1 ../eval/tpcc/sqlTableCreates ../eval/tpcc/querypatterns_bench 1
@@ -54,16 +54,16 @@ java -cp  ../build/classes:../lib/edb-jdbc14-8_0_3_14.jar:../lib/ganymed-ssh2-bu
 
 EITHER run the script:
 usage: python repeatexp.py plainqueryfile encqueryfile nolines needtoreload?
-python repeatexp.py ../dumps/plain_queries_w1_t10 ../dumps/enc_queries_w1_t10 594805  1
+python repeatexp.py ../dumps/plain_queries_w1_t10_notran ../dumps/up_enc_queries_w1_t10_notran 594805  1 1
 
 
 OR individual commands:
 
-mysql -u root -pletmein -e "drop database tpccenc"; mysql -u root -pletmein -e "create database tpccenc"; mysql -u root -pletmein tpccenc  < ../dumps/sch2_dump_enc_w1
+mysql -u root -pletmein -e "drop database tpccenc"; mysql -u root -pletmein -e "create database tpccenc"; mysql -u root -pletmein tpccenc  < ../dumps/up_dump_enc_w1
 mysql -u root -pletmein -e "drop database tpccplain"; mysql -u root -pletmein -e "create database tpccplain"; mysql -u root -pletmein tpccplain < ../dumps/sch2_dump_plain_w1
 
  ../../edb/tests/test -d tpccplain -v all trace eval ../dumps/plain_queries_w1_t10_notran 594805 10  1 1 5000
-../../edb/tests/test -d tpccenc -v all trace eval ../dumps/enc_queries_w1_t10_notran 594805 10 1 1 5000
+../../edb/tests/test -d tpccenc -v all trace eval ../dumps/up_enc_queries_w1_t10_notran 594805 10 1 1 5000
 
 Note: for noRepeats > 1, make sure to use: SET GLOBAL query_cache_size = 0; SELECT @@query_cache_size;
 
