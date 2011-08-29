@@ -104,7 +104,7 @@ testOPE()
 
     LOG(crypto) << "Test OPE";
 
-    unsigned int noSizes = 7;
+    unsigned int noSizes = 6;
     unsigned int plaintextSizes[] = {16,  32, 64,  128, 256, 512, 1024};
     unsigned int ciphertextSizes[] = {32, 64, 128, 256, 288, 768, 1536};
 
@@ -556,6 +556,49 @@ testECJoin() {
 }
 
 static void
+testEncTables() {
+
+    uint64_t mkey = 113341234;
+    string masterKey = BytesFromInt(mkey, AES_KEY_BYTES);
+
+    cerr << "testing encryption tables ...  \n";
+
+    unsigned int low = 3500;
+    unsigned int high = 3600;
+    string fieldname = "table4.field2OPE";
+
+    CryptoManager * cm1 = new CryptoManager(masterKey);
+    CryptoManager * cm2 = new CryptoManager(masterKey);
+
+    cm1->loadEncTables("enc_tables_w1");
+    bool isBin;
+    uint64_t salt = 38290385;
+
+    for (unsigned int v = low; v < high; v++) {
+
+        string data = StringFromVal(v);
+
+        string enc1 = cm1->crypt(cm1->getmkey(), data, TYPE_INTEGER, fieldname, SECLEVEL::PLAIN_OPE, SECLEVEL::OPE, isBin, 0);
+        string enc2 = cm2->crypt(cm2->getmkey(), data, TYPE_INTEGER, fieldname, SECLEVEL::PLAIN_OPE, SECLEVEL::OPE, isBin, 0);
+        //cerr << "enc 1 is " << enc1 << " and enc2 " << enc2 << "\n";
+        assert_s(enc1 == enc2, "enc with tables does not match enc without enc tables ");
+
+        enc1 = cm1->crypt(cm1->getmkey(), StringFromVal(v), TYPE_INTEGER, fieldname, SECLEVEL::PLAIN_OPE, SECLEVEL::SEMANTIC_OPE, isBin, salt);
+        enc2 = cm2->crypt(cm2->getmkey(), StringFromVal(v), TYPE_INTEGER, fieldname, SECLEVEL::PLAIN_OPE, SECLEVEL::SEMANTIC_OPE, isBin, salt);
+
+        assert_s(enc1 == enc2, "enc with tables does not match enc without tables for whole ope onion");
+
+        string dec1 = cm1->crypt(cm1->getmkey(), enc1, TYPE_INTEGER, fieldname, SECLEVEL::SEMANTIC_OPE, SECLEVEL::PLAIN_OPE, isBin, salt);
+        //cerr << "dec 1 is " << dec1 << "\n";
+        assert_s(dec1 == data, "decryption with enc tables incorrect");
+
+    }
+
+    cerr << "DONE.\n";
+
+}
+
+static void
 latency_join(unsigned int notests) {
     ECJoin * ecj = new ECJoin();
 
@@ -791,6 +834,7 @@ latency_OPE(unsigned int notests) {
 }
 
 
+
 static void
 latency_basics(unsigned int notests) {
 
@@ -958,5 +1002,6 @@ TestCrypto::run(const TestConfig &tc, int argc, char ** argv)
     testPBKDF2();
     cerr << "Testing ECJoin " << endl;
     testECJoin();
+    testEncTables();
     cerr << "Done! All crypto tests passed." << endl;
 }

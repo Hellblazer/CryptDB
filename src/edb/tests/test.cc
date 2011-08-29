@@ -560,7 +560,7 @@ testTrain(const TestConfig &tc, int ac, char **a) {
     cerr << "Test train passed\n";
 
 }
-//do not change: has been used in creating the dbs for experiments
+//do not change: has been used in creating the DUMPS for experiments
 const uint64_t mkey = 113341234;
 
 static void __attribute__((unused))
