@@ -795,7 +795,7 @@ static void
 latency_basics(unsigned int notests) {
 
     uint64_t int_data = 2742935345345384;
-    string str_data = "2742935345345384";
+    string str_data = randomBytes(1024);
     string salt = "2742935345345384";
     uint64_t int_enc, int_dec;
     string   str_enc, str_dec;
@@ -873,7 +873,7 @@ latency_basics(unsigned int notests) {
         cerr << "lucky case\n";
     }
     //sanity check
-    assert_s(str_data == str_dec, "something went wrong with blowfish");
+    assert_s(str_data == str_dec, "something went wrong with cbc");
 
     cerr << "CBC encrypt " << timeEnc << "ms CBC decrypt " << timeDec << "ms \n";
 
@@ -912,7 +912,7 @@ latency_basics(unsigned int notests) {
     }
 
     //sanity check
-    assert_s(str_data == str_dec, "something went wrong with blowfish");
+    assert_s(str_data == str_dec, "something went wrong with cmc");
 
     cerr << "CMC encrypt " << timeEnc << "ms CMC decrypt " << timeDec << "ms \n";
 
