@@ -765,6 +765,8 @@ void CryptoManager::loadEncTables(string filename) {
 
     useEncTables = true;
 
+    LOG(crypto) << "loading enc tables\n";
+
     assert_s(file.is_open(), "could not open file " + filename);
 
     if (file.eof()) {

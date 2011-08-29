@@ -3859,7 +3859,7 @@ throw (CryptDBError)
 		if (!execEncQuery) {
 		    if (encryptQuery) {
 		        try{
-                    bool temp;
+		            bool temp;
 		            queries = cl->rewriteEncryptQuery(query+";", temp);
 		        } catch(...) {
 		            cerr << "query " << query << "failed";
@@ -3895,6 +3895,7 @@ throw (CryptDBError)
 		    stats->total_queries++;
 		}
 	}
+
 	stats->mspassed = t.lap_ms();
 
 	infile.close();
@@ -4158,6 +4159,45 @@ static void runExp(EDBProxy * cl, int noWorkers, const TestConfig & tc, int logF
 
 }
 
+
+static void
+startProxy(const TestConfig & tc, uint port) {
+
+    setenv("CRYPTDB_LOG", cryptdb_logger::getConf().c_str(), 1);
+    setenv("CRYPTDB_MODE", "single", 1);
+
+
+    pid_t proxy_pid = fork();
+    if (proxy_pid == 0) {
+        LOG(test) << "starting proxy, pid " << getpid();
+
+        stringstream script_path, address;
+        script_path << "--proxy-lua-script=" << tc.edbdir << "/../mysqlproxy/wrapper.lua";
+        address << "--proxy-address=localhost:" << port;
+
+        cerr << "starting on port " << port << "\n";
+
+        execlp("mysql-proxy",
+                "mysql-proxy", "--plugins=proxy",
+                "--max-open-files=1024",
+                script_path.str().c_str(),
+                address.str().c_str(),
+                "--proxy-backend-addresses=localhost:3306",
+                (char *) 0);
+        LOG(warn) << "could not execlp: " << strerror(errno);
+        exit(-1);
+    } else if (proxy_pid < 0) {
+        assert_s(false,"failed to fork");
+    }
+
+    //back in parent, wait for proxy to start
+    cerr << "waiting for proxy to start\n";
+    sleep(3);
+}
+
+
+
+
 static void
 testTrace(const TestConfig &tc, int argc, char ** argv)
 {
@@ -4166,10 +4206,8 @@ testTrace(const TestConfig &tc, int argc, char ** argv)
 
 	//trace encrypt_db createsfile indexfile queriesfile insertsfile outputfile
 
-	EDBProxy * cl;
+	EDBProxy * cl = NULL;
 
-	cl = new EDBProxy(tc.host, tc.user, tc.pass, tc.db, tc.port);
-	cl->setMasterKey(masterKey);
 
 	if (argc < 2) {
 		cerr << "usage: test trace encrypt_queries/eval\n";
@@ -4182,6 +4220,10 @@ testTrace(const TestConfig &tc, int argc, char ** argv)
 			        " noWorkers \n";
 			return;
 		}
+
+		cl = new EDBProxy(tc.host, tc.user, tc.pass, tc.db, tc.port);
+		cl->setMasterKey(masterKey);
+
 
 		string queriestotranslate = argv[5];
 		string baseoutputfile = argv[6];
@@ -4229,6 +4271,10 @@ testTrace(const TestConfig &tc, int argc, char ** argv)
 			return;
 		}
 
+		cl = new EDBProxy(tc.host, tc.user, tc.pass, tc.db, tc.port);
+		cl->setMasterKey(masterKey);
+
+
 		string queryfile = argv[2];
 		int totalLines = atoi(argv[3]);
 		int noWorkers = atoi(argv[4]);
@@ -4246,36 +4292,43 @@ testTrace(const TestConfig &tc, int argc, char ** argv)
 	}
 
 	if (string(argv[1]) == "latency") {
-	    if (argc < 6) {
-	        cerr << "trace latency createsfile querypatterns queryfile logFreq [optional: enctablesfile] \n";
+	    if (argc < 4) {
+	        cerr << "trace latency queryfile logFreq [optional: enctablesfile] \n";
 	        return;
 	    }
 
+	    string queryfile = argv[2];
+	    int logFreq = atoi(argv[3]);
+	    string filename = "";
 
-            assert_s(system("mysql -u root -pletmein -e 'drop database if exists tpccenc;' ") >= 0, "cannot drop tpccenc with if exists");
-            assert_s(system("mysql -u root -pletmein -e 'create database tpccenc;' ") >= 0, "cannot create tpccenc");
-            cerr << "load dump \n";
+	    if (argc == 5) {
+	        filename = argv[4];
+	    }
+
+	    //LOAD DUMP
+	    assert_s(system("mysql -u root -pletmein -e 'drop database if exists tpccenc;' ") >= 0, "cannot drop tpccenc with if exists");
+	    assert_s(system("mysql -u root -pletmein -e 'create database tpccenc;' ") >= 0, "cannot create tpccenc");
+	    cerr << "load dump \n";
 	    assert_s(system("mysql -u root -pletmein tpccenc < ../eval/dumps/up_dump_enc_w1") >=0, "cannot load dump");
 
-	    string createsfile = argv[2];
-	    string querypatterns = argv[3];
-	    string queryfile = argv[4];
-	    int logFreq = atoi(argv[5]);
-	    string filename = "";
-	    if (argc == 7) {
-	        filename = argv[6];
-	    }
-
-	    dotrain(cl, createsfile, querypatterns, "0");
-
+	    //START PROXY
+	    setenv("EDBDIR", tc.edbdir.c_str(), 1);
+	    string tpccdir = tc.edbdir + "/../eval/tpcc/";
 	    if (filename != "") {
-	        cerr << "load enc tables \n";
-	        cl->loadEncTables(filename);
+	        setenv("LOAD_ENC_TABLES", filename.c_str(), 1);
 	    }
+	    setenv("TRAIN_QUERY", ("train 1 " + tpccdir +"sqlTableCreates " + tpccdir + "querypatterns_bench 0").c_str(), 1);
+	    uint proxy_port = 5333;
+	    int res = system("killall mysql-proxy;");
+	    cerr << "killing proxy .. " << res << "\n";
+	    sleep(2);
+	    startProxy(tc, proxy_port);
 
-	    Connect * conn = new Connect(tc.host, tc.user, tc.pass, tc.db, tc.port);
+
+	    Connect * conn = new Connect(tc.host, tc.user, tc.pass, "tpccenc", proxy_port);
+
 	    Stats * stats = new Stats();
-	    runQueriesFromFile(cl, queryfile, 1, 1, conn, "", false, true, stats, logFreq);
+	    runQueriesFromFile(NULL, queryfile, 1, 0, conn, "", false, false, stats, logFreq);
 
 	    cerr << "latency " << stats->mspassed/stats->total_queries << "\n";
 
@@ -4375,38 +4428,6 @@ execlp((path+"loadData.sh").c_str(),
 LOG(warn) << "could not execlp bench: " << strerror(errno);
 
  */
-
-static void
-startProxy(const TestConfig & tc, uint port) {
-    pid_t proxy_pid = fork();
-    if (proxy_pid == 0) {
-        LOG(test) << "starting proxy, pid " << getpid();
-
-        stringstream script_path, address;
-        script_path << "--proxy-lua-script=" << tc.edbdir << "/../mysqlproxy/wrapper.lua";
-        address << "--proxy-address=localhost:" << port;
-
-        cerr << "starting on port " << port << "\n";
-
-        execlp("mysql-proxy",
-                "mysql-proxy", "--plugins=proxy",
-                "--max-open-files=1024",
-                script_path.str().c_str(),
-                address.str().c_str(),
-                "--proxy-backend-addresses=localhost:3306",
-                (char *) 0);
-        LOG(warn) << "could not execlp: " << strerror(errno);
-        exit(-1);
-    } else if (proxy_pid < 0) {
-        assert_s(false,"failed to fork");
-    }
-
-    //wait for proxy to start
-    cerr << "waiting for proxy to start\n";
-    sleep(3);
-}
-
-
 
 
 static void

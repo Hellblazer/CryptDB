@@ -96,8 +96,6 @@ connect(lua_State *L)
             string trainQuery = ev;
             LOG(wrapper) << "proxy trains using " << trainQuery;
             if (trainQuery != "") {
-                cerr << "supposed to rewrite\n";
-                cerr << "train query is " << trainQuery << "\n";
                 bool consider;
                 cl->rewriteEncryptQuery(trainQuery, consider);
             } else {
@@ -126,6 +124,11 @@ connect(lua_State *L)
             } else {
                 LOG(wrapper) << "execute queries";
             }
+        }
+
+        ev = getenv("LOAD_ENC_TABLES");
+        if (ev) {
+            cl->loadEncTables(string(ev));
         }
 
         ev = getenv("LOG_PLAIN_QUERIES");
