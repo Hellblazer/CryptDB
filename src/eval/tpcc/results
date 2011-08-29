@@ -25,6 +25,32 @@ workers 11 plain tput '44829.6\n' enc tput '32500.8\n'
 workers 12 plain tput '45076.7\n' enc tput '34672.2\n'
           plain lat '0.266213\n'   enc lat '0.346099\n'
 
+workers 1 plain tput '12161.2\n' enc tput '8797.32\n'
+          plain lat '0.0822285\n'   enc lat '0.113671\n'
+workers 2 plain tput '22436.2\n' enc tput '16864.9\n'
+          plain lat '0.0891416\n'   enc lat '0.118589\n'
+workers 3 plain tput '31325.1\n' enc tput '19151.2\n'
+          plain lat '0.0957699\n'   enc lat '0.156648\n'
+workers 4 plain tput '38240.3\n' enc tput '27113.2\n'
+          plain lat '0.104602\n'   enc lat '0.14753\n'
+workers 5 plain tput '41378.1\n' enc tput '30339.6\n'
+          plain lat '0.120837\n'   enc lat '0.164801\n'
+workers 6 plain tput '43169.3\n' enc tput '33050.9\n'
+          plain lat '0.138988\n'   enc lat '0.181538\n'
+workers 7 plain tput '43775.9\n' enc tput '33596.1\n'
+          plain lat '0.159905\n'   enc lat '0.208358\n'
+workers 8 plain tput '43847.2\n' enc tput '33272.8\n'
+          plain lat '0.182452\n'   enc lat '0.240436\n'
+workers 9 plain tput '44120.9\n' enc tput '31569.9\n'
+          plain lat '0.203985\n'   enc lat '0.285082\n'
+workers 10 plain tput '44673.2\n' enc tput '35128.1\n'
+          plain lat '0.223848\n'   enc lat '0.284673\n'
+workers 11 plain tput '44746.3\n' enc tput '35008.2\n'
+          plain lat '0.24583\n'   enc lat '0.314212\n'
+workers 12 plain tput '44664\n' enc tput '34029.9\n'
+          plain lat '0.268673\n'   enc lat '0.352631\n'
+
+
 
 
 
