@@ -14,6 +14,7 @@
 #include "SWPSearch.h"
 #include "BasicCrypto.h"
 
+
 //returns the highest security level lower than sl that allows equality
 SECLEVEL highestEq(SECLEVEL sl);
 
@@ -39,6 +40,7 @@ class CryptoManager {
     string crypt(AES_KEY * mkey, string data, fieldType ft,
                  string fullfieldname, SECLEVEL fromlevel, SECLEVEL tolevel, bool & isBin,
                  uint64_t salt = 0);
+
 
     static AES_KEY * getKey(const string & key);
 
@@ -136,6 +138,8 @@ class CryptoManager {
     static string decrypt_OPE(const string &ciphertext, OPE * ope);
 
     uint64_t encrypt_OPE(uint32_t plaintext, string uniqueFieldName);
+    uint64_t
+    encrypt_OPE_enctables(uint32_t val, string uniqueFieldName);
 
     /*
      * SEARCH
@@ -179,11 +183,15 @@ class CryptoManager {
 
     //ENCRYPTION TABLES
 
+    /*
     //will create encryption tables and will use them
     //noOPE encryptions and noHOM encryptions
     void createEncryptionTables(int noOPE, int noHOM,
                                 list<string>  fieldsWithOPE);
     void replenishEncryptionTables();
+     */
+
+    void loadEncTables(string filename);
 
     //TODO:
     //batchEncrypt
@@ -199,8 +207,9 @@ class CryptoManager {
     //encryption tables
     bool useEncTables;
     int noOPE, noHOM;
-    map<string, map<int, uint64_t> > OPEEncTable;
-    map<uint64_t, list<string> > HOMEncTable;
+    map<string, map<uint32_t, uint64_t> *> OPEEncTable;
+    //todo: one HOM enc should not be reused
+    map<uint64_t, string > HOMEncTable;
 
     bool VERBOSE;
 

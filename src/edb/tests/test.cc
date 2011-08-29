@@ -2413,7 +2413,7 @@ suffix(int no)
 
    }
  */
-
+/*
 static void
 encryptionTablesTest(const TestConfig &tc, int ac, char **av)
 {
@@ -2450,7 +2450,7 @@ encryptionTablesTest(const TestConfig &tc, int ac, char **av)
 	if (!cl->execute("DROP TABLE try;").ok) return;
 	cl->exit();
 }
-
+*/
 static void
 testParseAccess(const TestConfig &tc, int ac, char **av)
 {
@@ -4042,7 +4042,7 @@ workerJob(EDBProxy * cl, int index, const TestConfig & tc, int logFreq) {
 
 static void runExp(EDBProxy * cl, int noWorkers, const TestConfig & tc, int logFreq) {
 
-        assert_s(system("rm -f pieces/result;") >= 0, "problem removing pieces/result");
+        assert_s(system("rm -f pieces/*") >= 0, "problem removing pieces/result");
         assert_s(system("touch pieces/result;") >= 0, "problem creating pieces/result");
 
 	resultFile = "pieces/exp_result";
@@ -4239,17 +4239,33 @@ testTrace(const TestConfig &tc, int argc, char ** argv)
 	}
 
 	if (string(argv[1]) == "latency") {
-	    if (argc != 6) {
-	        cerr << "trace latency createsfile querypatterns queryfile logFreq \n";
+	    if (argc < 6) {
+	        cerr << "trace latency createsfile querypatterns queryfile logFreq [optional: enctablesfile] \n";
 	        return;
 	    }
+
+
+            assert_s(system("mysql -u root -pletmein -e 'drop database if exists tpccenc;' ") >= 0, "cannot drop tpccenc with if exists");
+            assert_s(system("mysql -u root -pletmein -e 'create database tpccenc;' ") >= 0, "cannot create tpccenc");
+            cerr << "load dump \n";
+	    assert_s(system("mysql -u root -pletmein tpccenc < ../eval/dumps/up_dump_enc_w1") >=0, "cannot load dump");
 
 	    string createsfile = argv[2];
 	    string querypatterns = argv[3];
 	    string queryfile = argv[4];
 	    int logFreq = atoi(argv[5]);
+	    string filename = "";
+	    if (argc == 7) {
+	        filename = argv[6];
+	    }
 
 	    dotrain(cl, createsfile, querypatterns, "0");
+
+	    if (filename != "") {
+	        cerr << "load enc tables \n";
+	        cl->loadEncTables(filename);
+	    }
+
 	    Connect * conn = new Connect(tc.host, tc.user, tc.pass, tc.db, tc.port);
 	    Stats * stats = new Stats();
 	    runQueriesFromFile(cl, queryfile, 1, 1, conn, "", false, stats, logFreq);
@@ -4265,6 +4281,80 @@ testTrace(const TestConfig &tc, int argc, char ** argv)
 
 	return;
 }
+
+static void
+generateEncTables(const TestConfig & tc, int argc, char ** argv) {
+
+    if (argc!=2) {
+        cerr << "usage: gen_enc_tables filename\n";
+        return;
+    }
+
+    cerr << "generating enc tables for tpcc \n";
+
+    string filename = argv[1];
+
+    string masterKey =  BytesFromInt(mkey, AES_KEY_BYTES);
+
+    EDBProxy * cl;
+
+    cl = new EDBProxy(tc.host, tc.user, tc.pass, tc.db, tc.port);
+    cl->setMasterKey(masterKey);
+
+    cl->execute("train 1 ../eval/tpcc/sqlTableCreates ../eva/tpcc/querypatterns_bench 1");
+
+    cerr << "a\n";
+    list<OPESpec> opes = {
+            {"new_order.no_o_id", 3000, 4000},
+            {"oorder.o_id", 3000, 4000},
+            {"order_line.ol_o_id", 3000, 4000},
+            {"stock.s_quantity", 10, 100}
+    };
+    cerr << "b\n";
+    cl->generateEncTables(opes, 0, 0, filename);
+
+    delete cl;
+}
+
+static void
+testEncTables(const TestConfig & tc, int argc, char ** argv) {
+
+    if (argc!=3) {
+        cerr << "usage: test_enc_tables filename queriesfile\n";
+        return;
+    }
+
+    cerr << "loading enc tables for tpcc \n";
+
+    string filename = argv[1];
+    string queryfile = argv[2];
+
+    string masterKey =  BytesFromInt(mkey, AES_KEY_BYTES);
+
+    EDBProxy * cl;
+
+    assert_s(system("mysql -u root -pletmein -e 'drop database if exists tpccenc;' ") >= 0, "cannot drop tpccenc with if exists");
+    assert_s(system("mysql -u root -pletmein -e 'create database tpccenc;' ") >= 0, "cannot create tpccenc");
+
+    cl = new EDBProxy(tc.host, tc.user, tc.pass, "tpccenc", tc.port);
+    cl->setMasterKey(masterKey);
+
+    cl->execute("train 1 ../eval/tpcc/sqlTableCreates ../eval/tpcc/querypatterns_bench 0");
+
+    cerr << "loading enc tables from file " << filename << "..";
+    cl->loadEncTables(filename);
+    cerr << "done! \n";
+
+    cerr << "load dump\n";
+
+    assert_s(system("mysql -u root -pletmein tpccenc < ../eval/dumps/up_dump_enc_w1") >=0, "cannot load dump");
+
+    Connect * conn = new Connect(tc.host, tc.user, tc.pass, "tpccenc", tc.port);
+
+    Stats * stats = new Stats();
+    runQueriesFromFile(cl, queryfile, 1, 1, conn, "", 0, stats, 1000);
+}
+
 
 /*
 cerr << "trying to execute " << (path+"loadData.sh") << " " << "mysqlproxy.properties" << "\n";
@@ -4566,7 +4656,8 @@ static struct {
 		{ "queries",        "queries",                      &TestQueries::run },
 		{ "shell",          "interactive shell",            &interactiveTest },
 		{ "single",         "integration - single principal",&TestSinglePrinc::run },
-		{ "tables",         "",                             &encryptionTablesTest },
+		{ "gen_enc_tables", "",                             &generateEncTables },
+		{ "test_enc_tables","",                             &testEncTables },
 		{ "trace",          "trace eval",             		&testTrace },
 		{ "bench",          "TPC-C benchmark eval",         &testBench },
 		{ "utils",          "",                             &testUtils },

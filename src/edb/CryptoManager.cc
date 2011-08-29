@@ -4,6 +4,8 @@
 
 #include <stdlib.h>
 #include <sstream>
+#include <fstream>
+#include <istream>
 
 #include "CryptoManager.h"
 #include "cryptdb_log.h"
@@ -112,6 +114,9 @@ highestEq(SECLEVEL sl)
         return sl;
     }
 }
+
+
+
 
 static onion
 getOnion(SECLEVEL l1)
@@ -561,9 +566,7 @@ CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft,
             if (fromlevel == SECLEVEL::OPEJOIN) {
 
             	fromlevel = increaseLevel(fromlevel, ft, oOPE);
-                OPE * key = get_key_OPE(getKey(mkey, fullfieldname, fromlevel));
-                val = encrypt_OPE((uint32_t)val, key);
-                delete key;
+            	val = encrypt_OPE_enctables((uint32_t)val, fullfieldname);
                 if (fromlevel == tolevel) {
                     return strFromVal(val);
                 }
@@ -755,6 +758,55 @@ CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft,
     myassert(false, "no other types possible \n");
     return "";
 
+}
+
+void CryptoManager::loadEncTables(string filename) {
+    ifstream file(filename);
+
+    useEncTables = true;
+
+    assert_s(file.is_open(), "could not open file " + filename);
+
+    if (file.eof()) {
+        return;
+    }
+    string fieldname;
+    file >> fieldname;
+    unsigned int count;
+    file >> count;
+    LOG(crypto_v) << "loading for " << fieldname << " count " << count << "\n";
+
+    while (!file.eof() && fieldname != "HOM") {
+        map<unsigned int, uint64_t> * opemap = new map<unsigned int,uint64_t>();
+        for (unsigned int i = 0; i < count; i++) {
+            unsigned int v;
+            file >> v;
+            uint64_t enc;
+            file >> enc;
+            opemap->insert(pair<unsigned int, uint64_t>(v, enc));
+        }
+        OPEEncTable[fieldname] = opemap;
+
+        if (!file.eof()) {
+            file >> fieldname;
+            file >> count;
+            LOG(crypto_v) << "loading for " << fieldname << " count " << count << "\n";
+        }
+    }
+
+    if (!file.eof()) {
+        //hom case
+        for (unsigned int i = 0; i < count; i++) {
+            unsigned v;
+            file >> v;
+            string enc;
+            file >> enc;
+            HOMEncTable[v] = unmarshallBinary(enc);
+
+        }
+    }
+
+    file.close();
 }
 
 
@@ -1050,25 +1102,34 @@ CryptoManager::decrypt_OPE(uint64_t ciphertext, OPE * ope)
     return ope->decrypt(ciphertext);
 }
 
+//works only for level SECLEVEL::OPE
+uint64_t
+CryptoManager::encrypt_OPE_enctables(uint32_t val, string uniqueFieldName) {
+    if (useEncTables) {
+        map<string, map<uint32_t, uint64_t> *>::iterator it = OPEEncTable.find(uniqueFieldName);
+        if (it != OPEEncTable.end()) {
+            auto vit = it->second->find(val);
+            if (vit != it->second->end()) {
+                LOG(crypto_v) << "OPE hit for " << val;
+                return vit->second;
+            }
+        }
+
+        LOG(crypto_v) << "OPE miss for " << uniqueFieldName << " " << val;
+    }
+    OPE * key = get_key_OPE(getKey(masterKey, uniqueFieldName, SECLEVEL::OPE));
+    uint64_t enc = encrypt_OPE(val, key);
+    delete key;
+
+    return enc;
+
+}
+
 uint64_t
 CryptoManager::encrypt_OPE(uint32_t plaintext, string uniqueFieldName)
 {
     //cerr << "ope!\n";
-    if (useEncTables) {
-        map<string, map<int, uint64_t> >::iterator it = OPEEncTable.find(
-            uniqueFieldName);
-        assert_s(it != OPEEncTable.end(),
-                 string(
-                     " there should be entry in OPEEncTables for ") +
-                 uniqueFieldName );
-        map<int, uint64_t>::iterator sit = it->second.find(plaintext);
-        if (sit != it->second.end()) {
-            LOG(crypto_v) << "OPE hit for " << plaintext;
-            return sit->second;
-        }
-        LOG(crypto_v) << "OPE miss for " << plaintext;
-    }
-
+    assert_s(false, "needs to be fixed");
     return encrypt_OPE(plaintext, get_key_OPE(getKey(uniqueFieldName, SECLEVEL::OPE)));
 }
 /*
@@ -1248,20 +1309,16 @@ string
 CryptoManager::encrypt_Paillier(uint64_t val)
 {
     //cerr << "paillier!\n";
-    if (useEncTables) {
+  /*  if (useEncTables) {
         auto it = HOMEncTable.find(val);
         if (it != HOMEncTable.end()) {
-            if (it->second.size() > 0) {
-                string res = it->second.front();
-                it->second.pop_front();
-                LOG(crypto_v) << "HOM hit for " << val;
-                return res;
-            }
+            LOG(crypto_v) << "HOT hit for " << val;
+            return it->second;
         }
 
         LOG(crypto_v) << "HOM miss for " << val;
     }
-
+*/
     ZZ r = RandomLen_ZZ(Paillier_len_bits/2) % Paillier_n;
     //myassert(Paillier_g < Paillier_n2, "error: g > n2!");
     ZZ c = PowerMod(Paillier_g, to_ZZ(
@@ -1299,7 +1356,7 @@ CryptoManager::getPKInfo()
 {
     return StringFromZZ(Paillier_n2);
 }
-
+/*
 void
 CryptoManager::createEncryptionTables(int noOPEarg, int noHOMarg,
                                       list<string>  fieldsWithOPE)
@@ -1373,6 +1430,7 @@ CryptoManager::replenishEncryptionTables()
 {
     assert_s(false, "unimplemented replenish");
 }
+*/
 
 //**************** Public Key Cryptosystem (PKCS)
 // ****************************************/
@@ -1507,18 +1565,14 @@ CryptoManager::~CryptoManager()
     if (masterKey)
         delete masterKey;
 
-    map<string, map<int, uint64_t> >::iterator it = OPEEncTable.begin();
+    map<string, map<unsigned int, uint64_t> *>::iterator it = OPEEncTable.begin();
 
     for (; it != OPEEncTable.end(); it++) {
-        it->second.clear();
+        delete it->second;
     }
 
     OPEEncTable.clear();
 
-    auto homit = HOMEncTable.begin();
-    for (; homit != HOMEncTable.end(); homit++) {
-        homit->second.clear();
-    }
 
     HOMEncTable.clear();
 
