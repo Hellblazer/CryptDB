@@ -3992,7 +3992,7 @@ assignWork(string queryfile, int noWorkers,   int totalLines, int noRepeats, boo
 static void __attribute__((noreturn))
 workerFinish() {
 
-    ofstream resFile(resultFile+StringFromVal(myStats->worker), ios::app);
+    ofstream resFile(resultFile+StringFromVal(myStats->worker));
     assert_s(resFile.is_open(), " could not open file " + resultFile);
 
     resFile << myStats->worker <<  " " << myStats->queries_failed << " " << myStats->total_queries << " "
@@ -4045,7 +4045,7 @@ static void runExp(EDBProxy * cl, int noWorkers, const TestConfig & tc, int logF
         assert_s(system("touch pieces/result;") >= 0, "problem creating pieces/result");
 
 	resultFile = "pieces/exp_result";
-	ifstream resultFileIn;
+
 
 	assert_s(signal(SIGTERM, signal_handler) != SIG_ERR ,"signal could not set the handler");
 
@@ -4105,7 +4105,7 @@ static void runExp(EDBProxy * cl, int noWorkers, const TestConfig & tc, int logF
 
 	for (i = 0; i < noWorkers; i++) {
 
-	    resultFileIn.open(resultFile+StringFromVal(i), ifstream::in);
+	    ifstream resultFileIn(resultFile+StringFromVal(i));
 
 	    if (!resultFileIn.is_open()) {
 	        cerr << "cannot open results file to read\n";
@@ -4126,10 +4126,11 @@ static void runExp(EDBProxy * cl, int noWorkers, const TestConfig & tc, int logF
 	    cerr << "worker " << worker << ": mspased " << mspassed << " totalqueries " <<
 	            total_queries << " queriesfailed " << queries_failed <<
 	            " \n";
+	    resultFileIn.close();
 
 	}
 
-        resultFileIn.close();
+
 
 	querytput = allQueriesOK*1000.0/interval;
 	querylat = interval * noWorkers/allQueries;
