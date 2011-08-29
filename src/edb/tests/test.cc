@@ -3992,7 +3992,7 @@ assignWork(string queryfile, int noWorkers,   int totalLines, int noRepeats, boo
 static void __attribute__((noreturn))
 workerFinish() {
 
-    ofstream resFile(resultFile, ios::app);
+    ofstream resFile(resultFile+StringFromVal(myStats->worker), ios::app);
     assert_s(resFile.is_open(), " could not open file " + resultFile);
 
     resFile << myStats->worker <<  " " << myStats->queries_failed << " " << myStats->total_queries << " "
@@ -4009,10 +4009,8 @@ static void __attribute__((noreturn))
 signal_handler(int signum) {
 
     //sleep for random interval to avoid races at writing out results
-    srand(myStats->worker);
-    int usecs = rand() % 1000000;
-    usleep(usecs);
-    cerr << "worker " << myStats->worker << " received signal \n";
+    string res = "worker " + StringFromVal(myStats->worker) + " received signal \n";
+    cerr << res;
     workerFinish();
 
 }
@@ -4064,6 +4062,7 @@ static void runExp(EDBProxy * cl, int noWorkers, const TestConfig & tc, int logF
 		pid_t pid = fork();
 		if (pid == 0) {
 			workerJob(cl, index, tc, logFreq);
+
 		} else if (pid < 0) {
 			cerr << "failed to fork \n";
 			exit(1);
@@ -4097,12 +4096,7 @@ static void runExp(EDBProxy * cl, int noWorkers, const TestConfig & tc, int logF
 
 	}
 
-	resultFileIn.open(resultFile, ifstream::in);
 
-	if (!resultFileIn.is_open()) {
-		cerr << "cannot open results file to read\n";
-		exit(1);
-	}
 
 	interval = 0.0;
 	querytput = 0.0; querylat = 0.0;
@@ -4110,21 +4104,28 @@ static void runExp(EDBProxy * cl, int noWorkers, const TestConfig & tc, int logF
 
 
 	for (i = 0; i < noWorkers; i++) {
-            int worker, queries_failed, total_queries;
-            double mspassed;
 
-		resultFileIn >> worker;
-		resultFileIn >> queries_failed;
-		resultFileIn >> total_queries;
-		resultFileIn >> mspassed;
+	    resultFileIn.open(resultFile+StringFromVal(i), ifstream::in);
 
-		allQueries += total_queries;
-		allQueriesOK += total_queries - queries_failed;
-		interval = max(interval, mspassed);//there should be just one worker reporting nonzero time
+	    if (!resultFileIn.is_open()) {
+	        cerr << "cannot open results file to read\n";
+	        exit(1);
+	    }
+	    int worker, queries_failed, total_queries;
+	    double mspassed;
 
-		cerr << "worker " << worker << ": mspased " << mspassed << " totalqueries " <<
-				total_queries << " queriesfailed " << queries_failed <<
-				" \n";
+	    resultFileIn >> worker;
+	    resultFileIn >> queries_failed;
+	    resultFileIn >> total_queries;
+	    resultFileIn >> mspassed;
+
+	    allQueries += total_queries;
+	    allQueriesOK += total_queries - queries_failed;
+	    interval = max(interval, mspassed);//there should be just one worker reporting nonzero time
+
+	    cerr << "worker " << worker << ": mspased " << mspassed << " totalqueries " <<
+	            total_queries << " queriesfailed " << queries_failed <<
+	            " \n";
 
 	}
 
@@ -4233,6 +4234,30 @@ testTrace(const TestConfig &tc, int argc, char ** argv)
 
 		return;
 	}
+
+	if (string(argv[1]) == "latency") {
+	    if (argc != 6) {
+	        cerr << "trace latency createsfile querypatterns queryfile logFreq \n";
+	        return;
+	    }
+
+	    string createsfile = argv[2];
+	    string querypatterns = argv[3];
+	    string queryfile = argv[4];
+	    int logFreq = atoi(argv[5]);
+
+	    dotrain(cl, createsfile, querypatterns, "0");
+	    Connect * conn = new Connect(tc.host, tc.user, tc.pass, tc.db, tc.port);
+	    Stats * stats = new Stats();
+	    runQueriesFromFile(cl, queryfile, 1, 1, conn, "", false, stats, logFreq);
+
+	    cerr << "latency " << stats->mspassed/stats->total_queries << "\n";
+
+	    delete cl;
+
+	    return;
+	}
+
 
 
 	return;

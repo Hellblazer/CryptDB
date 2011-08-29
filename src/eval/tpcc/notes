@@ -65,7 +65,7 @@ mysql -u root -pletmein -e "drop database tpccplain"; mysql -u root -pletmein -e
  ../../edb/tests/test -d tpccplain -v all trace eval ../dumps/plain_queries_w1_t10_notran 594805 10  1 1 5000
 ../../edb/tests/test -d tpccenc -v all trace eval ../dumps/up_enc_queries_w1_t10_notran 594805 10 1 1 5000
 
-Note: for noRepeats > 1, make sure to use: SET GLOBAL query_cache_size = 0; SELECT @@query_cache_size;
+Note: for noRepeats > 1, make sure to set query_cache_size to 0 in my.cnf
 
 
 
