@@ -3825,10 +3825,12 @@ static Stats * myStats;
  * - if outputfile != "", log encrypted query here
  * - if !allowExecFailures, we stop on failed queries sent to the DBMS
  * - logFreq indicates frequency of logging
+ * - if execEncQuery is true the query is execute via cryptdb (query encrypted and results decrypted), the previous flags
+ * are not taken into account any more
  */
 static void
 runQueriesFromFile(EDBProxy * cl, string queryFile, bool execQuery, bool encryptQuery, Connect * conn,
-        string outputfile, bool allowExecFailures, Stats * stats, int logFreq)
+        string outputfile, bool allowExecFailures,  bool execEncQuery, Stats * stats, int logFreq)
 throw (CryptDBError)
 {
 	ifstream infile(queryFile);
@@ -3854,7 +3856,7 @@ throw (CryptDBError)
 			continue;
 		}
 
-		if (query.length() > 0) {
+		if (!execEncQuery) {
 		    if (encryptQuery) {
 		        try{
                     bool temp;
@@ -3886,6 +3888,11 @@ throw (CryptDBError)
 		            }
 		        }
 		    }
+		} else {
+		    ResType r = cl->execute(query);
+		    assert_s(r.ok, "query failed");
+		    //cerr << "results returned " << r.rows.size() << "\n";
+		    stats->total_queries++;
 		}
 	}
 	stats->mspassed = t.lap_ms();
@@ -4031,7 +4038,7 @@ workerJob(EDBProxy * cl, int index, const TestConfig & tc, int logFreq) {
 
 	Connect * conn = new Connect(tc.host, tc.user, tc.pass, tc.db, tc.port);
 
-	runQueriesFromFile(cl, workload, true, false, conn, "", true, myStats, logFreq);
+	runQueriesFromFile(cl, workload, true, false, conn, "", true, false, myStats, logFreq);
 
 	cerr << "Done on " << workload << "\n";
 	myStats->mspassed = t.lap_ms();
@@ -4193,7 +4200,7 @@ testTrace(const TestConfig &tc, int argc, char ** argv)
 		    pid_t pid = fork();
 		    if (pid == 0) {
 		        Stats * st = new Stats();
-		        runQueriesFromFile(cl, work, false, true, NULL, outputfile, false, st, 100000);
+		        runQueriesFromFile(cl, work, false, true, NULL, outputfile, false, false, st, 100000);
 
 		        cerr << "worker " << i << "finished\n";
 		        exit(1);
@@ -4268,7 +4275,7 @@ testTrace(const TestConfig &tc, int argc, char ** argv)
 
 	    Connect * conn = new Connect(tc.host, tc.user, tc.pass, tc.db, tc.port);
 	    Stats * stats = new Stats();
-	    runQueriesFromFile(cl, queryfile, 1, 1, conn, "", false, stats, logFreq);
+	    runQueriesFromFile(cl, queryfile, 1, 1, conn, "", false, true, stats, logFreq);
 
 	    cerr << "latency " << stats->mspassed/stats->total_queries << "\n";
 
@@ -4352,7 +4359,7 @@ testEncTables(const TestConfig & tc, int argc, char ** argv) {
     Connect * conn = new Connect(tc.host, tc.user, tc.pass, "tpccenc", tc.port);
 
     Stats * stats = new Stats();
-    runQueriesFromFile(cl, queryfile, 1, 1, conn, "", 0, stats, 1000);
+    runQueriesFromFile(cl, queryfile, 1, 1, conn, "", 0, false, stats, 1000);
 }
 
 

@@ -1113,6 +1113,7 @@ CryptoManager::encrypt_OPE_enctables(uint32_t val, string uniqueFieldName) {
                 LOG(crypto_v) << "OPE hit for " << val;
                 return vit->second;
             }
+            cerr << "OPE miss for " << uniqueFieldName << " " << val << "\n";
         }
 
         LOG(crypto_v) << "OPE miss for " << uniqueFieldName << " " << val;
