@@ -1,3 +1,57 @@
+Going to disk as well, 8 cores:
+
+workers 1 plain tput '12408\n' enc tput '9057.14\n'
+          plain lat '0.0805931\n'   enc lat '0.11041\n'
+workers 2 plain tput '22480.6\n' enc tput '17127.6\n'
+          plain lat '0.0889658\n'   enc lat '0.116771\n'
+workers 3 plain tput '31380.3\n' enc tput '18491.9\n'
+          plain lat '0.0956015\n'   enc lat '0.162234\n'
+workers 4 plain tput '38093.7\n' enc tput '28304.6\n'
+          plain lat '0.105004\n'   enc lat '0.14132\n'
+workers 5 plain tput '41089.3\n' enc tput '31164.7\n'
+          plain lat '0.121686\n'   enc lat '0.160438\n'
+workers 6 plain tput '42975.4\n' enc tput '33466.6\n'
+          plain lat '0.139615\n'   enc lat '0.179283\n'
+workers 7 plain tput '43583.6\n' enc tput '33936.6\n'
+          plain lat '0.160611\n'   enc lat '0.206267\n'
+workers 8 plain tput '43839.1\n' enc tput '33733.6\n'
+          plain lat '0.182485\n'   enc lat '0.237152\n'
+workers 9 plain tput '44053.6\n' enc tput '34714.9\n'
+          plain lat '0.204296\n'   enc lat '0.259254\n'
+workers 10 plain tput '44336.1\n' enc tput '27536.7\n'
+          plain lat '0.22555\n'   enc lat '0.363151\n'
+workers 11 plain tput '44829.6\n' enc tput '32500.8\n'
+          plain lat '0.245374\n'   enc lat '0.338453\n'
+workers 12 plain tput '45076.7\n' enc tput '34672.2\n'
+          plain lat '0.266213\n'   enc lat '0.346099\n'
+
+
+
+
+All in shared memory:
+
+
+workers 1 plain tput '12536.9\n' enc tput '9439.54\n'
+          plain lat '0.0797643\n'   enc lat '0.105937\n'
+workers 2 plain tput '22741.3\n' enc tput '17400.6\n'
+          plain lat '0.0879459\n'   enc lat '0.114938\n'
+workers 4 plain tput '38727.7\n' enc tput '30227.6\n'
+          plain lat '0.103285\n'   enc lat '0.13233\n'
+workers 6 plain tput '43653.8\n' enc tput '35415.7\n'
+          plain lat '0.137445\n'   enc lat '0.169416\n'
+workers 8 plain tput '44658.7\n' enc tput '35955.7\n'
+          plain lat '0.179136\n'   enc lat '0.222496\n'
+workers 9 plain tput '45127.7\n' enc tput '36304.7\n'
+          plain lat '0.199434\n'   enc lat '0.247902\n'
+workers 10 plain tput '45534.6\n' enc tput '36175.8\n'
+          plain lat '0.219613\n'   enc lat '0.276428\n'
+workers 12 plain tput '45936.6\n' enc tput '36390.8\n'
+          plain lat '0.26123\n'   enc lat '0.329754\n'
+
+
+
+going to disk as well:
+
 One core:
 
 workers 1 plain tput '10421.7\n' enc tput '8098.72\n'
