@@ -41,6 +41,8 @@ class CryptoManager {
                  string fullfieldname, SECLEVEL fromlevel, SECLEVEL tolevel, bool & isBin,
                  uint64_t salt = 0);
 
+    //generates a randomness pool for Paillier
+    void generateRandomPool(unsigned int randomPoolSize, string file);
 
     static AES_KEY * getKey(const string & key);
 

@@ -1603,7 +1603,10 @@ expandWildCard(list<string> & words, QueryMeta & qm, map<string,
 
 }
 
-void EDBProxy::generateEncTables(list<OPESpec> & opes, unsigned int minHOM, unsigned int maxHOM, string outputfile) {
+void
+EDBProxy::generateEncTables(list<OPESpec> & opes,
+		unsigned int minHOM, unsigned int maxHOM,
+		unsigned int randomPoolSize, string outputfile) {
 
     ofstream file(outputfile);
 
@@ -1637,8 +1640,10 @@ void EDBProxy::generateEncTables(list<OPESpec> & opes, unsigned int minHOM, unsi
         file << marshallBinary(enc) << "\n";
     }
 
-
     file.close();
+
+    cm->generateRandomPool(randomPoolSize, outputfile);
+
 }
 
 void EDBProxy::loadEncTables(string filename) {

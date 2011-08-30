@@ -4381,7 +4381,7 @@ generateEncTables(const TestConfig & tc, int argc, char ** argv) {
             {"stock.s_quantity", 10, 100}
     };
     cerr << "b\n";
-    cl->generateEncTables(opes, 0, 10000, filename);
+    cl->generateEncTables(opes, 0, 10000, 40000, filename);
 
     delete cl;
 }
