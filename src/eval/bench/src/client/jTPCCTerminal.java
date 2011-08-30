@@ -575,9 +575,11 @@ public class jTPCCTerminal implements Runnable {
       delivUpdateDeliveryDate.setInt(4, w_id);
       result = delivUpdateDeliveryDate.executeUpdate();
 
-      if (result == 0)
-        throw new RuntimeException("OL_O_ID=" + no_o_id + " OL_D_ID=" + d_id
-                            + " OL_W_ID=" + w_id + " not found!");
+      if (result == 0) {
+    	// TODO: Re-enable this! It shouldnt happen with correct initial data
+//        throw new RuntimeException("OL_O_ID=" + no_o_id + " OL_D_ID=" + d_id
+//                            + " OL_W_ID=" + w_id + " not found!");
+      }
 
       if (delivSumOrderAmount == null) {
         delivSumOrderAmount = conn
