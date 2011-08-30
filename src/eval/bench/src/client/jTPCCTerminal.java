@@ -524,7 +524,7 @@ public class jTPCCTerminal implements Runnable {
         // auditing would be required.
         throw new RuntimeException("new order w_id=" + w_id + " d_id="
             + d_id + " no_o_id=" + no_o_id
-            + " delete failed (not running with SERIALIZABLE isolation?)");
+            + " delete failed result=" + result + " expected 1 (maybe not running with SERIALIZABLE isolation?)");
       }
 
       if (delivGetCustId == null) {
