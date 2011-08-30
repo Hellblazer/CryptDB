@@ -4362,17 +4362,17 @@ generateEncTables(const TestConfig & tc, int argc, char ** argv) {
     cl = new EDBProxy(tc.host, tc.user, tc.pass, tc.db, tc.port);
     cl->setMasterKey(masterKey);
 
-    cl->execute("train 1 ../eval/tpcc/sqlTableCreates ../eva/tpcc/querypatterns_bench 1");
+    cl->execute("train 1 ../eval/tpcc/sqlTableCreates ../eval/tpcc/querypatterns_bench 0");
 
     cerr << "a\n";
     list<OPESpec> opes = {
             {"new_order.no_o_id", 3000, 4000},
             {"oorder.o_id", 3000, 4000},
-            {"order_line.ol_o_id", 3000, 4000},
+            {"order_line.ol_o_id", 3000, 10000},
             {"stock.s_quantity", 10, 100}
     };
     cerr << "b\n";
-    cl->generateEncTables(opes, 0, 0, filename);
+    cl->generateEncTables(opes, 0, 10000, filename);
 
     delete cl;
 }
