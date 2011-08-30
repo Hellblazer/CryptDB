@@ -4177,11 +4177,13 @@ startProxy(const TestConfig & tc, string host, uint port) {
         backend << "--proxy-backend-addresses=" << host << ":" << tc.port;
 
         cerr << "starting proxy on port " << port << "\n";
-        cerr << "mysql-proxy" << "--plugins=proxy" <<
+        cerr << "\n";
+	cerr << "mysql-proxy" << "--plugins=proxy" <<
                 "--max-open-files=1024" <<
                 script_path.str().c_str() <<
                 address.str().c_str() <<
-                backend.str().c_str();
+	  backend.str().c_str() << "\n";
+	cerr << "\n";
         execlp("mysql-proxy",
                 "mysql-proxy", "--plugins=proxy",
                 "--max-open-files=1024",
@@ -4297,24 +4299,26 @@ testTrace(const TestConfig &tc, int argc, char ** argv)
 	}
 
 	if (string(argv[1]) == "latency") {
-	    if (argc < 4) {
-	        cerr << "trace latency queryfile logFreq [optional: enctablesfile] \n";
+	    if (argc < 5) {
+	        cerr << "trace latency queryfile logFreq serverhost [optional: enctablesfile] \n";
 	        return;
 	    }
 
 	    string queryfile = argv[2];
 	    int logFreq = atoi(argv[3]);
+	    string serverhost = argv[4];
 	    string filename = "";
 
-	    if (argc == 5) {
-	        filename = argv[4];
+	    if (argc == 6) {
+	        filename = argv[5];
 	    }
 
 	    //LOAD DUMP
+	    if (serverhost == "localhost") {
 	    assert_s(system("mysql -u root -pletmein -e 'drop database if exists tpccenc;' ") >= 0, "cannot drop tpccenc with if exists");
 	    assert_s(system("mysql -u root -pletmein -e 'create database tpccenc;' ") >= 0, "cannot create tpccenc");
 	    cerr << "load dump \n";
-	    assert_s(system("mysql -u root -pletmein tpccenc < ../eval/dumps/up_dump_enc_w1") >=0, "cannot load dump");
+	    assert_s(system("mysql -u root -pletmein tpccenc < ../eval/dumps/up_dump_enc_w1") >=0, "cannot load dump");}
 
 	    //START PROXY
 	    setenv("CRYPTDB_DB", "tpccenc", 1);
@@ -4328,7 +4332,7 @@ testTrace(const TestConfig &tc, int argc, char ** argv)
 	    int res = system("killall mysql-proxy;");
 	    cerr << "killing proxy .. " << res << "\n";
 	    sleep(2);
-	    startProxy(tc, "localhost", proxy_port);
+	    startProxy(tc, serverhost , proxy_port);
 
 
 	    Connect * conn = new Connect(tc.host, tc.user, tc.pass, "tpccenc", proxy_port);
@@ -4510,7 +4514,8 @@ testBench(const TestConfig & tc, int argc, char ** argv)
             setenv("EDBDIR", tc.edbdir.c_str(), 1);
             setenv("CRYPTDB_LOG", cryptdb_logger::getConf().c_str(), 1);
             setenv("CRYPTDB_MODE", "single", 1);
-            string tpccdir = tc.edbdir + "/../eval/tpcc/";
+            setenv("CRYPTDB_DB", "tpccenc", 1);
+	    string tpccdir = tc.edbdir + "/../eval/tpcc/";
             setenv("LOAD_ENC_TABLES", (tpccdir+"enc_tables_w1").c_str(), 1);
 
             //configure proxy
@@ -4535,7 +4540,7 @@ testBench(const TestConfig & tc, int argc, char ** argv)
                    "-Duser=root -Dpassword=letmein " +
                    "-Dnwarehouses="+noWarehouses+" -Dnterminals=" + StringFromVal(noWorkers)+
                    " -DtimeLimit="+timeLimit+" client.jTPCCHeadless";
-           cerr << comm << "\n";
+           cerr << "\n" << comm << "\n\n";
            assert_s(system(comm.c_str())>=0, "problem running benchmark");
         }
     } else {

@@ -314,7 +314,7 @@ public class jTPCCHeadless implements jTPCCDriver {
                   urlParts[urlParts.length-2] = join(hostPortParts, ":");
                   String realDatabase = join(urlParts, "/");
                   
-                  printMessage("real db" + realDatabase);
+                  printMessage("old db " + database + "real db " + realDatabase);
                   
                   conn = DriverManager.getConnection(realDatabase, username, password);
                   conn.setAutoCommit(false);

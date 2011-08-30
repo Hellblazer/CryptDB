@@ -51,8 +51,11 @@ xlua_pushlstring(lua_State *l, const string &s)
 static int
 connect(lua_State *L)
 {
+    
     ANON_REGION(__func__, &perf_cg);
     scoped_lock l(&big_lock);
+
+    
 
     string client = xlua_tolstring(L, 1);
     string server = xlua_tolstring(L, 2);
@@ -61,7 +64,6 @@ connect(lua_State *L)
     string psswd = xlua_tolstring(L, 5);
     string dbname = xlua_tolstring(L, 6);
 
-    cerr << "proxy started for client " << client << " server  " << server << "\n";
     WrapperState *ws = new WrapperState();
 
     if (clients.find(client) != clients.end()) {
