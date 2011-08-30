@@ -4161,7 +4161,7 @@ static void runExp(EDBProxy * cl, int noWorkers, const TestConfig & tc, int logF
 
 
 static void
-startProxy(const TestConfig & tc, uint port) {
+startProxy(const TestConfig & tc, string host, uint port) {
 
     setenv("CRYPTDB_LOG", cryptdb_logger::getConf().c_str(), 1);
     setenv("CRYPTDB_MODE", "single", 1);
@@ -4174,7 +4174,7 @@ startProxy(const TestConfig & tc, uint port) {
         stringstream script_path, address, backend;
         script_path << "--proxy-lua-script=" << tc.edbdir << "/../mysqlproxy/wrapper.lua";
         address << "--proxy-address=localhost:" << port;
-        backend << "--proxy-backend-addresses=" << tc.host << ":" << tc.port;
+        backend << "--proxy-backend-addresses=" << host << ":" << tc.port;
 
         cerr << "starting on port " << port << "\n";
 
@@ -4324,7 +4324,7 @@ testTrace(const TestConfig &tc, int argc, char ** argv)
 	    int res = system("killall mysql-proxy;");
 	    cerr << "killing proxy .. " << res << "\n";
 	    sleep(2);
-	    startProxy(tc, proxy_port);
+	    startProxy(tc, "localhost", proxy_port);
 
 
 	    Connect * conn = new Connect(tc.host, tc.user, tc.pass, "tpccenc", proxy_port);
@@ -4516,10 +4516,10 @@ testBench(const TestConfig & tc, int argc, char ** argv)
             cerr << "killing proxies .. " <<res << "\n";
            //start proxy(ies)
             if (!oneProxyPerWorker) {
-                startProxy(tc, baseport);
+	      startProxy(tc, host, baseport);
             } else {
                 for (unsigned int i = 0 ; i < noWorkers; i++) {
-                    startProxy(tc, baseport + i);
+		  startProxy(tc, host, baseport + i);
                 }
             }
 
