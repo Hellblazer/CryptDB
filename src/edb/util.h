@@ -264,6 +264,13 @@ class Operation {
  private:
 };
 
+typedef struct OPESpec {
+   string fieldname;
+   unsigned int minv;
+   unsigned int maxv;
+} OPESpec;
+
+
 typedef struct QueryMeta {
     map<string, string> tabToAlias, aliasToTab;
     list<string> tables;

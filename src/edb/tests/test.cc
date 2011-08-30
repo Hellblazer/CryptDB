@@ -560,7 +560,7 @@ testTrain(const TestConfig &tc, int ac, char **a) {
     cerr << "Test train passed\n";
 
 }
-//do not change: has been used in creating the dbs for experiments
+//do not change: has been used in creating the DUMPS for experiments
 const uint64_t mkey = 113341234;
 
 static void __attribute__((unused))
@@ -2413,7 +2413,7 @@ suffix(int no)
 
    }
  */
-
+/*
 static void
 encryptionTablesTest(const TestConfig &tc, int ac, char **av)
 {
@@ -2450,7 +2450,7 @@ encryptionTablesTest(const TestConfig &tc, int ac, char **av)
 	if (!cl->execute("DROP TABLE try;").ok) return;
 	cl->exit();
 }
-
+*/
 static void
 testParseAccess(const TestConfig &tc, int ac, char **av)
 {
@@ -3825,10 +3825,12 @@ static Stats * myStats;
  * - if outputfile != "", log encrypted query here
  * - if !allowExecFailures, we stop on failed queries sent to the DBMS
  * - logFreq indicates frequency of logging
+ * - if execEncQuery is true the query is execute via cryptdb (query encrypted and results decrypted), the previous flags
+ * are not taken into account any more
  */
 static void
 runQueriesFromFile(EDBProxy * cl, string queryFile, bool execQuery, bool encryptQuery, Connect * conn,
-        string outputfile, bool allowExecFailures, Stats * stats, int logFreq)
+        string outputfile, bool allowExecFailures,  bool execEncQuery, Stats * stats, int logFreq)
 throw (CryptDBError)
 {
 	ifstream infile(queryFile);
@@ -3854,10 +3856,10 @@ throw (CryptDBError)
 			continue;
 		}
 
-		if (query.length() > 0) {
+		if (!execEncQuery) {
 		    if (encryptQuery) {
 		        try{
-                    bool temp;
+		            bool temp;
 		            queries = cl->rewriteEncryptQuery(query+";", temp);
 		        } catch(...) {
 		            cerr << "query " << query << "failed";
@@ -3886,8 +3888,14 @@ throw (CryptDBError)
 		            }
 		        }
 		    }
+		} else {
+		    ResType r = cl->execute(query);
+		    assert_s(r.ok, "query failed");
+		    //cerr << "results returned " << r.rows.size() << "\n";
+		    stats->total_queries++;
 		}
 	}
+
 	stats->mspassed = t.lap_ms();
 
 	infile.close();
@@ -4031,7 +4039,7 @@ workerJob(EDBProxy * cl, int index, const TestConfig & tc, int logFreq) {
 
 	Connect * conn = new Connect(tc.host, tc.user, tc.pass, tc.db, tc.port);
 
-	runQueriesFromFile(cl, workload, true, false, conn, "", true, myStats, logFreq);
+	runQueriesFromFile(cl, workload, true, false, conn, "", true, false, myStats, logFreq);
 
 	cerr << "Done on " << workload << "\n";
 	myStats->mspassed = t.lap_ms();
@@ -4042,7 +4050,7 @@ workerJob(EDBProxy * cl, int index, const TestConfig & tc, int logFreq) {
 
 static void runExp(EDBProxy * cl, int noWorkers, const TestConfig & tc, int logFreq) {
 
-        assert_s(system("rm -f pieces/result;") >= 0, "problem removing pieces/result");
+        assert_s(system("rm -f pieces/*") >= 0, "problem removing pieces/result");
         assert_s(system("touch pieces/result;") >= 0, "problem creating pieces/result");
 
 	resultFile = "pieces/exp_result";
@@ -4151,6 +4159,45 @@ static void runExp(EDBProxy * cl, int noWorkers, const TestConfig & tc, int logF
 
 }
 
+
+static void
+startProxy(const TestConfig & tc, uint port) {
+
+    setenv("CRYPTDB_LOG", cryptdb_logger::getConf().c_str(), 1);
+    setenv("CRYPTDB_MODE", "single", 1);
+
+
+    pid_t proxy_pid = fork();
+    if (proxy_pid == 0) {
+        LOG(test) << "starting proxy, pid " << getpid();
+
+        stringstream script_path, address;
+        script_path << "--proxy-lua-script=" << tc.edbdir << "/../mysqlproxy/wrapper.lua";
+        address << "--proxy-address=localhost:" << port;
+
+        cerr << "starting on port " << port << "\n";
+
+        execlp("mysql-proxy",
+                "mysql-proxy", "--plugins=proxy",
+                "--max-open-files=1024",
+                script_path.str().c_str(),
+                address.str().c_str(),
+                "--proxy-backend-addresses=localhost:3306",
+                (char *) 0);
+        LOG(warn) << "could not execlp: " << strerror(errno);
+        exit(-1);
+    } else if (proxy_pid < 0) {
+        assert_s(false,"failed to fork");
+    }
+
+    //back in parent, wait for proxy to start
+    cerr << "waiting for proxy to start\n";
+    sleep(3);
+}
+
+
+
+
 static void
 testTrace(const TestConfig &tc, int argc, char ** argv)
 {
@@ -4159,10 +4206,8 @@ testTrace(const TestConfig &tc, int argc, char ** argv)
 
 	//trace encrypt_db createsfile indexfile queriesfile insertsfile outputfile
 
-	EDBProxy * cl;
+	EDBProxy * cl = NULL;
 
-	cl = new EDBProxy(tc.host, tc.user, tc.pass, tc.db, tc.port);
-	cl->setMasterKey(masterKey);
 
 	if (argc < 2) {
 		cerr << "usage: test trace encrypt_queries/eval\n";
@@ -4175,6 +4220,10 @@ testTrace(const TestConfig &tc, int argc, char ** argv)
 			        " noWorkers \n";
 			return;
 		}
+
+		cl = new EDBProxy(tc.host, tc.user, tc.pass, tc.db, tc.port);
+		cl->setMasterKey(masterKey);
+
 
 		string queriestotranslate = argv[5];
 		string baseoutputfile = argv[6];
@@ -4193,7 +4242,7 @@ testTrace(const TestConfig &tc, int argc, char ** argv)
 		    pid_t pid = fork();
 		    if (pid == 0) {
 		        Stats * st = new Stats();
-		        runQueriesFromFile(cl, work, false, true, NULL, outputfile, false, st, 100000);
+		        runQueriesFromFile(cl, work, false, true, NULL, outputfile, false, false, st, 100000);
 
 		        cerr << "worker " << i << "finished\n";
 		        exit(1);
@@ -4222,6 +4271,10 @@ testTrace(const TestConfig &tc, int argc, char ** argv)
 			return;
 		}
 
+		cl = new EDBProxy(tc.host, tc.user, tc.pass, tc.db, tc.port);
+		cl->setMasterKey(masterKey);
+
+
 		string queryfile = argv[2];
 		int totalLines = atoi(argv[3]);
 		int noWorkers = atoi(argv[4]);
@@ -4239,20 +4292,44 @@ testTrace(const TestConfig &tc, int argc, char ** argv)
 	}
 
 	if (string(argv[1]) == "latency") {
-	    if (argc != 6) {
-	        cerr << "trace latency createsfile querypatterns queryfile logFreq \n";
+	    if (argc < 4) {
+	        cerr << "trace latency queryfile logFreq [optional: enctablesfile] \n";
 	        return;
 	    }
 
-	    string createsfile = argv[2];
-	    string querypatterns = argv[3];
-	    string queryfile = argv[4];
-	    int logFreq = atoi(argv[5]);
+	    string queryfile = argv[2];
+	    int logFreq = atoi(argv[3]);
+	    string filename = "";
 
-	    dotrain(cl, createsfile, querypatterns, "0");
-	    Connect * conn = new Connect(tc.host, tc.user, tc.pass, tc.db, tc.port);
+	    if (argc == 5) {
+	        filename = argv[4];
+	    }
+
+	    //LOAD DUMP
+	    assert_s(system("mysql -u root -pletmein -e 'drop database if exists tpccenc;' ") >= 0, "cannot drop tpccenc with if exists");
+	    assert_s(system("mysql -u root -pletmein -e 'create database tpccenc;' ") >= 0, "cannot create tpccenc");
+	    cerr << "load dump \n";
+	    assert_s(system("mysql -u root -pletmein tpccenc < ../eval/dumps/up_dump_enc_w1") >=0, "cannot load dump");
+
+	    //START PROXY
+	    setenv("CRYPTDB_DB", "tpccenc", 1);
+	    setenv("EDBDIR", tc.edbdir.c_str(), 1);
+	    string tpccdir = tc.edbdir + "/../eval/tpcc/";
+	    if (filename != "") {
+	        setenv("LOAD_ENC_TABLES", filename.c_str(), 1);
+	    }
+	    setenv("TRAIN_QUERY", ("train 1 " + tpccdir +"sqlTableCreates " + tpccdir + "querypatterns_bench 0").c_str(), 1);
+	    uint proxy_port = 5333;
+	    int res = system("killall mysql-proxy;");
+	    cerr << "killing proxy .. " << res << "\n";
+	    sleep(2);
+	    startProxy(tc, proxy_port);
+
+
+	    Connect * conn = new Connect(tc.host, tc.user, tc.pass, "tpccenc", proxy_port);
+
 	    Stats * stats = new Stats();
-	    runQueriesFromFile(cl, queryfile, 1, 1, conn, "", false, stats, logFreq);
+	    runQueriesFromFile(NULL, queryfile, 1, 0, conn, "", false, false, stats, logFreq);
 
 	    cerr << "latency " << stats->mspassed/stats->total_queries << "\n";
 
@@ -4266,6 +4343,80 @@ testTrace(const TestConfig &tc, int argc, char ** argv)
 	return;
 }
 
+static void
+generateEncTables(const TestConfig & tc, int argc, char ** argv) {
+
+    if (argc!=2) {
+        cerr << "usage: gen_enc_tables filename\n";
+        return;
+    }
+
+    cerr << "generating enc tables for tpcc \n";
+
+    string filename = argv[1];
+
+    string masterKey =  BytesFromInt(mkey, AES_KEY_BYTES);
+
+    EDBProxy * cl;
+
+    cl = new EDBProxy(tc.host, tc.user, tc.pass, tc.db, tc.port);
+    cl->setMasterKey(masterKey);
+
+    cl->execute("train 1 ../eval/tpcc/sqlTableCreates ../eval/tpcc/querypatterns_bench 0");
+
+    cerr << "a\n";
+    list<OPESpec> opes = {
+            {"new_order.no_o_id", 3000, 4000},
+            {"oorder.o_id", 3000, 4000},
+            {"order_line.ol_o_id", 3000, 10000},
+            {"stock.s_quantity", 10, 100}
+    };
+    cerr << "b\n";
+    cl->generateEncTables(opes, 0, 10000, filename);
+
+    delete cl;
+}
+
+static void
+testEncTables(const TestConfig & tc, int argc, char ** argv) {
+
+    if (argc!=3) {
+        cerr << "usage: test_enc_tables filename queriesfile\n";
+        return;
+    }
+
+    cerr << "loading enc tables for tpcc \n";
+
+    string filename = argv[1];
+    string queryfile = argv[2];
+
+    string masterKey =  BytesFromInt(mkey, AES_KEY_BYTES);
+
+    EDBProxy * cl;
+
+    assert_s(system("mysql -u root -pletmein -e 'drop database if exists tpccenc;' ") >= 0, "cannot drop tpccenc with if exists");
+    assert_s(system("mysql -u root -pletmein -e 'create database tpccenc;' ") >= 0, "cannot create tpccenc");
+
+    cl = new EDBProxy(tc.host, tc.user, tc.pass, "tpccenc", tc.port);
+    cl->setMasterKey(masterKey);
+
+    cl->execute("train 1 ../eval/tpcc/sqlTableCreates ../eval/tpcc/querypatterns_bench 0");
+
+    cerr << "loading enc tables from file " << filename << "..";
+    cl->loadEncTables(filename);
+    cerr << "done! \n";
+
+    cerr << "load dump\n";
+
+    assert_s(system("mysql -u root -pletmein tpccenc < ../eval/dumps/up_dump_enc_w1") >=0, "cannot load dump");
+
+    Connect * conn = new Connect(tc.host, tc.user, tc.pass, "tpccenc", tc.port);
+
+    Stats * stats = new Stats();
+    runQueriesFromFile(cl, queryfile, 1, 1, conn, "", 0, false, stats, 1000);
+}
+
+
 /*
 cerr << "trying to execute " << (path+"loadData.sh") << " " << "mysqlproxy.properties" << "\n";
 execlp((path+"loadData.sh").c_str(),
@@ -4278,38 +4429,6 @@ execlp((path+"loadData.sh").c_str(),
 LOG(warn) << "could not execlp bench: " << strerror(errno);
 
  */
-
-static void
-startProxy(const TestConfig & tc, uint port) {
-    pid_t proxy_pid = fork();
-    if (proxy_pid == 0) {
-        LOG(test) << "starting proxy, pid " << getpid();
-
-        stringstream script_path, address;
-        script_path << "--proxy-lua-script=" << tc.edbdir << "/../mysqlproxy/wrapper.lua";
-        address << "--proxy-address=localhost:" << port;
-
-        cerr << "starting on port " << port << "\n";
-
-        execlp("mysql-proxy",
-                "mysql-proxy", "--plugins=proxy",
-                "--max-open-files=1024",
-                script_path.str().c_str(),
-                address.str().c_str(),
-                "--proxy-backend-addresses=localhost:3306",
-                (char *) 0);
-        LOG(warn) << "could not execlp: " << strerror(errno);
-        exit(-1);
-    } else if (proxy_pid < 0) {
-        assert_s(false,"failed to fork");
-    }
-
-    //wait for proxy to start
-    cerr << "waiting for proxy to start\n";
-    sleep(3);
-}
-
-
 
 
 static void
@@ -4566,7 +4685,8 @@ static struct {
 		{ "queries",        "queries",                      &TestQueries::run },
 		{ "shell",          "interactive shell",            &interactiveTest },
 		{ "single",         "integration - single principal",&TestSinglePrinc::run },
-		{ "tables",         "",                             &encryptionTablesTest },
+		{ "gen_enc_tables", "",                             &generateEncTables },
+		{ "test_enc_tables","",                             &testEncTables },
 		{ "trace",          "trace eval",             		&testTrace },
 		{ "bench",          "TPC-C benchmark eval",         &testBench },
 		{ "utils",          "",                             &testUtils },
