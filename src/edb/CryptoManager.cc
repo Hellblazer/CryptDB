@@ -125,6 +125,16 @@ CryptoManager::CryptoManager(const string &masterKeyArg)
                                        Paillier_q2),
                               Paillier_qinv, Paillier_2q, Paillier_q),
                Paillier_q);
+
+    /*
+     * Pre-generate a bunch of r^n mod n^2 values..
+     */
+    enum { randcache_size = 0 };
+    for (int i = 0; i < randcache_size; i++) {
+        ZZ r = RandomLen_ZZ(Paillier_len_bits/2) % Paillier_n;
+        ZZ rn = PowerMod(Paillier_g, Paillier_n*r, Paillier_n2);
+        HOMRandCache.push_back(rn);
+    }
 }
 
 //this function should in fact be provided by the programmer
@@ -1370,24 +1380,28 @@ CryptoManager::decrypt_DET_wrapper(const string &ctext, AES_KEY * key)
 string
 CryptoManager::encrypt_Paillier(uint64_t val)
 {
-    //cerr << "paillier!\n";
     if (useEncTables) {
         auto it = HOMEncTable.find(val);
         if (it != HOMEncTable.end()) {
             LOG(crypto_v) << "HOM hit for " << val;
-            //cerr << "HOM hit for " << val;
             return it->second;
         }
 
         LOG(crypto_v) << "HOM miss for " << val;
     }
 
-    ZZ r = RandomLen_ZZ(Paillier_len_bits/2) % Paillier_n;
-    //myassert(Paillier_g < Paillier_n2, "error: g > n2!");
-    ZZ c = PowerMod(Paillier_g, to_ZZ((unsigned int)val) + Paillier_n*r, Paillier_n2);
+    auto it = HOMRandCache.begin();
+    if (it != HOMRandCache.end()) {
+        ZZ rn = *it;
+        HOMRandCache.pop_front();
 
-    //cerr << "Paillier encryption is " << c << "\n";
-    return StringFromZZ(c);
+        ZZ c = (PowerMod(Paillier_g, to_ZZ((uint) val), Paillier_n2) * rn) % Paillier_n2;
+        return StringFromZZ(c);
+    } else {
+        ZZ r = RandomLen_ZZ(Paillier_len_bits/2) % Paillier_n;
+        ZZ c = PowerMod(Paillier_g, to_ZZ((uint) val) + Paillier_n*r, Paillier_n2);
+        return StringFromZZ(c);
+    }
 }
 
 int

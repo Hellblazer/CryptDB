@@ -217,6 +217,7 @@ class CryptoManager {
     map<string, map<uint32_t, uint64_t> *> OPEEncTable;
     //todo: one HOM enc should not be reused
     map<uint64_t, string > HOMEncTable;
+    list<ZZ> HOMRandCache;
 
     bool VERBOSE;
 
