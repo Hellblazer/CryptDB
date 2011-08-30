@@ -4375,8 +4375,8 @@ generateEncTables(const TestConfig & tc, int argc, char ** argv) {
 
     cerr << "a\n";
     list<OPESpec> opes = {
-            {"new_order.no_o_id", 3000, 4000},
-            {"oorder.o_id", 3000, 4000},
+            {"new_order.no_o_id", 3000, 11000},
+            {"oorder.o_id", 3000, 11000},
             {"order_line.ol_o_id", 3000, 10000},
             {"stock.s_quantity", 10, 100}
     };
