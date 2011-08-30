@@ -126,15 +126,27 @@ CryptoManager::CryptoManager(const string &masterKeyArg)
                               Paillier_qinv, Paillier_2q, Paillier_q),
                Paillier_q);
 
-    /*
-     * Pre-generate a bunch of r^n mod n^2 values..
-     */
-    enum { randcache_size = 0 };
-    for (int i = 0; i < randcache_size; i++) {
-        ZZ r = RandomLen_ZZ(Paillier_len_bits/2) % Paillier_n;
-        ZZ rn = PowerMod(Paillier_g, Paillier_n*r, Paillier_n2);
-        HOMRandCache.push_back(rn);
-    }
+
+}
+
+void CryptoManager::generateRandomPool(unsigned int randomPoolSize, string filename) {
+	ofstream file(filename, ios::app);
+
+	/*
+	 * Pre-generate a bunch of r^n mod n^2 values..
+	 */
+
+	file << "randomPool" << " " << StringFromVal(randomPoolSize) << "\n";
+
+	HOMRandCache.clear();
+	for (unsigned int i = 0; i < randomPoolSize; i++) {
+		ZZ r = RandomLen_ZZ(Paillier_len_bits/2) % Paillier_n;
+		ZZ rn = PowerMod(Paillier_g, Paillier_n*r, Paillier_n2);
+
+		file << rn << "\n";
+	}
+
+	file.close();
 }
 
 //this function should in fact be provided by the programmer
@@ -876,6 +888,19 @@ void CryptoManager::loadEncTables(string filename) {
         }
     }
 
+    if (!file.eof()) {
+    	file >> fieldname;
+    	file >> count;
+    	 cerr << "loading for " << fieldname << " count " << count << "\n";
+
+    	for (unsigned int i = 0; i < count; i++) {
+    		ZZ val;
+    		file >> val;
+    		HOMRandCache.push_back(val);
+    	}
+
+    }
+
     file.close();
 }
 
@@ -1398,6 +1423,7 @@ CryptoManager::encrypt_Paillier(uint64_t val)
         ZZ c = (PowerMod(Paillier_g, to_ZZ((uint) val), Paillier_n2) * rn) % Paillier_n2;
         return StringFromZZ(c);
     } else {
+    	LOG(crypto_v) << "EMPTY RAND CACHE";
         ZZ r = RandomLen_ZZ(Paillier_len_bits/2) % Paillier_n;
         ZZ c = PowerMod(Paillier_g, to_ZZ((uint) val) + Paillier_n*r, Paillier_n2);
         return StringFromZZ(c);

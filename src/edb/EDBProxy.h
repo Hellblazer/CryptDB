@@ -66,7 +66,9 @@ class EDBProxy {
     void createEncryptionTables(int noOPE, int noHOM);
     void replenishEncryptionTables();
     */
-    void generateEncTables(list<OPESpec> & opes, unsigned int minHOM, unsigned int maxHOM, string outputfile);
+    void generateEncTables(list<OPESpec> & opes,
+    		unsigned int minHOM, unsigned int maxHOM,
+    		unsigned int randomPoolSize, string outputfile);
     void loadEncTables(string filename);
     // TRAINING
 
