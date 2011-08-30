@@ -282,6 +282,14 @@ blowfish::blowfish(const string &key)
 {
     ANON_REGION(__func__, &perf_cg);
 
-    // BF_set_key(&k, (int) key.length(), (unsigned char *) key.data());
-    bf_setkey(&k, (void *) key.data(), key.length());
+    static std::map<string, bf_ctx> cache;
+
+    auto i = cache.find(key);
+    if (i != cache.end()) {
+        k = i->second;
+    } else {
+        // BF_set_key(&k, (int) key.length(), (unsigned char *) key.data());
+        bf_setkey(&k, (void *) key.data(), key.length());
+        cache[key] = k;
+    }
 }
