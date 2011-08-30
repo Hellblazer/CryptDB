@@ -1312,7 +1312,7 @@ string
 CryptoManager::encrypt_Paillier(uint64_t val)
 {
     //cerr << "paillier!\n";
-  /*  if (useEncTables) {
+    if (useEncTables) {
         auto it = HOMEncTable.find(val);
         if (it != HOMEncTable.end()) {
             LOG(crypto_v) << "HOT hit for " << val;
@@ -1321,7 +1321,7 @@ CryptoManager::encrypt_Paillier(uint64_t val)
 
         LOG(crypto_v) << "HOM miss for " << val;
     }
-*/
+
     ZZ r = RandomLen_ZZ(Paillier_len_bits/2) % Paillier_n;
     //myassert(Paillier_g < Paillier_n2, "error: g > n2!");
     ZZ c = PowerMod(Paillier_g, to_ZZ(
