@@ -4312,6 +4312,7 @@ testTrace(const TestConfig &tc, int argc, char ** argv)
 	    assert_s(system("mysql -u root -pletmein tpccenc < ../eval/dumps/up_dump_enc_w1") >=0, "cannot load dump");
 
 	    //START PROXY
+	    setenv("CRYPTDB_DB", "tpccenc", 1);
 	    setenv("EDBDIR", tc.edbdir.c_str(), 1);
 	    string tpccdir = tc.edbdir + "/../eval/tpcc/";
 	    if (filename != "") {
@@ -4429,6 +4430,21 @@ LOG(warn) << "could not execlp bench: " << strerror(errno);
 
  */
 
+static void
+loadDB(const TestConfig & tc, string dbname, string dumpname) {
+    string comm = "mysql -u root -pletmein -e 'drop database if exists " + dbname + "; ' ";
+    cerr << comm << "\n";
+    assert_s(system(comm.c_str()) >= 0, "cannot drop db with if exists");
+
+    comm = "mysql -u root -pletmein -e 'create database " + dbname + ";' ";
+    cerr << comm << "\n";
+    assert_s(system(comm.c_str()) >= 0, "cannot create db");
+
+    comm = "mysql -u root -pletmein " + dbname + " < " + tc.edbdir  + "/../eval/dumps/" + dumpname + "; ";
+    cerr << comm << "\n";
+    assert_s(system(comm.c_str()) >= 0, "cannotload dump");
+
+}
 
 static void
 testBench(const TestConfig & tc, int argc, char ** argv)
@@ -4480,6 +4496,7 @@ testBench(const TestConfig & tc, int argc, char ** argv)
     if (encrypted) {
 
         if (is_server) {
+            loadDB(tc, "tpccenc", "up_dump_enc_w1");
 
         }
 
@@ -4487,11 +4504,15 @@ testBench(const TestConfig & tc, int argc, char ** argv)
             setenv("EDBDIR", tc.edbdir.c_str(), 1);
             setenv("CRYPTDB_LOG", cryptdb_logger::getConf().c_str(), 1);
             setenv("CRYPTDB_MODE", "single", 1);
-
             string tpccdir = tc.edbdir + "/../eval/tpcc/";
+            setenv("LOAD_ENC_TABLES", (tpccdir+"enc_tables_w1").c_str(), 1);
+
             //configure proxy
             setenv("TRAIN_QUERY", ("train 1 " + tpccdir +"sqlTableCreates " + tpccdir + "querypatterns_bench 0").c_str(), 1);
 
+            int res = system("killall mysql-proxy;");
+            sleep(2);
+            cerr << "killing proxies .. " <<res << "\n";
            //start proxy(ies)
             if (!oneProxyPerWorker) {
                 startProxy(tc, baseport);
@@ -4504,13 +4525,17 @@ testBench(const TestConfig & tc, int argc, char ** argv)
            assert_s(system((string("java") + " -cp  ../build/classes:../lib/edb-jdbc14-8_0_3_14.jar:../lib/ganymed-ssh2-build250.jar:"
                     "../lib/hsqldb.jar:../lib/mysql-connector-java-5.1.10-bin.jar:../lib/ojdbc14-10.2.jar:../lib/postgresql-8.0.309.jdbc3.jar "
                     "-Ddriver=com.mysql.jdbc.Driver "
-                    "-Dconn=jdbc:mysql://"+host+":5143/tpccenc "
-                    "-Duser=tpccuser -Dpassword=letmein "
+                    "-Dconn=jdbc:mysql://"+host+":"+StringFromVal(baseport)+"/tpccenc "
+                    "-Duser=root -Dpassword=letmein "
                     "-Dnwarehouses="+noWarehouses+" -Dnterminals=" + StringFromVal(noWorkers)+
                     " -DtimeLimit="+timeLimit+" client.jTPCCHeadless").c_str())>=0,
                     "problem running benchmark");
         }
     } else {
+
+        if (is_server) {
+            loadDB(tc, "tpccplain", "sch2_dump_plain_w1");
+        }
         //just start the benchmark
         if (is_client) {
             assert_s(system((string("java") + " -cp  ../build/classes:../lib/edb-jdbc14-8_0_3_14.jar:../lib/ganymed-ssh2-build250.jar:"

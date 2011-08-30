@@ -779,6 +779,7 @@ void CryptoManager::loadEncTables(string filename) {
     LOG(crypto_v) << "loading for " << fieldname << " count " << count << "\n";
 
     while (!file.eof() && fieldname != "HOM") {
+        cerr << "loading for " << fieldname << " count " << count << "\n";
         map<unsigned int, uint64_t> * opemap = new map<unsigned int,uint64_t>();
         for (unsigned int i = 0; i < count; i++) {
             unsigned int v;
@@ -1113,6 +1114,7 @@ CryptoManager::encrypt_OPE_enctables(uint32_t val, string uniqueFieldName) {
             auto vit = it->second->find(val);
             if (vit != it->second->end()) {
                 LOG(crypto_v) << "OPE hit for " << val;
+                cerr << "OPE hit for " << val;
                 return vit->second;
             }
             cerr << "OPE miss for " << uniqueFieldName << " " << val << "\n";
