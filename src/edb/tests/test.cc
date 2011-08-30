@@ -4171,9 +4171,10 @@ startProxy(const TestConfig & tc, uint port) {
     if (proxy_pid == 0) {
         LOG(test) << "starting proxy, pid " << getpid();
 
-        stringstream script_path, address;
+        stringstream script_path, address, backend;
         script_path << "--proxy-lua-script=" << tc.edbdir << "/../mysqlproxy/wrapper.lua";
         address << "--proxy-address=localhost:" << port;
+        backend << "--proxy-backend-addresses=" << tc.host << ":" << tc.port;
 
         cerr << "starting on port " << port << "\n";
 
@@ -4182,7 +4183,7 @@ startProxy(const TestConfig & tc, uint port) {
                 "--max-open-files=1024",
                 script_path.str().c_str(),
                 address.str().c_str(),
-                "--proxy-backend-addresses=localhost:3306",
+                backend.str().c_str(),
                 (char *) 0);
         LOG(warn) << "could not execlp: " << strerror(errno);
         exit(-1);
