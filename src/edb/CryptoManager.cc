@@ -63,8 +63,9 @@ CryptoManager::CryptoManager(const string &masterKeyArg)
 
     //generate g
 
+    Paillier_g = 1;
     do {
-        Paillier_g = RandomLen_ZZ(Paillier_len_bits) % Paillier_n2;
+        Paillier_g++;
     } while (GCD(Paillier_L(PowerMod(Paillier_g,
                                      Paillier_lambda,
                                      Paillier_n2),
