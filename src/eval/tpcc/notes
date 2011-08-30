@@ -15,9 +15,14 @@ give access to remote user: GRANT ALL ON foo.* TO bar@'202.54.10.20' IDENTIFIED 
 open TCP port using iptables: /sbin/iptables -A INPUT -i eth0 -p tcp --destination-port 5143 -j ACCEPT
 - make sure logging is turned off
 - make sure enc tables used properly
+
 2. How to run the benchmark aganst cryptdb:
 
 usage: bench role[client, server, both] encrypted?[1,0] [specify for client: serverhost noWorkers noWarehouses timeLimit(mins)] 
+
+
+../../../edb/tests/test -v all bench client 1 localhost castle.csail.mit.edu 1 1 1 1 
+
 
 on different machines:
 ../../../edb/tests/test bench client 1  castle.csail.mit.edu 1 1 1  

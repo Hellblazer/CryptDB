@@ -891,6 +891,7 @@ void CryptoManager::loadEncTables(string filename) {
     if (!file.eof()) {
     	file >> fieldname;
     	file >> count;
+    	 cerr << "loading for " << fieldname << " count " << count << "\n";
 
     	for (unsigned int i = 0; i < count; i++) {
     		ZZ val;
