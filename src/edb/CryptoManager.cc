@@ -17,7 +17,7 @@
 // field, keep the keys in the right format already and just load them rather
 // than recompute
 
-static ZZ
+static ZZ __attribute__((unused))
 Paillier_L(const ZZ & u, const ZZ & n)
 {
     return (u - 1) / n;
@@ -50,34 +50,60 @@ CryptoManager::CryptoManager(const string &masterKeyArg)
     useEncTables = false;
 
     //setup Paillier encryption
-    Paillier_p = RandomPrime_ZZ(Paillier_len_bits/4);
-    Paillier_q = RandomPrime_ZZ(Paillier_len_bits/4);
+    Paillier_fast = true;
+
+    if (Paillier_fast) {
+        uint abits = Paillier_len_bits/8;   /* ~256 bits for a 2048-bit n^2 */
+        do {
+            Paillier_a = RandomPrime_ZZ(abits);
+
+            ZZ cp = RandomLen_ZZ(Paillier_len_bits/4-abits);
+            ZZ cq = RandomLen_ZZ(Paillier_len_bits/4-abits);
+
+            Paillier_p = Paillier_a * cp + 1;
+            while (!ProbPrime(Paillier_p))
+                Paillier_p += Paillier_a;
+
+            Paillier_q = Paillier_a * cq + 1;
+            while (!ProbPrime(Paillier_q))
+                Paillier_q += Paillier_a;
+
+            Paillier_n = Paillier_p * Paillier_q;
+        } while ((NumBits(Paillier_n) != Paillier_len_bits / 2) ||
+                 Paillier_p == Paillier_q);
+    } else {
+        Paillier_p = RandomPrime_ZZ(Paillier_len_bits/4);
+        Paillier_q = RandomPrime_ZZ(Paillier_len_bits/4);
+        Paillier_n = Paillier_p * Paillier_q;
+    }
 
     if (Paillier_p > Paillier_q)
         swap(Paillier_p, Paillier_q);
 
     Paillier_p2 = Paillier_p * Paillier_p;
     Paillier_q2 = Paillier_q * Paillier_q;
-
-    Paillier_n = Paillier_p * Paillier_q;
     Paillier_n2 = Paillier_n * Paillier_n;
 
     Paillier_lambda = LCM(Paillier_p-1, Paillier_q-1);
 
-    //generate g
+    if (Paillier_fast) {
+        Paillier_g = PowerMod(to_ZZ(2),
+                              Paillier_lambda / Paillier_a,
+                              Paillier_n);
+    } else {
+        Paillier_g = 1;
+        do {
+            Paillier_g++;
+        } while (GCD(Paillier_L(PowerMod(Paillier_g,
+                                         Paillier_lambda,
+                                         Paillier_n2),
+                                Paillier_n), Paillier_n) != to_ZZ(1));
 
-    Paillier_g = 1;
-    do {
-        Paillier_g++;
-    } while (GCD(Paillier_L(PowerMod(Paillier_g,
-                                     Paillier_lambda,
-                                     Paillier_n2),
-                            Paillier_n), Paillier_n) != to_ZZ(1));
-
-    Paillier_dec_denom =
-        InvMod(Paillier_L(PowerMod(Paillier_g, Paillier_lambda, Paillier_n2),
-                          Paillier_n),
-               Paillier_n);
+        Paillier_dec_denom =
+            InvMod(Paillier_L(PowerMod(Paillier_g, Paillier_lambda, Paillier_n2),
+                              Paillier_n),
+                   Paillier_n);
+    }
 
     Paillier_2n = power(to_ZZ(2), NumBits(Paillier_n));
     Paillier_2p = power(to_ZZ(2), NumBits(Paillier_p));
@@ -89,13 +115,13 @@ CryptoManager::CryptoManager(const string &masterKeyArg)
 
     Paillier_hp =
         InvMod(Paillier_Lfast(PowerMod(Paillier_g % Paillier_p2,
-                                       Paillier_p-1,
+                                       Paillier_fast ? Paillier_a : (Paillier_p-1),
                                        Paillier_p2),
                               Paillier_pinv, Paillier_2p, Paillier_p),
                Paillier_p);
     Paillier_hq =
         InvMod(Paillier_Lfast(PowerMod(Paillier_g % Paillier_q2,
-                                       Paillier_q-1,
+                                       Paillier_fast ? Paillier_a : (Paillier_q-1),
                                        Paillier_q2),
                               Paillier_qinv, Paillier_2q, Paillier_q),
                Paillier_q);
@@ -1370,11 +1396,11 @@ CryptoManager::decrypt_Paillier(const string &ciphertext)
     ZZ c = ZZFromString(ciphertext);
 
     ZZ mp =
-        (Paillier_Lfast(PowerMod(c % Paillier_p2, Paillier_p-1, Paillier_p2),
+        (Paillier_Lfast(PowerMod(c % Paillier_p2, Paillier_fast ? Paillier_a : (Paillier_p-1), Paillier_p2),
                         Paillier_pinv, Paillier_2p, Paillier_p)
          * Paillier_hp) % Paillier_p;
     ZZ mq =
-        (Paillier_Lfast(PowerMod(c % Paillier_q2, Paillier_q-1, Paillier_q2),
+        (Paillier_Lfast(PowerMod(c % Paillier_q2, Paillier_fast ? Paillier_a : (Paillier_q-1), Paillier_q2),
                         Paillier_qinv, Paillier_2q, Paillier_q)
          * Paillier_hq) % Paillier_q;
 

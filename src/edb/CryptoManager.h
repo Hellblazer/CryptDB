@@ -208,6 +208,8 @@ class CryptoManager {
     ZZ Paillier_ninv, Paillier_pinv, Paillier_qinv;
     ZZ Paillier_hp, Paillier_hq;
     ZZ Paillier_dec_denom;     //L(g^lambda mod n^2)
+    ZZ Paillier_a;
+    bool Paillier_fast;
 
     //encryption tables
     bool useEncTables;
