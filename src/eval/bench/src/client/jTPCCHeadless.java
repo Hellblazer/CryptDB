@@ -28,6 +28,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
+
 import static client.jTPCCConfig.*;
 
 public class jTPCCHeadless implements jTPCCDriver {
@@ -123,6 +124,24 @@ public class jTPCCHeadless implements jTPCCDriver {
     System.err.println(str);
   }
 
+  
+  public static String join(String[] s, String delimiter) {
+      
+	  
+	  StringBuffer buffer = new StringBuffer();
+      
+	  for (int i = 0; i < s.length; i++) {
+		  buffer.append(s[i]);
+		  if (i < s.length - 1) {
+			  buffer.append(delimiter);
+		  }
+		
+	  }
+	  
+	  return buffer.toString();
+	  
+  }
+  
   public void createTerminals() {
     fastNewOrderCounter = 0;
 
@@ -283,7 +302,20 @@ public class jTPCCHeadless implements jTPCCDriver {
                   
                   
                   printMessage("Creating database connection for " + terminalName);
-                  conn = DriverManager.getConnection(database, username, password);
+                  
+                  String[] urlParts = database.split("/");
+                  String hostPort = urlParts[urlParts.length-2];
+                  String[] hostPortParts = hostPort.split(":");
+                  int port = Integer.parseInt(hostPortParts[1]);
+                  int i = lowerTerminalId + terminalId;
+                  port += i;
+                  System.out.print("terminal " + i + "uses port " + port);
+                  hostPortParts[1] = Integer.toString(port);
+                  urlParts[urlParts.length-2] = join(hostPortParts, ":");
+                  String realDatabase = join(urlParts, "/");
+                  
+                  
+                  conn = DriverManager.getConnection(realDatabase, username, password);
                   conn.setAutoCommit(false);
                   //CARLO TEMPORAL HACK
                   // TODO: Figure out the build system to make this work

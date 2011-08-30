@@ -271,3 +271,23 @@ workers 10 plain tput '9596.27\n' enc tput '7494.94\n'
           plain lat '1.04207\n'   enc lat '1.33423\n'
 workers 11 plain tput '9677.37\n' enc tput '7445.18\n'
           plain lat '1.13667\n'   enc lat '1.47747\n'
+
+Latency results
+
+8 cores
+
+Without encryption tables: 11.16 ms per query
+
+With encryption tables: 7.48
+
+1 core
+overall
+without enc tables: 10.71 ms
+with enc tables: 7.2 ms
+
+range: 
+without enc tables: 29.1
+with enc tables: 1.4
+
+insert:
+with enc 8.6

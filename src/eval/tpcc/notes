@@ -13,7 +13,6 @@ allow only one core
 enable ip bind address for external access
 give access to remote user: GRANT ALL ON foo.* TO bar@'202.54.10.20' IDENTIFIED BY 'PASSWORD';
 open TCP port using iptables: /sbin/iptables -A INPUT -i eth0 -p tcp --destination-port 5143 -j ACCEPT
-
 - make sure logging is turned off
 
 2. How to run the benchmark aganst cryptdb:
@@ -22,7 +21,7 @@ usage: bench role[client, server, both] encrypted?[1,0] [specify for client: ser
 
 on different machines:
 ../../../edb/tests/test bench client 1  castle.csail.mit.edu 1 1 1  
-sudo killall mysql-proxy; sleep 2; ../../../edb/tests/test bench server 1
+
 on same machine:
 sudo killall mysql-proxy; sleep 2; ../../../edb/tests/test bench both 1 localhost 1 1 1 
 
@@ -72,4 +71,11 @@ Note: for noRepeats > 1, make sure to set query_cache_size to 0 in my.cnf
 Notes:
 - schema for tpcc had decimals mapped to integer; all string and timestamp types were unchanged 
 - queries were not changed, but all negatives were made positives and all decimals were truncated -- this does not affect query performance (according to Evan and I also agree) because decisions are made only on integers
+
+=== Latency experiments =====
+
+-> make sure logging is off
+from edb:
+trace latency createsfile querypatterns queryfile logFreq [optional: enctablesfile
+./tests/test -d tpccenc trace latency ../eval/tpcc/plain_queries_w1_t10 5000
 

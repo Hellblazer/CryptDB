@@ -128,6 +128,7 @@ connect(lua_State *L)
 
         ev = getenv("LOAD_ENC_TABLES");
         if (ev) {
+            cerr << "loading enc tables\n";
             cl->loadEncTables(string(ev));
         }
 
