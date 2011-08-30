@@ -98,6 +98,7 @@ testOnions () {
 */
 
 }
+
 static void
 testOPE()
 {
@@ -702,6 +703,23 @@ latency_search(unsigned int notests) {
 }
 
 static void
+testPaillier()
+{
+    for (uint i = 0; i < 1000; i++) {
+        CryptoManager cm(randomBytes(128));
+        uint32_t v0 = randomValue() & 0xffffffff;
+        uint32_t v1 = randomValue() & 0xffffffff;
+        string c0 = cm.encrypt_Paillier(v0);
+        string c1 = cm.encrypt_Paillier(v1);
+        assert(v0 == (uint32_t) cm.decrypt_Paillier(c0));
+        assert(v1 == (uint32_t) cm.decrypt_Paillier(c1));
+
+        string cs = homomorphicAdd(c0, c1, cm.getPKInfo());
+        assert(v0 + v1 == (uint32_t) cm.decrypt_Paillier(cs));
+    }
+}
+
+static void
 latency_Paillier(unsigned int notests, unsigned int notestsagg) {
 
     int data = 4389839;
@@ -1002,6 +1020,9 @@ TestCrypto::run(const TestConfig &tc, int argc, char ** argv)
     testPBKDF2();
     cerr << "Testing ECJoin " << endl;
     testECJoin();
+    cerr << "Testing Paillier... " << endl;
+    testPaillier();
+
     testEncTables();
     cerr << "Done! All crypto tests passed." << endl;
 }
