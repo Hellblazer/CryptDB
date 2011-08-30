@@ -4451,8 +4451,8 @@ static void
 testBench(const TestConfig & tc, int argc, char ** argv)
 {
 
-    if((argc != 3) && (argc != 8)) {
-        cerr << "usage: bench role[client, server, both] encrypted?[1,0] [specify for client: serverhost noWorkers oneProxyPerWorker[1/0] noWarehouses timeLimit(mins)]    \n";
+    if((argc != 3) && (argc != 9)) {
+        cerr << "usage: bench role[client, server, both] encrypted?[1,0] [specify for client: proxyhost serverhost noWorkers oneProxyPerWorker[1/0] noWarehouses timeLimit(mins)]    \n";
         exit(-1);
     }
 
@@ -4481,17 +4481,18 @@ testBench(const TestConfig & tc, int argc, char ** argv)
             }
     }
 
-    string host = "localhost",  timeLimit="", noWarehouses="";
+    string serverhost = "localhost", proxyhost = "localhost", timeLimit="", noWarehouses="";
     bool oneProxyPerWorker = 0;
     unsigned int noWorkers = 0;
 
     if (is_client) {
-        host = argv[3];
-        noWorkers = atoi(argv[4]);
-        oneProxyPerWorker = atoi(argv[5]);
+        proxyhost = argv[3];
+        serverhost = argv[4];
+        noWorkers = atoi(argv[5]);
+        oneProxyPerWorker = atoi(argv[6]);
         assert_s(oneProxyPerWorker == 0 || oneProxyPerWorker == 1, "oneProxyPerWorker should be 0 or 1");
-        noWarehouses = argv[6];
-        timeLimit = argv[7];
+        noWarehouses = argv[7];
+        timeLimit = argv[8];
     }
 
     if (encrypted) {
@@ -4514,19 +4515,19 @@ testBench(const TestConfig & tc, int argc, char ** argv)
             int res = system("killall mysql-proxy;");
             sleep(2);
             cerr << "killing proxies .. " <<res << "\n";
-           //start proxy(ies)
+            //start proxy(ies)
             if (!oneProxyPerWorker) {
-	      startProxy(tc, host, baseport);
+                startProxy(tc, serverhost, baseport);
             } else {
                 for (unsigned int i = 0 ; i < noWorkers; i++) {
-		  startProxy(tc, host, baseport + i);
+                    startProxy(tc, serverhost, baseport + i);
                 }
             }
 
            assert_s(system((string("java") + " -cp  ../build/classes:../lib/edb-jdbc14-8_0_3_14.jar:../lib/ganymed-ssh2-build250.jar:"
                     "../lib/hsqldb.jar:../lib/mysql-connector-java-5.1.10-bin.jar:../lib/ojdbc14-10.2.jar:../lib/postgresql-8.0.309.jdbc3.jar "
                     "-Ddriver=com.mysql.jdbc.Driver "
-                    "-Dconn=jdbc:mysql://"+host+":"+StringFromVal(baseport)+"/tpccenc "
+                    "-Dconn=jdbc:mysql://"+proxyhost+":"+StringFromVal(baseport)+"/tpccenc "
                     "-Duser=root -Dpassword=letmein "
                     "-Dnwarehouses="+noWarehouses+" -Dnterminals=" + StringFromVal(noWorkers)+
                     " -DtimeLimit="+timeLimit+" client.jTPCCHeadless").c_str())>=0,
@@ -4542,7 +4543,7 @@ testBench(const TestConfig & tc, int argc, char ** argv)
             assert_s(system((string("java") + " -cp  ../build/classes:../lib/edb-jdbc14-8_0_3_14.jar:../lib/ganymed-ssh2-build250.jar:"
                     "../lib/hsqldb.jar:../lib/mysql-connector-java-5.1.10-bin.jar:../lib/ojdbc14-10.2.jar:../lib/postgresql-8.0.309.jdbc3.jar "
                     "-Ddriver=com.mysql.jdbc.Driver "
-                    "-Dconn=jdbc:mysql://"+host+":3306/tpccplain "
+                    "-Dconn=jdbc:mysql://"+serverhost+":3306/tpccplain "
                     "-Duser=tpccuser -Dpassword=letmein "
                     "-Dnwarehouses="+noWarehouses+" -Dnterminals=" + StringFromVal(noWorkers) +
                     " -DtimeLimit="+timeLimit+" client.jTPCCHeadless").c_str())>=0,
