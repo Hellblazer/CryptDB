@@ -1345,7 +1345,7 @@ CryptoManager::encrypt_Paillier(uint64_t val)
 int
 CryptoManager::decrypt_Paillier(const string &ciphertext)
 {
-    ZZ c = ZZFromBytes((uint8_t*) ciphertext.data(), Paillier_len_bytes);
+    ZZ c = ZZFromString(ciphertext);
 
     ZZ m = MulMod(Paillier_Lfast(PowerMod(c % Paillier_n2,
                                           Paillier_lambda,
