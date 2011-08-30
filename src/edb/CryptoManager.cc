@@ -24,6 +24,12 @@ Paillier_L(const ZZ & u, const ZZ & n)
 }
 
 static ZZ
+Paillier_Lfast(const ZZ & u, const ZZ &ninv, const ZZ &two_n, const ZZ &n)
+{
+    return (((u - 1) * ninv) % two_n) % n;
+}
+
+static ZZ
 LCM(const ZZ & a, const ZZ & b)
 {
     return (a * b) / GCD(a, b);
@@ -44,31 +50,33 @@ CryptoManager::CryptoManager(const string &masterKeyArg)
     useEncTables = false;
 
     //setup Paillier encryption
-    ZZ p, q;
+    Paillier_p = RandomPrime_ZZ(Paillier_len_bits/4);
+    Paillier_q = RandomPrime_ZZ(Paillier_len_bits/4);
 
-    p = RandomPrime_ZZ(Paillier_len_bits/4);
-    q = RandomPrime_ZZ(Paillier_len_bits/4);
+    if (Paillier_p > Paillier_q)
+        swap(Paillier_p, Paillier_q);
 
-    Paillier_n = p * q;
+    Paillier_n = Paillier_p * Paillier_q;
     Paillier_n2 = Paillier_n * Paillier_n;
 
-    Paillier_lambda = LCM(p-1, q-1);
+    Paillier_lambda = LCM(Paillier_p-1, Paillier_q-1);
 
     //generate g
 
     do {
-
         Paillier_g = RandomLen_ZZ(Paillier_len_bits) % Paillier_n2;
-
-    } while (GCD(Paillier_L(PowerMod(Paillier_g, Paillier_lambda,
+    } while (GCD(Paillier_L(PowerMod(Paillier_g,
+                                     Paillier_lambda,
                                      Paillier_n2),
                             Paillier_n), Paillier_n) != to_ZZ(1));
 
     Paillier_dec_denom =
-        InvMod(Paillier_L(PowerMod(Paillier_g,  Paillier_lambda, Paillier_n2),
+        InvMod(Paillier_L(PowerMod(Paillier_g, Paillier_lambda, Paillier_n2),
                           Paillier_n),
                Paillier_n);
 
+    Paillier_2n = power(to_ZZ(2), NumBits(Paillier_n));
+    Paillier_ninv = InvMod(Paillier_n, Paillier_2n);
 }
 
 //this function should in fact be provided by the programmer
@@ -1328,8 +1336,7 @@ CryptoManager::encrypt_Paillier(uint64_t val)
 
     ZZ r = RandomLen_ZZ(Paillier_len_bits/2) % Paillier_n;
     //myassert(Paillier_g < Paillier_n2, "error: g > n2!");
-    ZZ c = PowerMod(Paillier_g, to_ZZ(
-                        (unsigned int)val) + Paillier_n*r, Paillier_n2);
+    ZZ c = PowerMod(Paillier_g, to_ZZ((unsigned int)val) + Paillier_n*r, Paillier_n2);
 
     //cerr << "Paillier encryption is " << c << "\n";
     return StringFromZZ(c);
@@ -1338,23 +1345,14 @@ CryptoManager::encrypt_Paillier(uint64_t val)
 int
 CryptoManager::decrypt_Paillier(const string &ciphertext)
 {
-    //cerr << "paillier!\n";
-    //cerr << "to Paillier decrypt "; myPrint(ciphertext, Paillier_len_bytes);
-    // cerr << "\n";
-    //cerr << "N2 is " << Paillier_n2 << "\n";
     ZZ c = ZZFromBytes((uint8_t*) ciphertext.data(), Paillier_len_bytes);
-    //cerr << "zz to decrypt " << c << "\n";
-    //myassert(c < Paillier_n2, "error: c > Paillier_n2");
-    ZZ m =
-        MulMod(  Paillier_L(PowerMod(c, Paillier_lambda,
-                                     Paillier_n2), Paillier_n),
-                 Paillier_dec_denom,
-                 Paillier_n);
 
-    //cerr << "Paillier N2 is " << Paillier_n2 << "\n";
-    //cerr << "Paillier N2 in bytes is "; myPrint(BytesFromZZ(Paillier_n2,
-    // Paillier_len_bytes), Paillier_len_bytes); cerr << "\n";
-    //cerr << "result is " << m << "\n";
+    ZZ m = MulMod(Paillier_Lfast(PowerMod(c % Paillier_n2,
+                                          Paillier_lambda,
+                                          Paillier_n2),
+                                 Paillier_ninv, Paillier_2n, Paillier_n),
+                  Paillier_dec_denom, Paillier_n);
+
     return to_int(m);
 }
 

@@ -202,6 +202,9 @@ class CryptoManager {
 
     //Paillier cryptosystem
     ZZ Paillier_lambda, Paillier_n, Paillier_g, Paillier_n2;
+    ZZ Paillier_p, Paillier_q;
+    ZZ Paillier_2n;
+    ZZ Paillier_ninv;
     ZZ Paillier_dec_denom;     //L(g^lambda mod n^2)
 
     //encryption tables
