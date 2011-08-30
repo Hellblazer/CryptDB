@@ -309,11 +309,12 @@ public class jTPCCHeadless implements jTPCCDriver {
                   int port = Integer.parseInt(hostPortParts[1]);
                   int i = lowerTerminalId + terminalId;
                   port += i;
-                  System.out.print("terminal " + i + "uses port " + port);
+                  printMessage("terminal " + i + "uses port " + port + "\n");
                   hostPortParts[1] = Integer.toString(port);
                   urlParts[urlParts.length-2] = join(hostPortParts, ":");
                   String realDatabase = join(urlParts, "/");
                   
+                  printMessage("real db" + realDatabase);
                   
                   conn = DriverManager.getConnection(realDatabase, username, password);
                   conn.setAutoCommit(false);
