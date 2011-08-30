@@ -4176,8 +4176,12 @@ startProxy(const TestConfig & tc, string host, uint port) {
         address << "--proxy-address=localhost:" << port;
         backend << "--proxy-backend-addresses=" << host << ":" << tc.port;
 
-        cerr << "starting on port " << port << "\n";
-
+        cerr << "starting proxy on port " << port << "\n";
+        cerr << "mysql-proxy" << "--plugins=proxy" <<
+                "--max-open-files=1024" <<
+                script_path.str().c_str() <<
+                address.str().c_str() <<
+                backend.str().c_str();
         execlp("mysql-proxy",
                 "mysql-proxy", "--plugins=proxy",
                 "--max-open-files=1024",
@@ -4524,14 +4528,15 @@ testBench(const TestConfig & tc, int argc, char ** argv)
                 }
             }
 
-           assert_s(system((string("java") + " -cp  ../build/classes:../lib/edb-jdbc14-8_0_3_14.jar:../lib/ganymed-ssh2-build250.jar:"
-                    "../lib/hsqldb.jar:../lib/mysql-connector-java-5.1.10-bin.jar:../lib/ojdbc14-10.2.jar:../lib/postgresql-8.0.309.jdbc3.jar "
-                    "-Ddriver=com.mysql.jdbc.Driver "
-                    "-Dconn=jdbc:mysql://"+proxyhost+":"+StringFromVal(baseport)+"/tpccenc "
-                    "-Duser=root -Dpassword=letmein "
-                    "-Dnwarehouses="+noWarehouses+" -Dnterminals=" + StringFromVal(noWorkers)+
-                    " -DtimeLimit="+timeLimit+" client.jTPCCHeadless").c_str())>=0,
-                    "problem running benchmark");
+           string comm = string("java") + " -cp  ../build/classes:../lib/edb-jdbc14-8_0_3_14.jar:../lib/ganymed-ssh2-build250.jar:" +
+                   "../lib/hsqldb.jar:../lib/mysql-connector-java-5.1.10-bin.jar:../lib/ojdbc14-10.2.jar:../lib/postgresql-8.0.309.jdbc3.jar " +
+                   "-Ddriver=com.mysql.jdbc.Driver " +
+                   "-Dconn=jdbc:mysql://"+proxyhost+":"+StringFromVal(baseport)+"/tpccenc " +
+                   "-Duser=root -Dpassword=letmein " +
+                   "-Dnwarehouses="+noWarehouses+" -Dnterminals=" + StringFromVal(noWorkers)+
+                   " -DtimeLimit="+timeLimit+" client.jTPCCHeadless";
+           cerr << comm << "\n";
+           assert_s(system(comm.c_str())>=0, "problem running benchmark");
         }
     } else {
 
