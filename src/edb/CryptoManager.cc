@@ -56,6 +56,9 @@ CryptoManager::CryptoManager(const string &masterKeyArg)
     if (Paillier_p > Paillier_q)
         swap(Paillier_p, Paillier_q);
 
+    Paillier_p2 = Paillier_p * Paillier_p;
+    Paillier_q2 = Paillier_q * Paillier_q;
+
     Paillier_n = Paillier_p * Paillier_q;
     Paillier_n2 = Paillier_n * Paillier_n;
 
@@ -77,7 +80,25 @@ CryptoManager::CryptoManager(const string &masterKeyArg)
                Paillier_n);
 
     Paillier_2n = power(to_ZZ(2), NumBits(Paillier_n));
+    Paillier_2p = power(to_ZZ(2), NumBits(Paillier_p));
+    Paillier_2q = power(to_ZZ(2), NumBits(Paillier_q));
+
     Paillier_ninv = InvMod(Paillier_n, Paillier_2n);
+    Paillier_pinv = InvMod(Paillier_p, Paillier_2p);
+    Paillier_qinv = InvMod(Paillier_q, Paillier_2q);
+
+    Paillier_hp =
+        InvMod(Paillier_Lfast(PowerMod(Paillier_g % Paillier_p2,
+                                       Paillier_p-1,
+                                       Paillier_p2),
+                              Paillier_pinv, Paillier_2p, Paillier_p),
+               Paillier_p);
+    Paillier_hq =
+        InvMod(Paillier_Lfast(PowerMod(Paillier_g % Paillier_q2,
+                                       Paillier_q-1,
+                                       Paillier_q2),
+                              Paillier_qinv, Paillier_2q, Paillier_q),
+               Paillier_q);
 }
 
 //this function should in fact be provided by the programmer
@@ -1348,11 +1369,19 @@ CryptoManager::decrypt_Paillier(const string &ciphertext)
 {
     ZZ c = ZZFromString(ciphertext);
 
-    ZZ m = MulMod(Paillier_Lfast(PowerMod(c % Paillier_n2,
-                                          Paillier_lambda,
-                                          Paillier_n2),
-                                 Paillier_ninv, Paillier_2n, Paillier_n),
-                  Paillier_dec_denom, Paillier_n);
+    ZZ mp =
+        (Paillier_Lfast(PowerMod(c % Paillier_p2, Paillier_p-1, Paillier_p2),
+                        Paillier_pinv, Paillier_2p, Paillier_p)
+         * Paillier_hp) % Paillier_p;
+    ZZ mq =
+        (Paillier_Lfast(PowerMod(c % Paillier_q2, Paillier_q-1, Paillier_q2),
+                        Paillier_qinv, Paillier_2q, Paillier_q)
+         * Paillier_hq) % Paillier_q;
+
+    ZZ m, pq;
+    pq = 1;
+    CRT(m, pq, mp, Paillier_p);
+    CRT(m, pq, mq, Paillier_q);
 
     return to_int(m);
 }
@@ -1571,17 +1600,8 @@ CryptoManager::~CryptoManager()
     if (masterKey)
         delete masterKey;
 
-    map<string, map<unsigned int, uint64_t> *>::iterator it = OPEEncTable.begin();
-
-    for (; it != OPEEncTable.end(); it++) {
+    for (auto it = OPEEncTable.begin(); it != OPEEncTable.end(); it++)
         delete it->second;
-    }
-
-    OPEEncTable.clear();
-
-
-    HOMEncTable.clear();
-
 }
 
 Binary
