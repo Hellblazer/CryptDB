@@ -61,6 +61,7 @@ connect(lua_State *L)
     string psswd = xlua_tolstring(L, 5);
     string dbname = xlua_tolstring(L, 6);
 
+    cerr << "proxy started for client " << client << " server  " << server << "\n";
     WrapperState *ws = new WrapperState();
 
     if (clients.find(client) != clients.end()) {
@@ -70,6 +71,7 @@ connect(lua_State *L)
     clients[client] = ws;
 
     if (!cl) {
+      cerr << "starting proxy\n";
         cryptdb_logger::setConf(string(getenv("CRYPTDB_LOG")));
 
         LOG(wrapper) << "connect " << client << "; "
