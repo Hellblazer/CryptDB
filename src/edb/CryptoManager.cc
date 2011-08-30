@@ -797,6 +797,7 @@ void CryptoManager::loadEncTables(string filename) {
         }
     }
 
+    cerr << "loading for " << fieldname << " count " << count << "\n";
     if (!file.eof()) {
         //hom case
         for (unsigned int i = 0; i < count; i++) {
@@ -1114,7 +1115,7 @@ CryptoManager::encrypt_OPE_enctables(uint32_t val, string uniqueFieldName) {
             auto vit = it->second->find(val);
             if (vit != it->second->end()) {
                 LOG(crypto_v) << "OPE hit for " << val;
-                cerr << "OPE hit for " << val;
+                //cerr << "OPE hit for " << val;
                 return vit->second;
             }
             cerr << "OPE miss for " << uniqueFieldName << " " << val << "\n";
@@ -1317,7 +1318,8 @@ CryptoManager::encrypt_Paillier(uint64_t val)
     if (useEncTables) {
         auto it = HOMEncTable.find(val);
         if (it != HOMEncTable.end()) {
-            LOG(crypto_v) << "HOT hit for " << val;
+            LOG(crypto_v) << "HOM hit for " << val;
+            //cerr << "HOM hit for " << val;
             return it->second;
         }
 
