@@ -4506,7 +4506,7 @@ testBench(const TestConfig & tc, int argc, char ** argv)
     if (encrypted) {
 
         if (is_server) {
-            loadDB(tc, "tpccenc", "up_dump_enc_w1");
+            loadDB(tc, "tpccenc", "up_dump_enc_w1-innodb");
 
         }
 
@@ -4546,7 +4546,7 @@ testBench(const TestConfig & tc, int argc, char ** argv)
     } else {
 
         if (is_server) {
-            loadDB(tc, "tpccplain", "sch2_dump_plain_w1");
+            loadDB(tc, "tpccplain", "innodb_dump_plain");
         }
         //just start the benchmark
         if (is_client) {
