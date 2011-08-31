@@ -1,7 +1,7 @@
 alter table warehouse add constraint pk_warehouse primary key (w_id);  
 alter table district add constraint pk_district primary key (d_w_id, d_id);
 alter table customer add constraint pk_customer primary key (c_w_id, c_d_id, c_id);
-create index ndx_customer_name on customer (c_w_id, c_d_id, c_last(16), c_first(16));
+create index ndx_customer_name on customer (c_w_id, c_d_id, c_last, c_first);
 alter table oorder add constraint pk_oorder primary key (o_w_id, o_d_id, o_id);
 create unique index ndx_oorder_c_id on oorder (o_w_id, o_d_id, o_c_id, o_id);
 alter table new_order add constraint pk_new_order primary key (no_w_id, no_d_id, no_o_id);
