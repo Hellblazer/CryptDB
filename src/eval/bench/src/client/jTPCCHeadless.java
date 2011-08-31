@@ -316,8 +316,11 @@ public class jTPCCHeadless implements jTPCCDriver {
                   
                   printMessage("old db " + database + "real db " + realDatabase);
                   
-                  conn = DriverManager.getConnection(realDatabase, username, password);
+                  conn = DriverManager.getConnection(database, username, password);
                   conn.setAutoCommit(false);
+                  // TPC-C requires SERIALIZABLE isolation to work correctly.
+                  // By default, MySQL/InnoDB uses something like snapshot isolation. 
+                  conn.setTransactionIsolation(Connection.TRANSACTION_SERIALIZABLE);
                   //CARLO TEMPORAL HACK
                   // TODO: Figure out the build system to make this work
                   //conn = new net.sf.log4jdbc.ConnectionSpy(conn,true,"tpcc");

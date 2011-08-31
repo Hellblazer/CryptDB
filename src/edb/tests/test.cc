@@ -4178,9 +4178,9 @@ startProxy(const TestConfig & tc, string host, uint port) {
 
         cerr << "starting proxy on port " << port << "\n";
         cerr << "\n";
-	cerr << "mysql-proxy" << "--plugins=proxy" <<
-                "--max-open-files=1024" <<
-                script_path.str().c_str() <<
+	cerr << "mysql-proxy" << " --plugins=proxy" <<
+                " --max-open-files=1024 " <<
+                script_path.str().c_str() << " " <<
                 address.str().c_str() <<
 	  backend.str().c_str() << "\n";
 	cerr << "\n";
@@ -4449,15 +4449,62 @@ loadDB(const TestConfig & tc, string dbname, string dumpname) {
     cerr << comm << "\n";
     assert_s(system(comm.c_str()) >= 0, "cannot create db");
 
-    comm = "mysql -u root -pletmein " + dbname + " < " + tc.edbdir  + "/../eval/dumps/" + dumpname + "; ";
-    cerr << comm << "\n";
-    assert_s(system(comm.c_str()) >= 0, "cannotload dump");
-
+    if (dumpname != "") {
+        comm = "mysql -u root -pletmein " + dbname + " < " + tc.edbdir  + "/../eval/dumps/" + dumpname + "; ";
+        cerr << comm << "\n";
+        assert_s(system(comm.c_str()) >= 0, "cannotload dump");
+    }
 }
 
 static void
 testBench(const TestConfig & tc, int argc, char ** argv)
 {
+    if (argc < 2) {
+        cerr << "usage: bench logplain or [client,server,both]";
+        return;
+    }
+
+    if (string(argv[1]) == "logplain") {
+
+        if (argc != 3){
+            cerr << "usage: bench logplain nowarehouses;";
+            return;
+        }
+
+        string numWarehouses = argv[2];
+
+        loadDB(tc, "cryptdbtest", "");
+
+        string comm = "mysql -u root -pletmein cryptdbtest < ../../tpcc/orig_table_creates ;";
+        cerr << comm << "\n";
+        assert_s(system(comm.c_str()) >= 0, "cannot create tables");
+
+        setenv("CRYPTDB_MODE", "single", 1);
+        setenv("DO_CRYPT", "false", 1);
+        //setenv("EXECUTE_QUERIES", "false", 1);
+        setenv("LOG_PLAIN_QUERIES", (string("plain_insert_w")+numWarehouses).c_str(), 1);
+        setenv("CRYPTDB_DB", "cryptdbtest", 1);
+        setenv("EDBDIR", tc.edbdir.c_str(), 1);
+        setenv("CRYPTDB_LOG", cryptdb_logger::getConf().c_str(), 1);
+
+        string tpccdir = tc.edbdir + "/../eval/tpcc/";
+
+        int res = system("killall mysql-proxy;");
+        sleep(2);
+        cerr << "killing proxies .. " <<res << "\n";
+        //start proxy(ies)
+        startProxy(tc, "127.0.0.1", 5133);
+
+        comm = string("java -cp  ../build/classes:../lib/edb-jdbc14-8_0_3_14.jar:../lib/ganymed-ssh2-build250.jar:") +
+                   "../lib/hsqldb.jar:../lib/mysql-connector-java-5.1.10-bin.jar:../lib/ojdbc14-10.2.jar:../lib/postgresql-8.0.309.jdbc3.jar " +
+                   "-Ddriver=com.mysql.jdbc.Driver " +
+                   "-Dconn=jdbc:mysql://localhost:5133/cryptdbtest " +
+                   "-Duser=root -Dpassword=letmein LoadData.LoadData numWarehouses " + numWarehouses;
+        cerr << "\n" << comm << "\n\n";
+        assert_s(system(comm.c_str())>=0, "problem running benchmark");
+
+        return;
+    }
 
     if((argc != 3) && (argc != 9)) {
         cerr << "usage: bench role[client, server, both] encrypted?[1,0] [specify for client: proxyhost serverhost noWorkers oneProxyPerWorker[1/0] noWarehouses timeLimit(mins)]    \n";
@@ -4554,7 +4601,7 @@ testBench(const TestConfig & tc, int argc, char ** argv)
                     "../lib/hsqldb.jar:../lib/mysql-connector-java-5.1.10-bin.jar:../lib/ojdbc14-10.2.jar:../lib/postgresql-8.0.309.jdbc3.jar "
                     "-Ddriver=com.mysql.jdbc.Driver "
                     "-Dconn=jdbc:mysql://"+serverhost+":3306/tpccplain "
-                    "-Duser=tpccuser -Dpassword=letmein "
+                    "-Duser=root -Dpassword=letmein "
                     "-Dnwarehouses="+noWarehouses+" -Dnterminals=" + StringFromVal(noWorkers) +
                     " -DtimeLimit="+timeLimit+" client.jTPCCHeadless").c_str())>=0,
                     "problem running benchmark");
