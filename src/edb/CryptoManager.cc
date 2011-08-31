@@ -1412,7 +1412,7 @@ CryptoManager::encrypt_Paillier(uint64_t val)
             return it->second;
         }
 
-        LOG(crypto_v) << "HOM miss for " << val;
+        cerr << "HOM miss for " << val;
     }
 
     auto it = HOMRandCache.begin();

@@ -175,8 +175,8 @@ public class jTPCCHeadless implements jTPCCDriver {
         try {
           numTerminals = Integer.parseInt(System
               .getProperty("nterminals", defaultNumTerminals));
-          if (numTerminals <= 0 || numTerminals > 10 * numWarehouses)
-            throw new NumberFormatException();
+          //if (numTerminals <= 0 || numTerminals > 10 * numWarehouses)
+	  //throw new NumberFormatException();
         } catch (NumberFormatException e1) {
           errorMessage("Invalid number of terminals!");
           throw new Exception();
@@ -316,7 +316,7 @@ public class jTPCCHeadless implements jTPCCDriver {
                   
                   printMessage("old db " + database + "real db " + realDatabase);
                   
-                  conn = DriverManager.getConnection(database, username, password);
+                  conn = DriverManager.getConnection(realDatabase, username, password);
                   conn.setAutoCommit(false);
                   // TPC-C requires SERIALIZABLE isolation to work correctly.
                   // By default, MySQL/InnoDB uses something like snapshot isolation. 

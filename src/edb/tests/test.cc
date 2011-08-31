@@ -4199,7 +4199,7 @@ startProxy(const TestConfig & tc, string host, uint port) {
 
     //back in parent, wait for proxy to start
     cerr << "waiting for proxy to start\n";
-    sleep(3);
+    sleep(1);
 }
 
 
