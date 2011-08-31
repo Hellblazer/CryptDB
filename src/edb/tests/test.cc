@@ -4315,37 +4315,35 @@ testTrace(const TestConfig &tc, int argc, char ** argv)
 
 	    //LOAD DUMP
 	    if (serverhost == "localhost") {
-	    assert_s(system("mysql -u root -pletmein -e 'drop database if exists tpccenc;' ") >= 0, "cannot drop tpccenc with if exists");
-	    assert_s(system("mysql -u root -pletmein -e 'create database tpccenc;' ") >= 0, "cannot create tpccenc");
-	    cerr << "load dump \n";
-	    assert_s(system("mysql -u root -pletmein tpccenc < ../eval/dumps/up_dump_enc_w1") >=0, "cannot load dump");}
+	        loadDB(tc, "tpccenc", "up_dump_enc_w1");
 
-	    //START PROXY
-	    setenv("CRYPTDB_DB", "tpccenc", 1);
-	    setenv("EDBDIR", tc.edbdir.c_str(), 1);
-	    string tpccdir = tc.edbdir + "/../eval/tpcc/";
-	    if (filename != "") {
-	        setenv("LOAD_ENC_TABLES", filename.c_str(), 1);
+
+	        //START PROXY
+	        setenv("CRYPTDB_DB", "tpccenc", 1);
+	        setenv("EDBDIR", tc.edbdir.c_str(), 1);
+	        string tpccdir = tc.edbdir + "/../eval/tpcc/";
+	        if (filename != "") {
+	            setenv("LOAD_ENC_TABLES", filename.c_str(), 1);
+	        }
+	        setenv("TRAIN_QUERY", ("train 1 " + tpccdir +"sqlTableCreates " + tpccdir + "querypatterns_bench 0").c_str(), 1);
+	        uint proxy_port = 5333;
+	        int res = system("killall mysql-proxy;");
+	        cerr << "killing proxy .. " << res << "\n";
+	        sleep(2);
+	        startProxy(tc, serverhost , proxy_port);
+
+
+	        Connect * conn = new Connect(tc.host, tc.user, tc.pass, "tpccenc", proxy_port);
+
+	        Stats * stats = new Stats();
+	        runQueriesFromFile(NULL, queryfile, 1, 0, conn, "", false, false, stats, logFreq);
+
+	        cerr << "latency " << stats->mspassed/stats->total_queries << "\n";
+
+	        delete cl;
+
+	        return;
 	    }
-	    setenv("TRAIN_QUERY", ("train 1 " + tpccdir +"sqlTableCreates " + tpccdir + "querypatterns_bench 0").c_str(), 1);
-	    uint proxy_port = 5333;
-	    int res = system("killall mysql-proxy;");
-	    cerr << "killing proxy .. " << res << "\n";
-	    sleep(2);
-	    startProxy(tc, serverhost , proxy_port);
-
-
-	    Connect * conn = new Connect(tc.host, tc.user, tc.pass, "tpccenc", proxy_port);
-
-	    Stats * stats = new Stats();
-	    runQueriesFromFile(NULL, queryfile, 1, 0, conn, "", false, false, stats, logFreq);
-
-	    cerr << "latency " << stats->mspassed/stats->total_queries << "\n";
-
-	    delete cl;
-
-	    return;
-	}
 
 
 
