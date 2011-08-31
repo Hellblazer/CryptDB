@@ -1412,22 +1412,25 @@ CryptoManager::encrypt_Paillier(uint64_t val)
             return it->second;
         }
 
-        cerr << "HOM miss for " << val;
-    }
+        LOG(crypto_v) << "HOM miss for " << val;
+    
+    
+	auto it2 = HOMRandCache.begin();
+	if (it2 != HOMRandCache.end()) {
+	  ZZ rn = *it2;
+	  HOMRandCache.pop_front();
 
-    auto it = HOMRandCache.begin();
-    if (it != HOMRandCache.end()) {
-        ZZ rn = *it;
-        HOMRandCache.pop_front();
+	  ZZ c = (PowerMod(Paillier_g, to_ZZ((uint) val), Paillier_n2) * rn) % Paillier_n2;
+	  return StringFromZZ(c);
+	}
 
-        ZZ c = (PowerMod(Paillier_g, to_ZZ((uint) val), Paillier_n2) * rn) % Paillier_n2;
-        return StringFromZZ(c);
-    } else {
-    	LOG(crypto_v) << "EMPTY RAND CACHE";
-        ZZ r = RandomLen_ZZ(Paillier_len_bits/2) % Paillier_n;
-        ZZ c = PowerMod(Paillier_g, to_ZZ((uint) val) + Paillier_n*r, Paillier_n2);
-        return StringFromZZ(c);
+	cerr << "HOM and RAND Pool miss for " << val << "\n";
     }
+	
+    ZZ r = RandomLen_ZZ(Paillier_len_bits/2) % Paillier_n;
+    ZZ c = PowerMod(Paillier_g, to_ZZ((uint) val) + Paillier_n*r, Paillier_n2);
+    return StringFromZZ(c);
+    
 }
 
 int
