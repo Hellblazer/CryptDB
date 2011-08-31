@@ -4475,14 +4475,14 @@ testBench(const TestConfig & tc, int argc, char ** argv)
 
         loadDB(tc, "cryptdbtest", "");
 
-        string comm = "mysql -u root -pletmein cryptdbtest < ../../tpcc/plain_creates ;";
+        string comm = "mysql -u root -pletmein cryptdbtest < ../../tpcc/orig_table_creates ;";
         cerr << comm << "\n";
         assert_s(system(comm.c_str()) >= 0, "cannot create tables");
 
         setenv("CRYPTDB_MODE", "single", 1);
         setenv("DO_CRYPT", "false", 1);
         //setenv("EXECUTE_QUERIES", "false", 1);
-        setenv("LOG_PLAIN_QUERIES", (string("pieces/plain_insert_w")+numWarehouses).c_str(), 1);
+        setenv("LOG_PLAIN_QUERIES", (string("plain_insert_w")+numWarehouses).c_str(), 1);
         setenv("CRYPTDB_DB", "cryptdbtest", 1);
         setenv("EDBDIR", tc.edbdir.c_str(), 1);
         setenv("CRYPTDB_LOG", cryptdb_logger::getConf().c_str(), 1);
