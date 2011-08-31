@@ -4375,13 +4375,13 @@ generateEncTables(const TestConfig & tc, int argc, char ** argv) {
 
     cerr << "a\n";
     list<OPESpec> opes = {
-            {"new_order.no_o_id", 3000, 11000},
-            {"oorder.o_id", 3000, 11000},
-            {"order_line.ol_o_id", 3000, 10000},
-            {"stock.s_quantity", 10, 100}
+            {"new_order.no_o_id", 0, 11000},
+            {"oorder.o_id", 0, 11000},
+            {"order_line.ol_o_id", 0, 10000},
+            {"stock.s_quantity", 0, 100}
     };
     cerr << "b\n";
-    cl->generateEncTables(opes, 0, 10000, 10000, filename);
+    cl->generateEncTables(opes, 0, 10000, 20000, filename);
 
     delete cl;
 }
@@ -4553,7 +4553,7 @@ testBench(const TestConfig & tc, int argc, char ** argv)
     if (encrypted) {
 
         if (is_server) {
-            loadDB(tc, "tpccenc", "dump_enc_w8");
+            loadDB(tc, "tpccenc", "up_dump_enc_w1");
 
         }
 
