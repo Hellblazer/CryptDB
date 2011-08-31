@@ -14,8 +14,7 @@ enable ip bind address for external access
 give access to remote user: GRANT ALL ON foo.* TO bar@'202.54.10.20' IDENTIFIED BY 'PASSWORD';
 open TCP port using iptables: /sbin/iptables -A INPUT -i eth0 -p tcp --destination-port 5143 -j ACCEPT
 - make sure logging is turned off
-- make sure enc tables used properly
-
+- make sure enc tables used 
 2. How to run the benchmark aganst cryptdb:
 
 usage: bench role[client, server, both] encrypted?[1,0] [specify for client: serverhost noWorkers noWarehouses timeLimit(mins)] 
@@ -39,6 +38,10 @@ Note that to run transaction tput via benchmark:
 
 Example for inserts:
 ../../edb/tests/test trace encrypt_queries sqlTableCreates emptyindex querypatterns_bench ../dumps/bench_plain_insert_w1 pieces/bench_enc_insert_w1_ 1199076 200
+
+../../edb/tests/test trace encrypt_queries sqlTableCreates emptyindex querypatterns_bench ../dumps/plain_insert_w8 pieces/enc_insert_w8_ 4093352 400
+
+
 
 /usr/bin/perl -p -i -e "s/INSERT/;\nINSERT/g" bench_plain_insert_w1
 
