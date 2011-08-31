@@ -3960,6 +3960,7 @@ assignWork(string queryfile, int noWorkers,   int totalLines, int noRepeats, boo
 
 			ofstream outfile(workload);
 
+			cerr << "creating worker workload " << workload << "\n";
 			if (!outfile.is_open()) {
 				cerr << "cannot open file " << workload << "\n";
 				infile.close();
@@ -3984,14 +3985,14 @@ assignWork(string queryfile, int noWorkers,   int totalLines, int noRepeats, boo
 		workloads[i] = workload;
 
 		//we need to concatenate the outfile with itself noRepeats
-
-		assert_s(system("touch temp;") >= 0, "problem when creating temp");
-		for (int j = 0; j < noRepeats; j++) {
-		  assert_s(system((string("cat temp ") + workload + " > temp2;").c_str()) >= 0,  "problem when cat");
-		  assert_s(system("mv temp2 temp") >= 0, "problem when moving");
+		if (noRepeats > 1) {
+		    assert_s(system("touch temp;") >= 0, "problem when creating temp");
+		    for (int j = 0; j < noRepeats; j++) {
+		        assert_s(system((string("cat temp ") + workload + " > temp2;").c_str()) >= 0,  "problem when cat");
+		        assert_s(system("mv temp2 temp") >= 0, "problem when moving");
+		    }
+		    assert_s(system(("mv temp " + workload).c_str()) >= 0, "problem when moving");
 		}
-		assert_s(system(("mv temp " + workload).c_str()) >= 0, "problem when moving");
-
 	}
 
 	infile.close();
@@ -4050,7 +4051,7 @@ workerJob(EDBProxy * cl, int index, const TestConfig & tc, int logFreq) {
 
 static void runExp(EDBProxy * cl, int noWorkers, const TestConfig & tc, int logFreq) {
 
-        assert_s(system("rm -f pieces/*") >= 0, "problem removing pieces/result");
+        assert_s(system("rm -f pieces/result") >= 0, "problem removing pieces/result");
         assert_s(system("touch pieces/result;") >= 0, "problem creating pieces/result");
 
 	resultFile = "pieces/exp_result";
