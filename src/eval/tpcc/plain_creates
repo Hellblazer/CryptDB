@@ -66,7 +66,7 @@ create table oorder (
   o_carrier_id integer null,
   o_ol_cnt     decimal(2,0) not null,
   o_all_local  decimal(1,0) not null,
-  o_entry_d    timestamp not null default '2011-01-01 00:00:00',
+  o_entry_d    timestamp not null default '2011-01-01 00:00:00'
 );
 
 create table new_order (
@@ -105,7 +105,7 @@ create table stock (
   s_dist_07    char(24) not null,
   s_dist_08    char(24) not null,
   s_dist_09    char(24) not null,
-  s_dist_10    char(24) not null,
+  s_dist_10    char(24) not null
 );
 
 create table item (
