@@ -108,38 +108,44 @@ function read_query_result_real(inj)
     if inj.id == RES_IGNORE then
         return proxy.PROXY_IGNORE_RESULT
     elseif inj.id == RES_DECRYPT then
-        local query = inj.query:sub(2)
-
-        -- mysqlproxy doesn't return real lua arrays, so re-package them..
         local resultset = inj.resultset
-        local resfields = resultset.fields
-        local fields = {}
-        for i = 1, #resfields do
-            rfi = resfields[i]
-            fields[i] = { type = rfi.type, name = rfi.name }
-        end
 
-        local resrows = resultset.rows
-        local rows = {}
-        if resrows then
-            for row in resrows do
-                table.insert(rows, row)
-            end
-        end
-
-        dfields, drows = CryptDB.decrypt(proxy.connection.client.src.name,
-                                         fields, rows)
-
-        if dfields and drows then
-            proxy.response.type = proxy.MYSQLD_PACKET_OK
-            proxy.response.affected_rows = resultset.affected_rows
-            proxy.response.insert_id = resultset.insert_id
-            if table.maxn(dfields) > 0 then
-                proxy.response.resultset = { fields = dfields, rows = drows }
-            end
-        else
+        if resultset.query_status == proxy.MYSQLD_PACKET_ERR then
             proxy.response.type = proxy.MYSQLD_PACKET_ERR
-            proxy.response.errmsg = "could not decrypt result"
+            proxy.response.errmsg = "no idea how to find real error msg"
+        else
+            local query = inj.query:sub(2)
+
+            -- mysqlproxy doesn't return real lua arrays, so re-package them..
+            local resfields = resultset.fields
+            local fields = {}
+            for i = 1, #resfields do
+                rfi = resfields[i]
+                fields[i] = { type = rfi.type, name = rfi.name }
+            end
+
+            local resrows = resultset.rows
+            local rows = {}
+            if resrows then
+                for row in resrows do
+                    table.insert(rows, row)
+                end
+            end
+
+            dfields, drows = CryptDB.decrypt(proxy.connection.client.src.name,
+                                             fields, rows)
+
+            if dfields and drows then
+                proxy.response.type = proxy.MYSQLD_PACKET_OK
+                proxy.response.affected_rows = resultset.affected_rows
+                proxy.response.insert_id = resultset.insert_id
+                if table.maxn(dfields) > 0 then
+                    proxy.response.resultset = { fields = dfields, rows = drows }
+                end
+            else
+                proxy.response.type = proxy.MYSQLD_PACKET_ERR
+                proxy.response.errmsg = "could not decrypt result"
+            end
         end
 
         return proxy.PROXY_SEND_RESULT
