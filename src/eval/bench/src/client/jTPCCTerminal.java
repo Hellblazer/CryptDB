@@ -178,6 +178,7 @@ public class jTPCCTerminal implements Runnable {
     boolean stopRunning = false;
 
     int nhot = Integer.getInteger("nhot", 0);
+    int numRollbacks = 0;
 
     //
     // Following vars for TPMC throttling.
@@ -236,7 +237,8 @@ public class jTPCCTerminal implements Runnable {
       }
 
       long transactionStart = System.currentTimeMillis();
-      int skippedDeliveries = executeTransaction(type.ordinal());
+      int skippedDeliveries = 0;
+      numRollbacks += executeTransaction(type.ordinal());
       long transactionEnd = System.currentTimeMillis();
 
       String skippedMessage = null;
@@ -251,7 +253,7 @@ public class jTPCCTerminal implements Runnable {
           type.toString(),
           transactionEnd - transactionStart,
           skippedMessage,
-          isNewOrder);
+          isNewOrder, numRollbacks);
 
       if (this.terminalWarehouseID < nhot) {
         nhot = 0;
@@ -266,6 +268,7 @@ public class jTPCCTerminal implements Runnable {
   public int executeTransaction(int transaction) {
 	  
     int result = 0;
+    int numRollbacks = 0;
 
     try {
       switch (transaction) {
@@ -306,6 +309,7 @@ public class jTPCCTerminal implements Runnable {
                                 orderQuantities);
             break;
           } catch (SQLException e) {
+	    numRollbacks++;
             rollbackAndHandleSerializationError(e);
           }
         }
@@ -353,6 +357,7 @@ public class jTPCCTerminal implements Runnable {
                                customerID, customerLastName, customerByName);
             break;
           } catch (SQLException e) {
+	    numRollbacks++;
             rollbackAndHandleSerializationError(e);
           }
         }
@@ -370,6 +375,7 @@ public class jTPCCTerminal implements Runnable {
             stockLevelTransaction(terminalWarehouseID, districtID, threshold);
             break;
           } catch (SQLException e) {
+	    numRollbacks++;
             rollbackAndHandleSerializationError(e);
           }
         }
@@ -397,6 +403,7 @@ public class jTPCCTerminal implements Runnable {
                                    customerLastName, customerByName);
             break;
           } catch (SQLException e) {
+	    numRollbacks++;
             rollbackAndHandleSerializationError(e);
           }
         }
@@ -412,6 +419,7 @@ public class jTPCCTerminal implements Runnable {
             result = deliveryTransaction(terminalWarehouseID, orderCarrierID);
             break;
           } catch (SQLException e) {
+	    numRollbacks++;
             rollbackAndHandleSerializationError(e);
           }
         }
@@ -426,7 +434,8 @@ public class jTPCCTerminal implements Runnable {
       throw new RuntimeException(e);
     }
 
-    return result;
+    //return result;
+    return numRollbacks;
   }
 
   /** Rolls back the current transaction, then rethrows e if it is not a
@@ -441,7 +450,10 @@ public class jTPCCTerminal implements Runnable {
   private void rollbackAndHandleSerializationError(SQLException e) throws SQLException {
     conn.rollback();
 
-    return; /*
+    if (true) {
+	return; 
+    }
+
     // Unfortunately, JDBC provides no standardized way to do this, so we
     // resort to this ugly hack.
     boolean isSerialization = false;
@@ -473,7 +485,7 @@ public class jTPCCTerminal implements Runnable {
         }
       }
       assert false;
-    }*/
+    }
   }
 
   private int chooseRandomDistrict() {

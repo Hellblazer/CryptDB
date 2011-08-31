@@ -40,6 +40,7 @@ public class jTPCCHeadless implements jTPCCDriver {
   private jTPCCTerminal[] terminals;
   private String[] terminalNames;
   private long terminalsStarted = 0, sessionCount = 0, transactionCount;
+  private long rollbackCount = 0;
 
   private long newOrderCounter, sessionStartTimestamp, sessionEndTimestamp,
       sessionNextTimestamp = 0, sessionNextKounter = 0;
@@ -307,7 +308,11 @@ public class jTPCCHeadless implements jTPCCDriver {
                   String hostPort = urlParts[urlParts.length-2];
                   String[] hostPortParts = hostPort.split(":");
                   int port = Integer.parseInt(hostPortParts[1]);
-                  int i = lowerTerminalId + terminalId;
+                  boolean multi = false;
+		  if (port == 5133) {
+		      multi = true;
+		  }
+		  int i = lowerTerminalId + terminalId;
                   port += i;
                   printMessage("terminal " + i + "uses port " + port + "\n");
                   hostPortParts[1] = Integer.toString(port);
@@ -316,8 +321,13 @@ public class jTPCCHeadless implements jTPCCDriver {
                   
                   printMessage("old db " + database + "real db " + realDatabase);
                   
-                  conn = DriverManager.getConnection(realDatabase, username, password);
-                  conn.setAutoCommit(false);
+		  if (multi) {
+		      conn = DriverManager.getConnection(realDatabase, username, password);
+                  } else {
+		      conn = DriverManager.getConnection(database, username, password);
+		  }
+
+		  conn.setAutoCommit(false);
                   // TPC-C requires SERIALIZABLE isolation to work correctly.
                   // By default, MySQL/InnoDB uses something like snapshot isolation. 
                   conn.setTransactionIsolation(Connection.TRANSACTION_SERIALIZABLE);
@@ -503,7 +513,8 @@ public class jTPCCHeadless implements jTPCCDriver {
   public void signalTerminalEndedTransaction(String terminalName,
                                              String transactionType,
                                              long executionTime,
-                                             String comment, int newOrder) {
+                                             String comment, int newOrder,
+					     int numRollbacks) {
     if (comment == null)
       comment = "None";
 
@@ -513,6 +524,7 @@ public class jTPCCHeadless implements jTPCCDriver {
                                   + "\t" + transactionType + "\t"
                                   + executionTime + "\t\t" + comment);
         transactionCount++;
+	rollbackCount += numRollbacks;
         fastNewOrderCounter += newOrder;
         
         //20 transactions average latency
@@ -558,7 +570,9 @@ public class jTPCCHeadless implements jTPCCDriver {
 
     if (fastNewOrderCounter != 0) {
       double tpmC = (6000000 * fastNewOrderCounter / (currTimeMillis - sessionStartTimestamp)) / 100.0;
-      informativeText += "Running Average tpmC: " + tpmC + "      ";
+      double transC = (6000000 * transactionCount / (currTimeMillis - sessionStartTimestamp)) / 100.0;
+      double rollbackMin = (6000000 * rollbackCount / (currTimeMillis - sessionStartTimestamp)) / 100.0;
+      informativeText += "Running Average tpmC: " + tpmC + " (" + transC + "tx/min, " + rollbackMin + "rb/min) ";
       
       
       for (PrintWriter sockWriter : sockWriters) {
