@@ -3362,7 +3362,8 @@ throw (CryptDBError)
     //some queries do not need to be encrypted
     if (!considerQuery(com, query)) {
         LOG(edb_v) << "query not considered: " << query;
-        list<string> res;
+	// cerr << "query not considered : " << query;
+	list<string> res;
         res.push_back(query);
         considered = false;
         return res;
@@ -3420,7 +3421,7 @@ EDBProxy::decryptResults(const string &query, const ResType &dbAnswer)
     // some queries do not need to be encrypted
     command com = getCommand(query);
     if (!considerQuery(com, query)) {
-        LOG(edb) << "do not consider query: " << query;
+      //cerr << "do not consider query: " << query;
         return dbAnswer;
     }
 

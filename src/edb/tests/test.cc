@@ -4554,7 +4554,7 @@ testBench(const TestConfig & tc, int argc, char ** argv)
                     "../lib/hsqldb.jar:../lib/mysql-connector-java-5.1.10-bin.jar:../lib/ojdbc14-10.2.jar:../lib/postgresql-8.0.309.jdbc3.jar "
                     "-Ddriver=com.mysql.jdbc.Driver "
                     "-Dconn=jdbc:mysql://"+serverhost+":3306/tpccplain "
-                    "-Duser=tpccuser -Dpassword=letmein "
+                    "-Duser=root -Dpassword=letmein "
                     "-Dnwarehouses="+noWarehouses+" -Dnterminals=" + StringFromVal(noWorkers) +
                     " -DtimeLimit="+timeLimit+" client.jTPCCHeadless").c_str())>=0,
                     "problem running benchmark");
