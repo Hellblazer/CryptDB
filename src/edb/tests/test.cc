@@ -4161,6 +4161,23 @@ static void runExp(EDBProxy * cl, int noWorkers, const TestConfig & tc, int logF
 
 
 static void
+loadDB(const TestConfig & tc, string dbname, string dumpname) {
+    string comm = "mysql -u root -pletmein -e 'drop database if exists " + dbname + "; ' ";
+    cerr << comm << "\n";
+    assert_s(system(comm.c_str()) >= 0, "cannot drop db with if exists");
+
+    comm = "mysql -u root -pletmein -e 'create database " + dbname + ";' ";
+    cerr << comm << "\n";
+    assert_s(system(comm.c_str()) >= 0, "cannot create db");
+
+    if (dumpname != "") {
+        comm = "mysql -u root -pletmein " + dbname + " < " + tc.edbdir  + "/../eval/dumps/" + dumpname + "; ";
+        cerr << comm << "\n";
+        assert_s(system(comm.c_str()) >= 0, "cannotload dump");
+    }
+}
+
+static void
 startProxy(const TestConfig & tc, string host, uint port) {
 
     setenv("CRYPTDB_LOG", cryptdb_logger::getConf().c_str(), 1);
@@ -4316,34 +4333,35 @@ testTrace(const TestConfig &tc, int argc, char ** argv)
 	    //LOAD DUMP
 	    if (serverhost == "localhost") {
 	        loadDB(tc, "tpccenc", "up_dump_enc_w1");
-
-
-	        //START PROXY
-	        setenv("CRYPTDB_DB", "tpccenc", 1);
-	        setenv("EDBDIR", tc.edbdir.c_str(), 1);
-	        string tpccdir = tc.edbdir + "/../eval/tpcc/";
-	        if (filename != "") {
-	            setenv("LOAD_ENC_TABLES", filename.c_str(), 1);
-	        }
-	        setenv("TRAIN_QUERY", ("train 1 " + tpccdir +"sqlTableCreates " + tpccdir + "querypatterns_bench 0").c_str(), 1);
-	        uint proxy_port = 5333;
-	        int res = system("killall mysql-proxy;");
-	        cerr << "killing proxy .. " << res << "\n";
-	        sleep(2);
-	        startProxy(tc, serverhost , proxy_port);
-
-
-	        Connect * conn = new Connect(tc.host, tc.user, tc.pass, "tpccenc", proxy_port);
-
-	        Stats * stats = new Stats();
-	        runQueriesFromFile(NULL, queryfile, 1, 0, conn, "", false, false, stats, logFreq);
-
-	        cerr << "latency " << stats->mspassed/stats->total_queries << "\n";
-
-	        delete cl;
-
-	        return;
 	    }
+
+	    //START PROXY
+	    setenv("CRYPTDB_DB", "tpccenc", 1);
+	    setenv("EDBDIR", tc.edbdir.c_str(), 1);
+	    string tpccdir = tc.edbdir + "/../eval/tpcc/";
+	    if (filename != "") {
+	        setenv("LOAD_ENC_TABLES", filename.c_str(), 1);
+	    }
+	    setenv("TRAIN_QUERY", ("train 1 " + tpccdir +"sqlTableCreates " + tpccdir + "querypatterns_bench 0").c_str(), 1);
+	    uint proxy_port = 5333;
+	    int res = system("killall mysql-proxy;");
+	    cerr << "killing proxy .. " << res << "\n";
+	    sleep(2);
+	    startProxy(tc, serverhost , proxy_port);
+
+
+	    Connect * conn = new Connect(tc.host, tc.user, tc.pass, "tpccenc", proxy_port);
+
+	    Stats * stats = new Stats();
+	    runQueriesFromFile(NULL, queryfile, 1, 0, conn, "", false, false, stats, logFreq);
+
+	    cerr << "latency " << stats->mspassed/stats->total_queries << "\n";
+
+	    delete cl;
+
+	    return;
+
+	}
 
 
 
@@ -4437,22 +4455,6 @@ LOG(warn) << "could not execlp bench: " << strerror(errno);
 
  */
 
-static void
-loadDB(const TestConfig & tc, string dbname, string dumpname) {
-    string comm = "mysql -u root -pletmein -e 'drop database if exists " + dbname + "; ' ";
-    cerr << comm << "\n";
-    assert_s(system(comm.c_str()) >= 0, "cannot drop db with if exists");
-
-    comm = "mysql -u root -pletmein -e 'create database " + dbname + ";' ";
-    cerr << comm << "\n";
-    assert_s(system(comm.c_str()) >= 0, "cannot create db");
-
-    if (dumpname != "") {
-        comm = "mysql -u root -pletmein " + dbname + " < " + tc.edbdir  + "/../eval/dumps/" + dumpname + "; ";
-        cerr << comm << "\n";
-        assert_s(system(comm.c_str()) >= 0, "cannotload dump");
-    }
-}
 
 static void
 testBench(const TestConfig & tc, int argc, char ** argv)
