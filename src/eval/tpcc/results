@@ -1,3 +1,18 @@
+
+Latency:
+
+operation (with enc tables / no enc table)      (-server lat:)   enc tables   no enc tables
+all 	  	0.72 	   10.8                        0.12	 0.6 	      10.7              
+eq	 	0.97       0.97			       0.11      0.86	      0.86                   
+join     	0.86       0.86 		       0.11	 0.75	      0.75
+range	 	1.0	   28.9			       0.22	 0.78	      28.7
+sum             1.45	   1.45			       0.46	 0.99	      0.99
+delete		0.36	   0.36	   		       0.08	 0.28	      0.28
+insert		0.47	   16.4			       0.10	 0.37	      16.3
+up set		0.50	   3.9			       0.14      0.36         3.8
+up inc		0.47	   25.6			       0.17	 0.3	      25.1
+
+
 Going to disk as well, 8 cores:
 
 workers 1 plain tput '12408\n' enc tput '9057.14\n'
