@@ -441,6 +441,7 @@ public class jTPCCTerminal implements Runnable {
   private void rollbackAndHandleSerializationError(SQLException e) throws SQLException {
     conn.rollback();
 
+    return; /*
     // Unfortunately, JDBC provides no standardized way to do this, so we
     // resort to this ugly hack.
     boolean isSerialization = false;
@@ -472,7 +473,7 @@ public class jTPCCTerminal implements Runnable {
         }
       }
       assert false;
-    }
+    }*/
   }
 
   private int chooseRandomDistrict() {
