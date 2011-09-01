@@ -304,8 +304,11 @@ class CItemCompare : public CItemSubtypeFT<Item_func, FT> {
         }
 
         Item **args = i->arguments();
-        analyze(args[0], cipher_type_reason(t2, "compare_func", i, &tr));
-        analyze(args[1], cipher_type_reason(t2, "compare_func", i, &tr));
+        const char *reason = "compare_func";
+        if (!args[0]->const_item() && !args[1]->const_item())
+            reason = "compare_func_join";
+        analyze(args[0], cipher_type_reason(t2, reason, i, &tr));
+        analyze(args[1], cipher_type_reason(t2, reason, i, &tr));
     }
 };
 
@@ -1135,9 +1138,10 @@ main(int ac, char **av)
         }
 
         nquery++;
-        cout << " nquery: " << nquery
-             << " nerror: " << nerror
-             << " nskip: " << nskip
-             << endl;
+        if (!(nquery % 100))
+            cout << " nquery: " << nquery
+                 << " nerror: " << nerror
+                 << " nskip: " << nskip
+                 << endl;
     }
 }

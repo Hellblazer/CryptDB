@@ -14,6 +14,7 @@
 #include "SWPSearch.h"
 #include "BasicCrypto.h"
 
+
 //returns the highest security level lower than sl that allows equality
 SECLEVEL highestEq(SECLEVEL sl);
 
@@ -39,6 +40,9 @@ class CryptoManager {
     string crypt(AES_KEY * mkey, string data, fieldType ft,
                  string fullfieldname, SECLEVEL fromlevel, SECLEVEL tolevel, bool & isBin,
                  uint64_t salt = 0);
+
+    //generates a randomness pool for Paillier
+    void generateRandomPool(unsigned int randomPoolSize, string file);
 
     static AES_KEY * getKey(const string & key);
 
@@ -136,6 +140,8 @@ class CryptoManager {
     static string decrypt_OPE(const string &ciphertext, OPE * ope);
 
     uint64_t encrypt_OPE(uint32_t plaintext, string uniqueFieldName);
+    uint64_t
+    encrypt_OPE_enctables(uint32_t val, string uniqueFieldName);
 
     /*
      * SEARCH
@@ -179,11 +185,15 @@ class CryptoManager {
 
     //ENCRYPTION TABLES
 
+    /*
     //will create encryption tables and will use them
     //noOPE encryptions and noHOM encryptions
     void createEncryptionTables(int noOPE, int noHOM,
                                 list<string>  fieldsWithOPE);
     void replenishEncryptionTables();
+     */
+
+    void loadEncTables(string filename);
 
     //TODO:
     //batchEncrypt
@@ -194,13 +204,22 @@ class CryptoManager {
 
     //Paillier cryptosystem
     ZZ Paillier_lambda, Paillier_n, Paillier_g, Paillier_n2;
+    ZZ Paillier_p, Paillier_q;
+    ZZ Paillier_p2, Paillier_q2;
+    ZZ Paillier_2n, Paillier_2p, Paillier_2q;
+    ZZ Paillier_ninv, Paillier_pinv, Paillier_qinv;
+    ZZ Paillier_hp, Paillier_hq;
     ZZ Paillier_dec_denom;     //L(g^lambda mod n^2)
+    ZZ Paillier_a;
+    bool Paillier_fast;
 
     //encryption tables
     bool useEncTables;
     int noOPE, noHOM;
-    map<string, map<int, uint64_t> > OPEEncTable;
-    map<uint64_t, list<string> > HOMEncTable;
+    map<string, map<uint32_t, uint64_t> *> OPEEncTable;
+    //todo: one HOM enc should not be reused
+    map<uint64_t, string > HOMEncTable;
+    list<ZZ> HOMRandCache;
 
     bool VERBOSE;
 

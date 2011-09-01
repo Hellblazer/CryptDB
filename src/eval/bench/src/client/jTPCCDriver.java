@@ -9,7 +9,7 @@ public interface jTPCCDriver {
   public void signalTerminalEndedTransaction(String terminalName,
                                              String transactionType,
                                              long executionTime,
-                                             String comment, int newOrder);
+                                             String comment, int newOrder, int numRollbacks);
 
   public AtomicReference<Double> targetTpmc = new AtomicReference<Double>();
 }

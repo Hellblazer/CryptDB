@@ -290,16 +290,19 @@ valFromStr(const string &str)
 string
 marshallBinary(const string &s)
 {
-    stringstream ss;
-    ss << "X\'";
+    string r;
+    r += "X\'";
 
-    for (unsigned int i = 0; i < s.length(); i++)
-        ss << hex << setfill('0') << setw(2) << (uint) (uint8_t) s[i];
+    const char *sp = &s[0];
+    static const char *digits = "0123456789ABCDEF";
+    size_t l = s.length();
+    for (size_t i = 0; i < l; i++) {
+        r += digits[sp[i] >> 4 & 0xf];
+        r += digits[sp[i] & 0xf];
+    }
 
-    ss << "\'";
-
-    //cerr << "output from marshall  " << result.c_str() << "\n";
-    return ss.str();
+    r += "\'";
+    return r;
 }
 
 /*
@@ -385,11 +388,10 @@ unmarshallBinary(const string &s)
              "unmarshallBinary: newlen is odd! newlen is " +
              strFromVal(len-offset));
 
-    stringstream ss;
+    string r;
     for (uint i = 0; i < (len-offset)/2; i++)
-        ss << getFromHex(&s[offset+i*2]);
-
-    return ss.str();
+        r += getFromHex(&s[offset+i*2]);
+    return r;
 }
 
 static bool

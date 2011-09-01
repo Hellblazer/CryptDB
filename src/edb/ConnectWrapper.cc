@@ -51,8 +51,11 @@ xlua_pushlstring(lua_State *l, const string &s)
 static int
 connect(lua_State *L)
 {
+    
     ANON_REGION(__func__, &perf_cg);
     scoped_lock l(&big_lock);
+
+    
 
     string client = xlua_tolstring(L, 1);
     string server = xlua_tolstring(L, 2);
@@ -70,6 +73,7 @@ connect(lua_State *L)
     clients[client] = ws;
 
     if (!cl) {
+      cerr << "starting proxy\n";
         cryptdb_logger::setConf(string(getenv("CRYPTDB_LOG")));
 
         LOG(wrapper) << "connect " << client << "; "
@@ -96,8 +100,6 @@ connect(lua_State *L)
             string trainQuery = ev;
             LOG(wrapper) << "proxy trains using " << trainQuery;
             if (trainQuery != "") {
-                cerr << "supposed to rewrite\n";
-                cerr << "train query is " << trainQuery << "\n";
                 bool consider;
                 cl->rewriteEncryptQuery(trainQuery, consider);
             } else {
@@ -126,6 +128,12 @@ connect(lua_State *L)
             } else {
                 LOG(wrapper) << "execute queries";
             }
+        }
+
+        ev = getenv("LOAD_ENC_TABLES");
+        if (ev) {
+            cerr << "loading enc tables\n";
+            cl->loadEncTables(string(ev));
         }
 
         ev = getenv("LOG_PLAIN_QUERIES");
@@ -206,6 +214,7 @@ rewrite(lua_State *L)
         } else {
             try {
                 new_queries = cl->rewriteEncryptQuery(query, clients[client]->considered);
+		//cerr << "query: " << *new_queries.begin() << " considered ? " << clients[client]->considered << "\n";
             } catch (CryptDBError &e) {
                 LOG(wrapper) << "cannot rewrite " << query << ": " << e.msg;
                 lua_pushnil(L);

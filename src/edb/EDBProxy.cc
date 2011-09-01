@@ -210,7 +210,7 @@ EDBProxy::plain_execute(const string &query)
 }
 
 //ENCRYPTION TABLES
-
+/*
 //will create encryption tables and will use them
 //noOPE encryptions and noHOM encryptions
 void
@@ -242,7 +242,7 @@ EDBProxy::replenishEncryptionTables()
 {
     cm->replenishEncryptionTables();
 }
-
+*/
 // it must point to first word of type
 // advances it after the last part of type
 // returns the type string from the query
@@ -1601,7 +1601,53 @@ expandWildCard(list<string> & words, QueryMeta & qm, map<string,
     }
 
 
+}
 
+void
+EDBProxy::generateEncTables(list<OPESpec> & opes,
+		unsigned int minHOM, unsigned int maxHOM,
+		unsigned int randomPoolSize, string outputfile) {
+
+    ofstream file(outputfile);
+
+    bool isBin;
+
+    for (list<OPESpec>::iterator it = opes.begin(); it != opes.end(); it++) {
+        string table, field;
+        QueryMeta qm;
+        getTableField(it->fieldname, table, field, qm, tableMetaMap);
+
+        TableMetadata * tm = tableMetaMap[table];
+        FieldMetadata * fm = tm->fieldMetaMap[field];
+        assert_s(fm->type == TYPE_INTEGER, " enc tables only for integers ");
+
+        string fullname = fullName(fm->anonFieldNameOPE, tm->anonTableName);
+
+        file << fullname << " " << (it->maxv-it->minv+1) << "\n";
+
+
+        for (unsigned int v = it->minv; v <= it->maxv; v++) {
+            file << v << " ";
+            file << cm->crypt(cm->getmkey(), StringFromVal(v), TYPE_INTEGER, fullname, SECLEVEL::PLAIN_OPE, SECLEVEL::OPE, isBin, 0) << "\n";
+        }
+    }
+
+    file << "HOM " << StringFromVal(maxHOM-minHOM+1) << "\n";
+
+    for (unsigned int v = minHOM; v <= maxHOM; v++) {
+        file << v << " ";
+        string enc = cm->crypt(cm->getmkey(), StringFromVal(v), TYPE_INTEGER, "", SECLEVEL::PLAIN_AGG, SECLEVEL::SEMANTIC_AGG, isBin, 0);
+        file << marshallBinary(enc) << "\n";
+    }
+
+    file.close();
+
+    cm->generateRandomPool(randomPoolSize, outputfile);
+
+}
+
+void EDBProxy::loadEncTables(string filename) {
+    cm->loadEncTables(filename);
 }
 
 list<string>
@@ -3316,7 +3362,8 @@ throw (CryptDBError)
     //some queries do not need to be encrypted
     if (!considerQuery(com, query)) {
         LOG(edb_v) << "query not considered: " << query;
-        list<string> res;
+	// cerr << "query not considered : " << query;
+	list<string> res;
         res.push_back(query);
         considered = false;
         return res;
@@ -3374,7 +3421,7 @@ EDBProxy::decryptResults(const string &query, const ResType &dbAnswer)
     // some queries do not need to be encrypted
     command com = getCommand(query);
     if (!considerQuery(com, query)) {
-        LOG(edb) << "do not consider query: " << query;
+      //cerr << "do not consider query: " << query;
         return dbAnswer;
     }
 

@@ -59,13 +59,17 @@ class EDBProxy {
     //============OPTIMIZATION===================//
 
     //ENCRYPTION TABLES
-
+  /*
     //will create encryption tables and will use them
     //noOPE encryptions and noHOM encryptions
     // only applies to already created tables
     void createEncryptionTables(int noOPE, int noHOM);
     void replenishEncryptionTables();
-
+    */
+    void generateEncTables(list<OPESpec> & opes,
+    		unsigned int minHOM, unsigned int maxHOM,
+    		unsigned int randomPoolSize, string outputfile);
+    void loadEncTables(string filename);
     // TRAINING
 
     // trains client on queries from given file and adjusts schema and
@@ -98,6 +102,7 @@ class EDBProxy {
                                                    // table metadata
     unsigned int totalTables;
     unsigned int totalIndexes;
+
 
     //**************** HELPER FUNCTIONS *******************************/
 

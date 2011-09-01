@@ -4,6 +4,8 @@
 
 #include <stdlib.h>
 #include <sstream>
+#include <fstream>
+#include <istream>
 
 #include "CryptoManager.h"
 #include "cryptdb_log.h"
@@ -15,10 +17,16 @@
 // field, keep the keys in the right format already and just load them rather
 // than recompute
 
-static ZZ
+static ZZ __attribute__((unused))
 Paillier_L(const ZZ & u, const ZZ & n)
 {
     return (u - 1) / n;
+}
+
+static ZZ
+Paillier_Lfast(const ZZ & u, const ZZ &ninv, const ZZ &two_n, const ZZ &n)
+{
+    return (((u - 1) * ninv) % two_n) % n;
 }
 
 static ZZ
@@ -42,31 +50,103 @@ CryptoManager::CryptoManager(const string &masterKeyArg)
     useEncTables = false;
 
     //setup Paillier encryption
-    ZZ p, q;
+    Paillier_fast = true;
 
-    p = RandomPrime_ZZ(Paillier_len_bits/4);
-    q = RandomPrime_ZZ(Paillier_len_bits/4);
+    if (Paillier_fast) {
+        uint abits = Paillier_len_bits/8;   /* ~256 bits for a 2048-bit n^2 */
+        do {
+            Paillier_a = RandomPrime_ZZ(abits);
 
-    Paillier_n = p * q;
+            ZZ cp = RandomLen_ZZ(Paillier_len_bits/4-abits);
+            ZZ cq = RandomLen_ZZ(Paillier_len_bits/4-abits);
+
+            Paillier_p = Paillier_a * cp + 1;
+            while (!ProbPrime(Paillier_p))
+                Paillier_p += Paillier_a;
+
+            Paillier_q = Paillier_a * cq + 1;
+            while (!ProbPrime(Paillier_q))
+                Paillier_q += Paillier_a;
+
+            Paillier_n = Paillier_p * Paillier_q;
+        } while ((NumBits(Paillier_n) != Paillier_len_bits / 2) ||
+                 Paillier_p == Paillier_q);
+    } else {
+        Paillier_p = RandomPrime_ZZ(Paillier_len_bits/4);
+        Paillier_q = RandomPrime_ZZ(Paillier_len_bits/4);
+        Paillier_n = Paillier_p * Paillier_q;
+    }
+
+    if (Paillier_p > Paillier_q)
+        swap(Paillier_p, Paillier_q);
+
+    Paillier_p2 = Paillier_p * Paillier_p;
+    Paillier_q2 = Paillier_q * Paillier_q;
     Paillier_n2 = Paillier_n * Paillier_n;
 
-    Paillier_lambda = LCM(p-1, q-1);
+    Paillier_lambda = LCM(Paillier_p-1, Paillier_q-1);
 
-    //generate g
+    if (Paillier_fast) {
+        Paillier_g = PowerMod(to_ZZ(2),
+                              Paillier_lambda / Paillier_a,
+                              Paillier_n);
+    } else {
+        Paillier_g = 1;
+        do {
+            Paillier_g++;
+        } while (GCD(Paillier_L(PowerMod(Paillier_g,
+                                         Paillier_lambda,
+                                         Paillier_n2),
+                                Paillier_n), Paillier_n) != to_ZZ(1));
 
-    do {
+        Paillier_dec_denom =
+            InvMod(Paillier_L(PowerMod(Paillier_g, Paillier_lambda, Paillier_n2),
+                              Paillier_n),
+                   Paillier_n);
+    }
 
-        Paillier_g = RandomLen_ZZ(Paillier_len_bits) % Paillier_n2;
+    Paillier_2n = power(to_ZZ(2), NumBits(Paillier_n));
+    Paillier_2p = power(to_ZZ(2), NumBits(Paillier_p));
+    Paillier_2q = power(to_ZZ(2), NumBits(Paillier_q));
 
-    } while (GCD(Paillier_L(PowerMod(Paillier_g, Paillier_lambda,
-                                     Paillier_n2),
-                            Paillier_n), Paillier_n) != to_ZZ(1));
+    Paillier_ninv = InvMod(Paillier_n, Paillier_2n);
+    Paillier_pinv = InvMod(Paillier_p, Paillier_2p);
+    Paillier_qinv = InvMod(Paillier_q, Paillier_2q);
 
-    Paillier_dec_denom =
-        InvMod(Paillier_L(PowerMod(Paillier_g,  Paillier_lambda, Paillier_n2),
-                          Paillier_n),
-               Paillier_n);
+    Paillier_hp =
+        InvMod(Paillier_Lfast(PowerMod(Paillier_g % Paillier_p2,
+                                       Paillier_fast ? Paillier_a : (Paillier_p-1),
+                                       Paillier_p2),
+                              Paillier_pinv, Paillier_2p, Paillier_p),
+               Paillier_p);
+    Paillier_hq =
+        InvMod(Paillier_Lfast(PowerMod(Paillier_g % Paillier_q2,
+                                       Paillier_fast ? Paillier_a : (Paillier_q-1),
+                                       Paillier_q2),
+                              Paillier_qinv, Paillier_2q, Paillier_q),
+               Paillier_q);
 
+
+}
+
+void CryptoManager::generateRandomPool(unsigned int randomPoolSize, string filename) {
+	ofstream file(filename, ios::app);
+
+	/*
+	 * Pre-generate a bunch of r^n mod n^2 values..
+	 */
+
+	file << "randomPool" << " " << StringFromVal(randomPoolSize) << "\n";
+
+	HOMRandCache.clear();
+	for (unsigned int i = 0; i < randomPoolSize; i++) {
+		ZZ r = RandomLen_ZZ(Paillier_len_bits/2) % Paillier_n;
+		ZZ rn = PowerMod(Paillier_g, Paillier_n*r, Paillier_n2);
+
+		file << rn << "\n";
+	}
+
+	file.close();
 }
 
 //this function should in fact be provided by the programmer
@@ -112,6 +192,9 @@ highestEq(SECLEVEL sl)
         return sl;
     }
 }
+
+
+
 
 static onion
 getOnion(SECLEVEL l1)
@@ -561,9 +644,7 @@ CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft,
             if (fromlevel == SECLEVEL::OPEJOIN) {
 
             	fromlevel = increaseLevel(fromlevel, ft, oOPE);
-                OPE * key = get_key_OPE(getKey(mkey, fullfieldname, fromlevel));
-                val = encrypt_OPE((uint32_t)val, key);
-                delete key;
+            	val = encrypt_OPE_enctables((uint32_t)val, fullfieldname);
                 if (fromlevel == tolevel) {
                     return strFromVal(val);
                 }
@@ -755,6 +836,72 @@ CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft,
     myassert(false, "no other types possible \n");
     return "";
 
+}
+
+void CryptoManager::loadEncTables(string filename) {
+    ifstream file(filename);
+
+    useEncTables = true;
+
+    LOG(crypto) << "loading enc tables\n";
+
+    assert_s(file.is_open(), "could not open file " + filename);
+
+    if (file.eof()) {
+        return;
+    }
+    string fieldname;
+    file >> fieldname;
+    unsigned int count;
+    file >> count;
+    LOG(crypto_v) << "loading for " << fieldname << " count " << count << "\n";
+
+    while (!file.eof() && fieldname != "HOM") {
+        cerr << "loading for " << fieldname << " count " << count << "\n";
+        map<unsigned int, uint64_t> * opemap = new map<unsigned int,uint64_t>();
+        for (unsigned int i = 0; i < count; i++) {
+            unsigned int v;
+            file >> v;
+            uint64_t enc;
+            file >> enc;
+            opemap->insert(pair<unsigned int, uint64_t>(v, enc));
+        }
+        OPEEncTable[fieldname] = opemap;
+
+        if (!file.eof()) {
+            file >> fieldname;
+            file >> count;
+            LOG(crypto_v) << "loading for " << fieldname << " count " << count << "\n";
+        }
+    }
+
+    cerr << "loading for " << fieldname << " count " << count << "\n";
+    if (!file.eof()) {
+        //hom case
+        for (unsigned int i = 0; i < count; i++) {
+            unsigned v;
+            file >> v;
+            string enc;
+            file >> enc;
+            HOMEncTable[v] = unmarshallBinary(enc);
+
+        }
+    }
+
+    if (!file.eof()) {
+    	file >> fieldname;
+    	file >> count;
+    	 cerr << "loading for " << fieldname << " count " << count << "\n";
+
+    	for (unsigned int i = 0; i < count; i++) {
+    		ZZ val;
+    		file >> val;
+    		HOMRandCache.push_back(val);
+    	}
+
+    }
+
+    file.close();
 }
 
 
@@ -1050,25 +1197,36 @@ CryptoManager::decrypt_OPE(uint64_t ciphertext, OPE * ope)
     return ope->decrypt(ciphertext);
 }
 
+//works only for level SECLEVEL::OPE
+uint64_t
+CryptoManager::encrypt_OPE_enctables(uint32_t val, string uniqueFieldName) {
+    if (useEncTables) {
+        map<string, map<uint32_t, uint64_t> *>::iterator it = OPEEncTable.find(uniqueFieldName);
+        if (it != OPEEncTable.end()) {
+            auto vit = it->second->find(val);
+            if (vit != it->second->end()) {
+                LOG(crypto_v) << "OPE hit for " << val;
+                //cerr << "OPE hit for " << val;
+                return vit->second;
+            }
+            cerr << "OPE miss for " << uniqueFieldName << " " << val << "\n";
+        }
+
+        LOG(crypto_v) << "OPE miss for " << uniqueFieldName << " " << val;
+    }
+    OPE * key = get_key_OPE(getKey(masterKey, uniqueFieldName, SECLEVEL::OPE));
+    uint64_t enc = encrypt_OPE(val, key);
+    delete key;
+
+    return enc;
+
+}
+
 uint64_t
 CryptoManager::encrypt_OPE(uint32_t plaintext, string uniqueFieldName)
 {
     //cerr << "ope!\n";
-    if (useEncTables) {
-        map<string, map<int, uint64_t> >::iterator it = OPEEncTable.find(
-            uniqueFieldName);
-        assert_s(it != OPEEncTable.end(),
-                 string(
-                     " there should be entry in OPEEncTables for ") +
-                 uniqueFieldName );
-        map<int, uint64_t>::iterator sit = it->second.find(plaintext);
-        if (sit != it->second.end()) {
-            LOG(crypto_v) << "OPE hit for " << plaintext;
-            return sit->second;
-        }
-        LOG(crypto_v) << "OPE miss for " << plaintext;
-    }
-
+    assert_s(false, "needs to be fixed");
     return encrypt_OPE(plaintext, get_key_OPE(getKey(uniqueFieldName, SECLEVEL::OPE)));
 }
 /*
@@ -1247,50 +1405,53 @@ CryptoManager::decrypt_DET_wrapper(const string &ctext, AES_KEY * key)
 string
 CryptoManager::encrypt_Paillier(uint64_t val)
 {
-    //cerr << "paillier!\n";
     if (useEncTables) {
         auto it = HOMEncTable.find(val);
         if (it != HOMEncTable.end()) {
-            if (it->second.size() > 0) {
-                string res = it->second.front();
-                it->second.pop_front();
-                LOG(crypto_v) << "HOM hit for " << val;
-                return res;
-            }
+            LOG(crypto_v) << "HOM hit for " << val;
+            return it->second;
         }
 
         LOG(crypto_v) << "HOM miss for " << val;
+    
+    
+	auto it2 = HOMRandCache.begin();
+	if (it2 != HOMRandCache.end()) {
+	  ZZ rn = *it2;
+	  HOMRandCache.pop_front();
+
+	  ZZ c = (PowerMod(Paillier_g, to_ZZ((uint) val), Paillier_n2) * rn) % Paillier_n2;
+	  return StringFromZZ(c);
+	}
+
+	cerr << "HOM and RAND Pool miss for " << val << "\n";
     }
-
+	
     ZZ r = RandomLen_ZZ(Paillier_len_bits/2) % Paillier_n;
-    //myassert(Paillier_g < Paillier_n2, "error: g > n2!");
-    ZZ c = PowerMod(Paillier_g, to_ZZ(
-                        (unsigned int)val) + Paillier_n*r, Paillier_n2);
-
-    //cerr << "Paillier encryption is " << c << "\n";
+    ZZ c = PowerMod(Paillier_g, to_ZZ((uint) val) + Paillier_n*r, Paillier_n2);
     return StringFromZZ(c);
+    
 }
 
 int
 CryptoManager::decrypt_Paillier(const string &ciphertext)
 {
-    //cerr << "paillier!\n";
-    //cerr << "to Paillier decrypt "; myPrint(ciphertext, Paillier_len_bytes);
-    // cerr << "\n";
-    //cerr << "N2 is " << Paillier_n2 << "\n";
-    ZZ c = ZZFromBytes((uint8_t*) ciphertext.data(), Paillier_len_bytes);
-    //cerr << "zz to decrypt " << c << "\n";
-    //myassert(c < Paillier_n2, "error: c > Paillier_n2");
-    ZZ m =
-        MulMod(  Paillier_L(PowerMod(c, Paillier_lambda,
-                                     Paillier_n2), Paillier_n),
-                 Paillier_dec_denom,
-                 Paillier_n);
+    ZZ c = ZZFromString(ciphertext);
 
-    //cerr << "Paillier N2 is " << Paillier_n2 << "\n";
-    //cerr << "Paillier N2 in bytes is "; myPrint(BytesFromZZ(Paillier_n2,
-    // Paillier_len_bytes), Paillier_len_bytes); cerr << "\n";
-    //cerr << "result is " << m << "\n";
+    ZZ mp =
+        (Paillier_Lfast(PowerMod(c % Paillier_p2, Paillier_fast ? Paillier_a : (Paillier_p-1), Paillier_p2),
+                        Paillier_pinv, Paillier_2p, Paillier_p)
+         * Paillier_hp) % Paillier_p;
+    ZZ mq =
+        (Paillier_Lfast(PowerMod(c % Paillier_q2, Paillier_fast ? Paillier_a : (Paillier_q-1), Paillier_q2),
+                        Paillier_qinv, Paillier_2q, Paillier_q)
+         * Paillier_hq) % Paillier_q;
+
+    ZZ m, pq;
+    pq = 1;
+    CRT(m, pq, mp, Paillier_p);
+    CRT(m, pq, mq, Paillier_q);
+
     return to_int(m);
 }
 
@@ -1299,7 +1460,7 @@ CryptoManager::getPKInfo()
 {
     return StringFromZZ(Paillier_n2);
 }
-
+/*
 void
 CryptoManager::createEncryptionTables(int noOPEarg, int noHOMarg,
                                       list<string>  fieldsWithOPE)
@@ -1373,6 +1534,7 @@ CryptoManager::replenishEncryptionTables()
 {
     assert_s(false, "unimplemented replenish");
 }
+*/
 
 //**************** Public Key Cryptosystem (PKCS)
 // ****************************************/
@@ -1507,21 +1669,8 @@ CryptoManager::~CryptoManager()
     if (masterKey)
         delete masterKey;
 
-    map<string, map<int, uint64_t> >::iterator it = OPEEncTable.begin();
-
-    for (; it != OPEEncTable.end(); it++) {
-        it->second.clear();
-    }
-
-    OPEEncTable.clear();
-
-    auto homit = HOMEncTable.begin();
-    for (; homit != HOMEncTable.end(); homit++) {
-        homit->second.clear();
-    }
-
-    HOMEncTable.clear();
-
+    for (auto it = OPEEncTable.begin(); it != OPEEncTable.end(); it++)
+        delete it->second;
 }
 
 Binary

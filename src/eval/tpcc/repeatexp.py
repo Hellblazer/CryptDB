@@ -6,16 +6,17 @@ import os
 import time
 
 
-workers = [2]
+workers = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
 
-if len(sys.argv) != 5:
-    print 'usage: repeatexp plain_queryfile enc_queryfile nolines needsreload?'
+if len(sys.argv) != 6:
+    print 'usage: repeatexp plain_queryfile enc_queryfile nolines needsreload? norepeats'
     exit(-1)
 
 plain_queryfile = sys.argv[1]
 enc_queryfile = sys.argv[2]
 nolines =int(sys.argv[3])
 needsreload = int(sys.argv[4])
+norepeats = sys.argv[5]
 
 plain_tput = {}
 plain_lat = {}
@@ -72,7 +73,7 @@ for w in workers:
             print "error when loading plain"
             exit(-1)
     
-    res =  myExec("../../edb/tests/test", "test", "-d", "tpccplain", "-v", "all", "trace", "eval", plain_queryfile, repr(nolines), repr(w), "1", "1", "5000" )
+    res =  myExec("../../edb/tests/test", "test", "-d", "tpccplain", "-v", "all", "trace", "eval", plain_queryfile, repr(nolines), repr(w), norepeats, "1", "5000" )
     plain_tput[w] = res[0]
     plain_lat[w] = res[1]
     
@@ -89,7 +90,7 @@ for w in workers:
             print "error when loading enc"
             exit(-1)
      
-    res = myExec("../../edb/tests/test", "test", "-d", "tpccenc", "-v", "all", "trace", "eval", enc_queryfile, repr(nolines), repr(w), "1", "1", "5000" )
+    res = myExec("../../edb/tests/test", "test", "-d", "tpccenc", "-v", "all", "trace", "eval", enc_queryfile, repr(nolines), repr(w), norepeats, "1", "5000" )
   
     enc_tput[w] = res[0]
     enc_lat[w] = res[1]
