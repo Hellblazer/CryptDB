@@ -1,3 +1,19 @@
+Increasing number of cores tput:
+
+
+Going to disk as well, varying no. of cores:
+
+
+no cores      	  plain				enc
+1 core:		  10193				7874         22.8%
+2 cores:	  19633				13608	     31%
+3 cores:	  26428				19386	     26.6%
+4 cores:	  32353				21614	     33.1%
+5 cores:	  34040				24954	     27%
+6 cores:	  37961				28010        26%
+7 cores:	  40438				27026	     33%
+8 cores:	  44259				30596	     31%
+
 
 Latency:
 
