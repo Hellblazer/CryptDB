@@ -7,7 +7,7 @@ class AES {
  public:
     AES(const std::string &key);
 
-    static uint blocksize() { return 16; }
+    static const size_t blocksize = 16;
     std::string block_encrypt(const std::string &plaintext);
     std::string block_decrypt(const std::string &ciphertext);
 
