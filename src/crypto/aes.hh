@@ -11,12 +11,12 @@ class AES {
         AES_set_decrypt_key(&key[0], key.size() * 8, &dec);
     }
 
-    void block_encrypt(const uint8_t *plaintext, uint8_t *ciphertext) {
-        AES_encrypt(plaintext, ciphertext, &enc);
+    void block_encrypt(const uint8_t *ptext, uint8_t *ctext) {
+        AES_encrypt(ptext, ctext, &enc);
     }
 
-    void block_decrypt(const uint8_t *ciphertext, uint8_t *plaintext) {
-        AES_decrypt(ciphertext, plaintext, &dec);
+    void block_decrypt(const uint8_t *ctext, uint8_t *ptext) {
+        AES_decrypt(ctext, ptext, &dec);
     }
 
     static const size_t blocksize = 16;
