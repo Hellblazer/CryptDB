@@ -46,8 +46,8 @@ main(int ac, char **av)
     cout << u.rand<uint64_t>() << endl;
     cout << u.rand<int64_t>() << endl;
 
-    AES aes(u.rand_vec<uint8_t>(16));
-    cout << "aes-cbc speed: " << test_block_cipher(&aes, &u) << endl;
+    // AES aes(u.rand_vec<uint8_t>(16));
+    // cout << "aes-cbc speed: " << test_block_cipher(&aes, &u) << endl;
 
     blowfish bf(u.rand_vec<uint8_t>(128));
     cout << "bf-cbc  speed: " << test_block_cipher(&bf, &u) << endl;

@@ -2,7 +2,7 @@ CXX	 := g++
 CXXFLAGS := -std=c++0x -I.. -Wall -Werror -O2
 LDFLAGS	 := -lcrypto -lntl
 
-LIBOBJS	 := paillier.o urandom.o arc4.o blowfish.o
+LIBOBJS	 := paillier.o urandom.o arc4.o
 PROGS	 := x
 
 all:	$(PROGS)
