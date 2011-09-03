@@ -23,8 +23,19 @@ cmc_encrypt(BlockCipher *c,
         memcpy(x, &(*ctext)[i], BlockCipher::blocksize);
     }
 
+    uint8_t m[BlockCipher::blocksize];
+    uint8_t carry = 0;
+    for (size_t j = BlockCipher::blocksize; j != 0; j--) {
+        uint16_t a = (*ctext)[j - 1] ^
+                     (*ctext)[j - 1 + ptext.size() - BlockCipher::blocksize];
+        m[j] = carry | (uint8_t) (a << 1);
+        carry = a >> 7;
+    }
+    m[BlockCipher::blocksize-1] |= carry;
+
     for (size_t i = 0; i < ptext.size(); i += BlockCipher::blocksize) {
-        /* XOR in M into each ctext block */
+        for (size_t j = 0; j < BlockCipher::blocksize; j++)
+            (*ctext)[i+j] ^= m[j];
     }
 
     memset(x, 0, BlockCipher::blocksize);
@@ -61,8 +72,19 @@ cmc_decrypt(BlockCipher *c,
         memcpy(x, &(*ptext)[i - BlockCipher::blocksize], BlockCipher::blocksize);
     }
 
+    uint8_t m[BlockCipher::blocksize];
+    uint8_t carry = 0;
+    for (size_t j = BlockCipher::blocksize; j != 0; j--) {
+        uint16_t a = (*ptext)[j - 1] ^
+                     (*ptext)[j - 1 + ctext.size() - BlockCipher::blocksize];
+        m[j] = carry | (uint8_t) (a << 1);
+        carry = a >> 7;
+    }
+
+    m[BlockCipher::blocksize-1] |= carry;
     for (size_t i = 0; i < ctext.size(); i += BlockCipher::blocksize) {
-        /* XOR in M into each ptext block */
+        for (size_t j = 0; j < BlockCipher::blocksize; j++)
+            (*ptext)[i+j] ^= m[j];
     }
 
     memset(x, 0, BlockCipher::blocksize);
