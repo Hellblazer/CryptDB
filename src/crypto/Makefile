@@ -12,7 +12,7 @@ clean:
 	rm -f *.o $(PROGS)
 .PHONY: all
 
-%.o: %.cc
+%.o: %.cc $(wildcard *.hh)
 	$(CXX) $< -c -o $@ $(CXXFLAGS)
 
 x: %: %.o $(LIBOBJS)
