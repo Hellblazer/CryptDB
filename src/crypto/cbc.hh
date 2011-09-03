@@ -1,43 +1,46 @@
 #pragma once
 
-#include <string>
+#include <vector>
+#include <stdint.h>
+
+using namespace std;
 
 template<class BlockCipher>
-std::string
-cbc_encrypt(BlockCipher *c, const std::string &iv, const std::string &plaintext)
+void
+cbc_encrypt(BlockCipher *c,
+            const std::vector<uint8_t> &iv,
+            const std::vector<uint8_t> &ptext,
+            std::vector<uint8_t> *ctext)
 {
-    assert(plaintext.size() % BlockCipher::blocksize == 0);
-    std::string res;
-    std::string pc = iv;
+    assert(iv.size() == BlockCipher::blocksize);
+    assert(ptext.size() % BlockCipher::blocksize == 0);
+    ctext->resize(ptext.size());
 
-    for (size_t i = 0; i < plaintext.size(); i += BlockCipher::blocksize) {
-        std::string x;
+    for (size_t i = 0; i < ptext.size(); i += BlockCipher::blocksize) {
+        uint8_t x[BlockCipher::blocksize];
         for (size_t j = 0; j < BlockCipher::blocksize; j++)
-            x += (plaintext[i+j] ^ pc[j]);
-        pc = c->block_encrypt(x);
-        res += pc;
+            x[j] = ptext[i+j] ^ ((i == 0) ? iv[j]
+                                          : (*ctext)[i+j-BlockCipher::blocksize]);
+        c->block_encrypt(x, &(*ctext)[i]);
     }
-
-    return res;
 }
 
 template<class BlockCipher>
-std::string
-cbc_decrypt(BlockCipher *c, const std::string &iv, const std::string &ciphertext)
+void
+cbc_decrypt(BlockCipher *c,
+            const std::vector<uint8_t> &iv,
+            const std::vector<uint8_t> &ctext,
+            std::vector<uint8_t> *ptext)
 {
-    assert(ciphertext.size() % BlockCipher::blocksize == 0);
-    std::string res;
-    std::string pc = iv;
+    assert(iv.size() == BlockCipher::blocksize);
+    assert(ctext.size() % BlockCipher::blocksize == 0);
+    ptext->resize(ctext.size());
 
-    for (size_t i = 0; i < ciphertext.size(); i += BlockCipher::blocksize) {
-        std::string nc = ciphertext.substr(i, BlockCipher::blocksize);
-        std::string x = c->block_decrypt(nc);
-        std::string p;
+    for (size_t i = 0; i < ctext.size(); i += BlockCipher::blocksize) {
+        uint8_t x[BlockCipher::blocksize];
+        c->block_decrypt(&ctext[i], x);
         for (size_t j = 0; j < BlockCipher::blocksize; j++)
-            p += (x[j] ^ pc[j]);
-        res += p;
-        pc = nc;
+            (*ptext)[i+j] = x[j] ^ ((i == 0) ? iv[j]
+                                             : ctext[i+j-BlockCipher::blocksize]);
     }
-
-    return res;
 }
