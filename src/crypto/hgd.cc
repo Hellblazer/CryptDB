@@ -28,10 +28,9 @@ AFC(RR I)
 static RR
 RAND(PRNG *prng, long precision)
 {
-    auto rbits = prng->rand_vec<uint8_t>(precision/8 + 1);
-    ZZ rzz = ZZFromBytes(&rbits[0], rbits.size());
+    ZZ rzz = prng->rand_zz(precision);
     ZZ div = to_ZZ(1) << precision;
-    return to_RR(rzz % div) / to_RR(div);
+    return to_RR(rzz) / to_RR(div);
 }
 
 ZZ
