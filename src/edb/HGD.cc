@@ -185,7 +185,7 @@ HGD(ZZ KK, ZZ NN1, ZZ NN2, ZZ SEED, unsigned int seedLen,
     double CON = 57.56462733;
     double DELTAL = 0.0078;
     double DELTAU = 0.0034;
-    double SCALE = 1.25;
+    double SCALE = 1.0e25;
 
     bool DEBUG = false;
 /**
