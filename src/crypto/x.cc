@@ -45,7 +45,7 @@ test_block_cipher(T *c, PRNG *u, const std::string &cname)
     }
 
     cout << cname << "-cbc speed: "
-         << cbc_pt.size() * nperf * 1000 * 1000 / cbc_perf.lap() << endl;
+         << cbc_perf_pt.size() * nperf * 1000 * 1000 / cbc_perf.lap() << endl;
 
     timer cmc_perf;
     for (uint i = 0; i < nperf; i++) {
@@ -57,7 +57,7 @@ test_block_cipher(T *c, PRNG *u, const std::string &cname)
     }
 
     cout << cname << "-cmc speed: "
-         << cbc_pt.size() * nperf * 1000 * 1000 / cmc_perf.lap() << endl;
+         << cbc_perf_pt.size() * nperf * 1000 * 1000 / cmc_perf.lap() << endl;
 }
 
 int

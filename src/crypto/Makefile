@@ -15,7 +15,7 @@ clean:
 %.o: %.cc $(wildcard *.hh)
 	$(CXX) $< -c -o $@ $(CXXFLAGS)
 
-x: %: %.o $(LIBOBJS)
+$(PROGS): %: %.o $(LIBOBJS)
 	$(CXX) $^ -o $@ $(LDFLAGS)
 
 # vim: set noexpandtab:
