@@ -71,7 +71,9 @@ test_ope(int pbits, int cbits)
     OPE o("hello world", pbits, cbits);
     RR maxerr = to_RR(0);
 
-    for (uint i = 1; i < 200; i++) {
+    timer t;
+    enum { niter = 100 };
+    for (uint i = 1; i < niter; i++) {
         ZZ pt = u.rand_zz_mod(to_ZZ(1) << pbits);
         ZZ ct = o.encrypt(pt);
         ZZ pt2 = o.decrypt(ct);
@@ -84,9 +86,10 @@ test_ope(int pbits, int cbits)
         maxerr = max(error, maxerr);
         // cout << "pt guess is " << error << " off" << endl;
     }
-
-    cout << "~#bits leaked for pbits=" << pbits << ", cbits=" << cbits << ": "
-         << NumBits(to_ZZ(1/maxerr)) << endl;
+    cout << "--- ope: " << pbits << "-bit plaintext, "
+         << cbits << "-bit ciphertext" << endl
+         << "  enc/dec pair: " << t.lap() / niter << " usec; "
+         << "~#bits leaked: " << NumBits(to_ZZ(1/maxerr)) << endl;
 }
 
 int
