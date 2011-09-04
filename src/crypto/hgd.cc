@@ -58,7 +58,7 @@ HGD(const ZZ &KK, const ZZ &NN1, const ZZ &NN2, PRNG *prng)
     double CON = 57.56462733;
     double DELTAL = 0.0078;
     double DELTAU = 0.0034;
-    double SCALE = 1.25;
+    double SCALE = 1.0e25;
 
     /*
      * CHECK PARAMETER VALIDITY
@@ -115,33 +115,27 @@ HGD(const ZZ &KK, const ZZ &NN1, const ZZ &NN2, PRNG *prng)
          * Shouldn't really happen in OPE because M will be on the order of N1.
          * In practice, this does get invoked.
          */
+        RR W;
         if (K < N2) {
-            P = exp(CON + AFC(N2) + AFC(N1+N2-K) - AFC(N2-K) - AFC(N1+N2));
+            W = exp(CON + AFC(N2) + AFC(N1+N2-K) - AFC(N2-K) - AFC(N1+N2));
         } else {
-            P = exp(CON + AFC(N1) + AFC(K) - AFC(K-N2) - AFC(N1+N2));
+            W = exp(CON + AFC(N1) + AFC(K) - AFC(K-N2) - AFC(N1+N2));
         }
 
-        bool flagTen = true;
-        bool flagTwenty = true;
-        /* 10 */
-        while (flagTen) {
-            flagTen = false;
-            IX = MINJX;
-            U  = RAND(prng, precision) * SCALE;
-            /* 20 */
-            while (flagTwenty) {
-                flagTwenty = false;
-                if (U > P)  {
-                    U  = U - P;
-                    P  = P * (N1-IX)*(K-IX);
-                    IX = IX + 1;
-                    P  = P / IX / (N2-K+IX);
-                    if (IX > MAXJX) {
-                        flagTen = true;
-                    }
-                    flagTwenty = true;
-                }
-            }
+ label10:
+        P  = W;
+        IX = MINJX;
+        U  = RAND(prng, precision) * SCALE;
+
+ label20:
+        if (U > P) {
+            U  = U - P;
+            P  = P * (N1-IX)*(K-IX);
+            IX = IX + 1;
+            P  = P / IX / (N2-K+IX);
+            if (IX > MAXJX)
+                goto label10;
+            goto label20;
         }
     } else {
         /*
@@ -168,8 +162,7 @@ HGD(const ZZ &KK, const ZZ &NN1, const ZZ &NN2, PRNG *prng)
         P2 = P1 + KL / LAMDL;
         P3 = P2 + KR / LAMDR;
 
- flagThirtyB:
-        /* 30 */
+ label30:
         U = RAND(prng, precision) * P3;
         V = RAND(prng, precision);
 
@@ -180,14 +173,14 @@ HGD(const ZZ &KK, const ZZ &NN1, const ZZ &NN2, PRNG *prng)
             /* ...LEFT TAIL... */
             IX = XL + log(V)/LAMDL;
             if (IX < MINJX) {
-                goto flagThirtyB;
+                goto label30;
             }
             V = V * (U-P1) * LAMDL;
         } else  {
             /* ...RIGHT TAIL... */
             IX = XR - log(V)/LAMDR;
             if (IX > MAXJX)  {
-                goto flagThirtyB;
+                goto label30;
             }
             V = V * (U-P2) * LAMDR;
         }
@@ -279,7 +272,7 @@ HGD(const ZZ &KK, const ZZ &NN1, const ZZ &NN2, PRNG *prng)
             }
         }
         if (REJECT)  {
-            goto flagThirtyB;
+            goto label30;
         }
     }
 
