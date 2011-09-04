@@ -1,3 +1,4 @@
+#include <assert.h>
 #include "HGD.h"
 #include <stdio.h>
 #include "NTL/RR.h"
@@ -197,7 +198,7 @@ HGD(ZZ KK, ZZ NN1, ZZ NN2, ZZ SEED, unsigned int seedLen,
           (KK > NN1 + NN2 )  ) {
         cerr << "invalid parameters NN1 " << NN1 << " NN2 " <<  NN2 <<
         " KK " << KK << "\n";
-        myassert(false, "invalid parameters NN1 \n");
+        assert(false);
 
     }
 /**
@@ -290,9 +291,7 @@ HGD(ZZ KK, ZZ NN1, ZZ NN2, ZZ SEED, unsigned int seedLen,
             while (flagTwenty) {
                 countFlagTwenty++;
                 if (countFlagTwenty > 1000) {
-                    myassert(
-                        false,
-                        "passed through label twenty more than 1000 times...\n");
+                    assert(false);
                 }
                 flagTwenty = false;
                 if (U > P)  {
