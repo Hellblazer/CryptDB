@@ -423,7 +423,7 @@ flagThirtyB:
                        3.))  + XN * S2 *
                      (1.+S2*
                       (-0.5+S2/
-                       3))  + XK * T *
+                       3.))  + XK * T *
                      (1.+T*(-.5+T/3.))   + NM * E * (1.+E*(-.5+E/3.));
 /*
    C           ...TEST AGAINST UPPER BOUND...
