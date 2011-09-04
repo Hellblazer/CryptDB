@@ -109,7 +109,7 @@ testOPE()
     unsigned int plaintextSizes[] = {16,  32, 64,  128, 256, 512, 1024};
     unsigned int ciphertextSizes[] = {32, 64, 128, 256, 288, 768, 1536};
 
-    unsigned int noValues = 1;
+    unsigned int noValues = 100;
 
     string key = "secret aes key!!";
 

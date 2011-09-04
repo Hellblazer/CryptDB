@@ -72,7 +72,7 @@ test_ope(int pbits, int cbits)
     RR maxerr = to_RR(0);
 
     for (uint i = 1; i < 100; i++) {
-        ZZ pt = to_ZZ(u.rand<uint32_t>());
+        ZZ pt = u.rand_zz_mod(to_ZZ(1) << pbits);
         ZZ ct = o.encrypt(pt);
         ZZ pt2 = o.decrypt(ct);
         assert(pt2 == pt);
@@ -103,6 +103,7 @@ main(int ac, char **av)
     blowfish bf(u.rand_vec<uint8_t>(128));
     test_block_cipher(&bf, &u, "blowfish");
 
-    test_ope(32, 64);
-    test_ope(32, 128);
+    for (int pbits = 32; pbits < 128; pbits += 32)
+        for (int cbits = pbits + 32; cbits < pbits + 128; cbits += 32)
+            test_ope(pbits, cbits);
 }
