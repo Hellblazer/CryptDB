@@ -265,10 +265,11 @@ HGD(ZZ KK, ZZ NN1, ZZ NN2, ZZ SEED, unsigned int seedLen,
 /*
    C        ...INVERSE TRANSFORMATION...
  */
+        RR W;
         if (K < N2) {
-            P = exp(CON + AFC(N2) + AFC(N1+N2-K) - AFC(N2-K) - AFC(N1+N2));
+            W = exp(CON + AFC(N2) + AFC(N1+N2-K) - AFC(N2-K) - AFC(N1+N2));
         } else {
-            P = exp(CON + AFC(N1) + AFC(K) - AFC(K-N2) - AFC(N1+N2));
+            W = exp(CON + AFC(N1) + AFC(K) - AFC(K-N2) - AFC(N1+N2));
         }
 
         bool flagTen = true;
@@ -284,11 +285,12 @@ HGD(ZZ KK, ZZ NN1, ZZ NN2, ZZ SEED, unsigned int seedLen,
                 }
             }
             flagTen = false;
+            P  = W;
             IX = MINJX;
             U  = randomValue(SEED, seedLen) * SCALE;
             /* 20 */
             countFlagTwenty = 0;
-            while (flagTwenty) {
+            while (flagTwenty && !flagTen) {
                 countFlagTwenty++;
                 if (countFlagTwenty > 1000) {
                     assert(false);
