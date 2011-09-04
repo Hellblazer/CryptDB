@@ -28,9 +28,10 @@ AFC(RR I)
 static RR
 RAND(PRNG *prng, long precision)
 {
-    auto rbits = prng->rand_vec<uint8_t>(precision);
+    auto rbits = prng->rand_vec<uint8_t>(precision/8 + 1);
     ZZ rzz = ZZFromBytes(&rbits[0], rbits.size());
-    return to_RR(rzz) / to_RR(to_ZZ(1) << precision);
+    ZZ div = to_ZZ(1) << precision;
+    return to_RR(rzz % div) / to_RR(div);
 }
 
 ZZ
@@ -215,19 +216,19 @@ HGD(const ZZ &KK, const ZZ &NN1, const ZZ &NN2, PRNG *prng)
             /* ...SQUEEZE USING UPPER AND LOWER BOUNDS... */
 
             RR Y   = IX;
-            RR Y1  = Y + 1;
+            RR Y1  = Y + 1.;
             RR YM  = Y - M;
-            RR YN  = N1 - Y + 1;
-            RR YK  = K - Y + 1;
+            RR YN  = N1 - Y + 1.;
+            RR YK  = K - Y + 1.;
             NK     = N2 - K + Y1;
             RR R   = -YM / Y1;
-            RR S2  = YM / YN;
+            S      = YM / YN;
             RR T   = YM / YK;
             RR E   = -YM / NK;
-            RR G   = YN * YK / (Y1*NK) - 1;
+            RR G   = YN * YK / (Y1*NK) - 1.;
             RR DG  = to_RR(1.0);
-            if (G < 0)  { DG = 1.0 +G; }
-            RR GU  = G * (1+G*(-0.5+G/3.0));
+            if (G < 0)  { DG = 1.0 + G; }
+            RR GU  = G * (1.+G*(-0.5+G/3.0));
             RR GL  = GU - 0.25 * sqr(sqr(G)) / DG;
             RR XM  = M + 0.5;
             RR XN  = N1 - M + 0.5;
@@ -235,7 +236,7 @@ HGD(const ZZ &KK, const ZZ &NN1, const ZZ &NN2, PRNG *prng)
             NM     = N2 - K + XM;
             RR UB  = Y * GU - M * GL + DELTAU +
                      XM * R * (1.+R*(-.5+R/3.)) +
-                     XN * S2 * (1.+S2*(-0.5+S2/3.)) +
+                     XN * S * (1.+S*(-.5+S/3.)) +
                      XK * T * (1.+T*(-.5+T/3.)) +
                      NM * E * (1.+E*(-.5+E/3.));
 
@@ -248,20 +249,22 @@ HGD(const ZZ &KK, const ZZ &NN1, const ZZ &NN2, PRNG *prng)
                 /* ...TEST AGAINST LOWER BOUND... */
 
                 RR DR = XM * sqr(sqr(R));
-                if (R < 0)  {
+                if (R < 0) {
                     DR = DR / (1.+R);
                 }
-                RR DS = XN * sqr(sqr(S2));
-                if (S2 < 0) {
-                    DS = DS / (1+S2);
+                RR DS = XN * sqr(sqr(S));
+                if (S < 0) {
+                    DS = DS / (1.+S);
                 }
                 RR DT = XK * sqr(sqr(T));
-                if (T < 0)  { DT = DT / (1+T); }
-                RR DE = NM * sqr(sqr(E));
-                if (E < 0)  {
-                    DE = DE / (1+E);
+                if (T < 0) {
+                    DT = DT / (1.+T);
                 }
-                if (ALV < UB-0.25*(DR+DS+DT+DE)  +(Y+M)*(GL-GU)-DELTAL) {
+                RR DE = NM * sqr(sqr(E));
+                if (E < 0) {
+                    DE = DE / (1.+E);
+                }
+                if (ALV < UB-0.25*(DR+DS+DT+DE) + (Y+M)*(GL-GU) - DELTAL) {
                     REJECT = false;
                 } else {
                     /* ...STIRLING'S FORMULA TO MACHINE ACCURACY... */
