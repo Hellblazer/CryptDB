@@ -58,12 +58,26 @@ ope_search(size_t pbits, size_t cbits, const std::string &key, CB go_low)
 }
 
 ZZ
-OPE::encrypt(const ZZ &ptext)
+OPE::encrypt(const ZZ &ptext, int offset)
 {
     domain_range dr =
         ope_search(pbits, cbits, key,
                    [&ptext](const ZZ &d, const ZZ &) { return ptext < d; });
-    return dr.r_lo;
+
+    ZZ nrange = dr.r_hi - dr.r_lo + 1;
+    ZZ nrquad = nrange / 4;
+    static urandom urand;
+
+    switch (offset) {
+    case -1:
+        return dr.r_lo + urand.rand_zz_mod(nrquad);
+    case 0:
+        return dr.r_lo + nrquad + urand.rand_zz_mod(nrquad * 2);
+    case 1:
+        return dr.r_lo + nrquad * 3 + urand.rand_zz_mod(nrquad);
+    default:
+        assert(0);
+    }
 }
 
 ZZ

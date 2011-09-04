@@ -84,7 +84,7 @@ main(int ac, char **av)
         ZZ pt = to_ZZ(u.rand<uint32_t>());
         ZZ ct = o.encrypt(pt);
         ZZ pt2 = o.decrypt(ct);
-        // cout << pt << " -> " << ct << " -> " << pt2 << endl;
+        cout << pt << " -> " << o.encrypt(pt, -1) << "/" << ct << "/" << o.encrypt(pt, 1) << " -> " << pt2 << endl;
         assert(pt2 == pt);
     }
 }
