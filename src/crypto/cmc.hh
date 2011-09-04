@@ -86,8 +86,8 @@ cmc_decrypt(BlockCipher *c,
         for (size_t j = 0; j < BlockCipher::blocksize; j++)
             (*ptext)[i+j] ^= m[j];
     }
-
     memset(x, 0, BlockCipher::blocksize);
+
     for (size_t i = 0; i < ctext.size(); i += BlockCipher::blocksize) {
         uint8_t y[BlockCipher::blocksize];
         c->block_decrypt(&(*ptext)[i], y);
