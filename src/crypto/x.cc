@@ -5,9 +5,12 @@
 #include <crypto/prng.hh>
 #include <crypto/aes.hh>
 #include <crypto/blowfish.hh>
+#include <crypto/ope.hh>
 #include <util/timer.hh>
+#include <NTL/ZZ.h>
 
 using namespace std;
+using namespace NTL;
 
 template<class T>
 void
@@ -75,4 +78,13 @@ main(int ac, char **av)
 
     blowfish bf(u.rand_vec<uint8_t>(128));
     test_block_cipher(&bf, &u, "blowfish");
+
+    OPE o("hello world", 32, 64);
+    for (uint i = 1; i < 100; i++) {
+        ZZ pt = to_ZZ(u.rand<uint32_t>());
+        ZZ ct = o.encrypt(pt);
+        ZZ pt2 = o.decrypt(ct);
+        // cout << pt << " -> " << ct << " -> " << pt2 << endl;
+        assert(pt2 == pt);
+    }
 }
