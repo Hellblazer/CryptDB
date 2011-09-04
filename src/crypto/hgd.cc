@@ -28,8 +28,8 @@ AFC(RR I)
 static RR
 RAND(PRNG *prng, long precision)
 {
-    ZZ rzz = prng->rand_zz(precision);
     ZZ div = to_ZZ(1) << precision;
+    ZZ rzz = prng->rand_zz_mod(div);
     return to_RR(rzz) / to_RR(div);
 }
 

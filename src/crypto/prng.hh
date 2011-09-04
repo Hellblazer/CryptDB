@@ -29,10 +29,10 @@ class PRNG {
         return buf;
     }
 
-    NTL::ZZ rand_zz(size_t nbits) {
-        uint8_t buf[nbits/8 + 1];
+    NTL::ZZ rand_zz_mod(const NTL::ZZ &max) {
+        uint8_t buf[NumBits(max)/8 + 1];
         rand_bytes(sizeof(buf), buf);
-        return NTL::ZZFromBytes(buf, sizeof(buf)) % (NTL::to_ZZ(1) << nbits);
+        return NTL::ZZFromBytes(buf, sizeof(buf)) % max;
     }
 
     virtual ~PRNG() {}
