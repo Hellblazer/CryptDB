@@ -19,6 +19,9 @@ Connect::Connect(string server, string user, string passwd,
     uint proto = MYSQL_PROTOCOL_TCP;
     mysql_options(conn, MYSQL_OPT_PROTOCOL, &proto);
 
+    /* Connect to the real server even if linked against embedded libmysqld */
+    mysql_options(conn, MYSQL_OPT_USE_REMOTE_CONNECTION, 0);
+
     /* Connect to database */
     if (!mysql_real_connect(conn, server.c_str(), user.c_str(),
                             passwd.c_str(), dbname.c_str(), port, 0, 0)) {
