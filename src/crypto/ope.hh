@@ -1,7 +1,18 @@
 #pragma once
 
 #include <string>
+#include <map>
 #include <NTL/ZZ.h>
+#include <crypto/prng.hh>
+
+class ope_domain_range {
+ public:
+    ope_domain_range(const NTL::ZZ &d_arg,
+                     const NTL::ZZ &r_lo_arg,
+                     const NTL::ZZ &r_hi_arg)
+        : d(d_arg), r_lo(r_lo_arg), r_hi(r_hi_arg) {}
+    NTL::ZZ d, r_lo, r_hi;
+};
 
 class OPE {
  public:
@@ -21,4 +32,13 @@ class OPE {
  private:
     std::string key;
     size_t pbits, cbits;
+    std::map<NTL::ZZ, NTL::ZZ> dgap_cache;
+
+    template<class CB>
+    ope_domain_range search(CB go_low);
+
+    template<class CB>
+    ope_domain_range lazy_sample(const NTL::ZZ &d_lo, const NTL::ZZ &d_hi,
+                                 const NTL::ZZ &r_lo, const NTL::ZZ &r_hi,
+                                 CB go_low, PRNG *prng);
 };
