@@ -8,6 +8,7 @@
 #include <crypto/ope.hh>
 #include <util/timer.hh>
 #include <NTL/ZZ.h>
+#include <NTL/RR.h>
 
 using namespace std;
 using namespace NTL;
@@ -63,6 +64,29 @@ test_block_cipher(T *c, PRNG *u, const std::string &cname)
          << cbc_perf_pt.size() * nperf * 1000 * 1000 / cmc_perf.lap() << endl;
 }
 
+static void
+test_ope(int pbits, int cbits)
+{
+    urandom u;
+    OPE o("hello world", pbits, cbits);
+    RR maxerr = to_RR(0);
+
+    for (uint i = 1; i < 100; i++) {
+        ZZ pt = to_ZZ(u.rand<uint32_t>());
+        ZZ ct = o.encrypt(pt);
+        ZZ pt2 = o.decrypt(ct);
+        assert(pt2 == pt);
+        // cout << pt << " -> " << o.encrypt(pt, -1) << "/" << ct << "/" << o.encrypt(pt, 1) << " -> " << pt2 << endl;
+
+        ZZ guess = ct / (to_ZZ(1) << (cbits-pbits));
+        RR error = abs(to_RR(guess) / to_RR(pt) - 1);
+        maxerr = max(error, maxerr);
+        // cout << "pt guess is " << error << " off" << endl;
+    }
+
+    cout << "max error (" << pbits << ", " << cbits << "): " << maxerr << endl;
+}
+
 int
 main(int ac, char **av)
 {
@@ -79,12 +103,6 @@ main(int ac, char **av)
     blowfish bf(u.rand_vec<uint8_t>(128));
     test_block_cipher(&bf, &u, "blowfish");
 
-    OPE o("hello world", 32, 64);
-    for (uint i = 1; i < 100; i++) {
-        ZZ pt = to_ZZ(u.rand<uint32_t>());
-        ZZ ct = o.encrypt(pt);
-        ZZ pt2 = o.decrypt(ct);
-        cout << pt << " -> " << o.encrypt(pt, -1) << "/" << ct << "/" << o.encrypt(pt, 1) << " -> " << pt2 << endl;
-        assert(pt2 == pt);
-    }
+    test_ope(32, 64);
+    test_ope(32, 128);
 }
