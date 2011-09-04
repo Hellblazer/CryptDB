@@ -235,7 +235,7 @@ HGD(const ZZ &KK, const ZZ &NN1, const ZZ &NN2, PRNG *prng)
             NM     = N2 - K + XM;
             RR UB  = Y * GU - M * GL + DELTAU +
                      XM * R * (1.+R*(-.5+R/3.)) +
-                     XN * S2 * (1.+S2*(-0.5+S2/3)) +
+                     XN * S2 * (1.+S2*(-0.5+S2/3.)) +
                      XK * T * (1.+T*(-.5+T/3.)) +
                      NM * E * (1.+E*(-.5+E/3.));
 
