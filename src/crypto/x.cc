@@ -71,20 +71,22 @@ test_ope(int pbits, int cbits)
     OPE o("hello world", pbits, cbits);
     RR maxerr = to_RR(0);
 
-    for (uint i = 1; i < 100; i++) {
+    for (uint i = 1; i < 200; i++) {
         ZZ pt = u.rand_zz_mod(to_ZZ(1) << pbits);
         ZZ ct = o.encrypt(pt);
         ZZ pt2 = o.decrypt(ct);
         assert(pt2 == pt);
         // cout << pt << " -> " << o.encrypt(pt, -1) << "/" << ct << "/" << o.encrypt(pt, 1) << " -> " << pt2 << endl;
 
+        RR::SetPrecision(cbits+pbits);
         ZZ guess = ct / (to_ZZ(1) << (cbits-pbits));
         RR error = abs(to_RR(guess) / to_RR(pt) - 1);
         maxerr = max(error, maxerr);
         // cout << "pt guess is " << error << " off" << endl;
     }
 
-    cout << "max error (" << pbits << ", " << cbits << "): " << maxerr << endl;
+    cout << "~#bits leaked for pbits=" << pbits << ", cbits=" << cbits << ": "
+         << NumBits(to_ZZ(1/maxerr)) << endl;
 }
 
 int
@@ -103,7 +105,7 @@ main(int ac, char **av)
     blowfish bf(u.rand_vec<uint8_t>(128));
     test_block_cipher(&bf, &u, "blowfish");
 
-    for (int pbits = 32; pbits < 128; pbits += 32)
-        for (int cbits = pbits + 32; cbits < pbits + 128; cbits += 32)
+    for (int pbits = 32; pbits <= 128; pbits += 32)
+        for (int cbits = pbits + 32; cbits <= pbits + 128; cbits += 32)
             test_ope(pbits, cbits);
 }
