@@ -16,52 +16,61 @@ domain_gap(const ZZ &ndomain, const ZZ &nrange, const ZZ &rgap, PRNG *prng)
     return HGD(rgap, ndomain, nrange-ndomain, prng);
 }
 
-static ZZ
-lazy_sample(const ZZ &ndomain, const ZZ &nrange, const ZZ &m, PRNG *prng)
-{
-    assert(nrange >= ndomain);
-    assert(m >= 0 && m < ndomain);
+enum class target_type { domain, range };
 
-    if (ndomain == 1) {
-        return to_ZZ(0);   /* should randomize within nrange */
-    }
+class domain_range {
+ public:
+    domain_range(const ZZ &d_arg, const ZZ &r_lo_arg, const ZZ &r_hi_arg)
+        : d(d_arg), r_lo(r_lo_arg), r_hi(r_hi_arg) {}
+
+    ZZ d;
+    ZZ r_lo;
+    ZZ r_hi;
+};
+
+static domain_range
+lazy_sample(const ZZ &d_lo, const ZZ &d_hi,
+            const ZZ &r_lo, const ZZ &r_hi,
+            const ZZ &target, target_type tt,
+            PRNG *prng)
+{
+    ZZ ndomain = d_hi - d_lo + 1;
+    ZZ nrange  = r_hi - r_lo + 1;
+
+    assert(nrange >= ndomain);
+    if (tt == target_type::domain)
+        assert(target >= d_lo && target <= d_hi);
+    else
+        assert(target >= r_lo && target <= r_hi);
+
+    if (ndomain == 1)
+        return domain_range(d_lo, r_lo, r_hi);
 
     ZZ rgap = nrange/2;
     ZZ dgap = domain_gap(ndomain, nrange, rgap, prng);
-    if (m < dgap)
-        return lazy_sample(dgap, rgap, m, prng);
+    bool go_low = (tt == target_type::domain) ? (target < d_lo + dgap) : (target < r_lo + rgap);
+    if (go_low)
+        return lazy_sample(d_lo, d_lo + dgap - 1, r_lo, r_lo + rgap - 1, target, tt, prng);
     else
-        return rgap + lazy_sample(ndomain-dgap, nrange-rgap, m-dgap, prng);
-}
-
-static ZZ
-lazy_sample_inv(const ZZ &ndomain, const ZZ &nrange, const ZZ &c, PRNG *prng)
-{
-    assert(nrange >= ndomain);
-    assert(c >= 0 && c < nrange);
-
-    if (ndomain == 1) {
-        return to_ZZ(0);
-    }
-
-    ZZ rgap = nrange/2;
-    ZZ dgap = domain_gap(ndomain, nrange, rgap, prng);
-    if (c < rgap)
-        return lazy_sample_inv(dgap, rgap, c, prng);
-    else
-        return dgap + lazy_sample_inv(ndomain-dgap, nrange-rgap, c-rgap, prng);
+        return lazy_sample(d_lo + dgap, d_hi, r_lo + rgap, r_hi, target, tt, prng);
 }
 
 ZZ
 OPE::encrypt(const ZZ &ptext)
 {
     streamrng<arc4> r(key);
-    return lazy_sample(to_ZZ(1) << pbits, to_ZZ(1) << cbits, ptext, &r);
+    domain_range dr = lazy_sample(to_ZZ(0), to_ZZ(1) << pbits,
+                                  to_ZZ(0), to_ZZ(1) << cbits,
+                                  ptext, target_type::domain, &r);
+    return dr.r_lo;
 }
 
 ZZ
 OPE::decrypt(const ZZ &ctext)
 {
     streamrng<arc4> r(key);
-    return lazy_sample_inv(to_ZZ(1) << pbits, to_ZZ(1) << cbits, ctext, &r);
+    domain_range dr = lazy_sample(to_ZZ(0), to_ZZ(1) << pbits,
+                                  to_ZZ(0), to_ZZ(1) << cbits,
+                                  ctext, target_type::range, &r);
+    return dr.d;
 }
