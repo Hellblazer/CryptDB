@@ -32,6 +32,13 @@ OPE::lazy_sample(const ZZ &d_lo, const ZZ &d_hi,
     ZZ rgap = nrange/2;
     ZZ dgap;
 
+    /*
+     * XXX bug: the arc4 PRNG changes in different ways depending on whether
+     * we find dgap in the cache or not.  One solution may be to start a fresh
+     * PRNG for each call to lazy_sample(); a cheaper-to-initialize PRNG, e.g.
+     * something based on AES, may be a good plan then.
+     */
+
     auto ci = dgap_cache.find(r_lo + rgap);
     if (ci == dgap_cache.end()) {
         dgap = domain_gap(ndomain, nrange, rgap, prng);
@@ -61,6 +68,13 @@ OPE::encrypt(const ZZ &ptext, int offset)
 {
     ope_domain_range dr =
         search([&ptext](const ZZ &d, const ZZ &) { return ptext < d; });
+
+    /*
+     * XXX support a flag (in constructor?) for deterministic vs.
+     * randomized OPE mode.  We still need deterministic OPE mode
+     * for multi-key sorting (in which cases equality at higher
+     * levels matters).
+     */
 
     ZZ nrange = dr.r_hi - dr.r_lo + 1;
     ZZ nrquad = nrange / 4;
