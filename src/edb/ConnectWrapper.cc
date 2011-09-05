@@ -74,7 +74,7 @@ connect(lua_State *L)
 
     if (!cl) {
       cerr << "starting proxy\n";
-        cryptdb_logger::setConf(string(getenv("CRYPTDB_LOG")));
+        cryptdb_logger::setConf(string(getenv("CRYPTDB_LOG")?:""));
 
         LOG(wrapper) << "connect " << client << "; "
                      << "server = " << server << ":" << port << "; "
@@ -82,7 +82,7 @@ connect(lua_State *L)
                      << "password = " << psswd << "; "
                      << "database = " << dbname;
 
-        string mode = getenv("CRYPTDB_MODE");
+        string mode = getenv("CRYPTDB_MODE")?:"";
         if (mode == "single") {
             cl = new EDBProxy(server, user, psswd, dbname, port, false);
         } else if (mode == "multi") {
