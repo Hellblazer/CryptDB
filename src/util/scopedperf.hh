@@ -1,4 +1,11 @@
 #pragma once
+
+/*
+ * Canonical location:
+ *   git+ssh://amsterdam.csail.mit.edu/home/am1/prof/proftools.git
+ *   under spmc/lib/scopedperf.hh
+ */
+
 #include <string>
 #include <iostream>
 #include <iomanip>
@@ -83,20 +90,31 @@ class ctrgroup_chain<> {
   ctrgroup_chain() {}
   static const uint nctr = 0;
   void get_samples(uint64_t *v) const {}
+  void get_delta(uint64_t *delta, uint64_t *prev) const {}
   std::vector<std::string> get_names() const { return {}; }
 };
 
 template<typename One, typename... Others>
 class ctrgroup_chain<One, Others...> : ctrgroup_chain<Others...> {
  public:
-  ctrgroup_chain(const One *x, const Others*... y)
-    : ctrgroup_chain<Others...>(y...), ctr(x) {}
+  ctrgroup_chain(One *x, Others*... y)
+    : ctrgroup_chain<Others...>(y...), ctr(x)
+  {
+    x->setup();
+  }
 
   static const uint nctr = 1 + ctrgroup_chain<Others...>::nctr;
 
   void get_samples(uint64_t *v) const {
     v[0] = ctr->sample();
     ctrgroup_chain<Others...>::get_samples(v+1);
+  }
+
+  void get_delta(uint64_t *delta, uint64_t *prev) const {
+    uint64_t x = ctr->sample();
+    *delta = (x - *prev) & ctr->mask;
+    *prev = x;
+    ctrgroup_chain<Others...>::get_delta(delta+1, prev+1);
   }
 
   std::vector<std::string> get_names() const {
@@ -111,7 +129,7 @@ class ctrgroup_chain<One, Others...> : ctrgroup_chain<Others...> {
 
 template<typename... Counters>
 ctrgroup_chain<Counters...>
-ctrgroup(const Counters*... args)
+ctrgroup(Counters*... args)
 {
   return ctrgroup_chain<Counters...>(args...);
 }
@@ -134,8 +152,7 @@ class perfsum_base {
     auto sums = get_sums();
     std::sort(sums->begin(), sums->end(),
 	      [](perfsum_base *a, perfsum_base *b) { return a->name < b->name; });
-    for (auto psi = sums->begin(); psi != sums->end(); psi++) {
-      perfsum_base *ps = *psi;
+    for (perfsum_base *ps: *sums) {
       if (ps->disp == hide || !ps->get_enabled())
 	continue;
       auto p = ps->get_stats();
@@ -152,11 +169,8 @@ class perfsum_base {
 
   static void resetall() {
     scoped_spinlock x(get_sums_lock());
-    auto sums = get_sums();
-    for (auto psi = sums->begin(); psi != sums->end(); psi++) {
-      perfsum_base *ps = *psi;
+    for (perfsum_base *ps: *get_sums())
       ps->reset();
-    }
   }
 
   virtual std::vector<std::pair<uint64_t, uint64_t> > get_stats() const = 0;
@@ -170,10 +184,8 @@ class perfsum_base {
 			int w0, int w, Callback f)
   {
     std::cout << std::left << std::setw(w0) << rowname;
-    for (auto iter = r.begin(); iter != r.end(); iter++) {
-      auto elem = *iter;
+    for (const auto &elem: r)
       std::cout << std::left << std::setw(w) << f(elem) << " ";
-    }
     std::cout << std::endl;
   }
 
@@ -194,9 +206,16 @@ class perfsum_base {
 template<typename Enabler, typename... Counters>
 class perfsum_ctr : public perfsum_base, public Enabler {
  public:
-  perfsum_ctr(const ctrgroup_chain<Counters...> *c, const std::string &n,
+  perfsum_ctr(const ctrgroup_chain<Counters...> *c,
+	      const std::string &n, display_opt d)
+    : perfsum_base(n, d), cg(c), base(0)
+  {
+    reset();
+  }
+
+  perfsum_ctr(const std::string &n,
 	      const perfsum_ctr<Enabler, Counters...> *basesum, display_opt d)
-    : perfsum_base(n, d), cg(c), base(basesum)
+    : perfsum_base(n, d), cg(basesum->cg), base(basesum)
   {
     reset();
   }
@@ -206,20 +225,11 @@ class perfsum_ctr : public perfsum_base, public Enabler {
   }
 
   void record(uint cpuid, uint64_t *s) {
-    uint64_t x[cg->nctr];
-    cg->get_samples(x);
+    uint64_t delta[cg->nctr];
+    cg->get_delta(delta, s);
 
-    for (uint i = 0; i < cg->nctr; i++) {
-      /*
-       * XXX
-       * Not all counters are 64-bit wide.
-       * E.g., Intel's 0x00410224 is 48 bits on Westmere-EX.
-       * Perhaps the answer is to have a counter width template argument
-       * for each namedctr, and to move the subtraction logic there..
-       */
-      stat[cpuid].sum[i] += x[i] - s[i];
-      s[i] = x[i];
-    }
+    for (uint i = 0; i < cg->nctr; i++)
+      stat[cpuid].sum[i] += delta[i];
     stat[cpuid].count++;
   }
 
@@ -268,73 +278,88 @@ class perfsum_ctr : public perfsum_base, public Enabler {
   }
 };
 
+template<typename Enabler, typename... Counters>
+class perfsum_ctr_inlinegroup :
+  public ctrgroup_chain<Counters...>,
+  public perfsum_ctr<Enabler, Counters...>
+{
+ public:
+  perfsum_ctr_inlinegroup(const std::string &n, Counters*... ctrs,
+			  perfsum_base::display_opt d)
+    : ctrgroup_chain<Counters...>(ctrs...),
+      perfsum_ctr<Enabler, Counters...>(this, n, d) {}
+};
+
 template<typename Enabler = default_enabler, typename... Counters>
 perfsum_ctr<Enabler, Counters...>
 perfsum(const std::string &name, const ctrgroup_chain<Counters...> *c,
 	const perfsum_base::display_opt d = perfsum_base::show)
 {
-  return perfsum_ctr<Enabler, Counters...>(c, name, 0, d);
+  return perfsum_ctr<Enabler, Counters...>(c, name, d);
+}
+
+template<typename Enabler = default_enabler, typename... Counters>
+perfsum_ctr_inlinegroup<Enabler, Counters...>
+perfsum_group(const std::string &name, Counters*... c)
+{
+  return perfsum_ctr_inlinegroup<Enabler, Counters...>(name, c..., perfsum_base::show);
 }
 
 template<typename Enabler, typename... Counters>
 perfsum_ctr<Enabler, Counters...>
-perfsum_frac(const std::string &name, const ctrgroup_chain<Counters...> *c,
+perfsum_frac(const std::string &name,
 	     const perfsum_ctr<Enabler, Counters...> *base)
 {
-  return perfsum_ctr<Enabler, Counters...>(c, name, base, perfsum_base::show);
+  return perfsum_ctr<Enabler, Counters...>(name, base, perfsum_base::show);
 }
 
 
 /*
  * namedctr &c: actual counter implementations.
  */
+template<uint64_t CounterWidth>
 class namedctr {
  public:
   namedctr(const std::string &n) : name(n) {}
+  void setup() {}
   const std::string name;
+  static const uint64_t mask =
+    ((1ULL << (CounterWidth - 1)) - 1) << 1 | 1;
 };
 
-class tsc_ctr : public namedctr {
+class tsc_ctr : public namedctr<64> {
  public:
   tsc_ctr() : namedctr("tsc") {}
   static uint64_t sample() {
-#if __LONG_MAX__==2147483647L
-    uint32_t a, d;
-#else
     uint64_t a, d;
-#endif
     __asm __volatile("rdtsc" : "=a" (a), "=d" (d));
-    return ((uint64_t) a) | (((uint64_t) d) << 32);
+    return a | (d << 32);
   }
 };
 
-class tscp_ctr : public namedctr {
+class tscp_ctr : public namedctr<64> {
  public:
   tscp_ctr() : namedctr("tscp") {}
   static uint64_t sample() {
-#if __LONG_MAX__==2147483647L
-    uint32_t a, c, d;
-#else
-    uint64_t a, c, d;
-#endif
+    uint64_t a, d, c;
     __asm __volatile("rdtscp" : "=a" (a), "=d" (d), "=c" (c));
-    return ((uint64_t) a) | (((uint64_t) d) << 32);
+    return a | (d << 32);
   }
 };
 
-class pmc_ctr : public namedctr {
+template<uint64_t CounterWidth>
+class pmc_ctr : public namedctr<CounterWidth> {
  public:
-  pmc_ctr(int n) : namedctr(mkname(n)), cn(n) {}
-  pmc_ctr(int n, const std::string &nm) : namedctr(nm), cn(n) {}
+  pmc_ctr(int n) : namedctr<CounterWidth>(mkname(n)), cn(n) {}
+  pmc_ctr(const std::string &nm) : namedctr<CounterWidth>(nm), cn(-1) {}
+
   uint64_t sample() const {
-#if __LONG_MAX__==2147483647L
-    uint32_t a, d;
-#else
     uint64_t a, d;
-#endif
     __asm __volatile("rdpmc" : "=a" (a), "=d" (d) : "c" (cn));
-    return ((uint64_t) a) | (((uint64_t) d) << 32);
+    return a | (d << 32);
   }
+
+  int cn;
 
  private:
   static std::string mkname(int n) {
@@ -342,16 +367,21 @@ class pmc_ctr : public namedctr {
     ss << "pmc" << n;
     return ss.str();
   }
-
-  const int cn;
 };
 
-class pmc_setup : public pmc_ctr {
+template<uint64_t CounterWidth = 64>
+class pmc_setup : public pmc_ctr<CounterWidth> {
  public:
-  pmc_setup(uint64_t v, const std::string &nm) : pmc_ctr(setup(v), nm) {}
+  pmc_setup(uint64_t v, const std::string &nm)
+    : pmc_ctr<CounterWidth>(nm), pmc_v(v) {}
 
- private:
-  static int setup(uint64_t v) {
+  void setup() {
+    if (pmc_ctr<CounterWidth>::cn >= 0)
+      return;
+
+    /*
+     * XXX detect how many counters the hardware has
+     */
     static bool pmcuse[4];
     static spinlock pmcuselock;
 
@@ -366,14 +396,17 @@ class pmc_setup : public pmc_ctr {
     // ugly but effective
     std::stringstream ss;
     ss << "for f in /sys/kernel/spmc/cpu*/" << n << "; do "
-       << "echo " << std::hex << v << " > $f; done";
+       << "echo " << std::hex << pmc_v << " > $f; done";
     assert(0 == system(ss.str().c_str()));
 
-    return n;
+    pmc_ctr<CounterWidth>::cn = n;
   }
+
+ private:
+  uint64_t pmc_v;
 };
 
-class tod_ctr : public namedctr {
+class tod_ctr : public namedctr<64> {
  public:
   tod_ctr() : namedctr("tod-usec") {}
   uint64_t sample() const {
@@ -383,7 +416,7 @@ class tod_ctr : public namedctr {
   }
 };
 
-class zero_ctr : public namedctr {
+class zero_ctr : public namedctr<64> {
  public:
   zero_ctr() : namedctr("zero") {}
   uint64_t sample() const { return 0; }
