@@ -42,6 +42,25 @@ OPE::lazy_sample(const ZZ &d_lo, const ZZ &d_hi,
     auto ci = dgap_cache.find(r_lo + rgap);
     if (ci == dgap_cache.end()) {
         dgap = domain_gap(ndomain, nrange, rgap, prng);
+
+        /*
+         * XXX for high bits, we are fighting against the law of large numbers,
+         * because dgap (the number of marked balls out of a large rgap sample)
+         * will be very near to the well-known proportion of marked balls (i.e.,
+         * ndomain vs nrange).  Perhaps we need to add extra holes in the range
+         * that are not HGD-based, for each level of recursion.  For far x and y,
+         * the value of E(x)-E(y) would include not only HGD (statistically
+         * predictable), but also some non-converging randomness.  This could
+         * fit nicely with the window-one-wayness notion of OPE security from
+         * Boldyerva's crypto 2011 paper.
+         */
+
+        /*
+         * XXX check that the ranges on either side of rgap are at least as large
+         * as the domain ranges on either side of dgap.  If not, adjust dgap to
+         * ensure that every plaintext has a ciphertext.  (The other option is an
+         * encryption scheme that cannot encrypt certain plaintexts..)
+         */
         dgap_cache[r_lo + rgap] = dgap;
     } else {
         dgap = ci->second;
