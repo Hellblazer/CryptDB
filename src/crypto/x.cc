@@ -6,6 +6,8 @@
 #include <crypto/aes.hh>
 #include <crypto/blowfish.hh>
 #include <crypto/ope.hh>
+#include <crypto/arc4.hh>
+#include <crypto/hgd.hh>
 #include <util/timer.hh>
 #include <NTL/ZZ.h>
 #include <NTL/RR.h>
@@ -89,7 +91,25 @@ test_ope(int pbits, int cbits)
     cout << "--- ope: " << pbits << "-bit plaintext, "
          << cbits << "-bit ciphertext" << endl
          << "  enc/dec pair: " << t.lap() / niter << " usec; "
-         << "~#bits leaked: " << NumBits(to_ZZ(1/maxerr)) << endl;
+         << "~#bits leaked: "
+           << ((maxerr < pow(to_RR(2), to_RR(-pbits))) ? pbits
+                                                       : NumBits(to_ZZ(1/maxerr))) << endl;
+}
+
+static void
+test_hgd()
+{
+    streamrng<arc4> r("hello world");
+    ZZ s;
+
+    s = HGD(to_ZZ(100), to_ZZ(100), to_ZZ(100), &r);
+    assert(s > 0 && s < 100);
+
+    s = HGD(to_ZZ(100), to_ZZ(0), to_ZZ(100), &r);
+    assert(s == 0);
+
+    s = HGD(to_ZZ(100), to_ZZ(100), to_ZZ(0), &r);
+    assert(s == 100);
 }
 
 int
@@ -108,7 +128,9 @@ main(int ac, char **av)
     blowfish bf(u.rand_vec<uint8_t>(128));
     test_block_cipher(&bf, &u, "blowfish");
 
+    test_hgd();
+
     for (int pbits = 32; pbits <= 128; pbits += 32)
-        for (int cbits = pbits + 32; cbits <= pbits + 128; cbits += 32)
+        for (int cbits = pbits; cbits <= pbits + 128; cbits += 32)
             test_ope(pbits, cbits);
 }

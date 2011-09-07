@@ -54,13 +54,6 @@ OPE::lazy_sample(const ZZ &d_lo, const ZZ &d_hi,
          * fit nicely with the window-one-wayness notion of OPE security from
          * Boldyerva's crypto 2011 paper.
          */
-
-        /*
-         * XXX check that the ranges on either side of rgap are at least as large
-         * as the domain ranges on either side of dgap.  If not, adjust dgap to
-         * ensure that every plaintext has a ciphertext.  (The other option is an
-         * encryption scheme that cannot encrypt certain plaintexts..)
-         */
         dgap_cache[r_lo + rgap] = dgap;
     } else {
         dgap = ci->second;
@@ -96,6 +89,9 @@ OPE::encrypt(const ZZ &ptext, int offset)
      */
 
     ZZ nrange = dr.r_hi - dr.r_lo + 1;
+    if (nrange < 4)
+        return dr.r_lo;
+
     ZZ nrquad = nrange / 4;
     static urandom urand;
 
