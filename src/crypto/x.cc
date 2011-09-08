@@ -1,5 +1,6 @@
 #include <assert.h>
 #include <vector>
+#include <iomanip>
 #include <crypto/cbc.hh>
 #include <crypto/cmc.hh>
 #include <crypto/prng.hh>
@@ -8,6 +9,7 @@
 #include <crypto/ope.hh>
 #include <crypto/arc4.hh>
 #include <crypto/hgd.hh>
+#include <crypto/sha.hh>
 #include <util/timer.hh>
 #include <NTL/ZZ.h>
 #include <NTL/RR.h>
@@ -127,6 +129,11 @@ main(int ac, char **av)
 
     blowfish bf(u.rand_vec<uint8_t>(128));
     test_block_cipher(&bf, &u, "blowfish");
+
+    auto v = sha256::hash("Hello world\n");
+    for (auto &x: v)
+        cout << hex << setw(2) << setfill('0') << (uint32_t) x;
+    cout << endl;
 
     test_hgd();
 
