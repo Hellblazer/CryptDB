@@ -1,5 +1,6 @@
 #pragma once
 
+#include <string.h>
 #include <string>
 #include <vector>
 #include <fstream>
@@ -56,7 +57,9 @@ class urandom : public PRNG {
 template<class StreamCipher>
 class streamrng : public PRNG {
  public:
-    streamrng(const std::string &key) : c(key) {}
+    template<typename... ArgTypes>
+    streamrng(ArgTypes... args) : c(args...) {}
+
     virtual void rand_bytes(size_t nbytes, uint8_t *buf) {
         for (size_t i = 0; i < nbytes; i++)
             buf[i] = c.getbyte();
@@ -64,4 +67,30 @@ class streamrng : public PRNG {
 
  private:
     StreamCipher c;
+};
+
+template<class BlockCipher>
+class blockrng : public PRNG {
+ public:
+    template<typename... ArgTypes>
+    blockrng(ArgTypes... args) : bc(args...), ctr(0) {}
+
+    virtual void rand_bytes(size_t nbytes, uint8_t *buf) {
+        uint8_t pt[bc.blocksize], ct[bc.blocksize];
+
+        memset(pt, 0, bc.blocksize);
+        assert(bc.blocksize >= sizeof(ctr));
+
+        for (size_t i = 0; i < nbytes; i += bc.blocksize) {
+            ctr++;
+            memcpy(pt, &ctr, sizeof(ctr));
+            bc.block_encrypt(pt, ct);
+
+            memcpy(&buf[i], ct, min(bc.blocksize, nbytes - i));
+        }
+    }
+
+ private:
+    BlockCipher bc;
+    uint64_t ctr;
 };
