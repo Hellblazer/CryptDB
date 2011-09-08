@@ -82,7 +82,7 @@ HGD(const ZZ &KK, const ZZ &NN1, const ZZ &NN2, PRNG *prng)
     TN = N1 + N2;
 
     if (to_RR(KK + KK) >= TN)  {
-        K  = TN - to_RR(KK);
+        K = TN - to_RR(KK);
     } else {
         K = to_RR(KK);
     }
@@ -108,7 +108,7 @@ HGD(const ZZ &KK, const ZZ &NN1, const ZZ &NN2, PRNG *prng)
         /*
          * ...DEGENERATE DISTRIBUTION...
          */
-        return to_ZZ(MAXJX);
+        IX = MAXJX;
     } else if (M-MINJX < 10) {
         /*
          * ...INVERSE TRANSFORMATION...
