@@ -2,7 +2,10 @@
 #include <crypto/ope.hh>
 #include <crypto/prng.hh>
 #include <crypto/hgd.hh>
-#include <crypto/arc4.hh>
+#include <crypto/aes.hh>
+#include <crypto/sha.hh>
+#include <crypto/hmac.hh>
+#include <util/zz.hh>
 
 using namespace std;
 using namespace NTL;
@@ -20,7 +23,7 @@ template<class CB>
 ope_domain_range
 OPE::lazy_sample(const ZZ &d_lo, const ZZ &d_hi,
                  const ZZ &r_lo, const ZZ &r_hi,
-                 CB go_low, PRNG *prng)
+                 CB go_low, blockrng<AES> *prng)
 {
     ZZ ndomain = d_hi - d_lo + 1;
     ZZ nrange  = r_hi - r_lo + 1;
@@ -32,15 +35,19 @@ OPE::lazy_sample(const ZZ &d_lo, const ZZ &d_hi,
     ZZ rgap = nrange/2;
     ZZ dgap;
 
-    /*
-     * XXX bug: the arc4 PRNG changes in different ways depending on whether
-     * we find dgap in the cache or not.  One solution may be to start a fresh
-     * PRNG for each call to lazy_sample(); a cheaper-to-initialize PRNG, e.g.
-     * something based on AES, may be a good plan then.
-     */
-
     auto ci = dgap_cache.find(r_lo + rgap);
     if (ci == dgap_cache.end()) {
+        /*
+         * Deterministically reset the PRNG counter, regardless of
+         * whether we had to use it for HGD or not in previous round.
+         */
+        auto v = hmac<sha256>::mac(StringFromZZ(d_lo) + "/" +
+                                   StringFromZZ(d_hi) + "/" +
+                                   StringFromZZ(r_lo) + "/" +
+                                   StringFromZZ(r_hi), key);
+        v.resize(AES::blocksize);
+        prng->set_ctr(v);
+
         dgap = domain_gap(ndomain, nrange, rgap, prng);
 
         /*
@@ -69,7 +76,10 @@ template<class CB>
 ope_domain_range
 OPE::search(CB go_low)
 {
-    streamrng<arc4> r(key);
+    auto aeskey = sha256::hash(key);
+    aeskey.resize(16);
+    blockrng<AES> r(aeskey);
+
     return lazy_sample(to_ZZ(0), to_ZZ(1) << pbits,
                        to_ZZ(0), to_ZZ(1) << cbits,
                        go_low, &r);

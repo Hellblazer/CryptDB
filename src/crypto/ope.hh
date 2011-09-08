@@ -2,8 +2,9 @@
 
 #include <string>
 #include <map>
-#include <NTL/ZZ.h>
 #include <crypto/prng.hh>
+#include <crypto/aes.hh>
+#include <NTL/ZZ.h>
 
 class ope_domain_range {
  public:
@@ -40,5 +41,5 @@ class OPE {
     template<class CB>
     ope_domain_range lazy_sample(const NTL::ZZ &d_lo, const NTL::ZZ &d_hi,
                                  const NTL::ZZ &r_lo, const NTL::ZZ &r_hi,
-                                 CB go_low, PRNG *prng);
+                                 CB go_low, blockrng<AES> *prng);
 };

@@ -134,12 +134,12 @@ main(int ac, char **av)
     auto hv = sha256::hash("Hello world\n");
     for (auto &x: hv)
         cout << hex << setw(2) << setfill('0') << (uint) x;
-    cout << endl;
+    cout << dec << endl;
 
     auto mv = hmac<sha256>::mac("Hello world\n", "key");
     for (auto &x: mv)
         cout << hex << setw(2) << setfill('0') << (uint) x;
-    cout << endl;
+    cout << dec << endl;
 
     test_hgd();
 
