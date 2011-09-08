@@ -1,5 +1,6 @@
 assert(package.loadlib(os.getenv("EDBDIR").."/libexecute.so",
                        "lua_cryptdb_init"))()
+local proto = assert(require("mysql.proto"))
 
 --
 -- Interception points provided by mysqlproxy
@@ -111,8 +112,11 @@ function read_query_result_real(inj)
         local resultset = inj.resultset
 
         if resultset.query_status == proxy.MYSQLD_PACKET_ERR then
+            local err = proto.from_err_packet(resultset.raw)
             proxy.response.type = proxy.MYSQLD_PACKET_ERR
-            proxy.response.errmsg = "no idea how to find real error msg"
+            proxy.response.errmsg = err.errmsg
+            proxy.response.errcode = err.errcode
+            proxy.response.sqlstate = err.sqlstate
         else
             local query = inj.query:sub(2)
 

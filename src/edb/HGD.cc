@@ -1,3 +1,4 @@
+#include <assert.h>
 #include "HGD.h"
 #include <stdio.h>
 #include "NTL/RR.h"
@@ -184,7 +185,7 @@ HGD(ZZ KK, ZZ NN1, ZZ NN2, ZZ SEED, unsigned int seedLen,
     double CON = 57.56462733;
     double DELTAL = 0.0078;
     double DELTAU = 0.0034;
-    double SCALE = 1.25;
+    double SCALE = 1.0e25;
 
     bool DEBUG = false;
 /**
@@ -197,7 +198,7 @@ HGD(ZZ KK, ZZ NN1, ZZ NN2, ZZ SEED, unsigned int seedLen,
           (KK > NN1 + NN2 )  ) {
         cerr << "invalid parameters NN1 " << NN1 << " NN2 " <<  NN2 <<
         " KK " << KK << "\n";
-        myassert(false, "invalid parameters NN1 \n");
+        assert(false);
 
     }
 /**
@@ -264,10 +265,11 @@ HGD(ZZ KK, ZZ NN1, ZZ NN2, ZZ SEED, unsigned int seedLen,
 /*
    C        ...INVERSE TRANSFORMATION...
  */
+        RR W;
         if (K < N2) {
-            P = exp(CON + AFC(N2) + AFC(N1+N2-K) - AFC(N2-K) - AFC(N1+N2));
+            W = exp(CON + AFC(N2) + AFC(N1+N2-K) - AFC(N2-K) - AFC(N1+N2));
         } else {
-            P = exp(CON + AFC(N1) + AFC(K) - AFC(K-N2) - AFC(N1+N2));
+            W = exp(CON + AFC(N1) + AFC(K) - AFC(K-N2) - AFC(N1+N2));
         }
 
         bool flagTen = true;
@@ -283,16 +285,15 @@ HGD(ZZ KK, ZZ NN1, ZZ NN2, ZZ SEED, unsigned int seedLen,
                 }
             }
             flagTen = false;
+            P  = W;
             IX = MINJX;
             U  = randomValue(SEED, seedLen) * SCALE;
             /* 20 */
             countFlagTwenty = 0;
-            while (flagTwenty) {
+            while (flagTwenty && !flagTen) {
                 countFlagTwenty++;
                 if (countFlagTwenty > 1000) {
-                    myassert(
-                        false,
-                        "passed through label twenty more than 1000 times...\n");
+                    assert(false);
                 }
                 flagTwenty = false;
                 if (U > P)  {
@@ -424,7 +425,7 @@ flagThirtyB:
                        3.))  + XN * S2 *
                      (1.+S2*
                       (-0.5+S2/
-                       3))  + XK * T *
+                       3.))  + XK * T *
                      (1.+T*(-.5+T/3.))   + NM * E * (1.+E*(-.5+E/3.));
 /*
    C           ...TEST AGAINST UPPER BOUND...

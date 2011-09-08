@@ -13,16 +13,14 @@ urandom::urandom()
         thrower() << "cannot open /dev/urandom: " << strerror(errno);
 }
 
-string
-urandom::rand_bytes(size_t nbytes)
+void
+urandom::rand_bytes(size_t nbytes, uint8_t *buf)
 {
-    char buf[nbytes];
-    f.read(buf, nbytes);
-    return string(buf, nbytes);
+    f.read((char *) buf, nbytes);
 }
 
 void
-urandom::seed(const std::string &rnd)
+urandom::seed_bytes(size_t nbytes, uint8_t *buf)
 {
-    f << rnd;
+    f.write((char *) buf, nbytes);
 }

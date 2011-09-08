@@ -109,7 +109,7 @@ testOPE()
     unsigned int plaintextSizes[] = {16,  32, 64,  128, 256, 512, 1024};
     unsigned int ciphertextSizes[] = {32, 64, 128, 256, 288, 768, 1536};
 
-    unsigned int noValues = 1;
+    unsigned int noValues = 100;
 
     string key = "secret aes key!!";
 
@@ -143,22 +143,34 @@ testOPE()
 static void
 testHGD()
 {
+    ZZ sum0 = to_ZZ(0);
+    ZZ sum1 = to_ZZ(0);
 
-    /* This test is outdated.
-    unsigned int len = 16;   //bytes
-    unsigned int bitsPrecision = len * bitsPerByte + 10;
-    ZZ K = ZZFromString(randomBytes(len));
-    ZZ N1 = ZZFromString(randomBytes(len));
-    ZZ N2 = ZZFromString(randomBytes(len));
-    ZZ SEED = ZZFromString(randomBytes(len));
+    enum { nrounds = 1000 };
+    ZZ marked_balls = to_ZZ(12);
 
-    ZZ sample = HGD(K, N1, N2, SEED, len*bitsPerByte, bitsPrecision);
+    for (int i = 0; i < nrounds; i++) {
+        ZZ seed = RandomBits_ZZ(256);
+        ZZ total_balls = to_ZZ(0x40000000);
+        ZZ sample0 = HGD(total_balls/2, marked_balls, total_balls-marked_balls,
+                         seed, 256, 100);
+        ZZ sample1 = HGD(total_balls/2-1, marked_balls, total_balls-marked_balls,
+                        seed, 256, 100);
+        // cout << "sample0: " << sample0 << endl;
+        // cout << "sample1: " << sample1 << endl;
+        sum0 += sample0;
+        sum1 += sample1;
+    }
 
-    LOG(test) << "N1 is " << myPrint(StringFromZZ(N1));
-    LOG(test) << "N2 is " << myPrint(StringFromZZ(N2));
-    LOG(test) << "K is " << myPrint(StringFromZZ(K));
-    LOG(test) << "HGD sample is " << myPrint(StringFromZZ(sample));
-    */
+    if (sum0 == 0 || sum1 == 0 ||
+        sum0 == nrounds*marked_balls || sum1 == nrounds*marked_balls)
+    {
+        cerr << "HGD is broken, with high probability: "
+             << nrounds << " "
+             << marked_balls << " "
+             << sum0 << " "
+             << sum1 << endl;
+    }
 }
 
 static void

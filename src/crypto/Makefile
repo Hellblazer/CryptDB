@@ -1,20 +1,21 @@
 CXX	 := g++
-CXXFLAGS := -std=c++0x -I.. -Wall -Werror
+CXXFLAGS := -std=c++0x -I.. -Wall -Werror -O2
 LDFLAGS	 := -lcrypto -lntl
 
-LIBOBJS	 := paillier.o urandom.o arc4.o aes.o
+LIBOBJS	 := paillier.o urandom.o arc4.o hgd.o ope.o
+PROGS	 := x
 
-all:	x
+all:	$(PROGS)
 .PHONY:	all
 
 clean:
-	rm -f *.o
+	rm -f *.o $(PROGS)
 .PHONY: all
 
-%.o: %.cc
+%.o: %.cc $(wildcard *.hh)
 	$(CXX) $< -c -o $@ $(CXXFLAGS)
 
-x: %: %.o $(LIBOBJS)
+$(PROGS): %: %.o $(LIBOBJS)
 	$(CXX) $^ -o $@ $(LDFLAGS)
 
 # vim: set noexpandtab:
