@@ -32,35 +32,52 @@ OPE::lazy_sample(const ZZ &d_lo, const ZZ &d_hi,
     if (ndomain == 1)
         return ope_domain_range(d_lo, r_lo, r_hi);
 
+    /*
+     * Deterministically reset the PRNG counter, regardless of
+     * whether we had to use it for HGD or not in previous round.
+     */
+    auto v = hmac<sha256>::mac(StringFromZZ(d_lo) + "/" +
+                               StringFromZZ(d_hi) + "/" +
+                               StringFromZZ(r_lo) + "/" +
+                               StringFromZZ(r_hi), key);
+    v.resize(AES::blocksize);
+    prng->set_ctr(v);
+
     ZZ rgap = nrange/2;
+    if (nrange > ndomain * 2) {
+        /*
+         * XXX for high bits, we are fighting against the law of large
+         * numbers, because dgap (the number of marked balls out of a
+         * large rgap sample) will be very near to the well-known
+         * proportion of marked balls (i.e., ndomain/nrange).
+         *
+         * In other words, for two plaintexts p_0 and p_1, the variance of
+         * the difference between corresponding ciphertexts c_0 and c_1 is
+         * not high.
+         *
+         * Perhaps we need to add some high-variance randomness at each
+         * level where we divide the ciphertext range.
+         *
+         * This could fit nicely with the window-one-wayness notion of
+         * OPE security from Boldyerva's crypto 2011 paper.
+         *
+         * The current hack randomly moves the range gap up/down within
+         * the middle part of the range.  Need to more formally argue
+         * for what the resulting variance is, and why it's higher than
+         * with HGD.
+         *
+         * At this rate, if we aren't strictly following HGD, it might
+         * make sense to ditch the expensive HGD computation altogether?
+         */
+
+        rgap = nrange/4 + prng->rand_zz_mod(nrange/2);
+    }
+
     ZZ dgap;
 
     auto ci = dgap_cache.find(r_lo + rgap);
     if (ci == dgap_cache.end()) {
-        /*
-         * Deterministically reset the PRNG counter, regardless of
-         * whether we had to use it for HGD or not in previous round.
-         */
-        auto v = hmac<sha256>::mac(StringFromZZ(d_lo) + "/" +
-                                   StringFromZZ(d_hi) + "/" +
-                                   StringFromZZ(r_lo) + "/" +
-                                   StringFromZZ(r_hi), key);
-        v.resize(AES::blocksize);
-        prng->set_ctr(v);
-
-        dgap = domain_gap(ndomain, nrange, rgap, prng);
-
-        /*
-         * XXX for high bits, we are fighting against the law of large numbers,
-         * because dgap (the number of marked balls out of a large rgap sample)
-         * will be very near to the well-known proportion of marked balls (i.e.,
-         * ndomain vs nrange).  Perhaps we need to add extra holes in the range
-         * that are not HGD-based, for each level of recursion.  For far x and y,
-         * the value of E(x)-E(y) would include not only HGD (statistically
-         * predictable), but also some non-converging randomness.  This could
-         * fit nicely with the window-one-wayness notion of OPE security from
-         * Boldyerva's crypto 2011 paper.
-         */
+        dgap = domain_gap(ndomain, nrange, nrange / 2, prng);
         dgap_cache[r_lo + rgap] = dgap;
     } else {
         dgap = ci->second;
