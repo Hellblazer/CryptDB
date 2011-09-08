@@ -4,6 +4,7 @@
 #include <map>
 #include <crypto/prng.hh>
 #include <crypto/aes.hh>
+#include <crypto/sha.hh>
 #include <NTL/ZZ.h>
 
 class ope_domain_range {
@@ -17,8 +18,10 @@ class ope_domain_range {
 
 class OPE {
  public:
-    OPE(const std::string &keyarg, size_t plainbits, size_t cipherbits)
-        : key(keyarg), pbits(plainbits), cbits(cipherbits) {}
+    OPE(const std::string &keyarg, size_t plainbits, size_t cipherbits,
+        bool detarg = false)
+    : key(keyarg), pbits(plainbits), cbits(cipherbits), det(detarg),
+      aesk(aeskey(key)) {}
 
     /*
      * Randomized OPE.
@@ -31,8 +34,17 @@ class OPE {
     NTL::ZZ decrypt(const NTL::ZZ &ctext);
 
  private:
+    static std::vector<uint8_t> aeskey(const std::string &key) {
+        auto v = sha256::hash(key);
+        v.resize(16);
+        return v;
+    }
+
     std::string key;
     size_t pbits, cbits;
+    bool det;
+
+    AES aesk;
     std::map<NTL::ZZ, NTL::ZZ> dgap_cache;
 
     template<class CB>

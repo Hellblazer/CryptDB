@@ -76,9 +76,7 @@ template<class CB>
 ope_domain_range
 OPE::search(CB go_low)
 {
-    auto aeskey = sha256::hash(key);
-    aeskey.resize(16);
-    blockrng<AES> r(aeskey);
+    blockrng<AES> r(aesk);
 
     return lazy_sample(to_ZZ(0), to_ZZ(1) << pbits,
                        to_ZZ(0), to_ZZ(1) << cbits,
@@ -91,16 +89,14 @@ OPE::encrypt(const ZZ &ptext, int offset)
     ope_domain_range dr =
         search([&ptext](const ZZ &d, const ZZ &) { return ptext < d; });
 
-    /*
-     * XXX support a flag (in constructor?) for deterministic vs.
-     * randomized OPE mode.  We still need deterministic OPE mode
-     * for multi-key sorting (in which cases equality at higher
-     * levels matters).
-     */
+    blockrng<AES> aesrand(aesk);
+    auto v = sha256::hash(StringFromZZ(ptext));
+    v.resize(16);
+    aesrand.set_ctr(v);
 
     ZZ nrange = dr.r_hi - dr.r_lo + 1;
-    if (nrange < 4)
-        return dr.r_lo;
+    if (nrange < 4 || det)
+        return dr.r_lo + aesrand.rand_zz_mod(nrange);
 
     ZZ nrquad = nrange / 4;
     static urandom urand;
