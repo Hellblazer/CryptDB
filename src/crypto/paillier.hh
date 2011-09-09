@@ -16,11 +16,11 @@ class Paillier {
 
  protected:
     /* Public key */
-    NTL::ZZ n, g;
+    const NTL::ZZ n, g;
 
     /* Cached values */
-    uint nbits;
-    NTL::ZZ n2;
+    const uint nbits;
+    const NTL::ZZ n2;
 
     /* Pre-computed randomness */
     std::list<NTL::ZZ> rqueue;
@@ -37,13 +37,13 @@ class Paillier_priv : public Paillier {
 
  private:
     /* Private key, including g from public part; n=pq */
-    NTL::ZZ p, q;
-    NTL::ZZ a;      /* non-zero for fast mode */
+    const NTL::ZZ p, q;
+    const NTL::ZZ a;      /* non-zero for fast mode */
 
     /* Cached values */
-    bool fast;
-    NTL::ZZ p2, q2;
-    NTL::ZZ two_p, two_q;
-    NTL::ZZ pinv, qinv;
-    NTL::ZZ hp, hq;
+    const bool fast;
+    const NTL::ZZ p2, q2;
+    const NTL::ZZ two_p, two_q;
+    const NTL::ZZ pinv, qinv;
+    const NTL::ZZ hp, hq;
 };

@@ -9,10 +9,9 @@ using namespace NTL;
  */
 
 Paillier::Paillier(const vector<ZZ> &pk)
-    : n(pk[0]), g(pk[1])
+    : n(pk[0]), g(pk[1]),
+      nbits(NumBits(n)), n2(n*n)
 {
-    nbits = NumBits(n);
-    n2 = n * n;
 }
 
 void
@@ -75,23 +74,18 @@ LCM(const ZZ &a, const ZZ &b)
 }
 
 Paillier_priv::Paillier_priv(const vector<ZZ> &sk)
-    : Paillier({sk[0]*sk[1], sk[2]}), p(sk[0]), q(sk[1]), a(sk[3])
+    : Paillier({sk[0]*sk[1], sk[2]}), p(sk[0]), q(sk[1]), a(sk[3]),
+      fast(a != 0),
+      p2(p * p), q2(q * q),
+      two_p(power(to_ZZ(2), NumBits(p))),
+      two_q(power(to_ZZ(2), NumBits(q))),
+      pinv(InvMod(p, two_p)),
+      qinv(InvMod(q, two_q)),
+      hp(InvMod(Lfast(PowerMod(g % p2, fast ? a : (p-1), p2),
+                      pinv, two_p, p), p)),
+      hq(InvMod(Lfast(PowerMod(g % q2, fast ? a : (q-1), q2),
+                      qinv, two_q, q), q))
 {
-    p2 = p * p;
-    q2 = q * q;
-
-    fast = (a != 0);
-
-    two_p = power(to_ZZ(2), NumBits(p));
-    two_q = power(to_ZZ(2), NumBits(q));
-
-    pinv = InvMod(p, two_p);
-    qinv = InvMod(q, two_q);
-
-    hp = InvMod(Lfast(PowerMod(g % p2, fast ? a : (p-1), p2),
-                      pinv, two_p, p), p);
-    hq = InvMod(Lfast(PowerMod(g % q2, fast ? a : (q-1), q2),
-                      qinv, two_q, q), q);
 }
 
 std::vector<NTL::ZZ>
