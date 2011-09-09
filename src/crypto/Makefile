@@ -9,11 +9,16 @@ all:	$(PROGS)
 .PHONY:	all
 
 clean:
-	rm -f *.o $(PROGS)
+	rm -f .*.d *.o $(PROGS)
 .PHONY: all
 
-%.o: %.cc $(wildcard *.hh)
-	$(CXX) $< -c -o $@ $(CXXFLAGS)
+%.o: %.cc
+	$(CXX) $< -c -o $@ -MD -MF $(patsubst %.o,.%.d,$@) $(CXXFLAGS)
+
+.deps: $(wildcard .*.d)
+	perl ../tools/mergedep.pl $@ $^
+
+-include .deps
 
 $(PROGS): %: %.o $(LIBOBJS)
 	$(CXX) $^ -o $@ $(LDFLAGS)
