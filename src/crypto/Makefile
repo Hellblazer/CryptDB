@@ -13,7 +13,7 @@ clean:
 .PHONY: all
 
 %.o: %.cc
-	$(CXX) $< -c -o $@ -MD $(CXXFLAGS)
+	$(CXX) -MD $(CXXFLAGS) -c $< -o $@
 
 .deps: $(wildcard *.d)
 	perl ../tools/mergedep.pl $@ $^
