@@ -18,13 +18,13 @@
 
 using namespace std;
 
-static ostream&
+static inline ostream&
 operator<<(ostream &out, String &s)
 {
     return out << string(s.ptr(), s.length());
 }
 
-static ostream&
+static inline ostream&
 operator<<(ostream &out, Item &i)
 {
     String s;
@@ -67,7 +67,7 @@ operator<<(ostream &out, List<T> &l)
     return out << "(" << noparen(l) << ")";
 }
 
-static ostream&
+static inline ostream&
 operator<<(ostream &out, SELECT_LEX &select_lex)
 {
     String s;
@@ -76,7 +76,7 @@ operator<<(ostream &out, SELECT_LEX &select_lex)
     return out << s;
 }
 
-static ostream&
+static inline ostream&
 operator<<(ostream &out, SELECT_LEX_UNIT &select_lex_unit)
 {
     String s;
@@ -84,7 +84,7 @@ operator<<(ostream &out, SELECT_LEX_UNIT &select_lex_unit)
     return out << s;
 }
 
-static ostream&
+static inline ostream&
 operator<<(ostream &out, LEX &lex)
 {
     String s;

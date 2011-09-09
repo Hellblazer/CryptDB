@@ -22,11 +22,16 @@ parsetest xftest: %: %.o mysql_glue.o
 load-schema analyze: %: %.o
 	$(CXX) $^ -o $@ $(LDFLAGS)
 
-%.o: %.cc $(wildcard *.hh)
-	$(CXX) $(CXXFLAGS) $< -c -o $@
+%.o: %.cc
+	$(CXX) $(CXXFLAGS) -MD $< -c -o $@
+
+.deps: $(wildcard *.d)
+	perl ../tools/mergedep.pl $@ $^
+
+-include .deps
 
 clean:
-	rm -f *.o parsetest xftest analyze
+	rm -f *.o *.d .deps parsetest xftest analyze
 
 indent:
 	uncrustify --no-backup -c ../.uncrustify.cfg $(wildcard *.cc)
