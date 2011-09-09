@@ -16,8 +16,6 @@ CXXFLAGS := -g -O2 -fno-strict-aliasing -fwrapv -fPIC \
 LDFLAGS	 := -L. -lmysqlclient -lz -llua5.1 \
 	    -Wl,-rpath=$(shell pwd)
 
-HEADERS	 := $(wildcard *.h)
-
 CRYPTO_OBJS  := OPE.o util.o HGD.o Binary.o SWPSearch.o BasicCrypto.o ECJoin.o \
 		CryptoManager.o Equation.o cryptdb_log.o pbkdf2.o blowfish.o \
 		ctr.o
@@ -45,18 +43,23 @@ libexecute.so: $(PROXY_OBJS) libcryptdb.so libedbcrypto.so
 tests/test: libcryptdb.so $(TEST_OBJS)
 	$(CXX) -o $@ $(TEST_OBJS) $(LDFLAGS) -lcryptdb -ldl -lcrypto -lntl -ledbcrypto
 
-%.o: %.cc $(HEADERS)
-	$(CXX) $(CXXFLAGS) $< -c -o $@ -I../util
+%.o: %.cc
+	$(CXX) $(CXXFLAGS) $< -c -o $@ -MD -I../util
 
-$(TEST_OBJS): %.o: %.cc $(HEADERS) $(wildcard tests/*.h)
-	$(CXX) $(CXXFLAGS) $< -c -o $@ -I../util -I.
+$(TEST_OBJS): %.o: %.cc
+	$(CXX) $(CXXFLAGS) $< -c -o $@ -MD -I../util -I.
+
+.deps: $(wildcard *.d) $(wildcard tests/*.d)
+	perl ../tools/mergedep.pl $@ $^
+
+-include .deps
 
 install: libedbcrypto.so edb.so
 	install -m 644 libedbcrypto.so /usr/lib
 	install -m 644 edb.so $(MYSQL_PLUGIN_DIR)
 
 clean:
-	rm -f *.o tests/*.o $(LIBS) tests/test
+	rm -f *.o *.d tests/*.o tests/*.d .deps $(LIBS) tests/test
 
 indent:
 	uncrustify --no-backup -c ../.uncrustify.cfg $(wildcard *.cc)

@@ -9,7 +9,7 @@ all:	$(PROGS)
 .PHONY:	all
 
 clean:
-	rm -f *.o *.d $(PROGS)
+	rm -f *.o *.d .deps $(PROGS)
 .PHONY: all
 
 %.o: %.cc
