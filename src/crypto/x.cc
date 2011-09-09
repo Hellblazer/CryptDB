@@ -11,6 +11,7 @@
 #include <crypto/hgd.hh>
 #include <crypto/sha.hh>
 #include <crypto/hmac.hh>
+#include <crypto/paillier.hh>
 #include <util/timer.hh>
 #include <NTL/ZZ.h>
 #include <NTL/RR.h>
@@ -115,12 +116,35 @@ test_hgd()
     assert(s == 100);
 }
 
+static void
+test_paillier()
+{
+    auto sk = Paillier_priv::keygen();
+    Paillier_priv pp(sk);
+
+    auto pk = pp.pubkey();
+    Paillier p(pk);
+
+    urandom u;
+    ZZ pt0 = u.rand_zz_mod(to_ZZ(1) << 256);
+    ZZ pt1 = u.rand_zz_mod(to_ZZ(1) << 256);
+
+    ZZ ct0 = p.encrypt(pt0);
+    ZZ ct1 = p.encrypt(pt1);
+    ZZ sum = p.add(ct0, ct1);
+    assert(pp.decrypt(ct0) == pt0);
+    assert(pp.decrypt(ct1) == pt1);
+    assert(pp.decrypt(sum) == (pt0 + pt1));
+}
+
 int
 main(int ac, char **av)
 {
     urandom u;
     cout << u.rand<uint64_t>() << endl;
     cout << u.rand<int64_t>() << endl;
+
+    test_paillier();
 
     AES aes128(u.rand_vec<uint8_t>(16));
     test_block_cipher(&aes128, &u, "aes-128");
