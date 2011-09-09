@@ -70,7 +70,7 @@ Paillier_privkey::Paillier_privkey(const string &rep)
 }
 
 string
-Paillier_privkey::serialize()
+Paillier_privkey::serialize() const
 {
     stringstream ss;
     ss << p << " " << q << " " << g << " " << a;
@@ -131,7 +131,7 @@ Paillier::encrypt(const ZZ &plaintext)
 }
 
 ZZ
-Paillier::decrypt(const ZZ &ciphertext)
+Paillier::decrypt(const ZZ &ciphertext) const
 {
     ZZ mp = (Lfast(PowerMod(ciphertext % p2, fast ? k.a : (k.p-1), p2),
                    pinv, two_p, k.p) * hp) % k.p;

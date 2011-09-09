@@ -10,7 +10,7 @@ class Paillier_privkey {
  public:
     Paillier_privkey(uint nbits = 1024, uint abits = 256);
     Paillier_privkey(const std::string &rep);
-    std::string serialize();
+    std::string serialize() const;
 
  private:
     friend class Paillier;
@@ -23,11 +23,11 @@ class Paillier {
  public:
     Paillier(const Paillier_privkey &k);
     NTL::ZZ encrypt(const NTL::ZZ &plaintext);
-    NTL::ZZ decrypt(const NTL::ZZ &ciphertext);
+    NTL::ZZ decrypt(const NTL::ZZ &ciphertext) const;
 
     void rand_gen(size_t niter = 100, size_t nmax = 1000);
-    NTL::ZZ pubkey(void) { return n2; }
-    Paillier_privkey privkey(void) { return k; }
+    NTL::ZZ pubkey(void) const { return n2; }
+    Paillier_privkey privkey(void) const { return k; }
 
  private:
     Paillier_privkey k;
