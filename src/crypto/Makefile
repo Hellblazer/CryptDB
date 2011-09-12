@@ -1,4 +1,4 @@
-CXX	 := g++
+CXX	 := g++-4.6
 CXXFLAGS := -std=c++0x -I.. -Wall -Werror -O2
 LDFLAGS	 := -lcrypto -lntl
 
