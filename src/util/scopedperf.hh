@@ -284,8 +284,8 @@ class perfsum_ctr_inlinegroup :
   public perfsum_ctr<Enabler, Counters...>
 {
  public:
-  perfsum_ctr_inlinegroup(const std::string &n, Counters*... ctrs,
-			  perfsum_base::display_opt d)
+  perfsum_ctr_inlinegroup(const std::string &n, perfsum_base::display_opt d,
+			  Counters*... ctrs)
     : ctrgroup_chain<Counters...>(ctrs...),
       perfsum_ctr<Enabler, Counters...>(this, n, d) {}
 };
@@ -302,7 +302,7 @@ template<typename Enabler = default_enabler, typename... Counters>
 perfsum_ctr_inlinegroup<Enabler, Counters...>
 perfsum_group(const std::string &name, Counters*... c)
 {
-  return perfsum_ctr_inlinegroup<Enabler, Counters...>(name, c..., perfsum_base::show);
+  return perfsum_ctr_inlinegroup<Enabler, Counters...>(name, perfsum_base::show, c...);
 }
 
 template<typename Enabler, typename... Counters>
