@@ -116,7 +116,7 @@ Paillier_priv::keygen(uint nbits, uint abits)
             q = RandomPrime_ZZ(nbits/2);
         }
         n = p * q;
-    } while ((NumBits(n) != nbits) || p == q);
+    } while ((nbits != (uint) NumBits(n)) || p == q);
 
     if (p > q)
         swap(p, q);
