@@ -155,14 +155,12 @@ class MetaAccess {
     //same as isGives, but takes generic as input
     bool isGenGives(string gen);
 
-    //requires: hasAccess and accessTo to be generics
-    string getTable(string hasAccess, string accessTo);
-
     //gives generic for princ
     //requires: princ is already stored in MetaAccess
     string getGenericPublic(string princ);
 
     string publicTableName();
+    string accessTableName();
 
     ~MetaAccess();
 
@@ -190,15 +188,11 @@ class MetaAccess {
     //keeps track of principals which can give passwords
     std::set<string> givesPsswd;
 
-    //maps a pair of generics to a table
-    //requires that first string is hasAccess, second accessTo
-    map<string, map<string,string> > genHasAccessToGenTable;
 
     Connect * conn;
     bool VERBOSE;
-    string table_name;
     string public_table;
-    unsigned int table_num;
+    string access_table;
 };
 
 class KeyAccess {
@@ -332,12 +326,17 @@ class KeyAccess {
     //         <0 for other errors (none in place yet...)
     int removeFromKeys(Prin prin);
 
-    //returns result if prin in table_name
-    //requires: prin.gen to exist
-    ResType Select(std::set<Prin> &prin_set,
-                                     string table_name,
-                                     string column);
-    int SelectCount(std::set<Prin> &prin_set, string table_name);
+    //returns result of selecting hasAccess and accessTo from access_keys table
+    //requires: either hasAccess or accessTo not to be NULL
+    ResType SelectAccess(Prin hasAccess, Prin accessTo);
+    int SelectAccessCount(Prin hasAccess, Prin accessTo);
+    ResType SelectAccessCol(Prin hasAccess, Prin accessTo, string column);
+
+    //returns result of selecting hasAccess and accessTo from access_keys table
+    //requires: either hasAccess or accessTo not to be NULL
+    ResType SelectPublic(Prin prin);
+    int SelectPublicCount(Prin prin);
+    ResType SelectPublicCol(Prin prin, string column);
 
     //removes the row from the access table hasAccess->accessTo that contains
     // the values of hasAccess.value and accessTo.value

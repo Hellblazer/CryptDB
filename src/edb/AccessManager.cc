@@ -44,9 +44,8 @@ inList(list<Prin> &ls, Prin e)
 MetaAccess::MetaAccess(Connect * c, bool verb)
 {
     this->VERBOSE = verb;
-    this->table_name = "cryptdb_";
     this->public_table = "cryptdb_initalized_principals";
-    this->table_num = 0;
+    this->access_table = "cryptdb_access_keys";
     this->conn = c;
 }
 
@@ -54,6 +53,12 @@ string
 MetaAccess::publicTableName()
 {
     return this->public_table;
+}
+
+string
+MetaAccess::accessTableName()
+{
+    return this->access_table;
 }
 
 string
@@ -393,7 +398,7 @@ MetaAccess::isGenGives(string gen)
     return false;
 }
 
-string
+/*string
 MetaAccess::getTable(string hasAccess, string accessTo)
 {
     //cerr << hasAccess << "->" << accessTo << endl;
@@ -405,7 +410,7 @@ MetaAccess::getTable(string hasAccess, string accessTo)
                  accessTo) != genHasAccessToGenTable[hasAccess].end(),
              "requested table does not exist -- did you call MetaAccess->CreateTables()?");
     return genHasAccessToGenTable[hasAccess][accessTo];
-}
+    }*/
 
 string
 MetaAccess::getGeneric(string princ)
@@ -520,8 +525,31 @@ MetaAccess::CreateTables()
         LOG(am) << "error with sql query " << sql;
         return -1;
     }
-    //Tables for each principal access link
-    for(it = genHasAccessToList.begin(); it != genHasAccessToList.end();
+    //Access Keys table
+    sql = "DROP TABLE IF EXISTS " + access_table;
+    if(!conn->execute(sql)) {
+        LOG(am) << "error with sql query " << sql;
+        return -1;
+    }
+    /*sql = "CREATE TABLE " + access_table + " (hasAccessType " + 
+          PRINCTYPE + ", hasAccessValue " PRINCVALUE
+          ", accessToType " + PRINCTYPE + ", accessToValue "
+          PRINCVALUE ", Sym_Key " TN_SYM_KEY ", Salt " TN_SALT
+          ", Asym_Key " TN_PK_KEY ", PRIMARY KEY (hasAccessType," +
+          " hasAccessValue, accessToType, accessToValue), " +
+          "KEY (accessToType, accessToValue))";*/
+    sql = "CREATE TABLE " + access_table + " (hasAccessType " + 
+          PRINCTYPE + ", hasAccessValue " PRINCVALUE
+          ", accessToType " + PRINCTYPE + ", accessToValue "
+          PRINCVALUE ", Sym_Key " TN_SYM_KEY ", Salt " TN_SALT
+          ", Asym_Key " TN_PK_KEY ", KEY (hasAccessType," +
+          " hasAccessValue), " +
+          "KEY (accessToType, accessToValue))";
+    if(!conn->execute(sql)) {
+        LOG(am) << "error with sql query " << sql;
+        return -1;
+    }
+    /*for(it = genHasAccessToList.begin(); it != genHasAccessToList.end();
         it++) {
         for(it_s = it->second.begin(); it_s != it->second.end(); it_s++) {
             num = strFromVal(table_num);
@@ -543,7 +571,7 @@ MetaAccess::CreateTables()
             }
             genHasAccessToGenTable[it->first][(*it_s)] = table_name + num;
         }
-    }
+        }*/
     return 0;
 }
 
@@ -560,8 +588,14 @@ MetaAccess::DeleteTables()
         LOG(am) << "error with sql query " << sql;
         return -1;
     }
+    //Access Keys table
+    sql = "DROP TABLE IF EXISTS " + access_table + ";";
+    if(!conn->execute(sql)) {
+        LOG(am) << "error with sql query " << sql;
+        return -1;
+    }    
     //Tables for each principal access link
-    for(unsigned int i = 0; i < table_num; i++) {
+    /*for(unsigned int i = 0; i < table_num; i++) {
         unsigned int n = i;
         num = strFromVal(n);
         sql = "DROP TABLE " + table_name + num + ";";
@@ -570,7 +604,7 @@ MetaAccess::DeleteTables()
             return -1;
         }
     }
-    table_num = 0;
+    table_num = 0;*/
     return 0;
 }
 
@@ -582,7 +616,6 @@ MetaAccess::~MetaAccess()
     genHasAccessToList.clear();
     genAccessibleByList.clear();
     givesPsswd.clear();
-    genHasAccessToGenTable.clear();
 }
 
 void
@@ -754,15 +787,10 @@ KeyAccess::insert(Prin hasAccess, Prin accessTo)
 
     hasAccess.gen = meta->getGenericPublic(hasAccess.type);
     accessTo.gen = meta->getGenericPublic(accessTo.type);
-    string table = meta->getTable(hasAccess.gen, accessTo.gen);
+    string table = meta->accessTableName();
     string sql;
 
-    //check to see if key is already in table
-    std::set<Prin> prins;
-    prins.insert(hasAccess);
-    prins.insert(accessTo);
-
-    if (Select(prins,table,"*").rows.size() > 0) {
+    if (SelectAccess(hasAccess, accessTo).rows.size() > 0) {
         if (VERBOSE) {
             LOG(am_v) << "relation " + hasAccess.gen + "=" +
             hasAccess.value +
@@ -787,9 +815,8 @@ KeyAccess::insert(Prin hasAccess, Prin accessTo)
     }
 
     //see if there are any entries with the same second field
-    prins.clear();
-    prins.insert(accessTo);
-    ResType resultset = Select(prins,table,"*");
+    Prin empty;
+    ResType resultset = SelectAccess(empty, accessTo);
     //keys for this link exist; decrypt them
     if(resultset.rows.size() > 0) {
         auto it = resultset.rows.begin();
@@ -797,12 +824,12 @@ KeyAccess::insert(Prin hasAccess, Prin accessTo)
             Prin this_row;
             this_row.type = hasAccess.type;
             this_row.gen = hasAccess.gen;
-            this_row.value = it->at(0).data;
+            this_row.value = it->at(1).data;
             string key_for_decryption = getKey(this_row);
             if (key_for_decryption.length() > 0) {
-                PrinKey accessToPrinKey = decryptSym(it->at(2),
+                PrinKey accessToPrinKey = decryptSym(it->at(4),
                                                      key_for_decryption,
-                                                     it->at(3));
+                                                     it->at(5));
                 accessToKey = accessToPrinKey.key;
                 break;
             }
@@ -833,11 +860,11 @@ KeyAccess::insert(Prin hasAccess, Prin accessTo)
         encrypted_accessToKey = encrypt_AES_CBC(accessToKey, aes, BytesFromInt(salt, SALT_LEN_BYTES));
         string string_salt = strFromVal(salt);
         string_encrypted_accessToKey = marshallBinary(encrypted_accessToKey);
-        sql = "INSERT INTO " + table + "(" + hasAccess.gen + ", " +
-              accessTo.gen + ", Sym_Key, Salt) VALUES ('" + hasAccess.value +
-              "', '" + accessTo.value + "', " +
-              string_encrypted_accessToKey +
-              ", " + string_salt + ");";
+        sql = "INSERT INTO " + table + "(hasAccessType, hasAccessValue, " + 
+              "accessToType, accessToValue, Sym_Key, Salt) VALUES ('" +
+              hasAccess.gen + "', '" + hasAccess.value + "', '" +
+              accessTo.gen + "', '" + accessTo.value + "', " +
+              string_encrypted_accessToKey + ", " + string_salt + ");";
     }
     //couldn't get symmetric key for hasAccess, so get public key
     else {
@@ -846,10 +873,11 @@ KeyAccess::insert(Prin hasAccess, Prin accessTo)
         encrypted_accessToKey = crypt_man->encrypt(hasAccess_publicKey,
                                                    accessToKey);
         string_encrypted_accessToKey = marshallBinary(encrypted_accessToKey);
-        sql = "INSERT INTO " + table + "(" + hasAccess.gen + ", " +
-              accessTo.gen + ", Asym_Key) VALUES ('" + hasAccess.value +
-              "', '" +
-              accessTo.value + "', " + string_encrypted_accessToKey + ");";
+        sql = "INSERT INTO " + table + "(hasAccessType, hasAccessValue, " +
+              "accessToType, accessToValue, Asym_Key) VALUES ('" +
+              hasAccess.gen + "', '" + hasAccess.value + "', '" +
+              accessTo.gen + "', '" + accessTo.value + "', " + 
+              string_encrypted_accessToKey + ");";
     }
 
     //update table with encrypted key
@@ -868,18 +896,7 @@ KeyAccess::insert(Prin hasAccess, Prin accessTo)
 
     //check that accessTo has publics key; if not generate them
     if (!isInstance(accessTo)) {
-        sql = "SELECT * FROM " + meta->publicTableName() + " WHERE Type='" +
-              accessTo.gen + "' AND Value='" + accessTo.value + "';";
-        DBResult * dbres;
-        if (!conn->execute(sql, dbres)) {
-            LOG(am) << "Problem with sql statement: " << sql;
-        } else {
-            ResType res = dbres->unpack();
-            delete dbres;
-
-            if (res.rows.size() == 0)
-                GenerateAsymKeys(accessTo,accessToPrinKey);
-        }
+        GenerateAsymKeys(accessTo,accessToPrinKey);
     }
 
     //orphans
@@ -897,16 +914,7 @@ KeyAccess::insert(Prin hasAccess, Prin accessTo)
         orphanToParents[accessTo] = hasAccess_set;
         orphanToChildren[hasAccess] = accessTo_set;
         //set up asymmetric encryption
-        sql = "SELECT * FROM " + meta->publicTableName() + " WHERE Type='" +
-              hasAccess.gen + "' AND Value='" + hasAccess.value + "';";
-        DBResult * dbres;
-        if (!conn->execute(sql, dbres)) {
-            LOG(am) << "Problem with sql statement: " << sql;
-            assert_s(0, "x");
-        }
-
-        ResType res = dbres->unpack();
-        delete dbres;
+        ResType res = SelectPublic(hasAccess);
 
         assert_s(
             hasAccessPrinKey.key.length() > 0, "created hasAccess has no key");
@@ -1139,17 +1147,7 @@ KeyAccess::getPublicKey(Prin prin)
              "prin input to getPublicKey has never been seen before");
     assert_s(prin.gen != "",
              "input into getPublicKey has an undefined generic");
-    string sql = "SELECT * FROM " + meta->publicTableName() +
-                 " WHERE Type='" + prin.gen + "' AND Value='" + prin.value +
-                 "'";
-    DBResult * dbres;
-    if (!conn->execute(sql, dbres)) {
-        LOG(am) << "SQL error from query: " << sql;
-        return NULL;
-    }
-
-    ResType res = dbres->unpack();
-    delete dbres;
+    ResType res = SelectPublic(prin);
 
     if(res.rows.size() == 0) {
         LOG(am) << "No public key for input to getPublicKey";
@@ -1163,6 +1161,8 @@ KeyAccess::getPublicKey(Prin prin)
 PrinKey
 KeyAccess::getSecretKey(Prin prin)
 {
+    PrinKey error;
+
     if(VERBOSE) {
         LOG(am_v) << "   fetching secret key";
     }
@@ -1171,18 +1171,7 @@ KeyAccess::getSecretKey(Prin prin)
              "prin input to getSecretKey has never been seen before");
     assert_s(prin.gen != "",
              "input into getSecretKey has an undefined generic");
-    string sql = "SELECT * FROM " + meta->publicTableName() +
-                 " WHERE Type='" + prin.gen + "' AND Value='" + prin.value +
-                 "'";
-    DBResult* dbres;
-    PrinKey error;
-    if (!conn->execute(sql, dbres)) {
-        LOG(am_v) << "SQL error from query: " << sql;
-        return error;
-    }
-
-    ResType res = dbres->unpack();
-    delete dbres;
+    ResType res = SelectPublic(prin);
 
     if(res.rows.size() == 0) {
         LOG(am) << "No public key for input to getSecretKey";
@@ -1257,13 +1246,13 @@ KeyAccess::insertPsswd(Prin gives, const string &psswd)
             }
             for (v = values.begin(); v != values.end(); v++) {
                 hasAccess_prin = *v;
-                std::set<Prin> prin_set;
-                prin_set.insert(hasAccess_prin);
+                //std::set<Prin> prin_set;
+                //prin_set.insert(hasAccess_prin);
                 assert_s(hasAccess->compare(
                              hasAccess_prin.gen) == 0,
                          "hasAccess_prin in insertPsswd is WRONG");
-                int number_keys =
-                    SelectCount(prin_set, meta->getTable(*hasAccess,*accessTo));
+                Prin empty;
+                int number_keys = SelectAccessCount(hasAccess_prin, empty);
                 //if there are many keys of this type, don't store them in
                 // local memory
                 if (number_keys > THRESHOLD) {
@@ -1279,14 +1268,15 @@ KeyAccess::insertPsswd(Prin gives, const string &psswd)
                     }
                     continue;
                 }
-                ResType res = Select(prin_set, meta->getTable(*hasAccess,*accessTo), "*");
+                ResType res = SelectAccess(hasAccess_prin, empty);
                 if (res.rows.size() > 0) {
                     auto row = res.rows.begin();
                     while (row != res.rows.end()) {
                         //remember to check this Prin on the next level
                         Prin new_prin;
-                        new_prin.gen = res.names[1];
-                        new_prin.value = row->at(1).data;
+                        //accessTo prin
+                        new_prin.gen = row->at(2).data;
+                        new_prin.value = row->at(3).data;
                         accessible_values.insert(new_prin);
                         string new_key = getKey(new_prin);
                         PrinKey new_prin_key;
@@ -1295,15 +1285,15 @@ KeyAccess::insertPsswd(Prin gives, const string &psswd)
                             assert_s(getKey(
                                          hasAccess_prin).length() > 0,
                                      "there is a logical issue with insertPsswd: getKey should have the key for hasAccess");
-                            if (row->at(4).null || row->at(4).data.size() == 0) {
+                            if (row->at(6).null || row->at(6).data.size() == 0) {
                                 // symmetric key okay
                                 new_prin_key =
-                                    decryptSym(row->at(2), getKey(
-                                                   hasAccess_prin), row->at(3));
+                                    decryptSym(row->at(4), getKey(
+                                                   hasAccess_prin), row->at(5));
                             } else {
                                 // use asymmetric
                                 PrinKey sec_key = getSecretKey(hasAccess_prin);
-                                new_prin_key = decryptAsym(row->at(4),
+                                new_prin_key = decryptAsym(row->at(6),
                                                            sec_key.key);
                             }
                         }
@@ -1479,7 +1469,8 @@ KeyAccess::removeFromKeys(Prin prin)
         prin_set.insert(prin);
         for (auto set_it = typeHasAccess.begin(); set_it != typeHasAccess.end();
              set_it++) {
-            ResType res = Select(prin_set, meta->getTable(set_it->first, prin.gen), "*");
+            Prin empty;
+            ResType res = SelectAccess(prin, empty);
             bool erase = true;
             for (auto row = res.rows.begin(); row != res.rows.end(); row++) {
                 if (row->at(0).data != set_it->first) {
@@ -1592,20 +1583,49 @@ KeyAccess::DFS_hasAccess(Prin start)
 }
 
 ResType
-KeyAccess::Select(std::set<Prin> & prin_set, string table_name, string column)
+KeyAccess::SelectAccess(Prin hasAccess, Prin accessTo)
 {
-    std::set<Prin>::iterator prin;
-    for(prin = prin_set.begin(); prin != prin_set.end(); prin++) {
-        assert_s(prin->gen != "", "input to Select has no gen");
-    }
-    string sql = "SELECT " + column + " FROM " + table_name + " WHERE ";
-    for(prin = prin_set.begin(); prin != prin_set.end(); prin++) {
-        if(prin != prin_set.begin()) {
+    return SelectAccessCol(hasAccess, accessTo, "*");
+}
+
+int
+KeyAccess::SelectAccessCount(Prin hasAccess, Prin accessTo)
+{
+    auto res = SelectAccessCol(hasAccess, accessTo, "COUNT(*)");
+    return (int) valFromStr(res.rows[0][0].data);
+}
+
+ResType
+KeyAccess::SelectPublic(Prin prin)
+{
+    return SelectPublicCol(prin, "*");
+}
+
+int
+KeyAccess::SelectPublicCount(Prin prin)
+{
+    auto res = SelectPublicCol(prin, "COUNT(*)");
+    return (int) valFromStr(res.rows[0][0].data);
+}
+
+ResType
+KeyAccess::SelectAccessCol(Prin hasAccess, Prin accessTo, string column)
+{
+    assert_s(hasAccess.gen != "" || accessTo.gen != "", "Select received two empty arguments");
+    string sql = "SELECT " + column + " FROM " + meta->accessTableName() + " WHERE ";
+    if (hasAccess.gen != "") {
+        sql += "hasAccessType = '" + hasAccess.gen + "' AND hasAccessValue = '" +
+               hasAccess.value + "'";
+        if (accessTo.gen != "") {
             sql += " AND ";
         }
-        sql += prin->gen + "='" + prin->value + "'";
+    }
+    if (accessTo.gen != "") {
+        sql += "accessToType = '" + accessTo.gen + "' AND accessToValue = '" +
+               accessTo.value + "'";
     }
     sql += ";";
+    LOG(am_v) << sql;
     DBResult * dbres;
     if(!conn->execute(sql, dbres)) {
         LOG(am) << "SQL error with query: " << sql;
@@ -1616,41 +1636,31 @@ KeyAccess::Select(std::set<Prin> & prin_set, string table_name, string column)
     return res;
 }
 
-int
-KeyAccess::SelectCount(std::set<Prin> & prin_set, string table_name)
+ResType
+KeyAccess::SelectPublicCol(Prin prin, string column)
 {
-    std::set<Prin>::iterator prin;
-    for(prin = prin_set.begin(); prin != prin_set.end(); prin++) {
-        assert_s(prin->gen != "", "input to Select has no gen");
-    }
-    string sql = "SELECT COUNT(*) FROM " + table_name + " WHERE ";
-    for(prin = prin_set.begin(); prin != prin_set.end(); prin++) {
-        if(prin != prin_set.begin()) {
-            sql += " AND ";
-        }
-        sql += prin->gen + "='" + prin->value + "'";
-    }
-    sql += ";";
+    assert_s(prin.gen != "", "prin argument to SelectPublic or SelectPublicCount has no gen");
+    string sql = "SELECT " + column + " FROM " + meta->publicTableName() + 
+                 " WHERE Type = '" + prin.gen + "' AND Value = '" + prin.value + "'";
     DBResult * dbres;
     if(!conn->execute(sql, dbres)) {
         LOG(am) << "SQL error with query: " << sql;
-        return -1;
+        return ResType(false);
     }
-
     auto res = dbres->unpack();
     delete dbres;
-
-    return (int) valFromStr(res.rows[0][0].data);
+    return res;
 }
 
+//TODO: modify for access_table rather than multiple tables
 int
 KeyAccess::RemoveRow(Prin hasAccess, Prin accessTo)
 {
     assert_s(hasAccess.gen != "", "hasAccess input to RemoveRow has no gen");
     assert_s(accessTo.gen != "", "accessTo input to RemoveRow has no gen");
-    string table = meta->getTable(hasAccess.gen, accessTo.gen);
-    string sql = "DELETE FROM " + table + " WHERE " + hasAccess.gen + "='" +
-                 hasAccess.value + "' AND " + accessTo.gen + "='" +
+    string sql = "DELETE FROM " + meta->accessTableName() + " WHERE hasAccessType = '" 
+                 + hasAccess.gen + "' AND hasAccessValue ='" + hasAccess.value + 
+                 "' AND accessToType = '" + accessTo.gen + "' AND accessToValue ='" +
                  accessTo.value + "';";
     if(!conn->execute(sql)) {
         LOG(am) << "SQL error with query: " << sql;
@@ -1731,19 +1741,7 @@ KeyAccess::isInstance(Prin prin)
         prin.gen = meta->getGenericPublic(prin.type);
     }
 
-    Prin type;
-    type.type = "Type";
-    type.gen = "Type";
-    type.value = prin.gen;
-    Prin value;
-    value.type = "Value";
-    value.gen = "Value";
-    value.value = prin.value;
-    std::set<Prin> prin_set;
-    prin_set.insert(type);
-    prin_set.insert(value);
-
-    int count = SelectCount(prin_set, meta->publicTableName());
+    int count = SelectPublicCount(prin);
     if (count > 0) {
         return true;
     } else {
@@ -1786,22 +1784,22 @@ KeyAccess::getUncached(Prin prin)
     ResType res;
     for (auto set_it = typeHasAccess.begin(); set_it != typeHasAccess.end();
          set_it++) {
-        std::set<Prin> prin_set;
-        prin_set.insert(prin);
-        res = Select(prin_set, meta->getTable(set_it->first, prin.gen), "*");
+        Prin empty_prin;
+        res = SelectAccess(empty_prin, prin);
+        
         for (auto row = res.rows.begin(); row != res.rows.end(); row++) {
             Prin hasAccess;
             hasAccess.gen = set_it->first;
-            hasAccess.value = row->at(0).data;
+            hasAccess.value = row->at(1).data;
             if (keys.find(hasAccess) != keys.end()) {
                 PrinKey new_prin_key;
-                if (row->at(4).null || row->at(4).data.size() == 0) {
+                if (row->at(6).null || row->at(6).data.size() == 0) {
                     // symmetric key okay
-                    new_prin_key = decryptSym(row->at(2), getKey(hasAccess), row->at(3));
+                    new_prin_key = decryptSym(row->at(4), getKey(hasAccess), row->at(5));
                 } else {
                     // use asymmetric
                     PrinKey sec_key = getSecretKey(hasAccess);
-                    new_prin_key = decryptAsym(row->at(4), sec_key.key);
+                    new_prin_key = decryptAsym(row->at(6), sec_key.key);
                 }
                 return new_prin_key;
             }
