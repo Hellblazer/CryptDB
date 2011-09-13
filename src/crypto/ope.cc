@@ -2,7 +2,10 @@
 #include <crypto/ope.hh>
 #include <crypto/prng.hh>
 #include <crypto/hgd.hh>
-#include <crypto/arc4.hh>
+#include <crypto/aes.hh>
+#include <crypto/sha.hh>
+#include <crypto/hmac.hh>
+#include <util/zz.hh>
 
 using namespace std;
 using namespace NTL;
@@ -20,7 +23,7 @@ template<class CB>
 ope_domain_range
 OPE::lazy_sample(const ZZ &d_lo, const ZZ &d_hi,
                  const ZZ &r_lo, const ZZ &r_hi,
-                 CB go_low, PRNG *prng)
+                 CB go_low, blockrng<AES> *prng)
 {
     ZZ ndomain = d_hi - d_lo + 1;
     ZZ nrange  = r_hi - r_lo + 1;
@@ -29,31 +32,52 @@ OPE::lazy_sample(const ZZ &d_lo, const ZZ &d_hi,
     if (ndomain == 1)
         return ope_domain_range(d_lo, r_lo, r_hi);
 
-    ZZ rgap = nrange/2;
-    ZZ dgap;
-
     /*
-     * XXX bug: the arc4 PRNG changes in different ways depending on whether
-     * we find dgap in the cache or not.  One solution may be to start a fresh
-     * PRNG for each call to lazy_sample(); a cheaper-to-initialize PRNG, e.g.
-     * something based on AES, may be a good plan then.
+     * Deterministically reset the PRNG counter, regardless of
+     * whether we had to use it for HGD or not in previous round.
      */
+    auto v = hmac<sha256>::mac(StringFromZZ(d_lo) + "/" +
+                               StringFromZZ(d_hi) + "/" +
+                               StringFromZZ(r_lo) + "/" +
+                               StringFromZZ(r_hi), key);
+    v.resize(AES::blocksize);
+    prng->set_ctr(v);
+
+    ZZ rgap = nrange/2;
+    if (nrange > ndomain * 2) {
+        /*
+         * XXX for high bits, we are fighting against the law of large
+         * numbers, because dgap (the number of marked balls out of a
+         * large rgap sample) will be very near to the well-known
+         * proportion of marked balls (i.e., ndomain/nrange).
+         *
+         * In other words, for two plaintexts p_0 and p_1, the variance of
+         * the difference between corresponding ciphertexts c_0 and c_1 is
+         * not high.
+         *
+         * Perhaps we need to add some high-variance randomness at each
+         * level where we divide the ciphertext range.
+         *
+         * This could fit nicely with the window-one-wayness notion of
+         * OPE security from Boldyerva's crypto 2011 paper.
+         *
+         * The current hack randomly moves the range gap up/down within
+         * the middle part of the range.  Need to more formally argue
+         * for what the resulting variance is, and why it's higher than
+         * with HGD.
+         *
+         * At this rate, if we aren't strictly following HGD, it might
+         * make sense to ditch the expensive HGD computation altogether?
+         */
+
+        rgap = nrange/4 + prng->rand_zz_mod(nrange/2);
+    }
+
+    ZZ dgap;
 
     auto ci = dgap_cache.find(r_lo + rgap);
     if (ci == dgap_cache.end()) {
-        dgap = domain_gap(ndomain, nrange, rgap, prng);
-
-        /*
-         * XXX for high bits, we are fighting against the law of large numbers,
-         * because dgap (the number of marked balls out of a large rgap sample)
-         * will be very near to the well-known proportion of marked balls (i.e.,
-         * ndomain vs nrange).  Perhaps we need to add extra holes in the range
-         * that are not HGD-based, for each level of recursion.  For far x and y,
-         * the value of E(x)-E(y) would include not only HGD (statistically
-         * predictable), but also some non-converging randomness.  This could
-         * fit nicely with the window-one-wayness notion of OPE security from
-         * Boldyerva's crypto 2011 paper.
-         */
+        dgap = domain_gap(ndomain, nrange, nrange / 2, prng);
         dgap_cache[r_lo + rgap] = dgap;
     } else {
         dgap = ci->second;
@@ -69,7 +93,8 @@ template<class CB>
 ope_domain_range
 OPE::search(CB go_low)
 {
-    streamrng<arc4> r(key);
+    blockrng<AES> r(aesk);
+
     return lazy_sample(to_ZZ(0), to_ZZ(1) << pbits,
                        to_ZZ(0), to_ZZ(1) << cbits,
                        go_low, &r);
@@ -81,16 +106,14 @@ OPE::encrypt(const ZZ &ptext, int offset)
     ope_domain_range dr =
         search([&ptext](const ZZ &d, const ZZ &) { return ptext < d; });
 
-    /*
-     * XXX support a flag (in constructor?) for deterministic vs.
-     * randomized OPE mode.  We still need deterministic OPE mode
-     * for multi-key sorting (in which cases equality at higher
-     * levels matters).
-     */
+    blockrng<AES> aesrand(aesk);
+    auto v = sha256::hash(StringFromZZ(ptext));
+    v.resize(16);
+    aesrand.set_ctr(v);
 
     ZZ nrange = dr.r_hi - dr.r_lo + 1;
-    if (nrange < 4)
-        return dr.r_lo;
+    if (nrange < 4 || det)
+        return dr.r_lo + aesrand.rand_zz_mod(nrange);
 
     ZZ nrquad = nrange / 4;
     static urandom urand;

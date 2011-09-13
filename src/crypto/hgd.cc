@@ -6,7 +6,7 @@ using namespace std;
 using namespace NTL;
 
 static RR
-AFC(RR I)
+AFC(const RR &I)
 {
     /*
      * FUNCTION TO EVALUATE LOGARITHM OF THE FACTORIAL I

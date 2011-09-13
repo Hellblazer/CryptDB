@@ -73,24 +73,31 @@ template<class BlockCipher>
 class blockrng : public PRNG {
  public:
     template<typename... ArgTypes>
-    blockrng(ArgTypes... args) : bc(args...), ctr(0) {}
+    blockrng(ArgTypes... args) : bc(args...) {
+        memset(ctr, 0, sizeof(ctr));
+    }
 
     virtual void rand_bytes(size_t nbytes, uint8_t *buf) {
-        uint8_t pt[bc.blocksize], ct[bc.blocksize];
-
-        memset(pt, 0, bc.blocksize);
-        assert(bc.blocksize >= sizeof(ctr));
-
         for (size_t i = 0; i < nbytes; i += bc.blocksize) {
-            ctr++;
-            memcpy(pt, &ctr, sizeof(ctr));
-            bc.block_encrypt(pt, ct);
+            for (uint j = 0; j < BlockCipher::blocksize; j++) {
+                ctr[j]++;
+                if (ctr[j] != 0)
+                    break;
+            }
+
+            uint8_t ct[bc.blocksize];
+            bc.block_encrypt(ctr, ct);
 
             memcpy(&buf[i], ct, min(bc.blocksize, nbytes - i));
         }
     }
 
+    void set_ctr(const std::vector<uint8_t> &v) {
+        assert(v.size() == BlockCipher::blocksize);
+        memcpy(ctr, &v[0], BlockCipher::blocksize);
+    }
+
  private:
     BlockCipher bc;
-    uint64_t ctr;
+    uint8_t ctr[BlockCipher::blocksize];
 };

@@ -7,7 +7,7 @@ using namespace std;
 
 template<class BlockCipher>
 void
-cbc_encrypt(BlockCipher *c,
+cbc_encrypt(const BlockCipher *c,
             const std::vector<uint8_t> &iv,
             const std::vector<uint8_t> &ptext,
             std::vector<uint8_t> *ctext)
@@ -27,7 +27,7 @@ cbc_encrypt(BlockCipher *c,
 
 template<class BlockCipher>
 void
-cbc_decrypt(BlockCipher *c,
+cbc_decrypt(const BlockCipher *c,
             const std::vector<uint8_t> &iv,
             const std::vector<uint8_t> &ctext,
             std::vector<uint8_t> *ptext)

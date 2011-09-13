@@ -1,4 +1,4 @@
-CXX	 := g++
+CXX	 := g++-4.6
 CXXFLAGS := -std=c++0x -I.. -Wall -Werror -O2
 LDFLAGS	 := -lcrypto -lntl
 
@@ -9,11 +9,16 @@ all:	$(PROGS)
 .PHONY:	all
 
 clean:
-	rm -f *.o $(PROGS)
+	rm -f *.o *.d .deps $(PROGS)
 .PHONY: all
 
-%.o: %.cc $(wildcard *.hh)
-	$(CXX) $< -c -o $@ $(CXXFLAGS)
+%.o: %.cc
+	$(CXX) -MD $(CXXFLAGS) -c $< -o $@
+
+.deps: $(wildcard *.d)
+	perl ../tools/mergedep.pl $@ $^
+
+-include .deps
 
 $(PROGS): %: %.o $(LIBOBJS)
 	$(CXX) $^ -o $@ $(LDFLAGS)

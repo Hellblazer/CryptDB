@@ -4,3 +4,5 @@
 /analyze
 /load-schema
 /*.o
+/*.d
+/.deps

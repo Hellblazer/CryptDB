@@ -5,7 +5,7 @@
 
 template<class BlockCipher>
 void
-cmc_encrypt(BlockCipher *c,
+cmc_encrypt(const BlockCipher *c,
             const std::vector<uint8_t> &ptext,
             std::vector<uint8_t> *ctext)
 {
@@ -54,7 +54,7 @@ cmc_encrypt(BlockCipher *c,
 
 template<class BlockCipher>
 void
-cmc_decrypt(BlockCipher *c,
+cmc_decrypt(const BlockCipher *c,
             const std::vector<uint8_t> &ctext,
             std::vector<uint8_t> *ptext)
 {
