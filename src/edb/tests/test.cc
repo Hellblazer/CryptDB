@@ -1,13 +1,7 @@
-#include "OPE.h"
-#include "HGD.h"
-#include "params.h"
-#include "util.h"
-#include "EDBProxy.h"
 #include <stdio.h>
-#include "unistd.h"
-#include "time.h"
-#include "string.h"
-#include "CryptoManager.h"
+#include <unistd.h>
+#include <time.h>
+#include <string.h>
 #include <iostream>
 #include <istream>
 #include <fstream>
@@ -18,19 +12,26 @@
 #include <sys/time.h>
 #include <time.h>
 #include <sys/wait.h>
-#include "AccessManager.h"
-#include "Connect.h"
-#include "Equation.h"
-#include "cryptdb_log.h"
 
-#include "test_utils.h"
-#include "TestSinglePrinc.h"
-#include "TestMultiPrinc.h"
-#include "TestCrypto.h"
-#include "TestAccessManager.h"
-#include "TestProxy.h"
-#include "TestQueries.h"
-#include "TestNotConsider.h"
+#include <edb/OPE.h>
+#include <edb/HGD.h>
+#include <edb/util.h>
+#include <edb/params.h>
+#include <edb/EDBProxy.h>
+#include <edb/CryptoManager.h>
+#include <edb/AccessManager.h>
+#include <edb/Connect.h>
+#include <edb/Equation.h>
+#include <edb/cryptdb_log.h>
+
+#include <edb/tests/test_utils.h>
+#include <edb/tests/TestSinglePrinc.h>
+#include <edb/tests/TestMultiPrinc.h>
+#include <edb/tests/TestCrypto.h>
+#include <edb/tests/TestAccessManager.h>
+#include <edb/tests/TestProxy.h>
+#include <edb/tests/TestQueries.h>
+#include <edb/tests/TestNotConsider.h>
 
 
 using namespace std;

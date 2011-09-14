@@ -5,8 +5,8 @@
  *
  */
 
-#include "TestProxy.h"
-#include "cryptdb_log.h"
+#include <edb/cryptdb_log.h>
+#include <edb/tests/TestProxy.h>
 
 static int ntest = 0;
 static int npass = 0;

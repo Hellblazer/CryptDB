@@ -3,10 +3,10 @@
 #include <assert.h>
 #include <lua5.1/lua.hpp>
 
-#include "EDBProxy.h"
-#include "cryptdb_log.h"
-#include "ctr.hh"
-#include <scoped_lock.hh>
+#include <edb/EDBProxy.h>
+#include <edb/cryptdb_log.h>
+#include <edb/ctr.hh>
+#include <util/scoped_lock.hh>
 
 class WrapperState {
  public:

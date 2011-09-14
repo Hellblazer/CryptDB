@@ -5,10 +5,10 @@
  *      Author: raluca
  */
 
-#include "Binary.h"
 #include <list>
 #include <iostream>
-#include <errstream.hh>
+#include <edb/Binary.h>
+#include <util/errstream.hh>
 
 Binary::Binary()
 {

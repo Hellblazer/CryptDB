@@ -6,9 +6,10 @@
  */
 
 #pragma once
+
 #include <string>
 #include <assert.h>
-#include "EDBProxy.h"
+#include <edb/EDBProxy.h>
 
 class TestConfig {
  public:

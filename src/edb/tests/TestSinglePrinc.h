@@ -5,8 +5,8 @@
  *      Author: raluca
  */
 
-#include "EDBProxy.h"
-#include "test_utils.h"
+#include <edb/EDBProxy.h>
+#include <edb/tests/test_utils.h>
 
 #ifndef TESTSINGLEPRINC_H_
 #define TESTSINGLEPRINC_H_

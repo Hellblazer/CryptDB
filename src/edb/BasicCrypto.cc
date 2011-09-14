@@ -5,8 +5,8 @@
  */
 
 #include <assert.h>
-#include "BasicCrypto.h"
-#include "ctr.hh"
+#include <edb/BasicCrypto.h>
+#include <edb/ctr.hh>
 
 
 AES_KEY *

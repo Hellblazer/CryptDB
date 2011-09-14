@@ -5,7 +5,7 @@
  *
  */
 
-#include "TestAccessManager.h"
+#include <edb/tests/TestAccessManager.h>
 
 static int ntest = 0;
 static int npass = 0;

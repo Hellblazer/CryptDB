@@ -1,11 +1,11 @@
-#include "EDBProxy.h"
-#include "cryptdb_log.h"
-
 #include <iostream>
 #include <fstream>
 #include <set>
-#include <cleanup.hh>
-#include "ctr.hh"
+
+#include <edb/EDBProxy.h>
+#include <edb/cryptdb_log.h>
+#include <edb/ctr.hh>
+#include <util/cleanup.hh>
 
 #if MYSQL_S
 

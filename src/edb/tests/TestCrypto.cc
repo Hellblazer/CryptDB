@@ -5,10 +5,10 @@
  *
  */
 
-#include "TestCrypto.h"
-#include "pbkdf2.h"
-#include "cryptdb_log.h"
-#include "ECJoin.h"
+#include <edb/pbkdf2.h>
+#include <edb/cryptdb_log.h>
+#include <edb/ECJoin.h>
+#include <edb/tests/TestCrypto.h>
 
 TestCrypto::TestCrypto()
 {

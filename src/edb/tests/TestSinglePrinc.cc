@@ -9,8 +9,8 @@
  * TODO: add tests for NULL (inserts with some fields null, selects)
  */
 
-#include "TestSinglePrinc.h"
-#include "cryptdb_log.h"
+#include <edb/tests/TestSinglePrinc.h>
+#include <edb/cryptdb_log.h>
 
 static int ntest = 0;
 static int npass = 0;

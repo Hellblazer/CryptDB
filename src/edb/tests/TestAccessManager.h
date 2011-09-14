@@ -5,8 +5,8 @@
  *  Author: cat_red
  */
 
-#include "test_utils.h"
-#include "AccessManager.h"
+#include <edb/AccessManager.h>
+#include <edb/tests/test_utils.h>
 
 #ifndef TESTACCESSMANAGER_H_
 #define TESTACCESSMANAGER

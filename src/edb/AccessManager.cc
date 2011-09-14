@@ -7,8 +7,8 @@
 
 #include <iomanip>
 
-#include "AccessManager.h"
-#include "cryptdb_log.h"
+#include <edb/AccessManager.h>
+#include <edb/cryptdb_log.h>
 
 #define PRINCTYPE "varchar(255)"
 #define NODIGITS 4

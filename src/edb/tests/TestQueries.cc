@@ -8,10 +8,10 @@
 #include <stdexcept>
 #include <netinet/in.h>
 
-#include <errstream.hh>
-#include <cleanup.hh>
-#include "TestQueries.h"
-#include "cryptdb_log.h"
+#include <util/errstream.hh>
+#include <util/cleanup.hh>
+#include <edb/cryptdb_log.h>
+#include <edb/tests/TestQueries.h>
 
 static int ntest = 0;
 static int npass = 0;

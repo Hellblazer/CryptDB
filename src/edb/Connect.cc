@@ -6,8 +6,8 @@
  */
 
 #include <stdexcept>
-#include "Connect.h"
-#include "cryptdb_log.h"
+#include <edb/Connect.h>
+#include <edb/cryptdb_log.h>
 
 Connect::Connect(string server, string user, string passwd,
                  string dbname, uint port)

@@ -44,10 +44,10 @@ tests/test: libcryptdb.so $(TEST_OBJS)
 	$(CXX) -o $@ $(TEST_OBJS) $(LDFLAGS) -lcryptdb -ldl -lcrypto -lntl -ledbcrypto
 
 %.o: %.cc
-	$(CXX) $(CXXFLAGS) $< -c -o $@ -MD -I../util
+	$(CXX) $(CXXFLAGS) $< -c -o $@ -MD -I..
 
 $(TEST_OBJS): %.o: %.cc
-	$(CXX) $(CXXFLAGS) $< -c -o $@ -MD -I../util -I.
+	$(CXX) $(CXXFLAGS) $< -c -o $@ -MD -I..
 
 .deps: $(wildcard *.d) $(wildcard tests/*.d)
 	perl ../tools/mergedep.pl $@ $^
