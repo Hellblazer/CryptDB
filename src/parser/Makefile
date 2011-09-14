@@ -14,13 +14,15 @@ CXXFLAGS := -I. -I../util \
 LDFLAGS  := -L$(MYBUILD)/libmysqld -lmysqld \
 	    -lpthread -lrt -ldl -lz -lcrypt
 
-all:	parsetest xftest analyze load-schema
+PROGS	 := analyze load-schema
+LIBS	 := libedbparser.so
 
-parsetest xftest: %: %.o mysql_glue.o
-	$(CXX) $^ -o $@ $(LDFLAGS)
+all:	$(PROGS) $(LIBS)
 
 load-schema analyze: %: %.o
 	$(CXX) $^ -o $@ $(LDFLAGS)
+
+libedbparser.so: # TODO
 
 %.o: %.cc
 	$(CXX) $(CXXFLAGS) -MD $< -c -o $@
@@ -31,7 +33,7 @@ load-schema analyze: %: %.o
 -include .deps
 
 clean:
-	rm -f *.o *.d .deps parsetest xftest analyze
+	rm -f *.o *.d .deps $(PROGS) $(LIBS)
 
 indent:
 	uncrustify --no-backup -c ../.uncrustify.cfg $(wildcard *.cc)

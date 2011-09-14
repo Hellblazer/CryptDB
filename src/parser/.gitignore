@@ -1,6 +1,4 @@
 /config.mk
-/parsetest
-/xftest
 /analyze
 /load-schema
 /*.o
