@@ -7,22 +7,12 @@
 #include <vector>
 #include <set>
 #include <algorithm>
-
 #include <stdio.h>
+#include <assert.h>
 
-#include <errstream.hh>
+#include <mysql.h>
 
-#include "sql_priv.h"
-#include "unireg.h"
-#include "strfunc.h"
-#include "sql_class.h"
-#include "set_var.h"
-#include "sql_base.h"
-#include "rpl_handler.h"
-#include "sql_parse.h"
-#include "sql_plugin.h"
-#include "derror.h"
-#include "item.h"
+#include <util/errstream.hh>
 
 using namespace std;
 

@@ -7,18 +7,17 @@
 #include <vector>
 #include <set>
 #include <algorithm>
-
 #include <stdio.h>
 
-#include <errstream.hh>
-#include <cleanup.hh>
-#include "stringify.hh"
-#include "rob.hh"
+#include <sql_select.h>
+#include <sql_delete.h>
+#include <sql_insert.h>
+#include <sql_update.h>
 
-#include "sql_select.h"
-#include "sql_delete.h"
-#include "sql_insert.h"
-#include "sql_update.h"
+#include <util/errstream.hh>
+#include <util/cleanup.hh>
+#include <util/rob.hh>
+#include <parser/stringify.hh>
 
 static bool debug = false;
 static bool just_strings = false;
