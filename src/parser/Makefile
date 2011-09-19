@@ -14,12 +14,12 @@ CXXFLAGS := -I.. \
 LDFLAGS  := -L$(MYBUILD)/libmysqld -lmysqld \
 	    -lpthread -lrt -ldl -lz -lcrypt
 
-PROGS	 := analyze load-schema
+PROGS	 := analyze load-schema print-back
 LIBS	 := libedbparser.so
 
 all:	$(PROGS) $(LIBS)
 
-load-schema analyze: %: %.o
+$(PROGS): %: %.o
 	$(CXX) $^ -o $@ $(LDFLAGS)
 
 libedbparser.so: # TODO
