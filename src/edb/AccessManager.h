@@ -34,7 +34,7 @@ using namespace std;
  */
 
 //TODO: fix PRINCVALUE to be application dependent
-#define PRINCTYPE "varchar(255)"
+#define PRINCTYPE "varchar(100)"
 #define PRINCVALUE "varchar(255)"
 #define TESTING 1
 #define THRESHOLD 100

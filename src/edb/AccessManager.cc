@@ -10,7 +10,6 @@
 #include <edb/AccessManager.h>
 #include <edb/cryptdb_log.h>
 
-#define PRINCTYPE "varchar(255)"
 #define NODIGITS 4
 
 //------------------------------------------------------------------------------------------
@@ -531,20 +530,20 @@ MetaAccess::CreateTables()
         LOG(am) << "error with sql query " << sql;
         return -1;
     }
-    /*sql = "CREATE TABLE " + access_table + " (hasAccessType " + 
+    sql = "CREATE TABLE " + access_table + " (hasAccessType " + 
           PRINCTYPE + ", hasAccessValue " PRINCVALUE
           ", accessToType " + PRINCTYPE + ", accessToValue "
           PRINCVALUE ", Sym_Key " TN_SYM_KEY ", Salt " TN_SALT
           ", Asym_Key " TN_PK_KEY ", PRIMARY KEY (hasAccessType," +
           " hasAccessValue, accessToType, accessToValue), " +
-          "KEY (accessToType, accessToValue))";*/
-    sql = "CREATE TABLE " + access_table + " (hasAccessType " + 
+          "KEY (accessToType, accessToValue))";
+    /*sql = "CREATE TABLE " + access_table + " (hasAccessType " + 
           PRINCTYPE + ", hasAccessValue " PRINCVALUE
           ", accessToType " + PRINCTYPE + ", accessToValue "
           PRINCVALUE ", Sym_Key " TN_SYM_KEY ", Salt " TN_SALT
           ", Asym_Key " TN_PK_KEY ", KEY (hasAccessType," +
           " hasAccessValue), " +
-          "KEY (accessToType, accessToValue))";
+          "KEY (accessToType, accessToValue))";*/
     if(!conn->execute(sql)) {
         LOG(am) << "error with sql query " << sql;
         return -1;
