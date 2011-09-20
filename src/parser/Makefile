@@ -14,18 +14,19 @@ CXXFLAGS := -I.. \
 LDFLAGS  := -L$(MYBUILD)/libmysqld -lmysqld \
 	    -lpthread -lrt -ldl -lz -lcrypt
 
-PROGS	 := analyze load-schema print-back
-LIBS	 := libedbparser.so
+PROGS	 := analyze load-schema print-back nz-foo
+LIBS	 := libedbproxy.so
 
 all:	$(PROGS) $(LIBS)
 
-$(PROGS): %: %.o
-	$(CXX) $^ -o $@ $(LDFLAGS)
+$(PROGS): %: %.o libedbproxy.so
+	$(CXX) $< -o $@ $(LDFLAGS) -L. -ledbproxy -Wl,-rpath=$(shell pwd)
 
-libedbparser.so: # TODO
+libedbproxy.so: embedmysql.o
+	$(CXX) -shared -o $@ $< $(LDFLAGS)
 
 %.o: %.cc
-	$(CXX) $(CXXFLAGS) -MD $< -c -o $@
+	$(CXX) $(CXXFLAGS) -MD $< -c -o $@ -fPIC
 
 .deps: $(wildcard *.d)
 	perl ../tools/mergedep.pl $@ $^

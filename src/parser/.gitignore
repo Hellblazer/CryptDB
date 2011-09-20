@@ -4,3 +4,6 @@
 /*.o
 /*.d
 /.deps
+/nz-foo
+/libedbproxy.so
+/print-back
