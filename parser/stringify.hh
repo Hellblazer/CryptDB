@@ -123,18 +123,50 @@ operator<<(ostream &out, LEX &lex)
 
         if (lex.select_lex.where)
             out << " where " << *lex.select_lex.where;
-        // handle order, limit (see st_select_lex::print)
+
+        if (lex.select_lex.order_list.elements) {
+            String s0;
+            lex.select_lex.print_order(&s0, lex.select_lex.order_list.first,
+                                       QT_ORDINARY);
+            out << " order by " << s0;
+        }
+
+        {
+            String s0;
+            lex.select_lex.print_limit(t, &s0, QT_ORDINARY);
+            out << s0;
+        }
         break;
 
     case SQLCOM_INSERT:
+    case SQLCOM_INSERT_SELECT:
         {
             lex.query_tables->print(t, &s, QT_ORDINARY);
             out << "insert into " << s;
         }
         if (lex.field_list.head())
             out << " " << lex.field_list;
-        if (lex.many_values.head())
-            out << " values " << noparen(lex.many_values);
+        if (lex.sql_command == SQLCOM_INSERT) {
+            if (lex.many_values.head())
+                out << " values " << noparen(lex.many_values);
+        } else {
+            // SQLCOM_INSERT_SELECT
+            out << " " << lex.select_lex;
+        }
+        if (lex.duplicates == DUP_UPDATE) {
+            out << " on duplicate key update ";
+            auto ii = List_iterator<Item>(lex.update_list);
+            auto iv = List_iterator<Item>(lex.value_list);
+            for (bool first = true;; first = false) {
+                Item *i = ii++;
+                Item *v = iv++;
+                if (!i || !v)
+                    break;
+                if (!first)
+                    out << ", ";
+                out << *i << "=" << *v;
+            }
+        }
         break;
 
     case SQLCOM_DELETE:
