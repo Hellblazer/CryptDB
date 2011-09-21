@@ -6,8 +6,9 @@
 class proxy {
  public:
     proxy(const std::string &shadow_dir);
+    virtual ~proxy();
 
  private:
     embedmysql em;
-    EDBProxy edb;
+    EDBProxy *edb;
 };
