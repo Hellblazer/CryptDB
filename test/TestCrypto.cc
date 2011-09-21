@@ -5,7 +5,7 @@
  *
  */
 
-#include <edb/pbkdf2.h>
+#include <crypto/pbkdf2.hh>
 #include <edb/cryptdb_log.h>
 #include <edb/ECJoin.h>
 #include <test/TestCrypto.h>

@@ -27,7 +27,7 @@
 
 #include <openssl/sha.h>
 
-#include "pbkdf2.h"
+#include <crypto/pbkdf2.hh>
 
 /*
  * HMAC-SHA-1 (from RFC 2202).
