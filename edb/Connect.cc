@@ -6,6 +6,7 @@
  */
 
 #include <stdexcept>
+#include <assert.h>
 #include <edb/Connect.h>
 #include <edb/cryptdb_log.h>
 
@@ -13,6 +14,18 @@ Connect::Connect(string server, string user, string passwd,
                  string dbname, uint port)
 {
 #if MYSQL_S
+    const char *dummy_argv[] =
+        {
+            "progname",
+            "--skip-grant-tables",
+            "--skip-innodb",
+            "--default-storage-engine=MEMORY",
+            "--character-set-server=utf8",
+            "--language=" MYSQL_BUILD_DIR "/sql/share/"
+        };
+    assert(0 == mysql_server_init(sizeof(dummy_argv) / sizeof(*dummy_argv),
+                                  (char**) dummy_argv, 0));
+
     conn = mysql_init(NULL);
 
     /* Make sure we always connect via TCP, and not via Unix domain sockets */
