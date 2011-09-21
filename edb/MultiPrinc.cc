@@ -4,7 +4,7 @@
  */
 
 #include <edb/MultiPrinc.h>
-#include <edb/ctr.hh>
+#include <util/ctr.hh>
 #include <util/cryptdb_log.hh>
 
 MultiPrinc::MultiPrinc(Connect * connarg)

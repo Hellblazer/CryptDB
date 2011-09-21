@@ -1,8 +1,8 @@
 #include <assert.h>
-#include "BasicCrypto.h"
-#include "blowfish_data.h"
+#include <edb/BasicCrypto.h>
+#include <edb/blowfish_data.h>
 
-#include "ctr.hh"
+#include <util/ctr.hh>
 
 /*
  * Based on lib/bf60.c from HiStar.

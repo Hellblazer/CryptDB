@@ -1,7 +1,7 @@
 OBJDIRS	+= edb
 
 CRYPTO_SRCS  := OPE.cc util.cc HGD.cc Binary.cc SWPSearch.cc BasicCrypto.cc \
-		ECJoin.cc CryptoManager.cc Equation.cc blowfish.cc ctr.cc
+		ECJoin.cc CryptoManager.cc Equation.cc blowfish.cc
 CRYPTDB_SRCS := AccessManager.cc EDBProxy.cc Connect.cc Translator.cc \
 		MultiPrinc.cc
 PROXY_SRCS   := ConnectWrapper.cc

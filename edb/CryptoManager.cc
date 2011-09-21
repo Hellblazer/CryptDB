@@ -8,7 +8,7 @@
 #include <istream>
 
 #include <edb/CryptoManager.h>
-#include <edb/ctr.hh>
+#include <util/ctr.hh>
 #include <util/cryptdb_log.hh>
 
 // TODO: simplify CryptoManager using a function taking from level to level

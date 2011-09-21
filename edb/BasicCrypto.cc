@@ -6,7 +6,7 @@
 
 #include <assert.h>
 #include <edb/BasicCrypto.h>
-#include <edb/ctr.hh>
+#include <util/ctr.hh>
 
 
 AES_KEY *
