@@ -13,6 +13,7 @@
 #include <mysql.h>
 
 #include <util/errstream.hh>
+#include <parser/embedmysql.hh>
 
 using namespace std;
 
@@ -24,27 +25,7 @@ main(int ac, char **av)
         exit(1);
     }
 
-    char dir_arg[1024];
-    snprintf(dir_arg, sizeof(dir_arg), "--datadir=%s", av[1]);
-
-    const char *mysql_av[] =
-        { "progname",
-          "--skip-grant-tables",
-          dir_arg,
-          "--language=" MYSQL_BUILD_DIR "/sql/share/"
-        };
-    assert(0 == mysql_server_init(sizeof(mysql_av) / sizeof(mysql_av[0]),
-                                  (char**) mysql_av, 0));
-
-    /* read queries from stdin, execute them on the embedded db */
-    MYSQL *m = mysql_init(0);
-    if (!m)
-        fatal() << "mysql_init";
-
-    mysql_options(m, MYSQL_OPT_USE_EMBEDDED_CONNECTION, 0);
-
-    if (!mysql_real_connect(m, 0, 0, 0, 0, 0, 0, CLIENT_MULTI_STATEMENTS))
-        fatal() << "mysql_real_connect: " << mysql_error(m);
+    embedmysql em(av[1]);
 
     stringstream ss;
     vector<string> queries;
@@ -65,6 +46,8 @@ main(int ac, char **av)
 
     uint ndb = 0;
     for (const string &q: queries) {
+        MYSQL *m = em.conn();
+
         if (mysql_query(m, q.c_str()))
             fatal() << "mysql_query: " << mysql_error(m);
 
@@ -97,8 +80,5 @@ main(int ac, char **av)
     }
 
     cout << "done" << endl;
-    mysql_close(m);
-    mysql_server_end();
-
     return 0;
 }

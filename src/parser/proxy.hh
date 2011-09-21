@@ -1,6 +1,7 @@
 #pragma once
 
 #include <parser/embedmysql.hh>
+#include <edb/EDBProxy.h>
 
 class proxy {
  public:
@@ -8,4 +9,5 @@ class proxy {
 
  private:
     embedmysql em;
+    EDBProxy edb;
 };
