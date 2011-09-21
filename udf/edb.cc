@@ -16,8 +16,8 @@
 
 #define DEBUG 1
 
-#include "util.h"
-#include "CryptoManager.h" /* various functions for EDB */
+#include <edb/util.h>
+#include <edb/CryptoManager.h> /* various functions for EDB */
 
 
 extern "C" {
