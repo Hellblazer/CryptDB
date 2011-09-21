@@ -36,14 +36,14 @@ template<class T>
 class List_noparen: public List<T> {};
 
 template<class T>
-static List_noparen<T>&
+static inline List_noparen<T>&
 noparen(List<T> &l)
 {
     return *(List_noparen<T>*) (&l);
 }
 
 template<class T>
-static ostream&
+static inline ostream&
 operator<<(ostream &out, List_noparen<T> &l)
 {
     bool first = true;
@@ -61,7 +61,7 @@ operator<<(ostream &out, List_noparen<T> &l)
 }
 
 template<class T>
-static ostream&
+static inline ostream&
 operator<<(ostream &out, List<T> &l)
 {
     return out << "(" << noparen(l) << ")";
@@ -84,7 +84,7 @@ operator<<(ostream &out, SELECT_LEX_UNIT &select_lex_unit)
     return out << s;
 }
 
-static inline ostream&
+static ostream&
 operator<<(ostream &out, LEX &lex)
 {
     String s;
@@ -140,31 +140,39 @@ operator<<(ostream &out, LEX &lex)
 
     case SQLCOM_INSERT:
     case SQLCOM_INSERT_SELECT:
+    case SQLCOM_REPLACE:
+    case SQLCOM_REPLACE_SELECT:
         {
+            bool is_insert =
+                lex.sql_command == SQLCOM_INSERT ||
+                lex.sql_command == SQLCOM_INSERT_SELECT;
+            bool no_select =
+                lex.sql_command == SQLCOM_INSERT ||
+                lex.sql_command == SQLCOM_REPLACE;
+            const char *cmd = is_insert ? "insert" : "replace";
             lex.query_tables->print(t, &s, QT_ORDINARY);
-            out << "insert into " << s;
-        }
-        if (lex.field_list.head())
-            out << " " << lex.field_list;
-        if (lex.sql_command == SQLCOM_INSERT) {
-            if (lex.many_values.head())
-                out << " values " << noparen(lex.many_values);
-        } else {
-            // SQLCOM_INSERT_SELECT
-            out << " " << lex.select_lex;
-        }
-        if (lex.duplicates == DUP_UPDATE) {
-            out << " on duplicate key update ";
-            auto ii = List_iterator<Item>(lex.update_list);
-            auto iv = List_iterator<Item>(lex.value_list);
-            for (bool first = true;; first = false) {
-                Item *i = ii++;
-                Item *v = iv++;
-                if (!i || !v)
-                    break;
-                if (!first)
-                    out << ", ";
-                out << *i << "=" << *v;
+            out << cmd << " into " << s;
+            if (lex.field_list.head())
+                out << " " << lex.field_list;
+            if (no_select) {
+                if (lex.many_values.head())
+                    out << " values " << noparen(lex.many_values);
+            } else {
+                out << " " << lex.select_lex;
+            }
+            if (is_insert && lex.duplicates == DUP_UPDATE) {
+                out << " on duplicate key update ";
+                auto ii = List_iterator<Item>(lex.update_list);
+                auto iv = List_iterator<Item>(lex.value_list);
+                for (bool first = true;; first = false) {
+                    Item *i = ii++;
+                    Item *v = iv++;
+                    if (!i || !v)
+                        break;
+                    if (!first)
+                        out << ", ";
+                    out << *i << "=" << *v;
+                }
             }
         }
         break;
@@ -176,6 +184,44 @@ operator<<(ostream &out, LEX &lex)
         }
         if (lex.select_lex.where)
             out << " where " << *lex.select_lex.where;
+        if (lex.select_lex.order_list.elements) {
+            String s0;
+            lex.select_lex.print_order(&s0, lex.select_lex.order_list.first,
+                                       QT_ORDINARY);
+            out << " order by " << s0;
+        }
+        {
+            String s0;
+            lex.select_lex.print_limit(t, &s0, QT_ORDINARY);
+            out << s0;
+        }
+        break;
+
+    case SQLCOM_DELETE_MULTI:
+        {
+            out << "delete ";
+            TABLE_LIST *tbl = lex.auxiliary_table_list.first;
+            for (bool f = true; tbl; tbl = tbl->next_local, f = false) {
+                String s0;
+                tbl->print(t, &s0, QT_ORDINARY);
+                out << (f ? "" : ", ") << s0;
+            }
+            out << " from ";
+
+            {
+                String s0;
+                TABLE_LIST tl;
+                st_nested_join nj;
+                tl.nested_join = &nj;
+                nj.join_list = lex.select_lex.top_join_list;
+                tl.print(t, &s0, QT_ORDINARY);
+                out << s0;
+            }
+
+            if (lex.select_lex.where)
+                out << " where " << *lex.select_lex.where;
+        }
+
         break;
 
     case SQLCOM_CREATE_TABLE:
