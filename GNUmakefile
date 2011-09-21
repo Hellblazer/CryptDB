@@ -10,7 +10,7 @@ CXXFLAGS := -g -O2 -fno-strict-aliasing -fno-rtti -fwrapv -fPIC \
 	    -Wmissing-format-attribute -Wswitch-default \
 	    -Wmissing-declarations -Wshadow -Woverloaded-virtual \
 	    -Wcast-qual -Wunreachable-code -Wcast-align \
-	    -D_GNU_SOURCE -std=c++0x -I$(TOP)/src
+	    -D_GNU_SOURCE -std=c++0x -I$(TOP)
 LDFLAGS	 := -lz -llua5.1 -lntl
 
 CXXFLAGS += -I$(MYBUILD)/include \
@@ -53,6 +53,6 @@ $(OBJDIR)/%.o: %.cc
 $(OBJDIR)/%.so:
 	$(CXX) -shared -o $@ $^ $(LDFLAGS)
 
-include src/crypto/Makefrag
+include crypto/Makefrag
 
 # vim: set noexpandtab:
