@@ -1,17 +1,18 @@
-## Copy conf/config.mk.sample to conf/config.mk and adjust accordingly.
-include conf/config.mk
-
 OBJDIR	 := obj
 TOP	 := $(shell echo $${PWD-`pwd`})
 CXX	 := g++
-CXXFLAGS := -g -O2 -fno-strict-aliasing -fno-rtti -fwrapv -fPIC \
+CXXFLAGS := -O2 -fno-strict-aliasing -fno-rtti -fwrapv -fPIC \
 	    -Wall -Werror -Wpointer-arith -Wendif-labels -Wformat=2  \
 	    -Wextra -Wmissing-noreturn -Wwrite-strings -Wno-unused-parameter \
 	    -Wmissing-format-attribute -Wswitch-default \
 	    -Wmissing-declarations -Wshadow -Woverloaded-virtual \
 	    -Wcast-qual -Wunreachable-code -Wcast-align \
 	    -D_GNU_SOURCE -std=c++0x -I$(TOP)
-LDFLAGS	 := -lz -llua5.1 -lntl
+LDFLAGS	 := -lz -llua5.1 -lcrypto -lntl \
+	    -L$(TOP)/$(OBJDIR) -Wl,-rpath=$(TOP)/$(OBJDIR)
+
+## Copy conf/config.mk.sample to conf/config.mk and adjust accordingly.
+include conf/config.mk
 
 CXXFLAGS += -I$(MYBUILD)/include \
 	    -I$(MYSRC)/include \
@@ -41,11 +42,6 @@ clean:
 # make it so that no intermediate .o files are ever deleted
 .PRECIOUS: %.o
 
-$(OBJDIR)/.deps: $(foreach dir, $(OBJDIRS), $(wildcard $(OBJDIR)/$(dir)/*.d))
-	@mkdir -p $(@D)
-	perl mergedep.pl $@ $^
--include $(OBJDIR)/.deps
-
 $(OBJDIR)/%.o: %.cc
 	@mkdir -p $(@D)
 	$(CXX) -MD $(CXXFLAGS) -c $< -o $@
@@ -54,5 +50,10 @@ $(OBJDIR)/%.so:
 	$(CXX) -shared -o $@ $^ $(LDFLAGS)
 
 include crypto/Makefrag
+
+$(OBJDIR)/.deps: $(foreach dir, $(OBJDIRS), $(wildcard $(OBJDIR)/$(dir)/*.d))
+	@mkdir -p $(@D)
+	perl mergedep.pl $@ $^
+-include $(OBJDIR)/.deps
 
 # vim: set noexpandtab:
