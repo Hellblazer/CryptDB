@@ -6,7 +6,7 @@
  */
 
 #include <crypto/pbkdf2.hh>
-#include <edb/cryptdb_log.h>
+#include <util/cryptdb_log.hh>
 #include <edb/ECJoin.h>
 #include <test/TestCrypto.h>
 

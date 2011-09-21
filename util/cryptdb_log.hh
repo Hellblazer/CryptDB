@@ -4,7 +4,6 @@
 #include <sstream>
 #include <map>
 #include <string>
-#include "util.h"
 
 #define LOG_GROUPS(m)       \
     m(warn)                 \
@@ -83,13 +82,18 @@ class cryptdb_logger : public std::stringstream {
     }
 
     static std::string
-    getConf() {
-    	return StringFromVal(enable_mask);
+    getConf()
+    {
+        std::stringstream ss;
+        ss << enable_mask;
+        return ss.str();
     }
 
     static void
-    setConf(std::string conf) {
-    	enable_mask = valFromStr(conf);
+    setConf(std::string conf)
+    {
+        std::stringstream ss(conf);
+        ss >> enable_mask;
     }
 
  private:

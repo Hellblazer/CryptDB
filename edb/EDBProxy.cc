@@ -3,8 +3,8 @@
 #include <set>
 
 #include <edb/EDBProxy.h>
-#include <edb/cryptdb_log.h>
 #include <edb/ctr.hh>
+#include <util/cryptdb_log.hh>
 #include <util/cleanup.hh>
 
 #if MYSQL_S

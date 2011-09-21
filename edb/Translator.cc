@@ -5,8 +5,8 @@
  *      Author: raluca
  */
 
-#include "Translator.h"
-#include "cryptdb_log.h"
+#include <edb/Translator.h>
+#include <util/cryptdb_log.hh>
 
 string
 anonymizeTableName(unsigned int tableNo, string tableName, bool multiPrinc)

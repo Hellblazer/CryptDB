@@ -6,7 +6,7 @@
  */
 
 #include <test/TestNotConsider.h>
-#include <edb/cryptdb_log.h>
+#include <util/cryptdb_log.hh>
 
 static int ntest = 0;
 static int npass = 0;

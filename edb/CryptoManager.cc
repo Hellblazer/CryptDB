@@ -7,9 +7,9 @@
 #include <fstream>
 #include <istream>
 
-#include "CryptoManager.h"
-#include "cryptdb_log.h"
-#include "ctr.hh"
+#include <edb/CryptoManager.h>
+#include <edb/ctr.hh>
+#include <util/cryptdb_log.hh>
 
 // TODO: simplify CryptoManager using a function taking from level to level
 // for a type of data using union for answers or inputs

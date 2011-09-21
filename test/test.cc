@@ -22,7 +22,8 @@
 #include <edb/AccessManager.h>
 #include <edb/Connect.h>
 #include <edb/Equation.h>
-#include <edb/cryptdb_log.h>
+
+#include <util/cryptdb_log.hh>
 
 #include <test/test_utils.h>
 #include <test/TestSinglePrinc.h>

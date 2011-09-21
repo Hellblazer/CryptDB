@@ -3,8 +3,8 @@
  *
  */
 
-#include "ECJoin.h"
-#include "cryptdb_log.h"
+#include <edb/ECJoin.h>
+#include <util/cryptdb_log.hh>
 
 
 

@@ -10,7 +10,7 @@
 
 #include <util/errstream.hh>
 #include <util/cleanup.hh>
-#include <edb/cryptdb_log.h>
+#include <util/cryptdb_log.hh>
 #include <test/TestQueries.h>
 
 static int ntest = 0;

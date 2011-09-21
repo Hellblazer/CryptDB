@@ -4,9 +4,9 @@
 #include <stdexcept>
 #include <assert.h>
 
-#include "openssl/rand.h"
-#include "util.h"
-#include "cryptdb_log.h"
+#include <openssl/rand.h>
+#include <edb/util.h>
+#include <util/cryptdb_log.hh>
 
 using namespace std;
 

@@ -5,7 +5,7 @@
  *
  */
 
-#include <edb/cryptdb_log.h>
+#include <util/cryptdb_log.hh>
 #include <test/TestProxy.h>
 
 static int ntest = 0;

@@ -5,7 +5,7 @@
  *
  */
 
-#include <edb/cryptdb_log.h>
+#include <util/cryptdb_log.hh>
 #include <test/TestMultiPrinc.h>
 
 static int ntest = 0;
