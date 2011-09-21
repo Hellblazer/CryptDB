@@ -6,7 +6,7 @@
  */
 
 #include <edb/AccessManager.h>
-#include <edb/tests/test_utils.h>
+#include <test/test_utils.h>
 
 #ifndef TESTACCESSMANAGER_H_
 #define TESTACCESSMANAGER

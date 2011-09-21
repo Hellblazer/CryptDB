@@ -7,7 +7,7 @@
 #include <stdlib.h>
 #include <edb/EDBProxy.h>
 #include <edb/Connect.h>
-#include <edb/tests/test_utils.h>
+#include <test/test_utils.h>
 
 #ifndef TESTQUERIES_H_
 #define TESTQUERIES_H_

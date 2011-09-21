@@ -5,7 +5,7 @@
  *
  */
 
-#include <edb/tests/TestNotConsider.h>
+#include <test/TestNotConsider.h>
 #include <edb/cryptdb_log.h>
 
 static int ntest = 0;

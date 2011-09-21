@@ -1,0 +1,13 @@
+OBJDIRS	+= test
+
+TEST_SRCS   := test.cc TestSinglePrinc.cc TestCrypto.cc test_utils.cc \
+	       TestMultiPrinc.cc TestAccessManager.cc TestProxy.cc \
+	       TestQueries.cc TestNotConsider.cc
+
+all:	$(OBJDIR)/test/test
+
+$(OBJDIR)/test/test: $(patsubst %.cc,$(OBJDIR)/test/%.o,$(TEST_SRCS)) \
+		     $(OBJDIR)/libcryptdb.so $(OBJDIR)/libedbcrypto.so
+	$(CXX) -o $@ $^ $(LDFLAGS)
+
+# vim: set noexpandtab:

@@ -8,7 +8,7 @@
 #include <edb/pbkdf2.h>
 #include <edb/cryptdb_log.h>
 #include <edb/ECJoin.h>
-#include <edb/tests/TestCrypto.h>
+#include <test/TestCrypto.h>
 
 TestCrypto::TestCrypto()
 {

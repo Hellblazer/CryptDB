@@ -4,7 +4,7 @@
  */
 
 #include <edb/EDBProxy.h>
-#include <edb/tests/test_utils.h>
+#include <test/test_utils.h>
 
 #ifndef TESTNOTCONSIDER_H_
 #define TESTNOTCONSIDER_H_

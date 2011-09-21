@@ -5,7 +5,7 @@
  *  Author: cat_red
  */
 
-#include <edb/tests/test_utils.h>
+#include <test/test_utils.h>
 
 #ifndef TESTMULTIPRINC_H_
 #define TESTMULTIPRINC_H_

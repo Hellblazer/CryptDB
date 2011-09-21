@@ -1,0 +1,29 @@
+OBJDIRS	+= edb
+
+CRYPTO_SRCS  := OPE.cc util.cc HGD.cc Binary.cc SWPSearch.cc BasicCrypto.cc \
+		ECJoin.cc CryptoManager.cc Equation.cc cryptdb_log.cc \
+		pbkdf2.cc blowfish.cc ctr.cc
+CRYPTDB_SRCS := AccessManager.cc EDBProxy.cc Connect.cc Translator.cc \
+		MultiPrinc.cc
+PROXY_SRCS   := ConnectWrapper.cc
+
+all:    $(OBJDIR)/libedbcrypto.so $(OBJDIR)/libexecute.so $(OBJDIR)/libcryptdb.so \
+        $(OBJDIR)/edb/edb.so
+
+$(OBJDIR)/libedbcrypto.so: $(patsubst %.cc,$(OBJDIR)/edb/%.o,$(CRYPTO_SRCS))
+$(OBJDIR)/libcryptdb.so:   $(patsubst %.cc,$(OBJDIR)/edb/%.o,$(CRYPTDB_SRCS)) \
+                           $(OBJDIR)/libedbcrypto.so
+$(OBJDIR)/libexecute.so:   $(patsubst %.cc,$(OBJDIR)/edb/%.o,$(PROXY_SRCS)) \
+                           $(OBJDIR)/libedbcypto.so $(OBJDIR)/libcryptdb.so
+
+$(OBJDIR)/edb/edb.so: $(OBJDIR)/edb/edb.o $(OBJDIR)/edb/libedbcrypto.so
+	$(CXX) -shared -o $@ $< $(LDFLAGS) -ledbcrypto
+
+install: install_edb
+
+.PHONY: install_edb
+install_edb: $(OBJDIR)/libedbcrypto.so $(OBJDIR)/edb/edb.so
+	install -m 644 $(OBJDIR)/libedbcrypto.so /usr/lib
+	install -m 644 $(OBJDIR)/edb/edb.so $(MYSQL_PLUGIN_DIR)
+
+# vim: set noexpandtab:

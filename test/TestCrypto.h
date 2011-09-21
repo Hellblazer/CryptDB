@@ -9,7 +9,7 @@
 #include <edb/CryptoManager.h>
 #include <edb/HGD.h>
 #include <edb/OPE.h>
-#include <edb/tests/test_utils.h>
+#include <test/test_utils.h>
 
 class TestCrypto {
  public:

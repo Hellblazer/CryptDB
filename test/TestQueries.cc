@@ -11,7 +11,7 @@
 #include <util/errstream.hh>
 #include <util/cleanup.hh>
 #include <edb/cryptdb_log.h>
-#include <edb/tests/TestQueries.h>
+#include <test/TestQueries.h>
 
 static int ntest = 0;
 static int npass = 0;

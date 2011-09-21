@@ -1,3 +1,5 @@
+OBJDIRS	+= parser
+
 PARSERSRC	:= embedmysql.cc
 PARSERPROGS	:= analyze load-schema print-back nz-foo
 PARSERPROGOBJS	:= $(patsubst %,$(OBJDIR)/parser/%,$(PARSERPROGS))

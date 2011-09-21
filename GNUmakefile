@@ -7,7 +7,7 @@ CXXFLAGS := -O2 -fno-strict-aliasing -fno-rtti -fwrapv -fPIC \
 	    -Wmissing-declarations -Woverloaded-virtual \
 	    -Wunreachable-code -D_GNU_SOURCE -std=c++0x -I$(TOP)
 LDFLAGS	 := -lz -llua5.1 -lcrypto -lntl \
-	    -L$(TOP)/$(OBJDIR) -Wl,-rpath=$(TOP)/$(OBJDIR)
+	    -L$(TOP)/$(OBJDIR) -Wl,-rpath=$(TOP)/$(OBJDIR) -Wl,-rpath=$(TOP)
 
 ## Copy conf/config.mk.sample to conf/config.mk and adjust accordingly.
 include conf/config.mk
@@ -26,6 +26,9 @@ OBJDIRS	:=
 
 .PHONY: all
 all:
+
+.PHONY: install
+install:
 
 .PHONY: clean
 clean:
@@ -49,6 +52,8 @@ $(OBJDIR)/%.so:
 
 include crypto/Makefrag
 include parser/Makefrag
+include edb/Makefrag
+include test/Makefrag
 
 $(OBJDIR)/.deps: $(foreach dir, $(OBJDIRS), $(wildcard $(OBJDIR)/$(dir)/*.d))
 	@mkdir -p $(@D)

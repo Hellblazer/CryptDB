@@ -6,3 +6,6 @@ MYBUILD  := $(MYSRC)/build
 
 ## To use a different compiler:
 # CXX := g++-4.6
+
+## Where UDFs go:
+MYSQL_PLUGIN_DIR := /usr/lib/mysql/plugin

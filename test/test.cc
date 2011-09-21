@@ -24,14 +24,14 @@
 #include <edb/Equation.h>
 #include <edb/cryptdb_log.h>
 
-#include <edb/tests/test_utils.h>
-#include <edb/tests/TestSinglePrinc.h>
-#include <edb/tests/TestMultiPrinc.h>
-#include <edb/tests/TestCrypto.h>
-#include <edb/tests/TestAccessManager.h>
-#include <edb/tests/TestProxy.h>
-#include <edb/tests/TestQueries.h>
-#include <edb/tests/TestNotConsider.h>
+#include <test/test_utils.h>
+#include <test/TestSinglePrinc.h>
+#include <test/TestMultiPrinc.h>
+#include <test/TestCrypto.h>
+#include <test/TestAccessManager.h>
+#include <test/TestProxy.h>
+#include <test/TestQueries.h>
+#include <test/TestNotConsider.h>
 
 
 using namespace std;
