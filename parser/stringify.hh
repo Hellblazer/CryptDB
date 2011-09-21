@@ -70,6 +70,9 @@ operator<<(ostream &out, List<T> &l)
 static inline ostream&
 operator<<(ostream &out, SELECT_LEX &select_lex)
 {
+    // TODO(stephentu): mysql's select print is
+    // missing some parts, like procedure, into outfile,
+    // for update, and lock in share mode
     String s;
     THD *t = current_thd;
     select_lex.print(t, &s, QT_ORDINARY);
@@ -92,10 +95,12 @@ operator<<(ostream &out, LEX &lex)
 
     switch (lex.sql_command) {
     case SQLCOM_SELECT:
-        out << lex.select_lex;
+        // out << lex.select_lex;
+        out << lex.unit;
         break;
 
     case SQLCOM_UPDATE:
+    case SQLCOM_UPDATE_MULTI:
         {
             TABLE_LIST tl;
             st_nested_join nj;
@@ -103,6 +108,14 @@ operator<<(ostream &out, LEX &lex)
             nj.join_list = lex.select_lex.top_join_list;
             tl.print(t, &s, QT_ORDINARY);
             out << "update " << s;
+        }
+
+        if (lex.query_tables->lock_type == TL_WRITE_LOW_PRIORITY) {
+            out << " low_priority ";
+        }
+
+        if (lex.ignore) {
+            out << " ignore ";
         }
 
         {
@@ -124,17 +137,19 @@ operator<<(ostream &out, LEX &lex)
         if (lex.select_lex.where)
             out << " where " << *lex.select_lex.where;
 
-        if (lex.select_lex.order_list.elements) {
-            String s0;
-            lex.select_lex.print_order(&s0, lex.select_lex.order_list.first,
-                                       QT_ORDINARY);
-            out << " order by " << s0;
-        }
+        if (lex.sql_command == SQLCOM_UPDATE) {
+            if (lex.select_lex.order_list.elements) {
+                String s0;
+                lex.select_lex.print_order(&s0, lex.select_lex.order_list.first,
+                                           QT_ORDINARY);
+                out << " order by " << s0;
+            }
 
-        {
-            String s0;
-            lex.select_lex.print_limit(t, &s0, QT_ORDINARY);
-            out << s0;
+            {
+                String s0;
+                lex.select_lex.print_limit(t, &s0, QT_ORDINARY);
+                out << s0;
+            }
         }
         break;
 
@@ -150,8 +165,29 @@ operator<<(ostream &out, LEX &lex)
                 lex.sql_command == SQLCOM_INSERT ||
                 lex.sql_command == SQLCOM_REPLACE;
             const char *cmd = is_insert ? "insert" : "replace";
+            out << cmd << " ";
+
+            switch (lex.query_tables->lock_type) {
+            case TL_WRITE_LOW_PRIORITY:
+                out << "low_priority ";
+                break;
+            case TL_WRITE:
+                out << "high_priority ";
+                break;
+            case TL_WRITE_DELAYED:
+                out << "delayed ";
+                break;
+            default:
+                ; // no-op
+                break;
+            }
+
+            if (lex.ignore) {
+                out << "ignore ";
+            }
+
             lex.query_tables->print(t, &s, QT_ORDINARY);
-            out << cmd << " into " << s;
+            out << "into " << s;
             if (lex.field_list.head())
                 out << " " << lex.field_list;
             if (no_select) {
@@ -178,28 +214,38 @@ operator<<(ostream &out, LEX &lex)
         break;
 
     case SQLCOM_DELETE:
-        {
-            lex.query_tables->print(t, &s, QT_ORDINARY);
-            out << "delete from " << s;
-        }
-        if (lex.select_lex.where)
-            out << " where " << *lex.select_lex.where;
-        if (lex.select_lex.order_list.elements) {
-            String s0;
-            lex.select_lex.print_order(&s0, lex.select_lex.order_list.first,
-                                       QT_ORDINARY);
-            out << " order by " << s0;
-        }
-        {
-            String s0;
-            lex.select_lex.print_limit(t, &s0, QT_ORDINARY);
-            out << s0;
-        }
-        break;
-
     case SQLCOM_DELETE_MULTI:
-        {
-            out << "delete ";
+        out << "delete ";
+
+        if (lex.query_tables->lock_type == TL_WRITE_LOW_PRIORITY) {
+            out << "low_priority ";
+        }
+
+        if (lex.select_lex.options & OPTION_QUICK) {
+            out << "quick ";
+        }
+
+        if (lex.ignore) {
+            out << "ignore ";
+        }
+
+        if (lex.sql_command == SQLCOM_DELETE) {
+            lex.query_tables->print(t, &s, QT_ORDINARY);
+            out << "from " << s;
+            if (lex.select_lex.where)
+                out << " where " << *lex.select_lex.where;
+            if (lex.select_lex.order_list.elements) {
+                String s0;
+                lex.select_lex.print_order(&s0, lex.select_lex.order_list.first,
+                                           QT_ORDINARY);
+                out << " order by " << s0;
+            }
+            {
+                String s0;
+                lex.select_lex.print_limit(t, &s0, QT_ORDINARY);
+                out << s0;
+            }
+        } else {
             TABLE_LIST *tbl = lex.auxiliary_table_list.first;
             for (bool f = true; tbl; tbl = tbl->next_local, f = false) {
                 String s0;
@@ -221,7 +267,6 @@ operator<<(ostream &out, LEX &lex)
             if (lex.select_lex.where)
                 out << " where " << *lex.select_lex.where;
         }
-
         break;
 
     case SQLCOM_CREATE_TABLE:
