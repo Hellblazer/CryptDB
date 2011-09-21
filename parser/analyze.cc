@@ -191,10 +191,10 @@ analyze(Item *i, const cipher_type_reason &tr)
 template<class T>
 class CItemSubtype : public CItemType {
     virtual void do_analyze(Item *i, const cipher_type_reason &tr) const {
-        do_analyze((T*) i, tr);
+        do_analyze_type((T*) i, tr);
     }
  private:
-    virtual void do_analyze(T *, const cipher_type_reason&) const = 0;
+    virtual void do_analyze_type(T *, const cipher_type_reason&) const = 0;
 };
 
 template<class T, Item::Type TYPE>
@@ -228,7 +228,7 @@ class CItemSubtypeFN : public CItemSubtype<T> {
 static void process_select_lex(st_select_lex *select_lex, const cipher_type_reason &tr);
 
 static class ANON : public CItemSubtypeIT<Item_field, Item::Type::FIELD_ITEM> {
-    void do_analyze(Item_field *i, const cipher_type_reason &tr) const {
+    virtual void do_analyze_type(Item_field *i, const cipher_type_reason &tr) const {
         if (just_strings && i->result_type() != STRING_RESULT)
             return;
         cout << "FIELD " << *i << " CIPHER " << tr << endl;
@@ -236,37 +236,37 @@ static class ANON : public CItemSubtypeIT<Item_field, Item::Type::FIELD_ITEM> {
 } ANON;
 
 static class ANON : public CItemSubtypeIT<Item_string, Item::Type::STRING_ITEM> {
-    void do_analyze(Item_string *i, const cipher_type_reason &tr) const {
+    virtual void do_analyze_type(Item_string *i, const cipher_type_reason &tr) const {
         /* constant strings are always ok */
     }
 } ANON;
 
 static class ANON : public CItemSubtypeIT<Item_num, Item::Type::INT_ITEM> {
-    void do_analyze(Item_num *i, const cipher_type_reason &tr) const {
+    virtual void do_analyze_type(Item_num *i, const cipher_type_reason &tr) const {
         /* constant ints are always ok */
     }
 } ANON;
 
 static class ANON : public CItemSubtypeIT<Item_decimal, Item::Type::DECIMAL_ITEM> {
-    void do_analyze(Item_decimal *i, const cipher_type_reason &tr) const {
+    virtual void do_analyze_type(Item_decimal *i, const cipher_type_reason &tr) const {
         /* constant decimals are always ok */
     }
 } ANON;
 
 static class ANON : public CItemSubtypeFT<Item_func_neg, Item_func::Functype::NEG_FUNC> {
-    void do_analyze(Item_func_neg *i, const cipher_type_reason &tr) const {
+    virtual void do_analyze_type(Item_func_neg *i, const cipher_type_reason &tr) const {
         analyze(i->arguments()[0], tr);
     }
 } ANON;
 
 static class ANON : public CItemSubtypeFT<Item_func_not, Item_func::Functype::NOT_FUNC> {
-    void do_analyze(Item_func_not *i, const cipher_type_reason &tr) const {
+    virtual void do_analyze_type(Item_func_not *i, const cipher_type_reason &tr) const {
         analyze(i->arguments()[0], tr);
     }
 } ANON;
 
 static class ANON : public CItemSubtypeIT<Item_subselect, Item::Type::SUBSELECT_ITEM> {
-    void do_analyze(Item_subselect *i, const cipher_type_reason &tr) const {
+    virtual void do_analyze_type(Item_subselect *i, const cipher_type_reason &tr) const {
         st_select_lex *select_lex = i->get_select_lex();
         process_select_lex(select_lex, tr);
     }
@@ -274,7 +274,7 @@ static class ANON : public CItemSubtypeIT<Item_subselect, Item::Type::SUBSELECT_
 
 extern const char str_in_optimizer[] = "<in_optimizer>";
 static class ANON : public CItemSubtypeFN<Item_in_optimizer, str_in_optimizer> {
-    void do_analyze(Item_in_optimizer *i, const cipher_type_reason &tr) const {
+    virtual void do_analyze_type(Item_in_optimizer *i, const cipher_type_reason &tr) const {
         Item **args = i->arguments();
         analyze(args[0], cipher_type_reason(cipher_type::any, "in_opt", i, &tr));
         analyze(args[1], cipher_type_reason(cipher_type::any, "in_opt", i, &tr));
@@ -282,7 +282,7 @@ static class ANON : public CItemSubtypeFN<Item_in_optimizer, str_in_optimizer> {
 } ANON;
 
 static class ANON : public CItemSubtypeIT<Item_cache, Item::Type::CACHE_ITEM> {
-    void do_analyze(Item_cache *i, const cipher_type_reason &tr) const {
+    virtual void do_analyze_type(Item_cache *i, const cipher_type_reason &tr) const {
         Item *example = (*i).*rob<Item_cache, Item*, &Item_cache::example>::ptr();
         if (example)
             analyze(example, tr);
@@ -291,7 +291,7 @@ static class ANON : public CItemSubtypeIT<Item_cache, Item::Type::CACHE_ITEM> {
 
 template<Item_func::Functype FT, class IT>
 class CItemCompare : public CItemSubtypeFT<Item_func, FT> {
-    void do_analyze(Item_func *i, const cipher_type_reason &tr) const {
+    virtual void do_analyze_type(Item_func *i, const cipher_type_reason &tr) const {
         cipher_type t2;
         if (FT == Item_func::Functype::EQ_FUNC ||
             FT == Item_func::Functype::EQUAL_FUNC ||
@@ -321,7 +321,7 @@ static CItemCompare<Item_func::Functype::LE_FUNC,    Item_func_le>    ANON;
 
 template<Item_func::Functype FT, class IT>
 class CItemCond : public CItemSubtypeFT<Item_cond, FT> {
-    void do_analyze(Item_cond *i, const cipher_type_reason &tr) const {
+    virtual void do_analyze_type(Item_cond *i, const cipher_type_reason &tr) const {
         auto it = List_iterator<Item>(*i->argument_list());
         for (;;) {
             Item *argitem = it++;
@@ -338,7 +338,7 @@ static CItemCond<Item_func::Functype::COND_OR_FUNC,  Item_cond_or>  ANON;
 
 template<Item_func::Functype FT>
 class CItemNullcheck : public CItemSubtypeFT<Item_bool_func, FT> {
-    void do_analyze(Item_bool_func *i, const cipher_type_reason &tr) const {
+    virtual void do_analyze_type(Item_bool_func *i, const cipher_type_reason &tr) const {
         Item **args = i->arguments();
         for (uint x = 0; x < i->argument_count(); x++)
             analyze(args[x], cipher_type_reason(cipher_type::any, "nullcheck", i, &tr));
@@ -349,12 +349,12 @@ static CItemNullcheck<Item_func::Functype::ISNULL_FUNC> ANON;
 static CItemNullcheck<Item_func::Functype::ISNOTNULL_FUNC> ANON;
 
 static class ANON : public CItemSubtypeFT<Item_func_get_system_var, Item_func::Functype::GSYSVAR_FUNC> {
-    void do_analyze(Item_func_get_system_var *i, const cipher_type_reason &tr) const {}
+    virtual void do_analyze_type(Item_func_get_system_var *i, const cipher_type_reason &tr) const {}
 } ANON;
 
 template<const char *NAME>
 class CItemAdditive : public CItemSubtypeFN<Item_func_additive_op, NAME> {
-    void do_analyze(Item_func_additive_op *i, const cipher_type_reason &tr) const {
+    virtual void do_analyze_type(Item_func_additive_op *i, const cipher_type_reason &tr) const {
         Item **args = i->arguments();
         if (tr.t == cipher_type::any) {
             analyze(args[0], cipher_type_reason(cipher_type::homadd, "additive", i, &tr));
@@ -374,7 +374,7 @@ static CItemAdditive<str_minus> ANON;
 
 template<const char *NAME>
 class CItemMath : public CItemSubtypeFN<Item_func, NAME> {
-    void do_analyze(Item_func *i, const cipher_type_reason &tr) const {
+    virtual void do_analyze_type(Item_func *i, const cipher_type_reason &tr) const {
         Item **args = i->arguments();
         for (uint x = 0; x < i->argument_count(); x++)
             analyze(args[x], cipher_type_reason(cipher_type::plain, "math", i, &tr));
@@ -416,7 +416,7 @@ static CItemMath<str_radians> ANON;
 
 extern const char str_if[] = "if";
 static class ANON : public CItemSubtypeFN<Item_func_if, str_if> {
-    void do_analyze(Item_func_if *i, const cipher_type_reason &tr) const {
+    virtual void do_analyze_type(Item_func_if *i, const cipher_type_reason &tr) const {
         Item **args = i->arguments();
         analyze(args[0], cipher_type_reason(cipher_type::plain, "if_cond", i, &tr));
         analyze(args[1], tr);
@@ -426,7 +426,7 @@ static class ANON : public CItemSubtypeFN<Item_func_if, str_if> {
 
 extern const char str_nullif[] = "nullif";
 static class ANON : public CItemSubtypeFN<Item_func_nullif, str_nullif> {
-    void do_analyze(Item_func_nullif *i, const cipher_type_reason &tr) const {
+    virtual void do_analyze_type(Item_func_nullif *i, const cipher_type_reason &tr) const {
         Item **args = i->arguments();
         for (uint x = 0; x < i->argument_count(); x++)
             analyze(args[x], cipher_type_reason(cipher_type::equal, "nullif", i, &tr));
@@ -435,7 +435,7 @@ static class ANON : public CItemSubtypeFN<Item_func_nullif, str_nullif> {
 
 extern const char str_coalesce[] = "coalesce";
 static class ANON : public CItemSubtypeFN<Item_func_coalesce, str_coalesce> {
-    void do_analyze(Item_func_coalesce *i, const cipher_type_reason &tr) const {
+    virtual void do_analyze_type(Item_func_coalesce *i, const cipher_type_reason &tr) const {
         Item **args = i->arguments();
         for (uint x = 0; x < i->argument_count(); x++)
             analyze(args[x], tr);
@@ -444,7 +444,7 @@ static class ANON : public CItemSubtypeFN<Item_func_coalesce, str_coalesce> {
 
 extern const char str_case[] = "case";
 static class ANON : public CItemSubtypeFN<Item_func_case, str_case> {
-    void do_analyze(Item_func_case *i, const cipher_type_reason &tr) const {
+    virtual void do_analyze_type(Item_func_case *i, const cipher_type_reason &tr) const {
         Item **args = i->arguments();
         int first_expr_num = (*i).*rob<Item_func_case, int,
             &Item_func_case::first_expr_num>::ptr();
@@ -473,7 +473,7 @@ static class ANON : public CItemSubtypeFN<Item_func_case, str_case> {
 
 template<const char *NAME>
 class CItemStrconv : public CItemSubtypeFN<Item_str_conv, NAME> {
-    void do_analyze(Item_str_conv *i, const cipher_type_reason &tr) const {
+    virtual void do_analyze_type(Item_str_conv *i, const cipher_type_reason &tr) const {
         Item **args = i->arguments();
         for (uint x = 0; x < i->argument_count(); x++)
             analyze(args[x], cipher_type_reason(cipher_type::plain, "strconv", i, &tr));
@@ -512,7 +512,7 @@ static CItemStrconv<str_regexp> ANON;
 
 template<const char *NAME>
 class CItemLeafFunc : public CItemSubtypeFN<Item_func, NAME> {
-    void do_analyze(Item_func *i, const cipher_type_reason &tr) const {}
+    virtual void do_analyze_type(Item_func *i, const cipher_type_reason &tr) const {}
 };
 
 extern const char str_found_rows[] = "found_rows";
@@ -525,7 +525,7 @@ extern const char str_rand[] = "rand";
 static CItemLeafFunc<str_rand> ANON;
 
 static class ANON : public CItemSubtypeFT<Item_extract, Item_func::Functype::EXTRACT_FUNC> {
-    void do_analyze(Item_extract *i, const cipher_type_reason &tr) const {
+    virtual void do_analyze_type(Item_extract *i, const cipher_type_reason &tr) const {
         /* XXX perhaps too conservative */
         analyze(i->arguments()[0], cipher_type_reason(cipher_type::plain, "extract", i, &tr));
     }
@@ -533,7 +533,7 @@ static class ANON : public CItemSubtypeFT<Item_extract, Item_func::Functype::EXT
 
 template<const char *NAME>
 class CItemDateExtractFunc : public CItemSubtypeFN<Item_int_func, NAME> {
-    void do_analyze(Item_int_func *i, const cipher_type_reason &tr) const {
+    virtual void do_analyze_type(Item_int_func *i, const cipher_type_reason &tr) const {
         Item **args = i->arguments();
         for (uint x = 0; x < i->argument_count(); x++) {
             /* assuming we separately store different date components */
@@ -568,7 +568,7 @@ static CItemDateExtractFunc<str_unix_timestamp> ANON;
 
 extern const char str_date_add_interval[] = "date_add_interval";
 static class ANON : public CItemSubtypeFN<Item_date_add_interval, str_date_add_interval> {
-    void do_analyze(Item_date_add_interval *i, const cipher_type_reason &tr) const {
+    virtual void do_analyze_type(Item_date_add_interval *i, const cipher_type_reason &tr) const {
         Item **args = i->arguments();
         for (uint x = 0; x < i->argument_count(); x++) {
             /* XXX perhaps too conservative */
@@ -579,7 +579,7 @@ static class ANON : public CItemSubtypeFN<Item_date_add_interval, str_date_add_i
 
 template<const char *NAME>
 class CItemDateNow : public CItemSubtypeFN<Item_func_now, NAME> {
-    void do_analyze(Item_func_now *i, const cipher_type_reason &tr) const {}
+    virtual void do_analyze_type(Item_func_now *i, const cipher_type_reason &tr) const {}
 };
 
 extern const char str_now[] = "now";
@@ -593,7 +593,7 @@ static CItemDateNow<str_sysdate> ANON;
 
 template<const char *NAME>
 class CItemBitfunc : public CItemSubtypeFN<Item_func_bit, NAME> {
-    void do_analyze(Item_func_bit *i, const cipher_type_reason &tr) const {
+    virtual void do_analyze_type(Item_func_bit *i, const cipher_type_reason &tr) const {
         Item **args = i->arguments();
         for (uint x = 0; x < i->argument_count(); x++)
             analyze(args[x], cipher_type_reason(cipher_type::plain, "bitfunc", i, &tr));
@@ -613,7 +613,7 @@ extern const char str_bit_and[] = "&";
 static CItemBitfunc<str_bit_and> ANON;
 
 static class ANON : public CItemSubtypeFT<Item_func_like, Item_func::Functype::LIKE_FUNC> {
-    void do_analyze(Item_func_like *i, const cipher_type_reason &tr) const {
+    virtual void do_analyze_type(Item_func_like *i, const cipher_type_reason &tr) const {
         Item **args = i->arguments();
         if (args[1]->type() == Item::Type::STRING_ITEM) {
             string s(args[1]->str_value.ptr(), args[1]->str_value.length());
@@ -639,11 +639,11 @@ static class ANON : public CItemSubtypeFT<Item_func, Item_func::Functype::FUNC_S
         thrower() << "unsupported store procedure call " << *i;
     }
 
-    void do_analyze(Item_func *i, const cipher_type_reason &tr) const __attribute__((noreturn)) { error(i); }
+    virtual void do_analyze_type(Item_func *i, const cipher_type_reason &tr) const __attribute__((noreturn)) { error(i); }
 } ANON;
 
 static class ANON : public CItemSubtypeFT<Item_func_in, Item_func::Functype::IN_FUNC> {
-    void do_analyze(Item_func_in *i, const cipher_type_reason &tr) const {
+    virtual void do_analyze_type(Item_func_in *i, const cipher_type_reason &tr) const {
         Item **args = i->arguments();
         for (uint x = 0; x < i->argument_count(); x++)
             analyze(args[x], cipher_type_reason(cipher_type::equal, "in", i, &tr));
@@ -651,7 +651,7 @@ static class ANON : public CItemSubtypeFT<Item_func_in, Item_func::Functype::IN_
 } ANON;
 
 static class ANON : public CItemSubtypeFT<Item_func_in, Item_func::Functype::BETWEEN> {
-    void do_analyze(Item_func_in *i, const cipher_type_reason &tr) const {
+    virtual void do_analyze_type(Item_func_in *i, const cipher_type_reason &tr) const {
         Item **args = i->arguments();
         for (uint x = 0; x < i->argument_count(); x++)
             analyze(args[x], cipher_type_reason(cipher_type::order, "between", i, &tr));
@@ -660,7 +660,7 @@ static class ANON : public CItemSubtypeFT<Item_func_in, Item_func::Functype::BET
 
 template<const char *FN>
 class CItemMinMax : public CItemSubtypeFN<Item_func_min_max, FN> {
-    void do_analyze(Item_func_min_max *i, const cipher_type_reason &tr) const {
+    virtual void do_analyze_type(Item_func_min_max *i, const cipher_type_reason &tr) const {
         Item **args = i->arguments();
         for (uint x = 0; x < i->argument_count(); x++)
             analyze(args[x], cipher_type_reason(cipher_type::order, "min/max", i, &tr));
@@ -675,7 +675,7 @@ static CItemMinMax<str_least> ANON;
 
 extern const char str_strcmp[] = "strcmp";
 static class ANON : public CItemSubtypeFN<Item_func_strcmp, str_strcmp> {
-    void do_analyze(Item_func_strcmp *i, const cipher_type_reason &tr) const {
+    virtual void do_analyze_type(Item_func_strcmp *i, const cipher_type_reason &tr) const {
         Item **args = i->arguments();
         for (uint x = 0; x < i->argument_count(); x++)
             analyze(args[x], cipher_type_reason(cipher_type::equal, "strcmp", i, &tr));
@@ -684,7 +684,7 @@ static class ANON : public CItemSubtypeFN<Item_func_strcmp, str_strcmp> {
 
 template<Item_sum::Sumfunctype SFT>
 class CItemCount : public CItemSubtypeST<Item_sum_count, SFT> {
-    void do_analyze(Item_sum_count *i, const cipher_type_reason &tr) const {
+    virtual void do_analyze_type(Item_sum_count *i, const cipher_type_reason &tr) const {
         if (i->has_with_distinct())
             analyze(i->get_arg(0), cipher_type_reason(cipher_type::equal, "sum", i, &tr, false));
     }
@@ -695,7 +695,7 @@ static CItemCount<Item_sum::Sumfunctype::COUNT_DISTINCT_FUNC> ANON;
 
 template<Item_sum::Sumfunctype SFT>
 class CItemChooseOrder : public CItemSubtypeST<Item_sum_hybrid, SFT> {
-    void do_analyze(Item_sum_hybrid *i, const cipher_type_reason &tr) const {
+    virtual void do_analyze_type(Item_sum_hybrid *i, const cipher_type_reason &tr) const {
         analyze(i->get_arg(0), cipher_type_reason(cipher_type::order, "min/max_agg", i, &tr, false));
     }
 };
@@ -705,7 +705,7 @@ static CItemChooseOrder<Item_sum::Sumfunctype::MAX_FUNC> ANON;
 
 template<Item_sum::Sumfunctype SFT>
 class CItemSum : public CItemSubtypeST<Item_sum_sum, SFT> {
-    void do_analyze(Item_sum_sum *i, const cipher_type_reason &tr) const {
+    virtual void do_analyze_type(Item_sum_sum *i, const cipher_type_reason &tr) const {
         if (i->has_with_distinct())
             analyze(i->get_arg(0), cipher_type_reason(cipher_type::equal, "agg_distinct", i, &tr, false));
         if (tr.t == cipher_type::any || tr.t == cipher_type::homadd)
@@ -721,13 +721,13 @@ static CItemSum<Item_sum::Sumfunctype::AVG_FUNC> ANON;
 static CItemSum<Item_sum::Sumfunctype::AVG_DISTINCT_FUNC> ANON;
 
 static class ANON : public CItemSubtypeST<Item_sum_bit, Item_sum::Sumfunctype::SUM_BIT_FUNC> {
-    void do_analyze(Item_sum_bit *i, const cipher_type_reason &tr) const {
+    virtual void do_analyze_type(Item_sum_bit *i, const cipher_type_reason &tr) const {
         analyze(i->get_arg(0), cipher_type_reason(cipher_type::plain, "bitagg", i, &tr, false));
     }
 } ANON;
 
 static class ANON : public CItemSubtypeST<Item_func_group_concat, Item_sum::Sumfunctype::GROUP_CONCAT_FUNC> {
-    void do_analyze(Item_func_group_concat *i, const cipher_type_reason &tr) const {
+    virtual void do_analyze_type(Item_func_group_concat *i, const cipher_type_reason &tr) const {
         uint arg_count_field = (*i).*rob<Item_func_group_concat, uint,
             &Item_func_group_concat::arg_count_field>::ptr();
         for (uint x = 0; x < arg_count_field; x++) {
@@ -740,20 +740,20 @@ static class ANON : public CItemSubtypeST<Item_func_group_concat, Item_sum::Sumf
 } ANON;
 
 static class ANON : public CItemSubtypeFT<Item_char_typecast, Item_func::Functype::CHAR_TYPECAST_FUNC> {
-    void do_analyze(Item_char_typecast *i, const cipher_type_reason &tr) const {
+    virtual void do_analyze_type(Item_char_typecast *i, const cipher_type_reason &tr) const {
         thrower() << "what does Item_char_typecast do?";
     }
 } ANON;
 
 extern const char str_cast_as_signed[] = "cast_as_signed";
 static class ANON : public CItemSubtypeFN<Item_func_signed, str_cast_as_signed> {
-    void do_analyze(Item_func_signed *i, const cipher_type_reason &tr) const {
+    virtual void do_analyze_type(Item_func_signed *i, const cipher_type_reason &tr) const {
         analyze(i->arguments()[0], tr);
     }
 } ANON;
 
 static class ANON : public CItemSubtypeIT<Item_ref, Item::Type::REF_ITEM> {
-    void do_analyze(Item_ref *i, const cipher_type_reason &tr) const {
+    virtual void do_analyze_type(Item_ref *i, const cipher_type_reason &tr) const {
         if (i->ref) {
             analyze(*i->ref, tr);
         } else {
