@@ -6,8 +6,7 @@ CRYPTDB_SRCS := AccessManager.cc EDBProxy.cc Connect.cc Translator.cc \
 		MultiPrinc.cc
 PROXY_SRCS   := ConnectWrapper.cc
 
-all:    $(OBJDIR)/libedbcrypto.so $(OBJDIR)/libexecute.so $(OBJDIR)/libcryptdb.so \
-        $(OBJDIR)/edb/edb.so
+all:    $(OBJDIR)/libedbcrypto.so $(OBJDIR)/libexecute.so $(OBJDIR)/libcryptdb.so
 
 $(OBJDIR)/libedbcrypto.so: $(patsubst %.cc,$(OBJDIR)/edb/%.o,$(CRYPTO_SRCS))
 $(OBJDIR)/libcryptdb.so:   $(patsubst %.cc,$(OBJDIR)/edb/%.o,$(CRYPTDB_SRCS)) \
@@ -15,14 +14,10 @@ $(OBJDIR)/libcryptdb.so:   $(patsubst %.cc,$(OBJDIR)/edb/%.o,$(CRYPTDB_SRCS)) \
 $(OBJDIR)/libexecute.so:   $(patsubst %.cc,$(OBJDIR)/edb/%.o,$(PROXY_SRCS)) \
                            $(OBJDIR)/libedbcypto.so $(OBJDIR)/libcryptdb.so
 
-$(OBJDIR)/edb/edb.so: $(OBJDIR)/edb/edb.o $(OBJDIR)/edb/libedbcrypto.so
-	$(CXX) -shared -o $@ $< $(LDFLAGS) -ledbcrypto
-
 install: install_edb
 
 .PHONY: install_edb
-install_edb: $(OBJDIR)/libedbcrypto.so $(OBJDIR)/edb/edb.so
+install_edb: $(OBJDIR)/libedbcrypto.so
 	install -m 644 $(OBJDIR)/libedbcrypto.so /usr/lib
-	install -m 644 $(OBJDIR)/edb/edb.so $(MYSQL_PLUGIN_DIR)
 
 # vim: set noexpandtab:
