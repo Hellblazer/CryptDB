@@ -17,7 +17,7 @@ How to Run Mysql Proxy
 ----------------------
 
 to start proxy:
-  % export EDBDIR=<...>/cryptdb/src/edb
+  % export EDBDIR=<...>/cryptdb/obj
   % mysql-proxy --plugins=proxy \
                 --event-threads=4 \
 		--max-open-files=1024 \
