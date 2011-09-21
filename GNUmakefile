@@ -20,7 +20,7 @@ CXXFLAGS += -I$(MYBUILD)/include \
 	    -I$(MYBUILD)/sql \
 	    -DHAVE_CONFIG_H -DMYSQL_SERVER -DEMBEDDED_LIBRARY -DDBUG_OFF \
 	    -DMYSQL_BUILD_DIR=\"$(MYBUILD)\"
-LDFLAGS	 += -L$(MYBUILD)/libmysqld -lmysqld -lpthread -lrt -ldl -lz -lcrypt
+LDFLAGS	 += -L$(MYBUILD)/libmysqld -lmysqld -lpthread -lrt -ldl -lcrypt
 
 ## To be populated by Makefrag files
 OBJDIRS	:=
