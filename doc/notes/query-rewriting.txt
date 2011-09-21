@@ -45,3 +45,25 @@ where ((`anon_x`.`join_onion_for_bb` = `anon_yy1`.`join_onion_for_b`) and
 XXX: cannot send the "AS" to the server, because that breaks anonymization.
      apply the aliases to result sets after decryption.
 
+---
+
+Possible rewriting plan:
+
+  For each item, implement a do_rewrites() method.
+  do_rewrites() returns a set of candidate encryptions of that item.
+  Each candidate in that set has:
+    - a method to get the encryption type + key (e.g., plaintext;
+      EQ with key b; OPE with key c; ...)
+    - a method to get the Item representation of that candidate
+      (e.g., encryption of a constant with the appropriate key;
+      column name holding that enctype; ...)
+    - a method to materialize that candidate (meaning, it's about
+      to be used in a query, so adjust the onion levels if needed)
+  Not yet resolved in this plan:
+    - the second method (getting an Item representation) may need
+      to take an argument specifying the desired key, because
+      constant expressions can be encrypted with arbitrary keys,
+      and the constant expression itself has no idea what that key
+      is (only its expression parent knows the key, corresponding
+      to how it's being used in that expression).
+
