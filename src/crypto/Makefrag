@@ -1,0 +1,8 @@
+OBJDIRS     += src/crypto
+CRYPTO2SRC  := paillier.cc urandom.cc arc4.cc hgd.cc ope.cc
+
+all:    $(OBJDIR)/libedbcrypto2.so
+
+$(OBJDIR)/libedbcrypto2.so: $(patsubst %.cc,$(OBJDIR)/src/crypto/%.o,$(CRYPTO2SRC))
+
+# vim: set noexpandtab:
