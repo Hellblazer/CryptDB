@@ -1,0 +1,7 @@
+OBJDIRS += util
+UTILSRC := cryptdb_log.cc ctr.cc
+
+all:    $(OBJDIR)/libedbutil.so
+$(OBJDIR)/libedbutil.so: $(patsubst %.cc,$(OBJDIR)/util/%.o,$(UTILSRC))
+
+# vim: set noexpandtab:

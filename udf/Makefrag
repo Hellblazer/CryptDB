@@ -1,0 +1,14 @@
+OBJDIRS	+= udf
+
+all:    $(OBJDIR)/udf/edb.so
+
+$(OBJDIR)/udf/edb.so: $(OBJDIR)/udf/edb.o $(OBJDIR)/edb/libedbcrypto.so
+	$(CXX) -shared -o $@ $< $(LDFLAGS) -ledbcrypto
+
+install: install_udf
+
+.PHONY: install_udf
+install_udf: $(OBJDIR)/udf/edb.so
+	install -m 644 $(OBJDIR)/udf/edb.so $(MYSQL_PLUGIN_DIR)
+
+# vim: set noexpandtab:

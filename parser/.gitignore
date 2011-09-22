@@ -1,0 +1,9 @@
+/config.mk
+/analyze
+/load-schema
+/*.o
+/*.d
+/.deps
+/nz-foo
+/libedbproxy.so
+/print-back

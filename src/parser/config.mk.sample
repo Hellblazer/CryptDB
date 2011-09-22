@@ -1,2 +1,0 @@
-MYSRC    := /home/nickolai/build/mysql-5.5.14
-MYBUILD  := $(MYSRC)/build

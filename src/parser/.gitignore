@@ -1,6 +1,0 @@
-/config.mk
-/analyze
-/load-schema
-/*.o
-/*.d
-/.deps
