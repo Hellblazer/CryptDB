@@ -108,12 +108,24 @@ class MetaAccess {
 
     //defines two names that refer to the same principal
     void addEquals(string princ1, string princ2);
+    //calls addEquals after the access tree has been established
+    //returns: 0  if the equality was added
+    //         <0 if adding the equality would break the access tree
+    int addEqualsCheck(string princ1, string princ2);
 
     //princHasAccess has access to princAccessible
     void addAccess(string princHasAccess, string princAccessible);
+    //calls addAccess after the access tree has been established
+    //returns: 0  if the access link was added
+    //         <0 if adding the access link would break the access tree
+    int addAccessCheck(string princHasAccess, string princAccessible);
 
     //adds princ to the set of principals which can give a password
     void addGives(string princ);
+    //calls addGives after the access tree has been established
+    //returns: 0  if the access link was added
+    //         <0 if adding the access link would break the access tree
+    int addGivesCheck(string princ);
 
     //prints out all the information stored in memory
     void PrintMaps();
@@ -188,6 +200,8 @@ class MetaAccess {
     //keeps track of principals which can give passwords
     std::set<string> givesPsswd;
 
+    //wrapper for conn->execute
+    int execute(string sql);
 
     Connect * conn;
     bool VERBOSE;
@@ -307,6 +321,9 @@ class KeyAccess {
     Connect * conn;
     bool VERBOSE;
     bool meta_finished;
+
+    //wrapper for conn->execute, assuming that sql is a query that returns a result set
+    ResType execute(string sql);
 
     //creates PrinKey
     //requires: hasAccess and accessTo to have gen field set
