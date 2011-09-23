@@ -1,4 +1,4 @@
-% wget http://mysql.mirrors.pair.com/Downloads/MySQL-5.5/mysql-5.5.14.tar.gz
+% wget http://yuma.csail.mit.edu/mysql-5.5.14.tar.gz
 % tar zxf mysql-5.5.14.tar.gz
 % cd mysql-5.5.14
 % mkdir build
