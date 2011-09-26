@@ -87,6 +87,278 @@ operator<<(ostream &out, SELECT_LEX_UNIT &select_lex_unit)
     return out << s;
 }
 
+static const char * sql_type_to_string(enum_field_types tpe) {
+#define ASSERT_NOT_REACHED() \
+  do { \
+    assert(false); \
+    return ""; \
+  } while (0)
+
+  switch (tpe) {
+    case MYSQL_TYPE_DECIMAL     : return "DECIMAL";
+    case MYSQL_TYPE_TINY        : return "TINYINT";
+    case MYSQL_TYPE_SHORT       : return "SMALLINT";
+    case MYSQL_TYPE_LONG        : return "INT";
+    case MYSQL_TYPE_FLOAT       : return "FLOAT";
+    case MYSQL_TYPE_DOUBLE      : return "DOUBLE";
+    case MYSQL_TYPE_NULL        : ASSERT_NOT_REACHED();
+    case MYSQL_TYPE_TIMESTAMP   : return "TIMESTAMP";
+    case MYSQL_TYPE_LONGLONG    : return "BIGINT";
+    case MYSQL_TYPE_INT24       : return "MEDIUMINT";
+    case MYSQL_TYPE_DATE        : return "DATE";
+    case MYSQL_TYPE_TIME        : return "TIME";
+    case MYSQL_TYPE_DATETIME    : return "DATETIME";
+    case MYSQL_TYPE_YEAR        : return "YEAR";
+    case MYSQL_TYPE_NEWDATE     : ASSERT_NOT_REACHED();
+    case MYSQL_TYPE_VARCHAR     : return "VARCHAR";
+    case MYSQL_TYPE_BIT         : return "BIT";
+    case MYSQL_TYPE_NEWDECIMAL  : return "DECIMAL";
+    case MYSQL_TYPE_ENUM        : return "ENUM";
+    case MYSQL_TYPE_SET         : return "SET";
+    case MYSQL_TYPE_TINY_BLOB   : return "TINYBLOB";
+    case MYSQL_TYPE_MEDIUM_BLOB : return "MEDIUMBLOB";
+    case MYSQL_TYPE_LONG_BLOB   : return "LONGBLOB";
+    case MYSQL_TYPE_BLOB        : return "BLOB";
+    case MYSQL_TYPE_VAR_STRING  : ASSERT_NOT_REACHED();
+    case MYSQL_TYPE_STRING      : return "CHAR";
+
+    /* don't bother to support */
+    case MYSQL_TYPE_GEOMETRY    : ASSERT_NOT_REACHED();
+  }
+  ASSERT_NOT_REACHED();
+}
+
+static ostream&
+operator<<(ostream &out, Create_field &f) {
+
+  // emit field name + type definition
+  out << f.field_name << " " << sql_type_to_string(f.sql_type);
+
+  // emit extra length info if necessary
+  switch (f.sql_type) {
+
+    // optional (length) cases
+    case MYSQL_TYPE_BIT:
+    case MYSQL_TYPE_TINY:
+    case MYSQL_TYPE_SHORT:
+    case MYSQL_TYPE_INT24:
+    case MYSQL_TYPE_LONG:
+    case MYSQL_TYPE_LONGLONG:
+    case MYSQL_TYPE_STRING:
+      if (f.length) out << "(" << f.length << ")";
+      break;
+
+    // optional (length, decimal) cases
+    case MYSQL_TYPE_FLOAT:
+    case MYSQL_TYPE_DOUBLE:
+      if (f.length && f.decimals) {
+        out << "(" << f.length << ", " << f.decimals << ")";
+      }
+      break;
+
+    // mandatory (length) cases
+    case MYSQL_TYPE_VARCHAR:
+    case MYSQL_TYPE_VAR_STRING:
+      assert(f.length);
+      out << "(" << f.length << ")";
+      break;
+
+    // optional (length [, decimal]) cases
+    case MYSQL_TYPE_DECIMAL:
+    case MYSQL_TYPE_NEWDECIMAL:
+      if (f.length) {
+        out << "(" << f.length;
+        if (f.decimals) {
+          out << ", " << f.decimals << ")";
+        } else {
+          out << ")";
+        }
+      }
+      break;
+
+    // (val1, val2, ...) cases
+    case MYSQL_TYPE_ENUM:
+    case MYSQL_TYPE_SET:
+      out << f.interval_list;
+      break;
+
+    default:
+      break;
+  }
+
+  // emit extra metadata
+  switch (f.sql_type) {
+    // optional unsigned zerofill cases
+    case MYSQL_TYPE_TINY:
+    case MYSQL_TYPE_SHORT:
+    case MYSQL_TYPE_INT24:
+    case MYSQL_TYPE_LONG:
+    case MYSQL_TYPE_LONGLONG:
+    case MYSQL_TYPE_DOUBLE:
+    case MYSQL_TYPE_FLOAT:
+    case MYSQL_TYPE_DECIMAL:
+    case MYSQL_TYPE_NEWDECIMAL:
+      if (f.flags & UNSIGNED_FLAG) {
+        out << " unsigned";
+        if (f.flags & ZEROFILL_FLAG) {
+          out << " zerofill";
+        }
+      }
+      break;
+
+    // optional character set and collate parameters
+    case MYSQL_TYPE_STRING:
+    case MYSQL_TYPE_VARCHAR:
+    case MYSQL_TYPE_TINY_BLOB:
+    case MYSQL_TYPE_BLOB:
+    case MYSQL_TYPE_MEDIUM_BLOB:
+    case MYSQL_TYPE_LONG_BLOB:
+    case MYSQL_TYPE_ENUM:
+    case MYSQL_TYPE_SET:
+      if (f.charset) {
+        if (f.charset->csname) {
+          out << " character set " << f.charset->csname;
+        }
+        if (f.charset->name) {
+          out << " collate " << f.charset->name;
+        }
+      }
+
+      break;
+
+    default:
+      break;
+  }
+
+  // not null or null
+  if (f.flags & NOT_NULL_FLAG) {
+    out << " not null";
+  }
+
+  // default value
+  if (f.def) {
+    out << " default " << *f.def;
+  }
+
+  // auto increment
+  if (f.flags & AUTO_INCREMENT_FLAG) {
+    out << " auto_increment";
+  }
+
+  // primary key
+  if (f.flags & PRI_KEY_FLAG) {
+    out << " primary key";
+  } else if (f.flags & UNIQUE_FLAG) { // unique
+    out << " unique";
+  } else if (f.flags & UNIQUE_KEY_FLAG) { // unique key
+    out << " unique key";
+  }
+
+  // ignore comments
+
+  // TODO(stephentu): column_format?
+
+  // reference_definition
+
+  return out;
+}
+
+static ostream&
+operator<<(ostream &out, Key_part_spec &k) {
+  // field name
+  string field_name(k.field_name.str, k.field_name.length);
+
+  out << field_name;
+
+  // length
+  if (k.length) {
+    out << " (" << k.length << ")";
+  }
+
+  // TODO: asc/desc
+
+  return out;
+}
+
+static inline string convert_lex_str(const LEX_STRING &l) {
+  return string(l.str, l.length);
+}
+
+static ostream&
+operator<<(ostream &out, Key &k) {
+
+  // TODO: constraint
+
+  // key type
+  const char *kname = NULL;
+  switch (k.type) {
+    case Key::PRIMARY     : kname = "PRIMARY KEY"; break;
+    case Key::UNIQUE      : kname = "UNIQUE";      break;
+    case Key::MULTIPLE    : kname = "INDEX";       break;
+    case Key::FULLTEXT    : kname = "FULLTEXT";    break;
+    case Key::SPATIAL     : kname = "SPATIAL";     break;
+    case Key::FOREIGN_KEY : kname = "FOREIGN KEY"; break;
+    default:
+      assert(false);
+      break;
+  }
+  out << kname;
+
+  // index_name
+  string key_name(k.name.str, k.name.length);
+  if (!key_name.empty()) {
+    out << " " << key_name;
+  }
+
+  // column list
+  out << " " << k.columns;
+
+  // TODO: index_option
+
+  // foreign key references
+  if (k.type == Key::FOREIGN_KEY) {
+    auto fk = static_cast< Foreign_key& >(k);
+    out << " references ";
+    const string &db_str(convert_lex_str(fk.ref_table->db));
+    const string &tl_str(convert_lex_str(fk.ref_table->table));
+    if (!db_str.empty()) {
+      out << "`" << db_str << "`.`" << tl_str << "`";
+    } else {
+      out << "`" << tl_str << "`";
+    }
+    out << " " << fk.ref_columns;
+  }
+
+  return out;
+}
+
+static void do_create_table(ostream &out, LEX &lex) {
+  assert(lex.sql_command == SQLCOM_CREATE_TABLE);
+
+  THD *t = current_thd;
+
+  // table name
+  TABLE_LIST *tl = lex.select_lex.table_list.first;
+  {
+    String s;
+    tl->print(t, &s, QT_ORDINARY);
+    // TODO(stephentu):
+    // A) temporary table
+    // B) if not exists
+    out << "create table " << s << " ";
+  }
+
+  // columns
+  auto cl = lex.alter_info.create_list;
+  out << "(" << noparen(cl);
+
+  if (cl.elements) out << ", ";
+
+  // keys
+  auto kl = lex.alter_info.key_list;
+  out << noparen(kl) << ")";
+}
+
 static ostream&
 operator<<(ostream &out, LEX &lex)
 {
@@ -270,6 +542,8 @@ operator<<(ostream &out, LEX &lex)
         break;
 
     case SQLCOM_CREATE_TABLE:
+        do_create_table(out, lex);
+        break;
     case SQLCOM_DROP_TABLE:
     case SQLCOM_BEGIN:
     case SQLCOM_COMMIT:
