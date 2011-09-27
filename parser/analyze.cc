@@ -831,35 +831,31 @@ process_table_list(List<TABLE_LIST> *tll)
     }
 }
 
-static class AnalyzeQueryCallback : public QueryCallback {
- public:
-    virtual void do_callback(THD *t, LEX *lex) const {
-        // iterate over the entire select statement..
-        // based on st_select_lex::print in mysql-server/sql/sql_select.cc
-        process_table_list(&lex->select_lex.top_join_list);
-        process_select_lex(&lex->select_lex,
-                           cipher_type_reason(
-                                lex->sql_command == SQLCOM_SELECT ? cipher_type::any
-                                                                  : cipher_type::none,
-                                "select", 0, 0, true));
-
-        if (lex->sql_command == SQLCOM_UPDATE) {
-            auto item_it = List_iterator<Item>(lex->value_list);
-            for (;;) {
-                Item *item = item_it++;
-                if (!item)
-                    break;
-
-                analyze(item, cipher_type_reason(cipher_type::any, "update", item, 0, false));
-            }
-        }
-    }
-} s_callback;
-
 static void
 query_analyze(const std::string &db, const std::string &q)
 {
-    do_query_analyze(db, q, s_callback);
+    query_parse p(db, q);
+    LEX *lex = p.lex();
+
+    // iterate over the entire select statement..
+    // based on st_select_lex::print in mysql-server/sql/sql_select.cc
+    process_table_list(&lex->select_lex.top_join_list);
+    process_select_lex(&lex->select_lex,
+                       cipher_type_reason(
+                            lex->sql_command == SQLCOM_SELECT ? cipher_type::any
+                                                              : cipher_type::none,
+                            "select", 0, 0, true));
+
+    if (lex->sql_command == SQLCOM_UPDATE) {
+        auto item_it = List_iterator<Item>(lex->value_list);
+        for (;;) {
+            Item *item = item_it++;
+            if (!item)
+                break;
+
+            analyze(item, cipher_type_reason(cipher_type::any, "update", item, 0, false));
+        }
+    }
 }
 
 static string

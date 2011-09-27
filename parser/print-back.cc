@@ -21,17 +21,11 @@
 #include <parser/embedmysql.hh>
 #include <parser/stringify.hh>
 
-class PrintBackQueryCallback : public QueryCallback {
-public:
-  virtual void do_callback(THD *t, LEX *lex) const {
-
-  }
-};
-static PrintBackQueryCallback s_callback;
-
 inline static void
-query_parse_and_print(const std::string &db, const std::string &q) {
-  do_query_analyze(db, q, s_callback);
+query_parse_and_print(const std::string &db, const std::string &q)
+{
+    query_parse p(db, q);
+    cout << *p.lex() << endl;
 }
 
 int
