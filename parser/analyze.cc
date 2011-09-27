@@ -21,7 +21,6 @@
 #include <util/cleanup.hh>
 #include <util/rob.hh>
 
-//static bool debug = true;
 static bool just_strings = false;
 
 #define CIPHER_TYPES(m)                                                 \

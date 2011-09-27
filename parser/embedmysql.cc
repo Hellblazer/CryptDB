@@ -18,7 +18,7 @@
 #include <util/rob.hh>
 
 using namespace std;
-static bool debug = true;
+static bool debug = false;
 static bool embed_active = false;
 
 embedmysql::embedmysql(const std::string &dir)
