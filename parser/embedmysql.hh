@@ -5,6 +5,7 @@
 #include <stdexcept>
 
 #include <mysql.h>
+#include <sql_base.h>
 
 class embedmysql {
  public:
@@ -22,16 +23,15 @@ class mysql_thrower : public std::stringstream {
     ~mysql_thrower() __attribute__((noreturn));
 };
 
-class THD;
-class LEX;
-
-class QueryCallback {
+class query_parse {
  public:
-    virtual ~QueryCallback() {}
-    virtual void do_callback(THD *t, LEX *lex) const = 0;
-};
+    query_parse(const std::string &db, const std::string &q);
+    virtual ~query_parse();
+    LEX *lex();
 
-void
-do_query_analyze(const std::string   &db,
-                 const std::string   &q,
-                 const QueryCallback &callback);
+ private:
+    void cleanup();
+
+    THD *t;
+    Parser_state ps;
+};
