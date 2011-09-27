@@ -5,17 +5,6 @@
 #include <sstream>
 #include <stdexcept>
 
-#include "sql_priv.h"
-#include "unireg.h"
-#include "strfunc.h"
-#include "sql_class.h"
-#include "set_var.h"
-#include "sql_base.h"
-#include "rpl_handler.h"
-#include "sql_parse.h"
-#include "sql_plugin.h"
-#include "derror.h"
-
 using namespace std;
 
 static inline ostream&
