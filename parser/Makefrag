@@ -1,7 +1,7 @@
 OBJDIRS	+= parser
 
 PARSERSRC	:= embedmysql.cc
-PARSERPROGS	:= analyze load-schema print-back nz-foo
+PARSERPROGS	:= analyze load-schema print-back nz-foo EDBProxy2
 PARSERPROGOBJS	:= $(patsubst %,$(OBJDIR)/parser/%,$(PARSERPROGS))
 
 all:	$(PARSERPROGOBJS) $(OBJDIR)/libedbproxy.so

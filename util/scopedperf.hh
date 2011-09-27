@@ -331,8 +331,8 @@ class tsc_ctr : public namedctr<64> {
  public:
   tsc_ctr() : namedctr("tsc") {}
   static uint64_t sample() {
-    uint64_t a, d;
-    __asm __volatile("rdtsc" : "=a" (a), "=d" (d));
+    uint64_t a = 0, d = 0;
+    //__asm __volatile("rdtsc" : "=a" (a), "=d" (d));
     return a | (d << 32);
   }
 };

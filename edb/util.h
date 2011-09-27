@@ -322,6 +322,10 @@ typedef struct ResMeta {
 
 } ResMeta;
 
+typedef struct ParseContext {
+
+} ParseContext;
+
 typedef struct Result {
     vector<vector<string> > a;
 } Result;
