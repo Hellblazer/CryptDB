@@ -19,7 +19,7 @@
 #include <util/rob.hh>
 #include <parser/stringify.hh>
 
-static bool debug = false;
+static bool debug = true;
 static bool just_strings = false;
 
 #define CIPHER_TYPES(m)                                                 \
@@ -934,6 +934,10 @@ query_analyze(const std::string &db, const std::string &q)
      */
     lex->select_lex.context.resolve_in_table_list_only(
         lex->select_lex.table_list.first);
+
+    // FIXME(stephentu): HACK necessary to get analyze to work for me
+    t->stmt_arena->state = Query_arena::STMT_INITIALIZED;
+    assert(!t->fill_derived_tables());
 
     if (open_normal_and_derived_tables(t, lex->query_tables, 0))
         mysql_thrower() << "open_normal_and_derived_tables";
