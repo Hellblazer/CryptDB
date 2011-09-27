@@ -104,6 +104,7 @@ query_parse::query_parse(const std::string &db, const std::string &q)
     try {
         t->set_db(db.data(), db.length());
         mysql_reset_thd_for_next_command(t);
+        t->stmt_arena->state = Query_arena::STMT_INITIALIZED;
 
         char buf[q.size() + 1];
         memcpy(buf, q.c_str(), q.size());
@@ -174,12 +175,12 @@ query_parse::query_parse(const std::string &db, const std::string &q)
          * handle_select(), and mysql_select() in sql_select.cc.  Also
          * initial code in mysql_execute_command() in sql_parse.cc.
          */
+
         lex->select_lex.context.resolve_in_table_list_only(
             lex->select_lex.table_list.first);
 
-        // FIXME(stephentu): HACK necessary to get analyze to work for me
-        t->stmt_arena->state = Query_arena::STMT_INITIALIZED;
-        assert(!t->fill_derived_tables());
+        if (t->fill_derived_tables())
+            mysql_thrower() << "fill_derived_tables";
 
         if (open_normal_and_derived_tables(t, lex->query_tables, 0))
             mysql_thrower() << "open_normal_and_derived_tables";
