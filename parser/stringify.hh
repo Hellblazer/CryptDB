@@ -359,7 +359,10 @@ static void do_create_table(ostream &out, LEX &lex) {
   out << noparen(kl) << ")";
 }
 
-static ostream&
+ostream&
+operator<<(ostream &out, LEX &lex);
+
+ostream&
 operator<<(ostream &out, LEX &lex)
 {
     String s;
