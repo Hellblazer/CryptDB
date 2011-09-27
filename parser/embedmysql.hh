@@ -26,9 +26,9 @@ class THD;
 class LEX;
 
 class QueryCallback {
-public:
-  virtual ~QueryCallback() {}
-  virtual void do_callback(THD *t, LEX *lex) const = 0;
+ public:
+    virtual ~QueryCallback() {}
+    virtual void do_callback(THD *t, LEX *lex) const = 0;
 };
 
 void
