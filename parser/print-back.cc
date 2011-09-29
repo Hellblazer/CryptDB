@@ -13,6 +13,7 @@
 #include <sql_delete.h>
 #include <sql_insert.h>
 #include <sql_update.h>
+#include <handler.h>
 
 #include <util/errstream.hh>
 #include <util/cleanup.hh>
