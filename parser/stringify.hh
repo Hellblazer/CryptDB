@@ -575,6 +575,29 @@ operator<<(ostream &out, LEX &lex)
         do_create_table(out, lex);
         break;
     case SQLCOM_DROP_TABLE:
+        out << "drop ";
+        if (lex.drop_temporary) {
+            out << "temporary ";
+        }
+        out << "table ";
+        if (lex.drop_if_exists) {
+            out << "if exists ";
+        }
+        // table list
+        {
+            TABLE_LIST *tbl = lex.select_lex.table_list.first;
+            for (bool f = true; tbl; tbl = tbl->next_local, f = false) {
+                String s0;
+                tbl->print(t, &s0, QT_ORDINARY);
+                out << (f ? "" : ", ") << s0;
+            }
+        }
+        if (lex.drop_mode == DROP_RESTRICT) {
+          out << " restrict";
+        } else if (lex.drop_mode == DROP_CASCADE) {
+          out << " cascade";
+        }
+        break;
     case SQLCOM_BEGIN:
     case SQLCOM_COMMIT:
     case SQLCOM_ROLLBACK:
