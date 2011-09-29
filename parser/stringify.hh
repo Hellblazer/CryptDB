@@ -340,21 +340,53 @@ do_create_table(ostream &out, LEX &lex)
     {
         String s;
         tl->print(t, &s, QT_ORDINARY);
-        // TODO(stephentu):
-        // A) temporary table
-        // B) if not exists
-        out << "create table " << s << " ";
+        out << "create ";
+
+        // temporary
+        if (lex.create_info.options & HA_LEX_CREATE_TMP_TABLE) {
+            out << "temporary ";
+        }
+
+        out << "table ";
+
+        // if not exists
+        if (lex.create_info.options & HA_LEX_CREATE_IF_NOT_EXISTS) {
+            out << "if not exists ";
+        }
+
+        out << s << " ";
     }
 
-    // columns
-    auto cl = lex.alter_info.create_list;
-    out << "(" << noparen(cl);
+    if (lex.create_info.options & HA_LEX_CREATE_TABLE_LIKE) {
+        // create table ... like tbl_name
+        out << " like ";
+        TABLE_LIST *select_tables=
+          lex.create_last_non_select_table->next_global;
+        out << select_tables->alias;
+    } else {
+        auto cl = lex.alter_info.create_list;
+        auto kl = lex.alter_info.key_list;
 
-    if (cl.elements) out << ", ";
+        // columns
+        out << "(" << noparen(cl);
 
-    // keys
-    auto kl = lex.alter_info.key_list;
-    out << noparen(kl) << ")";
+        if (cl.elements && kl.elements) out << ", ";
+
+        // keys
+        out << noparen(kl) << ")";
+
+        // TODO(stephentu): table options
+        if (lex.create_info.used_fields) {
+            mysql_thrower() << "WARNING: table options currently unsupported";
+        }
+
+        // create table ... select ...
+        // this strange test for this condition comes from:
+        //   create_table_set_open_action_and_adjust_tables()
+        if (lex.select_lex.item_list.elements) {
+            out << " " << lex.select_lex;
+        }
+    }
 }
 
 static inline ostream&
@@ -543,6 +575,29 @@ operator<<(ostream &out, LEX &lex)
         do_create_table(out, lex);
         break;
     case SQLCOM_DROP_TABLE:
+        out << "drop ";
+        if (lex.drop_temporary) {
+            out << "temporary ";
+        }
+        out << "table ";
+        if (lex.drop_if_exists) {
+            out << "if exists ";
+        }
+        // table list
+        {
+            TABLE_LIST *tbl = lex.select_lex.table_list.first;
+            for (bool f = true; tbl; tbl = tbl->next_local, f = false) {
+                String s0;
+                tbl->print(t, &s0, QT_ORDINARY);
+                out << (f ? "" : ", ") << s0;
+            }
+        }
+        if (lex.drop_mode == DROP_RESTRICT) {
+          out << " restrict";
+        } else if (lex.drop_mode == DROP_CASCADE) {
+          out << " cascade";
+        }
+        break;
     case SQLCOM_BEGIN:
     case SQLCOM_COMMIT:
     case SQLCOM_ROLLBACK:
