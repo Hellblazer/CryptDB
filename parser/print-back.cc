@@ -25,7 +25,14 @@ inline static void
 query_parse_and_print(const std::string &db, const std::string &q)
 {
     query_parse p(db, q);
-    cout << *p.lex() << endl;
+
+    LEX *l = p.lex();
+    l->select_lex.where =
+        new Item_func_minus(new Item_func_plus(new Item_int(1234), new Item_int(1236)), l->select_lex.where);
+    l->select_lex.join->conds =
+        new Item_func_minus(new Item_func_plus(new Item_int(1235), new Item_int(1237)), l->select_lex.join->conds);
+
+    cout << *l << endl;
 }
 
 int
