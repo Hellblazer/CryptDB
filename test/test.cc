@@ -13,16 +13,16 @@
 #include <time.h>
 #include <sys/wait.h>
 
-#include <edb/OPE.h>
-#include <edb/HGD.h>
-#include <edb/util.h>
-#include <edb/params.h>
+#include <crypto-old/OPE.h>
+#include <crypto-old/HGD.h>
+#include <crypto-old/CryptoManager.h>
+
 #include <edb/EDBProxy.h>
-#include <edb/CryptoManager.h>
 #include <edb/AccessManager.h>
 #include <edb/Connect.h>
-#include <edb/Equation.h>
 
+#include <util/util.h>
+#include <util/params.h>
 #include <util/cryptdb_log.hh>
 
 #include <test/test_utils.h>
@@ -2559,45 +2559,6 @@ autoIncTest(const TestConfig &tc, int ac, char **av)
 static void
 accessManagerTest(const TestConfig &tc, int ac, char **av)
 {
-
-	cerr <<
-			"============================= Equation ========================" << endl;
-
-	Equation eq;
-	string test = "1+2";
-	eq.set(test);
-	string res1 = eq.rpn();
-	test = "1+(1*1+1)";
-	eq.set(test);
-	string res2 = eq.rpn();
-	assert_s(res1.compare(
-			res2) == 0, "1+2="+res1+" != 1+(1*1+1)="+res2+
-			";  this is sad");
-
-	test = "1";
-	eq.set(test);
-	res1 = eq.rpn();
-	assert_s(res1.compare("1") == 0, "1 != 1");
-
-	test = "10/5+6";
-	eq.set(test);
-	res1 = eq.rpn();
-	test = "(2*4)/1+(3-5)+2";
-	eq.set(test);
-	res2 = eq.rpn();
-	assert_s(res1.compare(
-			res2) == 0, "1+2="+res1+" != 1+(1*1+1)="+res2+
-			";  this is sad");
-
-	test = "(5.5+.5)*2";
-	eq.set(test);
-	res1 = eq.rpn();
-	test = "(12-.3)+.2+.1";
-	eq.set(test);
-	res2 = eq.rpn();
-	assert_s(res1.compare(
-			res2) == 0, "1+2="+res1+" != 1+(1*1+1)="+res2+
-			";  this is sad");
 
 	/*cerr << "============================= Consolidate
        ========================" << endl;

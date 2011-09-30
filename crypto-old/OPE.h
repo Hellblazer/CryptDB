@@ -2,7 +2,7 @@
 #define _OPE_H
 
 #include <stdio.h>
-#include "util.h"
+#include <util/util.h>
 
 /*
  *

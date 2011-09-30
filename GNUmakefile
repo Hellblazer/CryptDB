@@ -48,6 +48,7 @@ $(OBJDIR)/%.o: %.cc
 	$(CXX) -MD $(CXXFLAGS) -c $< -o $@
 
 include crypto/Makefrag
+include crypto-old/Makefrag
 include parser/Makefrag
 include edb/Makefrag
 include test/Makefrag

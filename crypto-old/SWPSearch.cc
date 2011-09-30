@@ -5,7 +5,7 @@
  *      Author: raluca
  */
 
-#include "SWPSearch.h"
+#include <crypto-old/SWPSearch.h>
 #include <iostream>
 #include <fstream>
 

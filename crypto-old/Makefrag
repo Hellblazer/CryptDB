@@ -1,0 +1,18 @@
+OBJDIRS	+= crypto-old
+
+CRYPTO_SRCS  := OPE.cc HGD.cc Binary.cc SWPSearch.cc BasicCrypto.cc \
+		ECJoin.cc CryptoManager.cc blowfish.cc
+
+all:	$(OBJDIR)/libedbcrypto.so
+
+CRYPTO_OBJS := $(patsubst %.cc,$(OBJDIR)/crypto-old/%.o,$(CRYPTO_SRCS))
+$(OBJDIR)/libedbcrypto.so: $(CRYPTO_OBJS)
+	$(CXX) -shared -o $@ $(CRYPTO_OBJS) $(LDFLAGS)
+
+install: install_crypto_old
+
+.PHONY: install_crypto_old
+install_crypto_old: $(OBJDIR)/libedbcrypto.so
+	install -m 644 $(OBJDIR)/libedbcrypto.so /usr/lib
+
+# vim: set noexpandtab:

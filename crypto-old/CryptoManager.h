@@ -1,18 +1,17 @@
 #ifndef _CRYPTOMANAGER_H
 #define _CRYPTOMANAGER_H
 
+#include <map>
+#include <stdio.h>
 #include <openssl/sha.h>
 #include <openssl/rand.h>
 #include <openssl/aes.h>
 #include <openssl/rsa.h>
 #include <openssl/evp.h>
-#include "util.h"
-#include <map>
-#include "OPE.h"
-#include "params.h"
-#include <stdio.h>
-#include "SWPSearch.h"
-#include "BasicCrypto.h"
+#include <crypto-old/OPE.h>
+#include <util/util.h>
+#include <crypto-old/SWPSearch.h>
+#include <crypto-old/BasicCrypto.h>
 
 
 //returns the highest security level lower than sl that allows equality

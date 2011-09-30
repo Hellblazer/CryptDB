@@ -5,9 +5,9 @@
  *
  */
 
-#include <crypto/pbkdf2.hh>
 #include <util/cryptdb_log.hh>
-#include <edb/ECJoin.h>
+#include <crypto/pbkdf2.hh>
+#include <crypto-old/ECJoin.h>
 #include <test/TestCrypto.h>
 
 TestCrypto::TestCrypto()

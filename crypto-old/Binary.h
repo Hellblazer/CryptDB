@@ -9,9 +9,9 @@
 #define BINARY_H_
 
 #include <string>
-#include "stdlib.h"
-#include "string.h"
-#include "math.h"
+#include <stdlib.h>
+#include <string.h>
+#include <math.h>
 
 #include <list>
 

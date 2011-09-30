@@ -1,7 +1,7 @@
 #include <assert.h>
-#include "HGD.h"
 #include <stdio.h>
-#include "NTL/RR.h"
+#include <NTL/RR.h>
+#include <crypto-old/HGD.h>
 
 using namespace std;
 
