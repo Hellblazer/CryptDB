@@ -349,7 +349,7 @@ testMetaAlerations(const TestConfig &tc, KeyAccess *am) {
     record(tc, am->getKey(s16).length() == 0, test+"alice can access s16");   
     record(tc, am->getKey(s6).length() > 0, test+"alice can't access s6 (orphan)");
     am->removePsswd(alice);
-    cerr << "----" << endl;
+
     //bob
     am->insertPsswd(bob,secretB);
     record(tc, am->getKey(u2).length() > 0, test+"bob can't access u2");
@@ -363,7 +363,7 @@ testMetaAlerations(const TestConfig &tc, KeyAccess *am) {
     record(tc, am->getKey(u1).length() == 0, test+"bob can access u1");
     record(tc, am->getKey(m15).length() == 0, test+"bob can access m15");
     am->removePsswd(bob);
-    cerr << "----" << endl;
+
     //chris
     am->insertPsswd(chris,secretC);
     record(tc, am->getKey(u3).length() > 0, test+"chris can't access u3");
