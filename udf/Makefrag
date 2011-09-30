@@ -2,7 +2,7 @@ OBJDIRS	+= udf
 
 all:    $(OBJDIR)/udf/edb.so
 
-$(OBJDIR)/udf/edb.so: $(OBJDIR)/udf/edb.o $(OBJDIR)/edb/libedbcrypto.so
+$(OBJDIR)/udf/edb.so: $(OBJDIR)/udf/edb.o $(OBJDIR)/libedbcrypto.so
 	$(CXX) -shared -o $@ $< $(LDFLAGS) -ledbcrypto
 
 install: install_udf
