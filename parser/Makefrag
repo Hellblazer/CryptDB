@@ -4,12 +4,13 @@ PARSERSRC	:= embedmysql.cc
 PARSERPROGS	:= analyze load-schema print-back nz-foo
 PARSERPROGOBJS	:= $(patsubst %,$(OBJDIR)/parser/%,$(PARSERPROGS))
 
-all:	$(PARSERPROGOBJS) $(OBJDIR)/libedbproxy.so
+all:	$(PARSERPROGOBJS) $(OBJDIR)/libedbparser.so
 
-$(PARSERPROGOBJS): %: %.o $(OBJDIR)/libedbproxy.so
-	$(CXX) $< -o $@ -ledbproxy $(LDFLAGS)
+$(PARSERPROGOBJS): %: %.o $(OBJDIR)/libedbparser.so
+	$(CXX) $< -o $@ -ledbparser $(LDFLAGS)
 
-$(OBJDIR)/libedbproxy.so: $(patsubst %.cc,$(OBJDIR)/parser/%.o,$(PARSERSRC))
-	$(CXX) -shared -o $@ $< $(LDFLAGS)
+EDBPARSER_OBJS	:= $(patsubst %.cc,$(OBJDIR)/parser/%.o,$(PARSERSRC))
+$(OBJDIR)/libedbparser.so: $(EDBPARSER_OBJS) $(OBJDIR)/libedbutil.so
+	$(CXX) -shared -o $@ $(EDBPARSER_OBJS) $(LDFLAGS) -ledbutil
 
 # vim: set noexpandtab:
