@@ -157,6 +157,7 @@ MetaAccess::addEqualsCheck(string princ1, string princ2)
             prinToGen.erase(sanitize(princ1));
             prinToGen.erase(sanitize(princ2));
             genToPrin.erase(new1);
+            assert_s(CheckAccess(), "addEqualsCheck reverts improperly");
             return -1;
         }
 
@@ -165,6 +166,7 @@ MetaAccess::addEqualsCheck(string princ1, string princ2)
         if (old1 != "" && old2 == "") {
             prinToGen.erase(sanitize(princ2));
             genToPrin[new1].erase(sanitize(princ2));
+            assert_s(CheckAccess(), "addEqualsCheck reverts improperly");
             return -1;
         }
 
@@ -173,6 +175,7 @@ MetaAccess::addEqualsCheck(string princ1, string princ2)
         if (old1 == "" && old2 != "") {
             prinToGen.erase(sanitize(princ1));
             genToPrin[new1].erase(sanitize(princ1));
+            assert_s(CheckAccess(), "addEqualsCheck reverts improperly");
             return -1;
         }
         
@@ -186,6 +189,7 @@ MetaAccess::addEqualsCheck(string princ1, string princ2)
             genHasAccessToList = genHasAccessToList_old;
             genAccessibleByList = genAccessibleByList_old;
             givesPsswd = givesPsswd_old;
+            assert_s(CheckAccess(), "addEqualsCheck reverts improperly");
             return -1;
         }
     }
@@ -309,13 +313,19 @@ MetaAccess::addAccessCheck(string princHasAccess, string princAccessible)
             genHasAccessToList[old_hasAccess] = old_genHasAccessToList;
         } else {
             genHasAccessToList.erase(old_hasAccess);
+            genToPrin.erase(getGeneric(princHasAccess));
+            prinToGen.erase(sanitize(princHasAccess));
         }
 
         if (old_accessible != "") {
             genAccessibleByList[old_accessible] = old_genAccessibleByList;
         } else {
             genAccessibleByList.erase(old_accessible);
+            genToPrin.erase(getGeneric(princHasAccess));
+            prinToGen.erase(sanitize(princHasAccess));
         }
+        assert_s(CheckAccess(), "addAccessCheck reverts improperly");
+        return -1;
     }
     //since adding an access tree link doesn't change any of the existing data,
     // the database is unaffected
@@ -362,6 +372,7 @@ MetaAccess::addGivesCheck(string princ)
     addGives(princ);
     if (!CheckAccess()) {
         givesPsswd.erase(getGeneric(princ));
+        assert_s(CheckAccess(), "addGivesCheck reverts improperly");
         return -1;
     }
     //since gives has no effect on the access tables, no need to do anything else
@@ -562,7 +573,6 @@ MetaAccess::CheckAccess()
     LOG(am_v) << "CHECKING ACCESS TREE FOR FALACIES";
 
     for (gives = givesPsswd.begin(); gives != givesPsswd.end(); gives++) {
-        //cerr << *gives << endl;
         std::set<string> current_layer = getGenHasAccessTo(*gives);
         std::set<string> next_layer;
         std::set<string>::iterator current_node;
@@ -592,6 +602,7 @@ MetaAccess::CheckAccess()
         }
     }
 
+
     if (results.size() != genToPrin.size()) {
         if(VERBOSE) { LOG(am_v) << "wrong number of results"; }
         return false;
@@ -600,6 +611,7 @@ MetaAccess::CheckAccess()
     for (gives = results.begin(); gives != results.end(); gives++) {
         if (genToPrin.find(*gives) == genToPrin.end()) {
             if (VERBOSE) { LOG(am_v) << "wrong results"; }
+            cerr << "wrong results" << endl;
             return false;
         }
     }
@@ -766,11 +778,12 @@ KeyAccess::addEquals(string prin1, string prin2)
         string gen1 = getGeneric(prin1);
         string gen2 = getGeneric(prin2);
         if (gen1 != "" && gen2 != "") {
-            string sql = "SELECT DISTINCT hasAccessType, hasAccessValue FROM " + meta->accessTableName() + " WHERE hasAccessType = '" + gen1 + "' OR hasAccessType = '" + gen2 + "'";
+            string sql = "SELECT DISTINCT hasAccessType, hasAccessValue, accessToType, accessToValue FROM " + meta->accessTableName() + " WHERE hasAccessType = '" + gen1 + "' OR hasAccessType = '" + gen2 + "' OR accessToType = '" + gen1 + "' OR accessToType = '" + gen2 + "'";
             ResType res = execute(sql);
             std::set<string> prin1_values;
             std::set<string> prin2_values;
-            //TODO: also check if same value instances have indentical keys (then should be OK)
+            std::set<Prin> prin1_hasaccess;
+            std::set<Prin> prin2_hasaccess;
             for(auto it = res.rows.begin(); it != res.rows.end(); it++) {
                 if (it->at(0).data == gen1) {
                     if (prin2_values.find(it->at(1).data) != prin2_values.end()) {
@@ -778,15 +791,34 @@ KeyAccess::addEquals(string prin1, string prin2)
                         return -1;
                     }
                     prin1_values.insert(it->at(1).data);
-                } else {
+                } else if (it->at(0).data == gen2) {
                     if (prin1_values.find(it->at(1).data) != prin1_values.end()) {
                         LOG(am) << "addEquals failed: the new equals would alter the currently exist key links";
                         return -1;
                     }
                     prin2_values.insert(it->at(1).data);
                 }
+
+                if (it->at(2).data == gen1) {
+                    prin1_hasaccess.insert(Prin(it->at(0).data, it->at(1).data));
+                } else if (it->at(2).data == gen2) {
+                    prin2_hasaccess.insert(Prin(it->at(0).data, it->at(1).data));
+                }
+            
+            }
+            if (prin1_hasaccess.size() == prin2_hasaccess.size()) {
+                for (auto p1 = prin1_hasaccess.begin(); p1 != prin1_hasaccess.end(); p1++) {
+                    if (prin2_hasaccess.find(*p1) == prin2_hasaccess.end()) {
+                        LOG(am) << "addEquals failed: the new equals would alter the currently exist key links";
+                        return -1;
+                    }
+                }        
+            } else if (prin1_hasaccess.size() != 0 && prin2_hasaccess.size() != 0) {
+                LOG(am) << "addEquals failed: the new equals would alter the currently exist key links";
+                return -1;
             }
         }
+        meta->addEqualsCheck(prin1, prin2);
         return 0;
     }
 
@@ -1345,11 +1377,10 @@ KeyAccess::insertPsswd(Prin gives, const string &psswd)
             }
             for (v = values.begin(); v != values.end(); v++) {
                 hasAccess_prin = *v;
-                //std::set<Prin> prin_set;
-                //prin_set.insert(hasAccess_prin);
                 assert_s(hasAccess->compare(
                              hasAccess_prin.gen) == 0,
                          "hasAccess_prin in insertPsswd is WRONG");
+                //cerr << "\t" << v->gen << "=" << v->value << endl;
                 Prin empty;
                 int number_keys = SelectAccessCount(hasAccess_prin, empty);
                 //if there are many keys of this type, don't store them in
@@ -1368,6 +1399,7 @@ KeyAccess::insertPsswd(Prin gives, const string &psswd)
                     continue;
                 }
                 ResType res = SelectAccess(hasAccess_prin, empty);
+                //cerr << "\tres okay " << res.rows.size() << endl;
                 if (res.rows.size() > 0) {
                     auto row = res.rows.begin();
                     while (row != res.rows.end()) {
@@ -1400,6 +1432,7 @@ KeyAccess::insertPsswd(Prin gives, const string &psswd)
                         else {
                             new_prin_key = buildKey(new_prin, new_key);
                         }
+                        //cerr << "\t   c" << endl;
                         new_prin_key.principals_with_access.insert(new_prin);
                         new_prin_key.principals_with_access.insert(
                             hasAccess_prin);
@@ -1665,6 +1698,9 @@ KeyAccess::DFS_hasAccess(Prin start)
         current_node = to_investigate.front();
         to_investigate.pop_front();
         while(inList(results, current_node)) {
+            if (to_investigate.empty()) {
+                return results;
+            }
             current_node = to_investigate.front();
             to_investigate.pop_front();
         }

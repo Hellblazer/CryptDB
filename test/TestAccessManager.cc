@@ -68,7 +68,7 @@ testMeta_native(const TestConfig &tc, Connect * conn) {
     MetaAccess * meta;
     meta = new MetaAccess(conn, false);
     
-    meta->addEquals("u.uid","g.guid");
+    meta->addEquals("u.uid","g.uid");
     meta->addAccess("u.uid","g.gid");
     
     record(tc, !meta->CheckAccess(), test + "CheckAccess--no gives");
@@ -80,7 +80,15 @@ testMeta_native(const TestConfig &tc, Connect * conn) {
     meta->addAccess("u.uname","u.uid");
     
     record(tc, meta->CheckAccess(), test + "CheckAccess--good tree");  
-    
+
+    record(tc, meta->addAccessCheck("g.acc","g.gid") < 0, test + "succeeded in adding illegal access link");
+    record(tc, meta->addEqualsCheck("u.acc","g.acc") < 0, test + "succeeded in adding illegal equality");
+
+    record(tc, meta->addAccessCheck("u.uname", "u.acc") == 0, test + "failed to add legal access link");
+    record(tc, meta->addEqualsCheck("u.acc","g.acc") == 0, test + "failed to add legal equality (case 2)");
+    record(tc, meta->addGivesCheck("u.captcha") == 0, test + "failed to add legal givesPsswd");
+    record(tc, meta->addEqualsCheck("u.uname", "u.captcha") == 0, test + "failed to add legal equality (case 4)");
+
     delete meta;
 }
 
@@ -120,7 +128,7 @@ buildTest(Connect * conn) {
     return am;
 }
 
-//assumes ka has been built with buildTest
+//assumes am has been built with buildTest
 static void
 buildBasic(KeyAccess * am) {
     am->insertPsswd(alice,secretA);
@@ -151,8 +159,8 @@ buildAll(KeyAccess * am) {
     am->insert(m2,s6);
     am->insert(m3,s4);
     am->insert(m4,s6);
-    am->insert(m5,s7);
     am->insert(m5,s5);
+    am->insert(m5,s7);
     am->insert(m15,s16);
     am->insert(m15,s24);
     am->removePsswd(alice);
@@ -303,6 +311,73 @@ testMultiBasic(const TestConfig &tc, KeyAccess * am) {
     record(tc, work_key1.compare(work_key2) == 0,
        test+"mailing list work key is not the same for bob as it was for alice");
 }
+
+static void
+testMetaAlerations(const TestConfig &tc, KeyAccess *am) {
+    string test = "(meta changes) ";
+    buildAll(am);
+    record(tc, am->addEquals("u.user","u.uid") == 0, test + "add equality failed (case 3)");
+    //assert_s(false, "pause");
+    record(tc, am->addEquals("x.mailing_list", "m.mess") < 0, test + "added illegal equality (ml = m)");
+
+    record(tc, am->addEquals("g.gid","m.mess") < 0, test + "illegal equality (gave access to previously inaccesible keys) was added");
+    
+    record(tc, am->addGives("u.c") == 0, test + "add gives failed");
+    record(tc, am->addEquals("u.uid", "u.c") == 0, test + "add equality failed (case 4)");
+    
+    record(tc, am->addAccess("u.uid", "f.fid") == 0, test + "add access failed");
+    record(tc, am->addAccess("new.thing","m.mess") < 0, test + "illegal access (new principle would break the access tree) was added");
+    
+    //check that meta is still correctly structured
+    record(tc, am->getGeneric("u.user") == am->getGeneric("u.uid"), test + "u.user and u.uid should have the same generic");
+    record(tc, am->getGeneric("x.mailing_list") != am->getGeneric("m.mess"), test + "mailing_list and m.mess should not have the same generic");
+    record(tc, am->getGeneric("u.c") == am->getGeneric("u.uid"), test + "u.c and u.uid should have the same generic");
+    record(tc, am->getGeneric("new.thing") == "", test + "new.thing should not have been created");
+    //check that data is still all accessible (or not, as the case may be)...
+    //alice
+    am->insertPsswd(alice,secretA);
+    record(tc, am->getKey(u1).length() > 0, test+"alice can't access u1");
+    record(tc, am->getKey(m5).length() > 0, test+"alice can't access m5");
+    record(tc, am->getKey(s5).length() > 0, test+"alice can't access s5");
+    record(tc, am->getKey(g5).length() > 0, test+"alice can't access g5");
+    record(tc, am->getKey(f3).length() > 0, test+"alice can't access f3");
+    record(tc, am->getKey(a5).length() > 0, test+"alice can't access a5");
+    record(tc, am->getKey(f2).length() > 0, test+"alice can't access f2");
+    record(tc, am->getKey(mlwork).length() > 0, test+"alice can't access mlwork");
+    record(tc, am->getKey(u2).length() == 0, test+"alice can access u2");
+    record(tc, am->getKey(m3).length() == 0, test+"alice can access m3");
+    record(tc, am->getKey(s16).length() == 0, test+"alice can access s16");   
+    record(tc, am->getKey(s6).length() > 0, test+"alice can't access s6 (orphan)");
+    am->removePsswd(alice);
+    cerr << "----" << endl;
+    //bob
+    am->insertPsswd(bob,secretB);
+    record(tc, am->getKey(u2).length() > 0, test+"bob can't access u2");
+    record(tc, am->getKey(g5).length() > 0, test+"bob can't access g5");
+    record(tc, am->getKey(m2).length() > 0, test+"bob can't access m2");
+    record(tc, am->getKey(m4).length() > 0, test+"bob can't access m4");
+    record(tc, am->getKey(s6).length() > 0, test+"bob can't access s6");
+    record(tc, am->getKey(m3).length() > 0, test+"bob can't access m3");
+    record(tc, am->getKey(s4).length() > 0, test+"bob can't access s4");
+    record(tc, am->getKey(u3).length() == 0, test+"bob can access u3");
+    record(tc, am->getKey(u1).length() == 0, test+"bob can access u1");
+    record(tc, am->getKey(m15).length() == 0, test+"bob can access m15");
+    am->removePsswd(bob);
+    cerr << "----" << endl;
+    //chris
+    am->insertPsswd(chris,secretC);
+    record(tc, am->getKey(u3).length() > 0, test+"chris can't access u3");
+    record(tc, am->getKey(m15).length() > 0, test+"chris can't access m15");
+    record(tc, am->getKey(s16).length() > 0, test+"chris can't access s16");
+    record(tc, am->getKey(s24).length() > 0, test+"chris can't access s24");
+    record(tc, am->getKey(u2).length() == 0, test+"chris can access u2");
+    record(tc, am->getKey(s5).length() == 0, test+"chris can access s5");
+    record(tc, am->getKey(mlwork).length() == 0, test+"chris can access mlwork");
+    am->removePsswd(chris);
+}
+
+    
+
 
 static void
 testNonTree(const TestConfig &tc, KeyAccess * am) {
@@ -744,6 +819,11 @@ TestAccessManager::run(const TestConfig &tc, int argc, char ** argv)
     ka = buildTest(new Connect(tc.host, tc.user, tc.pass, tc.db));
     cerr << "threshold tests... (this may take a while)" << endl;
     testThreshold(tc, ka);
+
+    ka->~KeyAccess();
+    ka = buildTest(new Connect(tc.host, tc.user, tc.pass, tc.db));
+    cerr << "altering meta post data intertion tests..." << endl;
+    testMetaAlerations(tc, ka);
 
     cerr << "RESULT: " << npass << "/" << ntest << " passed" << endl;
 
