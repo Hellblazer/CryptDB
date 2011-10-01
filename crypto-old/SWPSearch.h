@@ -19,8 +19,8 @@
 #ifndef SWPSEARCH_H_
 #define SWPSEARCH_H_
 
-#include "util.h"
-#include "Binary.h"
+#include <util/util.h>
+#include <crypto-old/Binary.h>
 #include <openssl/aes.h>
 #include <openssl/rand.h>
 #include <list>

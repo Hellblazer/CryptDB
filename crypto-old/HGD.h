@@ -1,5 +1,4 @@
-#include "NTL/ZZ.h"
-#include <stdio.h>
+#include <NTL/ZZ.h>
 
 using namespace NTL;
 

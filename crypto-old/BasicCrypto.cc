@@ -5,7 +5,7 @@
  */
 
 #include <assert.h>
-#include <edb/BasicCrypto.h>
+#include <crypto-old/BasicCrypto.h>
 #include <util/ctr.hh>
 
 

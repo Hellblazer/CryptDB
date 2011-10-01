@@ -6,9 +6,9 @@
  */
 
 #pragma once
-#include <edb/CryptoManager.h>
-#include <edb/HGD.h>
-#include <edb/OPE.h>
+#include <crypto-old/CryptoManager.h>
+#include <crypto-old/HGD.h>
+#include <crypto-old/OPE.h>
 #include <test/test_utils.h>
 
 class TestCrypto {

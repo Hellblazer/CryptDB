@@ -29,10 +29,10 @@
 #ifndef ECJOIN_H_
 #define ECJOIN_H_
 
-#include "openssl/obj_mac.h"
-#include "openssl/bn.h"
-#include "openssl/ec.h"
-#include "BasicCrypto.h"
+#include <openssl/obj_mac.h>
+#include <openssl/bn.h>
+#include <openssl/ec.h>
+#include <crypto-old/BasicCrypto.h>
 
 
 struct ECJoinSK{

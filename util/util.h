@@ -10,23 +10,21 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string>
-#include "string.h"
+#include <string.h>
 #include <list>
 #include <map>
-#include "stdint.h"
+#include <stdint.h>
 #include <sys/time.h>
-#include "params.h"
 #include <vector>
 #include <set>
-#include "Equation.h"
 #include <fstream>
 #include <iostream>
+#include <sstream>
+#include <NTL/ZZ.h>
 
+#include <util/params.h>
 
-
-#include "NTL/ZZ.h"
 using namespace NTL;
-
 using namespace std;
 
 // ==== CONSTANTS ============== //

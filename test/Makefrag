@@ -6,9 +6,11 @@ TEST_SRCS   := test.cc TestSinglePrinc.cc TestCrypto.cc test_utils.cc \
 
 all:	$(OBJDIR)/test/test
 
-$(OBJDIR)/test/test: $(patsubst %.cc,$(OBJDIR)/test/%.o,$(TEST_SRCS)) \
+TEST_OBJS := $(patsubst %.cc,$(OBJDIR)/test/%.o,$(TEST_SRCS))
+$(OBJDIR)/test/test: $(TEST_OBJS) \
 		     $(OBJDIR)/libcryptdb.so $(OBJDIR)/libedbcrypto.so \
 		     $(OBJDIR)/libedbcrypto2.so $(OBJDIR)/libedbutil.so
-	$(CXX) -o $@ $^ $(LDFLAGS)
+	$(CXX) -o $@ $(TEST_OBJS) $(LDFLAGS) \
+	       -lcryptdb -ledbcrypto -ledbcrypto2 -ledbutil
 
 # vim: set noexpandtab:

@@ -7,7 +7,7 @@
 #include <fstream>
 #include <istream>
 
-#include <edb/CryptoManager.h>
+#include <crypto-old/CryptoManager.h>
 #include <util/ctr.hh>
 #include <util/cryptdb_log.hh>
 

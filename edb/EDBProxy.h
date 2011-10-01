@@ -1,12 +1,11 @@
 #ifndef _EDBProxy_H
 #define _EDBProxy_H
 
-#include "Translator.h"
-#include "Connect.h"
+#include <edb/Translator.h>
+#include <edb/Connect.h>
+#include <edb/MultiPrinc.h>
 #include <iostream>
 #include <fstream>
-
-#include "MultiPrinc.h"
 
 using namespace std;
 

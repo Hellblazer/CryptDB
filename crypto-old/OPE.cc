@@ -1,19 +1,11 @@
-#include "OPE.h"
-
 #include <openssl/sha.h>
 #include <openssl/rand.h>
 #include <openssl/aes.h>
-
-#include "NTL/ZZ.h"
-
-#include "NTL/RR.h"
-
-#include "HGD.h"
-
-//#include "AvlTree.h"
-#include "params.h"
-
-#include "util.h"
+#include <NTL/ZZ.h>
+#include <NTL/RR.h>
+#include <crypto-old/OPE.h>
+#include <crypto-old/HGD.h>
+#include <util/util.h>
 
 using namespace NTL;
 using namespace std;

@@ -10,7 +10,6 @@
 #include <edb/AccessManager.h>
 #include <util/cryptdb_log.hh>
 
-#define PRINCTYPE "varchar(255)"
 #define NODIGITS 4
 
 //------------------------------------------------------------------------------------------
@@ -47,6 +46,16 @@ MetaAccess::MetaAccess(Connect * c, bool verb)
     this->public_table = "cryptdb_initalized_principals";
     this->access_table = "cryptdb_access_keys";
     this->conn = c;
+}
+
+int
+MetaAccess::execute(string sql)
+{
+    if(!conn->execute(sql)) {
+        LOG(am) << "error with sql query " << sql;
+        return -1;
+    }
+    return 0;
 }
 
 string
@@ -115,6 +124,85 @@ MetaAccess::unsanitizeSet(std::set<string> sanitized)
         unsanitized.insert(unsanitize(*it));
     }
     return unsanitized;
+}
+
+int
+MetaAccess::addEqualsCheck(string princ1, string princ2)
+{
+    string old1 = getGenericPublic(princ1);
+    string old2 = getGenericPublic(princ2);
+    //only store sets and maps for case 4, where they're necessary -- they may be large
+    std::set<string> genToPrin_old1;
+    std::set<string> genToPrin_old2;
+    map<string, std::set<string> > genHasAccessToList_old;
+    map<string, std::set<string> > genAccessibleByList_old;
+    std::set<string> givesPsswd_old;
+    if (old1 != "" && old2 != "") {
+        genToPrin_old1 = genToPrin[old1];
+        genToPrin_old2 = genToPrin[old2];
+        genHasAccessToList_old = genHasAccessToList;
+        genAccessibleByList_old = genAccessibleByList;
+        givesPsswd_old = givesPsswd;
+    }
+    addEquals(princ1, princ2);
+    string new1 = getGenericPublic(princ1);
+    string new2 = getGenericPublic(princ2);
+    assert_s(new1 == new2, "since this is adding an equals, resultant generics should be equal");
+    if (!CheckAccess()) {
+        //revert addEquals, and return an error
+        LOG(am) << "addEqualsCheck failed: the new equals creates an invalid access tree";
+        //case 1: neither princ had a generic
+        //remove all references to these princs and delete the new generic
+        if (old1 == "" && old2 == "") {
+            prinToGen.erase(sanitize(princ1));
+            prinToGen.erase(sanitize(princ2));
+            genToPrin.erase(new1);
+            assert_s(CheckAccess(), "addEqualsCheck reverts improperly");
+            return -1;
+        }
+
+        //case 2: only princ1 had a generic
+        //remove all reference to princ2
+        if (old1 != "" && old2 == "") {
+            prinToGen.erase(sanitize(princ2));
+            genToPrin[new1].erase(sanitize(princ2));
+            assert_s(CheckAccess(), "addEqualsCheck reverts improperly");
+            return -1;
+        }
+
+        //case 3: only princ2 had a generic
+        //remove all reference to princ1
+        if (old1 == "" && old2 != "") {
+            prinToGen.erase(sanitize(princ1));
+            genToPrin[new1].erase(sanitize(princ1));
+            assert_s(CheckAccess(), "addEqualsCheck reverts improperly");
+            return -1;
+        }
+        
+        //case 4: both princs had generics
+        //reset references to previous
+        if (old1 != "" && old2 != "") {
+            prinToGen[sanitize(princ1)] = old1;
+            prinToGen[sanitize(princ2)] = old2;
+            genToPrin[old1] = genToPrin_old1;
+            genToPrin[old2] = genToPrin_old2;
+            genHasAccessToList = genHasAccessToList_old;
+            genAccessibleByList = genAccessibleByList_old;
+            givesPsswd = givesPsswd_old;
+            assert_s(CheckAccess(), "addEqualsCheck reverts improperly");
+            return -1;
+        }
+    }
+    //update database to reflect new generic name (if exists)
+    string sql = "UPDATE " + access_table + " SET hasAccessType = '" + new1 + "' WHERE hasAccessType = '" + old1 + "'";
+    execute(sql);
+    sql = "UPDATE " + access_table + " SET hasAccessType = '" + new2 + "' WHERE hasAccessType = '" + old2 + "'";
+    execute(sql);
+    sql = "UPDATE " + access_table + " SET accessToType = '" + new1 + "' WHERE accessToType = '" + old1 + "'";
+    execute(sql);
+    sql = "UPDATE " + access_table + " SET accessToType = '" + new2 + "' WHERE accessToType = '" + old2 + "'";
+    execute(sql);
+    return 0;
 }
 
 void
@@ -203,6 +291,47 @@ MetaAccess::addEquals(string princ1, string princ2)
     prinToGen[princ2] = gen;
 }
 
+int
+MetaAccess::addAccessCheck(string princHasAccess, string princAccessible)
+{
+    string old_hasAccess = getGenericPublic(princHasAccess);
+    string old_accessible = getGenericPublic(princAccessible);
+    std::set<string> old_genHasAccessToList;
+    std::set<string> old_genAccessibleByList;
+    if (old_hasAccess != "") {
+        old_genAccessibleByList = genAccessibleByList[old_accessible];
+    }
+    if (old_accessible != "") {
+        old_genHasAccessToList = genHasAccessToList[old_hasAccess];
+    }
+    addAccess(princHasAccess, princAccessible);
+    if (!CheckAccess()) {
+        //revert addAccess:
+        //if old_* = "", then * didn't exist before, and can be erased from the sets and maps
+        //if old_* != "", then * might have already been in the set, so revert to saved copies
+        if (old_hasAccess != "") {
+            genHasAccessToList[old_hasAccess] = old_genHasAccessToList;
+        } else {
+            genHasAccessToList.erase(old_hasAccess);
+            genToPrin.erase(getGeneric(princHasAccess));
+            prinToGen.erase(sanitize(princHasAccess));
+        }
+
+        if (old_accessible != "") {
+            genAccessibleByList[old_accessible] = old_genAccessibleByList;
+        } else {
+            genAccessibleByList.erase(old_accessible);
+            genToPrin.erase(getGeneric(princHasAccess));
+            prinToGen.erase(sanitize(princHasAccess));
+        }
+        assert_s(CheckAccess(), "addAccessCheck reverts improperly");
+        return -1;
+    }
+    //since adding an access tree link doesn't change any of the existing data,
+    // the database is unaffected
+    return 0;
+}
+
 void
 MetaAccess::addAccess(string princHasAccess, string princAccessible)
 {
@@ -236,6 +365,20 @@ MetaAccess::addAccess(string princHasAccess, string princAccessible)
         genAccessibleByList[genAccessible].insert(genHasAccess);
     }
 }
+
+int
+MetaAccess::addGivesCheck(string princ)
+{
+    addGives(princ);
+    if (!CheckAccess()) {
+        givesPsswd.erase(getGeneric(princ));
+        assert_s(CheckAccess(), "addGivesCheck reverts improperly");
+        return -1;
+    }
+    //since gives has no effect on the access tables, no need to do anything else
+    return 0;
+}
+    
 
 void
 MetaAccess::addGives(string princ)
@@ -277,12 +420,6 @@ MetaAccess::getTypesAccessibleFrom(string princ)
     assert_s(genToPrin.find(
                  gen_accessed) != genToPrin.end(),
              "getAccessibleFrom: input not known");
-    /*if(genToPrin[gen_accessed].size() > 1) {
-            for(it = genToPrin[gen_accessed].begin(); it !=
-               genToPrin[gen_accessed].end(); it++) {
-                    accessible_from.insert(*it);
-            }
-            }*/
 
     return unsanitizeSet(accessible_from);
 }
@@ -335,12 +472,6 @@ MetaAccess::getTypesHasAccessTo(string princ)
     assert_s(genToPrin.find(
                  gen_accessing) != genToPrin.end(),
              "getHasAccessTo: input not known");
-    /*if(genToPrin[gen_accessing].size() > 1) {
-            for(it = genToPrin[gen_accessing].begin(); it !=
-               genToPrin[gen_accessing].end(); it++) {
-                    can_access.insert(*it);
-            }
-            }*/
 
     return unsanitizeSet(can_access);
 }
@@ -398,20 +529,6 @@ MetaAccess::isGenGives(string gen)
     return false;
 }
 
-/*string
-MetaAccess::getTable(string hasAccess, string accessTo)
-{
-    //cerr << hasAccess << "->" << accessTo << endl;
-    assert_s(genHasAccessToGenTable.find(
-                 hasAccess) != genHasAccessToGenTable.end(),
-             "table for that hasAccess->accessTo does not exist");
-    map<string,string> test = genHasAccessToGenTable[hasAccess];
-    assert_s(genHasAccessToGenTable[hasAccess].find(
-                 accessTo) != genHasAccessToGenTable[hasAccess].end(),
-             "requested table does not exist -- did you call MetaAccess->CreateTables()?");
-    return genHasAccessToGenTable[hasAccess][accessTo];
-    }*/
-
 string
 MetaAccess::getGeneric(string princ)
 {
@@ -456,7 +573,6 @@ MetaAccess::CheckAccess()
     LOG(am_v) << "CHECKING ACCESS TREE FOR FALACIES";
 
     for (gives = givesPsswd.begin(); gives != givesPsswd.end(); gives++) {
-        //cerr << *gives << endl;
         std::set<string> current_layer = getGenHasAccessTo(*gives);
         std::set<string> next_layer;
         std::set<string>::iterator current_node;
@@ -486,6 +602,7 @@ MetaAccess::CheckAccess()
         }
     }
 
+
     if (results.size() != genToPrin.size()) {
         if(VERBOSE) { LOG(am_v) << "wrong number of results"; }
         return false;
@@ -494,6 +611,7 @@ MetaAccess::CheckAccess()
     for (gives = results.begin(); gives != results.end(); gives++) {
         if (genToPrin.find(*gives) == genToPrin.end()) {
             if (VERBOSE) { LOG(am_v) << "wrong results"; }
+            cerr << "wrong results" << endl;
             return false;
         }
     }
@@ -531,47 +649,17 @@ MetaAccess::CreateTables()
         LOG(am) << "error with sql query " << sql;
         return -1;
     }
-    /*sql = "CREATE TABLE " + access_table + " (hasAccessType " + 
+    sql = "CREATE TABLE " + access_table + " (hasAccessType " + 
           PRINCTYPE + ", hasAccessValue " PRINCVALUE
           ", accessToType " + PRINCTYPE + ", accessToValue "
           PRINCVALUE ", Sym_Key " TN_SYM_KEY ", Salt " TN_SALT
           ", Asym_Key " TN_PK_KEY ", PRIMARY KEY (hasAccessType," +
           " hasAccessValue, accessToType, accessToValue), " +
-          "KEY (accessToType, accessToValue))";*/
-    sql = "CREATE TABLE " + access_table + " (hasAccessType " + 
-          PRINCTYPE + ", hasAccessValue " PRINCVALUE
-          ", accessToType " + PRINCTYPE + ", accessToValue "
-          PRINCVALUE ", Sym_Key " TN_SYM_KEY ", Salt " TN_SALT
-          ", Asym_Key " TN_PK_KEY ", KEY (hasAccessType," +
-          " hasAccessValue), " +
           "KEY (accessToType, accessToValue))";
     if(!conn->execute(sql)) {
         LOG(am) << "error with sql query " << sql;
         return -1;
     }
-    /*for(it = genHasAccessToList.begin(); it != genHasAccessToList.end();
-        it++) {
-        for(it_s = it->second.begin(); it_s != it->second.end(); it_s++) {
-            num = strFromVal(table_num);
-            table_num++;
-            sql = "DROP TABLE IF EXISTS " + table_name + num;
-            if(!conn->execute(sql)) {
-                LOG(am) << "error with sql query " << sql;
-                return -1;
-            }
-            sql = "CREATE TABLE " + table_name + num + " (" + it->first +
-                  " " +  PRINCVALUE + ", " + *it_s + " " + PRINCVALUE +
-                  ", Sym_Key " TN_SYM_KEY ", Salt " + TN_SALT + ", Asym_Key "
-                  TN_PK_KEY
-                  ", PRIMARY KEY (" + it->first + "," + *it_s + ")" +
-                  ", KEY (" + *it_s + ") )";
-            if(!conn->execute(sql)) {
-                LOG(am) << "error with sql query " << sql;
-                return -1;
-            }
-            genHasAccessToGenTable[it->first][(*it_s)] = table_name + num;
-        }
-        }*/
     return 0;
 }
 
@@ -594,17 +682,6 @@ MetaAccess::DeleteTables()
         LOG(am) << "error with sql query " << sql;
         return -1;
     }    
-    //Tables for each principal access link
-    /*for(unsigned int i = 0; i < table_num; i++) {
-        unsigned int n = i;
-        num = strFromVal(n);
-        sql = "DROP TABLE " + table_name + num + ";";
-        if(!conn->execute(sql)) {
-            LOG(am) << "error with sql query " << sql;
-            return -1;
-        }
-    }
-    table_num = 0;*/
     return 0;
 }
 
@@ -680,12 +757,69 @@ KeyAccess::KeyAccess(Connect * connect)
     this->meta_finished = false;
 }
 
+ResType
+KeyAccess::execute(string sql) {
+    DBResult * dbres;
+    if (!conn->execute(sql, dbres)) {
+        LOG(am) << "SQL error with query: " << sql;
+        return ResType(false);
+    }
+    ResType res = dbres->unpack();
+    delete dbres;
+    return res;
+}
+
 int
 KeyAccess::addEquals(string prin1, string prin2)
 {
     if (meta_finished) {
-        LOG(am) << "ERROR: trying to add equals after meta is finished";
-        return -1;
+        //there will only be key conflicts if both prin1 and prin2 are existing principals
+        //  that have access to keys and they already have instances with the same values
+        string gen1 = getGeneric(prin1);
+        string gen2 = getGeneric(prin2);
+        if (gen1 != "" && gen2 != "") {
+            string sql = "SELECT DISTINCT hasAccessType, hasAccessValue, accessToType, accessToValue FROM " + meta->accessTableName() + " WHERE hasAccessType = '" + gen1 + "' OR hasAccessType = '" + gen2 + "' OR accessToType = '" + gen1 + "' OR accessToType = '" + gen2 + "'";
+            ResType res = execute(sql);
+            std::set<string> prin1_values;
+            std::set<string> prin2_values;
+            std::set<Prin> prin1_hasaccess;
+            std::set<Prin> prin2_hasaccess;
+            for(auto it = res.rows.begin(); it != res.rows.end(); it++) {
+                if (it->at(0).data == gen1) {
+                    if (prin2_values.find(it->at(1).data) != prin2_values.end()) {
+                        LOG(am) << "addEquals failed: the new equals would alter the currently exist key links";
+                        return -1;
+                    }
+                    prin1_values.insert(it->at(1).data);
+                } else if (it->at(0).data == gen2) {
+                    if (prin1_values.find(it->at(1).data) != prin1_values.end()) {
+                        LOG(am) << "addEquals failed: the new equals would alter the currently exist key links";
+                        return -1;
+                    }
+                    prin2_values.insert(it->at(1).data);
+                }
+
+                if (it->at(2).data == gen1) {
+                    prin1_hasaccess.insert(Prin(it->at(0).data, it->at(1).data));
+                } else if (it->at(2).data == gen2) {
+                    prin2_hasaccess.insert(Prin(it->at(0).data, it->at(1).data));
+                }
+            
+            }
+            if (prin1_hasaccess.size() == prin2_hasaccess.size()) {
+                for (auto p1 = prin1_hasaccess.begin(); p1 != prin1_hasaccess.end(); p1++) {
+                    if (prin2_hasaccess.find(*p1) == prin2_hasaccess.end()) {
+                        LOG(am) << "addEquals failed: the new equals would alter the currently exist key links";
+                        return -1;
+                    }
+                }        
+            } else if (prin1_hasaccess.size() != 0 && prin2_hasaccess.size() != 0) {
+                LOG(am) << "addEquals failed: the new equals would alter the currently exist key links";
+                return -1;
+            }
+        }
+        meta->addEqualsCheck(prin1, prin2);
+        return 0;
     }
 
     meta->addEquals(prin1, prin2);
@@ -696,8 +830,7 @@ int
 KeyAccess::addAccess(string hasAccess, string accessTo)
 {
     if (meta_finished) {
-        LOG(am) << "ERROR: trying to add access after meta is finished";
-        return -1;
+        return meta->addAccessCheck(hasAccess, accessTo);
     }
 
     meta->addAccess(hasAccess, accessTo);
@@ -708,9 +841,7 @@ int
 KeyAccess::addGives(string prin)
 {
     if (meta_finished) {
-        LOG(am) <<
-        "ERROR: trying to add gives password after meta is finished";
-        return -1;
+        return meta->addGivesCheck(prin);
     }
 
     meta->addGives(prin);
@@ -1246,11 +1377,10 @@ KeyAccess::insertPsswd(Prin gives, const string &psswd)
             }
             for (v = values.begin(); v != values.end(); v++) {
                 hasAccess_prin = *v;
-                //std::set<Prin> prin_set;
-                //prin_set.insert(hasAccess_prin);
                 assert_s(hasAccess->compare(
                              hasAccess_prin.gen) == 0,
                          "hasAccess_prin in insertPsswd is WRONG");
+                //cerr << "\t" << v->gen << "=" << v->value << endl;
                 Prin empty;
                 int number_keys = SelectAccessCount(hasAccess_prin, empty);
                 //if there are many keys of this type, don't store them in
@@ -1269,6 +1399,7 @@ KeyAccess::insertPsswd(Prin gives, const string &psswd)
                     continue;
                 }
                 ResType res = SelectAccess(hasAccess_prin, empty);
+                //cerr << "\tres okay " << res.rows.size() << endl;
                 if (res.rows.size() > 0) {
                     auto row = res.rows.begin();
                     while (row != res.rows.end()) {
@@ -1301,6 +1432,7 @@ KeyAccess::insertPsswd(Prin gives, const string &psswd)
                         else {
                             new_prin_key = buildKey(new_prin, new_key);
                         }
+                        //cerr << "\t   c" << endl;
                         new_prin_key.principals_with_access.insert(new_prin);
                         new_prin_key.principals_with_access.insert(
                             hasAccess_prin);
@@ -1566,6 +1698,9 @@ KeyAccess::DFS_hasAccess(Prin start)
         current_node = to_investigate.front();
         to_investigate.pop_front();
         while(inList(results, current_node)) {
+            if (to_investigate.empty()) {
+                return results;
+            }
             current_node = to_investigate.front();
             to_investigate.pop_front();
         }

@@ -1,23 +1,14 @@
 OBJDIRS	+= edb
 
-CRYPTO_SRCS  := OPE.cc util.cc HGD.cc Binary.cc SWPSearch.cc BasicCrypto.cc \
-		ECJoin.cc CryptoManager.cc Equation.cc blowfish.cc
 CRYPTDB_SRCS := AccessManager.cc EDBProxy.cc Connect.cc Translator.cc \
 		MultiPrinc.cc
-PROXY_SRCS   := ConnectWrapper.cc
 
-all:    $(OBJDIR)/libedbcrypto.so $(OBJDIR)/libexecute.so $(OBJDIR)/libcryptdb.so
+all:	$(OBJDIR)/libcryptdb.so
 
-$(OBJDIR)/libedbcrypto.so: $(patsubst %.cc,$(OBJDIR)/edb/%.o,$(CRYPTO_SRCS))
-$(OBJDIR)/libcryptdb.so:   $(patsubst %.cc,$(OBJDIR)/edb/%.o,$(CRYPTDB_SRCS)) \
-                           $(OBJDIR)/libedbcrypto.so
-$(OBJDIR)/libexecute.so:   $(patsubst %.cc,$(OBJDIR)/edb/%.o,$(PROXY_SRCS)) \
-                           $(OBJDIR)/libedbcypto.so $(OBJDIR)/libcryptdb.so
-
-install: install_edb
-
-.PHONY: install_edb
-install_edb: $(OBJDIR)/libedbcrypto.so
-	install -m 644 $(OBJDIR)/libedbcrypto.so /usr/lib
+CRYPTDB_OBJS := $(patsubst %.cc,$(OBJDIR)/edb/%.o,$(CRYPTDB_SRCS))
+$(OBJDIR)/libcryptdb.so: $(CRYPTDB_OBJS) \
+			 $(OBJDIR)/libedbcrypto.so \
+			 $(OBJDIR)/libedbparser.so
+	$(CXX) -shared -o $@ $(CRYPTDB_OBJS) $(LDFLAGS) -ledbcrypto -ledbparser
 
 # vim: set noexpandtab:

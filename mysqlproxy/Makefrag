@@ -1,0 +1,13 @@
+OBJDIRS += mysqlproxy
+
+PROXY_SRCS := ConnectWrapper.cc
+PROXY_OBJS := $(patsubst %.cc,$(OBJDIR)/mysqlproxy/%.o,$(PROXY_SRCS))
+
+all:    $(OBJDIR)/libexecute.so
+
+$(OBJDIR)/libexecute.so: $(PROXY_OBJS) \
+			 $(OBJDIR)/libedbcrypto.so \
+			 $(OBJDIR)/libcryptdb.so
+	$(CXX) -shared -o $@ $(CRYPTDB_OBJS) $(LDFLAGS) -ledbcrypto -lcryptdb
+
+# vim: set noexpandtab:

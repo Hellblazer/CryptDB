@@ -19,7 +19,7 @@ CXXFLAGS += -I$(MYBUILD)/include \
 	    -I$(MYBUILD)/sql \
 	    -DHAVE_CONFIG_H -DMYSQL_SERVER -DEMBEDDED_LIBRARY -DDBUG_OFF \
 	    -DMYSQL_BUILD_DIR=\"$(MYBUILD)\"
-LDFLAGS	 += -L$(MYBUILD)/libmysqld -lmysqld -lpthread -lrt -ldl -lcrypt
+LDFLAGS	 += -lpthread -lrt -ldl -lcrypt
 
 ## To be populated by Makefrag files
 OBJDIRS	:=
@@ -47,15 +47,14 @@ $(OBJDIR)/%.o: %.cc
 	@mkdir -p $(@D)
 	$(CXX) -MD $(CXXFLAGS) -c $< -o $@
 
-$(OBJDIR)/%.so:
-	$(CXX) -shared -o $@ $^ $(LDFLAGS)
-
 include crypto/Makefrag
+include crypto-old/Makefrag
 include parser/Makefrag
 include edb/Makefrag
 include test/Makefrag
 include util/Makefrag
 include udf/Makefrag
+include mysqlproxy/Makefrag
 
 $(OBJDIR)/.deps: $(foreach dir, $(OBJDIRS), $(wildcard $(OBJDIR)/$(dir)/*.d))
 	@mkdir -p $(@D)

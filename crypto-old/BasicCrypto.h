@@ -7,16 +7,14 @@
 #ifndef BASICCRYPTO_H_
 #define BASICCRYPTO_H_
 
+#include <map>
+#include <stdio.h>
 #include <openssl/sha.h>
 #include <openssl/rand.h>
 #include <openssl/aes.h>
 #include <openssl/evp.h>
 #include <openssl/blowfish.h>
-
-#include "util.h"
-#include <map>
-#include "params.h"
-#include <stdio.h>
+#include <util/util.h>
 
 
 AES_KEY * get_AES_KEY(const string &key);

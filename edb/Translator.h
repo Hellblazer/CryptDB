@@ -11,16 +11,16 @@
 #ifndef Translator_H_
 #define Translator_H_
 
-#include "util.h"
-#include "CryptoManager.h"
+#include <util/util.h>
+#include <crypto-old/CryptoManager.h>
 #include <map>
 #include <vector>
 #include <list>
 #include <string>
 #include <stdio.h>
 #include <stdlib.h>
-#include "Connect.h"
-#include "AccessManager.h"
+#include <edb/Connect.h>
+#include <edb/AccessManager.h>
 
 using namespace std;
 
