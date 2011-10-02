@@ -10,6 +10,7 @@
 #include <crypto-old/CryptoManager.hh>
 #include <util/ctr.hh>
 #include <util/cryptdb_log.hh>
+#include <util/util.hh>
 
 
 using namespace std;

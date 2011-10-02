@@ -17,6 +17,8 @@
 #define DEBUG 1
 
 #include <crypto-old/CryptoManager.hh> /* various functions for EDB */
+#include <util/params.hh>
+#include <util/util.hh>
 
 using namespace std;
 using namespace NTL;

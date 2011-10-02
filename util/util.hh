@@ -21,12 +21,12 @@
 #include <sstream>
 #include <NTL/ZZ.h>
 
+#include <util/onions.hh>
 #include <util/params.hh>
 
 
 // ==== CONSTANTS ============== //
 
-#define PAILLIER_LEN_BYTES 256
 #define SVAL2(s) #s
 #define SVAL(s) SVAL2(s)
 
@@ -66,8 +66,6 @@ const unsigned int AES_KEY_BYTES = AES_KEY_SIZE/bitsPerByte;
 const unsigned int MASTER_KEY_SIZE = AES_KEY_SIZE; //master key
 
 const unsigned int OPE_KEY_SIZE = AES_KEY_SIZE;
-const unsigned int OPE_PLAINTEXT_SIZE = 32;
-const unsigned int OPE_CIPHERTEXT_SIZE = 64;
 
 const unsigned int EncryptedIntSize = 128;
 
@@ -125,47 +123,11 @@ typedef struct CryptDBError {
     std::string msg;
 } CryptDBError;
 
-typedef enum fieldType {TYPE_TEXT, TYPE_INTEGER, TYPE_AGG_RESULT_COUNT,
-                        TYPE_AGG_RESULT_SUM, TYPE_AGG_RESULT_SET,
-                        TYPE_OPE} fieldType;
-typedef enum onion {oDET, oOPE, oAGG, oNONE, oSWP, oINVALID} onion;
-
 typedef struct ParserMeta {
     std::set<std::string> clauseKeywords_p;
     std::set<std::string> querySeparators_p;
     ParserMeta();
 } ParserMeta;
-
-#define SECLEVELS(m)    \
-    m(INVALID)          \
-    m(PLAIN)            \
-    m(PLAIN_DET)        \
-    m(DETJOIN)          \
-    m(DET)              \
-    m(SEMANTIC_DET)     \
-    m(PLAIN_OPE)        \
-    m(OPEJOIN)          \
-    m(OPE)              \
-    m(SEMANTIC_OPE)     \
-    m(PLAIN_AGG)        \
-    m(SEMANTIC_AGG)     \
-    m(PLAIN_SWP)        \
-    m(SWP)              \
-    m(SEMANTIC_VAL)
-
-typedef enum class SECLEVEL {
-#define __temp_m(n) n,
-SECLEVELS(__temp_m)
-#undef __temp_m
-    SECLEVEL_LAST
-} SECLEVEL;
-
-const std::string levelnames[] = {
-#define __temp_m(n) #n,
-SECLEVELS(__temp_m)
-#undef __temp_m
-    "SECLEVEL_LAST"
-};
 
 typedef enum class cmd {
     CREATE, UPDATE, INSERT, SELECT, DROP, DELETE, BEGIN,

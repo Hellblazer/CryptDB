@@ -7,14 +7,19 @@
 #include <openssl/aes.h>
 #include <openssl/rsa.h>
 #include <openssl/evp.h>
+#include <NTL/ZZ.h>
 
 #include <crypto-old/OPE.hh>
 #include <crypto-old/SWPSearch.hh>
 #include <crypto-old/BasicCrypto.hh>
-#include <util/util.hh>
+#include <util/onions.hh>
 
 
-//returns the highest security level lower than sl that allows equality
+#define PAILLIER_LEN_BYTES 256
+const unsigned int OPE_PLAINTEXT_SIZE = 32;
+const unsigned int OPE_CIPHERTEXT_SIZE = 64;
+
+// returns the highest security level lower than sl that allows equality
 SECLEVEL highestEq(SECLEVEL sl);
 
 typedef RSA PKCS;
