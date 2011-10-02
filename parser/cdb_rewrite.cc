@@ -989,37 +989,6 @@ query_analyze(const std::string &db, const std::string &q, LEX * lex, Analysis &
 	}
 }
 
-static string
-unescape(string s)
-{
-	stringstream ss;
-
-	for (;;) {
-		size_t bs = s.find_first_of('\\');
-		if (bs == s.npos)
-			break;
-
-		ss << s.substr(0, bs);
-		s = s.substr(bs+1);
-
-		if (s.size() == 0)
-			break;
-		if (s[0] == 'x' && s.size() >= 3) {
-			stringstream hs(s.substr(1, 2));
-			int v;
-			hs >> hex >> v;
-			ss << (char) v;
-			s = s.substr(3);
-		} else {
-			ss << s[0];
-			s = s.substr(1);
-		}
-	}
-	ss << s;
-
-	return ss.str();
-}
-
 /*
  * Examines the embedded database and the encryption levels needed for a query (as given by analysis).
  *
@@ -1049,7 +1018,7 @@ lex_rewrite(const string & db, LEX * lex, Analysis & analysis, ReturnMeta & rmet
 	return true;
 }
 
-static string
+string
 rewrite(const string & db, const string & q, ReturnMeta & rmeta) {
 
 	query_parse p(db, q);
@@ -1069,81 +1038,11 @@ rewrite(const string & db, const string & q, ReturnMeta & rmeta) {
 
 	return ss.str();
 }
+
 /*
-static ResType
+ResType
 decryptResults(ResType & dbres, const ReturnMeta & rmeta) {
 	//todo
 	return dbres;
 }
 */
-int
-main(int ac, char **av)
-{
-
-	cerr << "before running program \n";
-	if (ac != 3) {
-		cerr << "Usage: " << av[0] << " schema-db trace-file" << endl;
-		exit(1);
-	}
-
-	char dir_arg[1024];
-	snprintf(dir_arg, sizeof(dir_arg), "--datadir=%s", av[1]);
-
-	const char *mysql_av[] =
-	{ "progname",
-			"--skip-grant-tables",
-			dir_arg,
-			/* "--skip-innodb", */
-			/* "--default-storage-engine=MEMORY", */
-			"--character-set-server=utf8",
-			"--language=" MYSQL_BUILD_DIR "/sql/share/"
-	};
-	assert(0 == mysql_server_init(sizeof(mysql_av) / sizeof(mysql_av[0]),
-			(char**) mysql_av, 0));
-	assert(0 == mysql_thread_init());
-
-	ifstream f(av[2]);
-	int nquery = 0;
-	int nerror = 0;
-	int nskip = 0;
-
-	for (;;) {
-		string s;
-		getline(f, s);
-		if (f.eof())
-			break;
-
-		size_t space = s.find_first_of(' ');
-		if (space == s.npos) {
-			cerr << "malformed " << s << endl;
-			continue;
-		}
-
-		string db = s.substr(0, space);
-		cerr << "db: " << db << "\n";
-		string q = s.substr(space + 1);
-		cerr << "q: " << q << "\n";
-		string new_q;
-		if (db == "") {
-			nskip++;
-		} else {
-			string unq = unescape(q);
-			try {
-				cerr << "before query " << "\n";
-				ReturnMeta rmeta;
-				new_q = rewrite(db, unq, rmeta);
-			} catch (std::runtime_error &e) {
-				cout << "ERROR: " << e.what() << " in query " << unq << endl;
-				nerror++;
-			}
-			cerr << "resulting query: " << new_q << " \n";
-		}
-
-		nquery++;
-		if (!(nquery % 100))
-			cout << " nquery: " << nquery
-			<< " nerror: " << nerror
-			<< " nskip: " << nskip
-			<< endl;
-	}
-}

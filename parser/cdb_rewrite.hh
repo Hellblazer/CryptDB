@@ -7,8 +7,7 @@
  *  TODO: need to integrate it with util.h: some declarations are repeated
  */
 
-#ifndef CDB_REWRITE_HH_
-#define CDB_REWRITE_HH_
+#pragma once
 
 typedef enum onion {oDET, oOPE, oAGG, oNONE, oSWP, oINVALID} onion;
 
@@ -162,4 +161,4 @@ public:
 	const constraints *parent;
 };
 
-#endif /* CDB_REWRITE_HH_ */
+string  rewrite(const string &db, const string &q, ReturnMeta &rmeta);
