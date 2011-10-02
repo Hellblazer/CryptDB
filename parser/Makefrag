@@ -1,7 +1,7 @@
 OBJDIRS	+= parser
 
 PARSERSRC	:= embedmysql.cc mysqld-filler.cc cdb_rewrite.cc
-PARSERPROGS	:= analyze load-schema print-back nz-foo cdb_test
+PARSERPROGS	:= analyze load-schema print-back cdb_test
 PARSERPROGOBJS	:= $(patsubst %,$(OBJDIR)/parser/%,$(PARSERPROGS))
 
 all:	$(PARSERPROGOBJS) $(OBJDIR)/libedbparser.so
