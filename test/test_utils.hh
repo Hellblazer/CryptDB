@@ -16,7 +16,7 @@
 class TestConfig {
  public:
     TestConfig() {
-    	// default values
+        // default values
         user = "root";
         pass = "letmein";
         host = "localhost";

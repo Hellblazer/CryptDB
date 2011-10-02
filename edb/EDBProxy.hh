@@ -65,8 +65,9 @@ class EDBProxy {
     void replenishEncryptionTables();
     */
     void generateEncTables(std::list<OPESpec> & opes,
-    		unsigned int minHOM, unsigned int maxHOM,
-    		unsigned int randomPoolSize, std::string outputfile);
+                           unsigned int minHOM, unsigned int maxHOM,
+                           unsigned int randomPoolSize,
+                           std::string outputfile);
     void loadEncTables(std::string filename);
     // TRAINING
 

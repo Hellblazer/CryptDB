@@ -332,30 +332,30 @@ typedef struct Predicate {
 
 
 typedef struct AccessRelation {
-	AccessRelation(const std::string &hacc, const std::string &acct) {
-		hasAccess = hacc;
-		accessTo = acct;
-	}
-	std::string hasAccess;
-	std::string accessTo;
+    AccessRelation(const std::string &hacc, const std::string &acct) {
+        hasAccess = hacc;
+        accessTo = acct;
+    }
+    std::string hasAccess;
+    std::string accessTo;
 } AccessRelation;
 
 
 typedef struct AccessRelationComp {
   bool operator() (const AccessRelation& lhs, const AccessRelation& rhs) const {
- 		if (lhs.hasAccess < rhs.hasAccess) {
-  			return true;
-  		}
-  		if (lhs.hasAccess > rhs.hasAccess) {
-  			return false;
-  		}
+         if (lhs.hasAccess < rhs.hasAccess) {
+              return true;
+          }
+          if (lhs.hasAccess > rhs.hasAccess) {
+              return false;
+          }
 
-  		if (lhs.accessTo < rhs.accessTo) {
-  			return true;
-  		} else {
-  			return false;
-  		}
-  	}
+          if (lhs.accessTo < rhs.accessTo) {
+              return true;
+          } else {
+              return false;
+          }
+      }
 } AccessRelationComp;
 
 //permanent metadata for multi-key CryptDB - stores which field is encrypted
@@ -665,7 +665,7 @@ class Timer {
 
     //milliseconds
     double lap_ms() {
-    	return ((double)lap()) / 1000.0;
+        return ((double)lap()) / 1000.0;
     }
 
  private:
