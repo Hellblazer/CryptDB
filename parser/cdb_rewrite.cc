@@ -27,7 +27,7 @@
 
 using namespace std;
 
-#define CIPHER_TYPES(m)                                                 \
+#define CIPHER_TYPES(m)                                                     \
         m(none)     /* no data needed (blind writes) */                     \
         m(any)      /* just need to decrypt the result */                   \
         m(plain)    /* evaluate Item on the server, e.g. for WHERE */       \
@@ -44,35 +44,41 @@ enum class cipher_type {
 
 static const string cipher_type_names[] = {
 #define __temp_m(n) #n,
-        CIPHER_TYPES(__temp_m)
+    CIPHER_TYPES(__temp_m)
 #undef __temp_m
 };
 
-
-EncSet::EncSet(map<onion, SECLEVEL> input) {
+EncSet::EncSet(map<onion, SECLEVEL> input)
+{
     osl = input;
 }
-EncSet::EncSet() {
+
+EncSet::EncSet()
+{
     osl = FULL_EncSet.osl;
 }
-int EncSet::restrict(onion o, SECLEVEL maxl) {
-    
+
+int
+EncSet::restrict(onion o, SECLEVEL maxl)
+{
     //TODO:
     //assert(maxl is on onion o);
 
     auto it = osl.find(o);
     if (it == osl.end()) {
-    return -1;
+        return -1;
     }
     if (it->second > maxl) {
-    osl[o] = maxl;
-    return 0;
+        osl[o] = maxl;
+        return 0;
     }
 
     return -1;
-
 }
-int EncSet::remove(onion o) {
+
+int
+EncSet::remove(onion o)
+{
     auto it = osl.find(o);
 
     if (it == osl.end()) {
@@ -83,7 +89,9 @@ int EncSet::remove(onion o) {
     return 0;
 }
 
-EncSet EncSet::intersect(const EncSet & es2) const {
+EncSet
+EncSet::intersect(const EncSet & es2) const
+{
     map<onion, SECLEVEL> res = map<onion, SECLEVEL>();
     for (map<onion, SECLEVEL>::const_iterator it2 = es2.osl.begin() ; it2 != es2.osl.end(); it2++) {
         map<onion, SECLEVEL>::const_iterator it = osl.find(it2->first);
@@ -94,45 +102,46 @@ EncSet EncSet::intersect(const EncSet & es2) const {
     return EncSet(res);
 }
 
-
-pair<onion, SECLEVEL> EncSet::chooseOne() const{
+pair<onion, SECLEVEL>
+EncSet::chooseOne() const
+{
     if (osl.size() == 0) {
-    return pair<onion, SECLEVEL>(oINVALID, SECLEVEL::INVALID);
+        return pair<onion, SECLEVEL>(oINVALID, SECLEVEL::INVALID);
     }
     auto it = osl.find(oAGG);
     if (it != osl.end()) {
-    return pair<onion, SECLEVEL>(oAGG, it->second);
+        return pair<onion, SECLEVEL>(oAGG, it->second);
     }
     it = osl.find(oSWP);
     if (it != osl.end()){
-    return pair<onion, SECLEVEL>(oSWP, it->second);
+        return pair<onion, SECLEVEL>(oSWP, it->second);
     }
     it = osl.find(oDET);
     if (it != osl.end()){
-    return pair<onion, SECLEVEL>(oDET, it->second);
+        return pair<onion, SECLEVEL>(oDET, it->second);
     }
     it = osl.find(oOPE);
     if (it != osl.end()){
-    return pair<onion, SECLEVEL>(oOPE, it->second);
+        return pair<onion, SECLEVEL>(oOPE, it->second);
     }
 
     return pair<onion, SECLEVEL>(oINVALID, SECLEVEL::INVALID);
-
-    
 }
 
-EncSet::EncSet(const EncSet & es){
+EncSet::EncSet(const EncSet & es)
+{
     osl = es.osl;
 }
 
 static ostream&
-operator<<(ostream &out, const EncSet & es) {
+operator<<(ostream &out, const EncSet & es)
+{
     if (es.osl.size() == 0) {
-    out << "empty encset";
+        out << "empty encset";
     }
     for (auto it : es.osl) {
-    out << "(onion " << it.first;
-    out << ", " << " level " << levelnames[(int)it.second] << ") ";
+        out << "(onion " << it.first;
+        out << ", " << " level " << levelnames[(int)it.second] << ") ";
     }
     return out;
 }
@@ -153,7 +162,7 @@ operator<<(ostream &out, const constraints &r)
 
 
 class CItemType {
-public:
+ public:
     virtual void do_analyze(Item *, const constraints&, Analysis & a) const = 0;
 
 };
@@ -164,7 +173,7 @@ public:
  */
 template <class T>
 class CItemTypeDir : public CItemType {
-public:
+ public:
     void reg(T t, CItemType *ct) {
         auto x = types.find(t);
         if (x != types.end())
@@ -179,8 +188,7 @@ public:
         lookup(i)->do_analyze(i, tr, a);
     }
 
-
-protected:
+ protected:
     virtual CItemType *lookup(Item *i) const = 0;
 
     CItemType *do_lookup(Item *i, T t, const char *errname) const {
@@ -190,7 +198,7 @@ protected:
         return x->second;
     }
 
-private:
+ private:
     std::map<T, CItemType*> types;
 };
 
@@ -205,7 +213,7 @@ static class CItemFuncDir : public CItemTypeDir<Item_func::Functype> {
     CItemType *lookup(Item *i) const {
         return do_lookup(i, ((Item_func *) i)->functype(), "func type");
     }
-public:
+ public:
     CItemFuncDir() {
         itemTypes.reg(Item::Type::FUNC_ITEM, this);
         itemTypes.reg(Item::Type::COND_ITEM, this);
@@ -216,7 +224,7 @@ static class CItemSumFuncDir : public CItemTypeDir<Item_sum::Sumfunctype> {
     CItemType *lookup(Item *i) const {
         return do_lookup(i, ((Item_sum *) i)->sum_func(), "sumfunc type");
     }
-public:
+ public:
     CItemSumFuncDir() {
         itemTypes.reg(Item::Type::SUM_FUNC_ITEM, this);
     }
@@ -226,7 +234,7 @@ static class CItemFuncNameDir : public CItemTypeDir<std::string> {
     CItemType *lookup(Item *i) const {
         return do_lookup(i, ((Item_func *) i)->func_name(), "func name");
     }
-public:
+ public:
     CItemFuncNameDir() {
         funcTypes.reg(Item_func::Functype::UNKNOWN_FUNC, this);
         funcTypes.reg(Item_func::Functype::NOW_FUNC, this);
@@ -255,31 +263,32 @@ class CItemSubtype : public CItemType {
         cerr << "CItemSubtype do_analyze " << *i << " encset " << tr.encset << "\n";
         do_analyze_type((T*) i, tr, a);
     }
-private:
+
+ private:
     virtual void do_analyze_type(T *, const constraints&, Analysis & a) const = 0;
 };
 
 template<class T, Item::Type TYPE>
 class CItemSubtypeIT : public CItemSubtype<T> {
-public:
+ public:
     CItemSubtypeIT() { itemTypes.reg(TYPE, this); }
 };
 
 template<class T, Item_func::Functype TYPE>
 class CItemSubtypeFT : public CItemSubtype<T> {
-public:
+ public:
     CItemSubtypeFT() { funcTypes.reg(TYPE, this); }
 };
 
 template<class T, Item_sum::Sumfunctype TYPE>
 class CItemSubtypeST : public CItemSubtype<T> {
-public:
+ public:
     CItemSubtypeST() { sumFuncTypes.reg(TYPE, this); }
 };
 
 template<class T, const char *TYPE>
 class CItemSubtypeFN : public CItemSubtype<T> {
-public:
+ public:
     CItemSubtypeFN() { funcNames.reg(std::string(TYPE), this); }
 };
 
@@ -1001,8 +1010,8 @@ query_analyze(const std::string &db, const std::string &q, LEX * lex, Analysis &
  *
  */
 static
-int adjustOnions(const std::string &db, const Analysis & analysis) {
-
+int adjustOnions(const std::string &db, const Analysis & analysis)
+{
     return 0;
 }
 
@@ -1012,14 +1021,14 @@ int adjustOnions(const std::string &db, const Analysis & analysis) {
  * Fills rmeta with information about how to decrypt fields returned.
  */
 static int
-lex_rewrite(const string & db, LEX * lex, Analysis & analysis, ReturnMeta & rmeta) {
-
+lex_rewrite(const string & db, LEX * lex, Analysis & analysis, ReturnMeta & rmeta)
+{
     return true;
 }
 
 string
-rewrite(const string & db, const string & q, ReturnMeta & rmeta) {
-
+rewrite(const string & db, const string & q, ReturnMeta & rmeta)
+{
     query_parse p(db, q);
     LEX *lex = p.lex();
 

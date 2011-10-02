@@ -26,20 +26,19 @@ typedef enum onion {oDET, oOPE, oAGG, oNONE, oSWP, oINVALID} onion;
     m(SEMANTIC_AGG)     \
     m(PLAIN_SWP)        \
     m(SWP)              \
-    m(SEMANTIC_VAL)
+    m(SEMANTIC_VAL)     \
+    m(SECLEVEL_LAST)
 
 typedef enum class SECLEVEL {
 #define __temp_m(n) n,
 SECLEVELS(__temp_m)
 #undef __temp_m
-    SECLEVEL_LAST
 } SECLEVEL;
 
 const std::string levelnames[] = {
 #define __temp_m(n) #n,
 SECLEVELS(__temp_m)
 #undef __temp_m
-    "SECLEVEL_LAST"
 };
 
 
@@ -51,11 +50,13 @@ public:
     EncSet(const EncSet & es);
     EncSet();
     int restrict(onion o, SECLEVEL maxl);
-    std::pair<onion, SECLEVEL> chooseOne() const;//decides which encryption scheme to use out of multiple in a set
+
+    std::pair<onion, SECLEVEL> chooseOne() const;
+    //decides which encryption scheme to use out of multiple in a set
+
     int remove(onion o);
     EncSet intersect(const EncSet & es2) const;
     ~EncSet() {}
-
 };
 
 const EncSet EQ_EncSet = {
