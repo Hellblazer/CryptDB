@@ -1,3 +1,5 @@
+#pragma once
+
 /*
  * TestMultiPrinc.h
  *
@@ -8,9 +10,6 @@
 #include <test/test_utils.hh>
 
 
-#ifndef TESTMULTIPRINC_H_
-#define TESTMULTIPRINC_H_
-
 class TestMultiPrinc {
  public:
     TestMultiPrinc();
@@ -19,5 +18,3 @@ class TestMultiPrinc {
 
     static void run(const TestConfig &tc, int argc, char ** argv);
 };
-
-#endif /* TESTMULTIPRINC_H_ */

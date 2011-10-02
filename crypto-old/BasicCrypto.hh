@@ -1,11 +1,10 @@
+#pragma once
+
 /*
  * BasicCrypto.h
  *
  *  Basic symmetric key crypto.
  */
-
-#ifndef BASICCRYPTO_H_
-#define BASICCRYPTO_H_
 
 #include <map>
 #include <stdio.h>
@@ -68,5 +67,3 @@ class blowfish {
     // BF_KEY k;
     bf_ctx k;
 };
-
-#endif /* BASICCRYPTO_H_ */

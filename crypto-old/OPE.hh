@@ -1,5 +1,4 @@
-#ifndef _OPE_H
-#define _OPE_H
+#pragma once
 
 #include <stdio.h>
 
@@ -34,5 +33,3 @@ class OPE {
  private:
     OPEInternals * iOPE;     //private methods and fields of OPE
 };
-
-#endif /* _OPE_H */

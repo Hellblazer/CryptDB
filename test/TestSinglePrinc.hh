@@ -1,3 +1,5 @@
+#pragma once
+
 /*
  * TestSinglePrinc.h
  *
@@ -9,9 +11,6 @@
 #include <test/test_utils.hh>
 
 
-#ifndef TESTSINGLEPRINC_H_
-#define TESTSINGLEPRINC_H_
-
 class TestSinglePrinc {
  public:
     TestSinglePrinc();
@@ -20,5 +19,3 @@ class TestSinglePrinc {
 
     static void run(const TestConfig &tc, int argc, char ** argv);
 };
-
-#endif /* TESTSINGLEPRINC_H_ */

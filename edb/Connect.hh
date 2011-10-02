@@ -1,12 +1,11 @@
+#pragma once
+
 /*
  * Connect.h
  *
  *  Created on: Dec 1, 2010
  *      Author: raluca
  */
-
-#ifndef CONNECT_H_
-#define CONNECT_H_
 
 #include <vector>
 #include <string>
@@ -54,5 +53,3 @@ class Connect {
     PGconn * conn;     //connection
 #endif
 };
-
-#endif /* CONNECT_H_ */

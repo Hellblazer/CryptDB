@@ -1,11 +1,11 @@
+#pragma once
+
 /*
  * test_utils.h
  *
  * Created on: Jul 18. 2011
  *   Author: cat_red
  */
-
-#pragma once
 
 #include <string>
 #include <assert.h>

@@ -1,3 +1,5 @@
+#pragma once
+
 /*
  * Translator.h
  *
@@ -7,9 +9,6 @@
  * Logic of translation between unencrypted and encrypted fields and
  * manipulations of fields and tables.
  */
-
-#ifndef Translator_H_
-#define Translator_H_
 
 #include <map>
 #include <vector>
@@ -164,5 +163,3 @@ void processDecryptionsForOp(string operation, string op1, string op2,
 
 string anonymizeTableName(unsigned int tableNo, string tableName, bool multiPrinc);
 string anonymizeFieldName(unsigned int index, onion o, string origname, bool multiPrinc);
-
-#endif /* Translator_H_ */

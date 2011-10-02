@@ -1,5 +1,4 @@
-#ifndef _CRYPTOMANAGER_H
-#define _CRYPTOMANAGER_H
+#pragma once
 
 #include <map>
 #include <stdio.h>
@@ -223,5 +222,3 @@ class CryptoManager {
     bool VERBOSE;
 
 };
-
-#endif   /* _CRYPTOMANAGER_H */

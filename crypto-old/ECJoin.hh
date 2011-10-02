@@ -1,3 +1,5 @@
+#pragma once
+
 /*
  * ECJoin.h
  *
@@ -25,9 +27,6 @@
  * - using ssl's preprocessing functions
  * - use NIST curves with less bits representation, e.g., NID_secp160r1; there are even shorter
  */
-
-#ifndef ECJOIN_H_
-#define ECJOIN_H_
 
 #include <openssl/obj_mac.h>
 #include <openssl/bn.h>
@@ -91,5 +90,3 @@ private:
     static string PRFForEC(const AES_KEY * sk, const string & ptext);
     static string point2Str(const EC_GROUP * group, const EC_POINT * point);
 };
-
-#endif /* ECJOIN_H_ */

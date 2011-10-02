@@ -1,3 +1,5 @@
+#pragma once
+
 /*
  * TestAccessManager.h
  *
@@ -9,9 +11,6 @@
 #include <test/test_utils.hh>
 
 
-#ifndef TESTACCESSMANAGER_H_
-#define TESTACCESSMANAGER
-
 class TestAccessManager {
  public:
   TestAccessManager();
@@ -20,5 +19,3 @@ class TestAccessManager {
 
   static void run(const TestConfig &tc, int argc, char ** argv);
 };
-
-#endif /* TESTACCESSMANAGER */

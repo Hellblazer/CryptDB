@@ -1,5 +1,4 @@
-#ifndef _UTIL_H
-#define _UTIL_H
+#pragma once
 
 /*
  * util.h
@@ -683,5 +682,3 @@ class Timer {
 
     uint64_t start;
 };
-
-#endif   /* _UTIL_H */

@@ -1,3 +1,5 @@
+#pragma once
+
 /*
  * Crypto.h
  *
@@ -15,9 +17,6 @@
  *            -- suggestion: Si and F each 32bits
  *        -- removind a layer of PRP/encryption given by the counter
  */
-
-#ifndef SWPSEARCH_H_
-#define SWPSEARCH_H_
 
 #include <openssl/aes.h>
 #include <openssl/rand.h>
@@ -123,5 +122,3 @@ class SWP {
                                Binary & wordKey);
 
 };
-
-#endif /* SWPSEARCH_H_ */

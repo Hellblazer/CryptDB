@@ -1,3 +1,5 @@
+#pragma once
+
 /*
  * TestQueries.h
  *
@@ -10,9 +12,6 @@
 #include <edb/Connect.hh>
 #include <test/test_utils.hh>
 
-
-#ifndef TESTQUERIES_H_
-#define TESTQUERIES_H_
 
 typedef enum test_mode {
     UNENCRYPTED, SINGLE, MULTI,
@@ -114,5 +113,3 @@ class TestQueries {
     static void run(const TestConfig &tc, int argc, char ** argv);
 
 };
-
-#endif /* TESTQUERIES_H_ */

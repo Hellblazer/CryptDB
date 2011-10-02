@@ -1,12 +1,11 @@
+#pragma once
+
 /*
  * MultiPrincipal.h
  *
  * Performs the high level multi-principal work: parsing and interaction with
  * key access.
  */
-
-#ifndef MULTIPRINC_H_
-#define MULTIPRINC_H_
 
 #include <util/util.hh>
 #include <edb/AccessManager.hh>
@@ -102,5 +101,3 @@ class MultiPrinc {
     KeyAccess * accMan;
 
 };
-
-#endif /* MULTIPRINC_H_ */

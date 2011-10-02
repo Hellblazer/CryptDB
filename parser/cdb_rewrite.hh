@@ -1,3 +1,5 @@
+#pragma once
+
 /*
  * cdb_rewrite.hh
  *
@@ -6,8 +8,6 @@
  *
  *  TODO: need to integrate it with util.h: some declarations are repeated
  */
-
-#pragma once
 
 typedef enum onion {oDET, oOPE, oAGG, oNONE, oSWP, oINVALID} onion;
 

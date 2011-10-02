@@ -1,12 +1,11 @@
+#pragma once
+
 /*
  * Binary.h
  *
  * A library for binary numbers with functions useful to crypto protocols.
  *
  */
-
-#ifndef BINARY_H_
-#define BINARY_H_
 
 #include <string>
 #include <stdlib.h>
@@ -74,5 +73,3 @@ class Binary {
     // len must divide the length of longbin
     list<Binary> * split(unsigned int len) const;
 };
-
-#endif /* BINARY_H_ */

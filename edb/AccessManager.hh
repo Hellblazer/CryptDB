@@ -1,11 +1,10 @@
+#pragma once
+
 /*
  * AccessManager.h
  *
  *
  */
-
-#ifndef ACCESSMANAGER2_H_
-#define ACCESSMANAGER2_H_
 
 #include <string>
 #include <map>
@@ -404,5 +403,3 @@ class KeyAccess {
     int DeleteTables();
 
 };
-
-#endif

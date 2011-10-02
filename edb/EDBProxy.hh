@@ -1,5 +1,4 @@
-#ifndef _EDBProxy_H
-#define _EDBProxy_H
+#pragma once
 
 #include <iostream>
 #include <fstream>
@@ -216,5 +215,3 @@ class EDBProxy {
  protected:
     //these are protected mostly for testing purposes
 };
-
-#endif   /* _EDBProxy_H */
