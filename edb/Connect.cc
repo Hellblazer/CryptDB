@@ -41,7 +41,7 @@ Connect::Connect(string server, string user, string passwd,
     /* Connect to database */
     if (!mysql_real_connect(conn, server.c_str(), user.c_str(),
                             passwd.c_str(), dbname.c_str(), port, 0, 0)) {
-    	LOG(warn) << "connecting to server " << server
+        LOG(warn) << "connecting to server " << server
                   << " user " << user
                   << " pwd " << passwd
                   << " dbname " << dbname

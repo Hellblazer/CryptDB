@@ -40,7 +40,7 @@ static inline uint32_t
 bf_F (const bf_ctx *bfc, uint32_t x)
 {
   return ((bfc->S[0][x >> 24] + bfc->S[1][x >> 16 & 0xff])
-	  ^ bfc->S[2][x >> 8 & 0xff]) + bfc->S[3][x & 0xff];
+          ^ bfc->S[2][x >> 8 & 0xff]) + bfc->S[3][x & 0xff];
 }
 
 static void __attribute__((unused))
@@ -107,9 +107,9 @@ bf_keysched (bf_ctx *bfc, const void *_key, size_t keybytes)
       uint32_t data = 0;
       int k;
       for (k = 0; k < 4; ++k) {
-	data = (data << 8) | key[keypos++];
-	if (keypos >= keybytes)
-	  keypos = 0;
+        data = (data << 8) | key[keypos++];
+        if (keypos >= keybytes)
+          keypos = 0;
       }
       bfc->P[i] ^= data;
     }

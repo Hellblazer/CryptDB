@@ -217,7 +217,7 @@ rewrite(lua_State *L)
         } else {
             try {
                 new_queries = cl->rewriteEncryptQuery(query, clients[client]->considered);
-		//cerr << "query: " << *new_queries.begin() << " considered ? " << clients[client]->considered << "\n";
+                //cerr << "query: " << *new_queries.begin() << " considered ? " << clients[client]->considered << "\n";
             } catch (CryptDBError &e) {
                 LOG(wrapper) << "cannot rewrite " << query << ": " << e.msg;
                 lua_pushnil(L);

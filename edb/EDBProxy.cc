@@ -1607,8 +1607,8 @@ expandWildCard(list<string> & words, QueryMeta & qm, map<string,
 
 void
 EDBProxy::generateEncTables(list<OPESpec> & opes,
-		unsigned int minHOM, unsigned int maxHOM,
-		unsigned int randomPoolSize, string outputfile) {
+                unsigned int minHOM, unsigned int maxHOM,
+                unsigned int randomPoolSize, string outputfile) {
 
     ofstream file(outputfile);
 
@@ -3364,8 +3364,8 @@ throw (CryptDBError)
     //some queries do not need to be encrypted
     if (!considerQuery(com, query)) {
         LOG(edb_v) << "query not considered: " << query;
-	// cerr << "query not considered : " << query;
-	list<string> res;
+        // cerr << "query not considered : " << query;
+        list<string> res;
         res.push_back(query);
         considered = false;
         return res;
