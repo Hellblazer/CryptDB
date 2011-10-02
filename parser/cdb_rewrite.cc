@@ -27,8 +27,6 @@
 
 using namespace std;
 
-static bool just_strings = false;
-
 #define CIPHER_TYPES(m)                                                 \
         m(none)     /* no data needed (blind writes) */                     \
         m(any)      /* just need to decrypt the result */                   \
@@ -294,8 +292,6 @@ static void process_select_lex(st_select_lex *select_lex, const constraints &tr,
 static class ANON : public CItemSubtypeIT<Item_field, Item::Type::FIELD_ITEM> {
     virtual void do_analyze_type(Item_field *i, const constraints &tr, Analysis & a) const {
     cerr << "CItemSubtypeIT do_analyze " << *i << "\n";
-    if (just_strings && i->result_type() != STRING_RESULT)
-        return;
     
     //apply encsets from constraints
 
