@@ -7,7 +7,6 @@
  * key access.
  */
 
-#include <util/util.hh>
 #include <edb/AccessManager.hh>
 #include <edb/Translator.hh>
 

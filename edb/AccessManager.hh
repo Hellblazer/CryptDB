@@ -13,7 +13,6 @@
 
 #include <edb/Connect.hh>
 #include <crypto-old/CryptoManager.hh>
-#include <util/util.hh>
 
 
 /*

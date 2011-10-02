@@ -7,10 +7,11 @@
 #include <openssl/aes.h>
 #include <openssl/rsa.h>
 #include <openssl/evp.h>
-#include <util/util.hh>
+
 #include <crypto-old/OPE.hh>
 #include <crypto-old/SWPSearch.hh>
 #include <crypto-old/BasicCrypto.hh>
+#include <util/util.hh>
 
 
 //returns the highest security level lower than sl that allows equality

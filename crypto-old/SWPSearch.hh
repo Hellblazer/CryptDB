@@ -22,7 +22,6 @@
 #include <openssl/rand.h>
 #include <list>
 
-#include <util/util.hh>
 #include <crypto-old/Binary.hh>
 
 

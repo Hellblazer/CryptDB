@@ -9,6 +9,7 @@
 #include <fstream>
 
 #include <crypto-old/SWPSearch.hh>
+#include <util/util.hh>
 
 
 using namespace std;

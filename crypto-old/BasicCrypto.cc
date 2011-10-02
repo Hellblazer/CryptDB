@@ -7,6 +7,7 @@
 #include <assert.h>
 #include <crypto-old/BasicCrypto.hh>
 #include <util/ctr.hh>
+#include <util/util.hh>
 
 
 using namespace std;

@@ -7,14 +7,14 @@
  */
 
 #include <map>
+#include <string>
+#include <vector>
 #include <stdio.h>
 #include <openssl/sha.h>
 #include <openssl/rand.h>
 #include <openssl/aes.h>
 #include <openssl/evp.h>
 #include <openssl/blowfish.h>
-
-#include <util/util.hh>
 
 
 AES_KEY * get_AES_KEY(const std::string &key);

@@ -5,6 +5,7 @@
 
 #include <crypto-old/ECJoin.hh>
 #include <util/cryptdb_log.hh>
+#include <util/util.hh>
 
 
 using namespace std;

@@ -20,7 +20,6 @@
 #include <edb/Connect.hh>
 #include <edb/AccessManager.hh>
 #include <crypto-old/CryptoManager.hh>
-#include <util/util.hh>
 
 
 /****
