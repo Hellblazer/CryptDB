@@ -28,26 +28,26 @@ class MultiPrinc {
      * updates encforMap and accMan
      * sets encryptfield
      */
-    void processAnnotation(list<string>::iterator & wordsIt,
-                           list<string> & words, string tablename,
-                           string currentField,
-                           bool & encryptfield, map<string,
+    void processAnnotation(std::list<std::string>::iterator & wordsIt,
+                           std::list<std::string> & words, std::string tablename,
+                           std::string currentField,
+                           bool & encryptfield, std::map<std::string,
                                                     TableMetadata *> & tm);
 
     int commitAnnotations();
 
     /*** LOGIN tasks ***/
 
-    bool isActiveUsers(const string &query);
+    bool isActiveUsers(const std::string &query);
 
-    bool checkPsswd(command comm, list<string> & words);
+    bool checkPsswd(command comm, std::list<std::string> & words);
 
     /** FILTERS "WHERE" tasks **/
 
     //returns a map from encrypted field name to the value of field for which
     // it is encrypted e.g. text - 5 (val of gid)
-    void getEncForFromFilter(command comm, list<string> query, TMKM & tmkm,
-                             QueryMeta & qm, map<string,
+    void getEncForFromFilter(command comm, std::list<std::string> query, TMKM & tmkm,
+                             QueryMeta & qm, std::map<std::string,
                                                  TableMetadata *> &
                              tableMetaMap);
 
@@ -55,45 +55,45 @@ class MultiPrinc {
 
     // returns any additional fields that need to be requested from the DB
     // when table.field is requested
-    string selectEncFor(string table, string field, QueryMeta & qm,
+    std::string selectEncFor(std::string table, std::string field, QueryMeta & qm,
                         TMKM & tmkm, TableMetadata * tm,
                         FieldMetadata * fm);
 
-    void prepareSelect(list<string> & words, TMKM & tmkm, QueryMeta & qm,
-                       map<string,
+    void prepareSelect(std::list<std::string> & words, TMKM & tmkm, QueryMeta & qm,
+                       std::map<std::string,
                            TableMetadata *> & tm);
 
     // fills tmkm.encForReturned and decides if the next field was added by us
     // and should not be returned to the user
-    void processReturnedField(unsigned int index, bool isNextSalt, string fullname, onion o,
+    void processReturnedField(unsigned int index, bool isNextSalt, std::string fullname, onion o,
                               TMKM & tmkm,
                               bool & ignore);
 
-    bool checkPredicate(const AccessRelation & accRel, map<string, string> & vals);
+    bool checkPredicate(const AccessRelation & accRel, std::map<std::string, std::string> & vals);
 
     /*** INSERT tasks ***/
 
     //wordsIt points to the first value
-    void insertRelations(const list<pair<string, bool> > & values, string table,
-                         list<string> fields,
+    void insertRelations(const std::list<std::pair<std::string, bool> > & values, std::string table,
+                         std::list<std::string> fields,
                          TMKM & tmkm);
 
     /*** OTHER ***/
 
-    bool isPrincipal(string fullname);
+    bool isPrincipal(std::string fullname);
 
     // -- Determines which key to use for a field
     // -- They return null if the set of active users cannot decrypt current
     // field
     // -- the key is to be used for a query
-    string get_key(string fieldName, TMKM & tmkm);
+    std::string get_key(std::string fieldName, TMKM & tmkm);
 
     // -- Determines which key to use for a field
     // -- They return null if the set of active users cannot decrypt current
     // field
     // -- the key is to be used for a result set
-    string get_key(string fieldName, TMKM & tmkm,
-                   const vector<SqlItem> &res);
+    std::string get_key(std::string fieldName, TMKM & tmkm,
+                   const std::vector<SqlItem> &res);
 
  private:
     Connect * conn;

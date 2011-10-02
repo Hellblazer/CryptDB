@@ -7,6 +7,9 @@
 #include <util/cryptdb_log.hh>
 #include <util/cleanup.hh>
 
+
+using namespace std;
+
 #if MYSQL_S
 
 #define DECRYPT_int_sem "decrypt_int_sem"
@@ -19,7 +22,6 @@
 #define FUNC_ADD_FINAL "agg"
 #define SUM_AGG "agg"
 #define FUNC_ADD_SET "func_add_set"
-
 
 #else
 

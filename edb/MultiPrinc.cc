@@ -8,6 +8,8 @@
 #include <util/cryptdb_log.hh>
 
 
+using namespace std;
+
 MultiPrinc::MultiPrinc(Connect * connarg)
 {
     conn = connarg;

@@ -14,6 +14,8 @@
 #include <test/TestQueries.hh>
 
 
+using namespace std;
+
 static int ntest = 0;
 static int npass = 0;
 static test_mode control_type;

@@ -11,6 +11,8 @@
 #include <crypto-old/SWPSearch.hh>
 
 
+using namespace std;
+
 unsigned char fixedIV[] =
 {34, 145, 42, 12, 56, 13, 111, 100, 98, 6, 2, 63, 88, 4, 22, 74};
 

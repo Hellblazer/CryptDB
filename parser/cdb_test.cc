@@ -21,6 +21,9 @@
 
 #include <util/errstream.hh>
 
+
+using namespace std;
+
 int
 main(int ac, char **av)
 {

@@ -49,8 +49,8 @@ class SWP {
      * Returns: NULL on problem.
      */
 
-    static list<Binary> * encrypt(const Binary & key,
-                                  const list<Binary> & words);
+    static std::list<Binary> * encrypt(const Binary & key,
+                                  const std::list<Binary> & words);
 
     /*
      * Decrypts each word in the list ciphs.
@@ -60,8 +60,8 @@ class SWP {
      *
      */
 
-    static list<Binary> * decrypt(const Binary & key,
-                                  const list<Binary> & ciphs);
+    static std::list<Binary> * decrypt(const Binary & key,
+                                  const std::list<Binary> & ciphs);
 
     /*
      * Given the secret key and the word to search for, returns the token to
@@ -74,9 +74,9 @@ class SWP {
      * that match the token based on SWP or a boolean indicating whether
      * the value exists in the given ciphertexts or not.
      */
-    static list<unsigned int> * search(const Token & token,
-                                       const list<Binary> & ciphs);
-    static bool searchExists(const Token & token, const list<Binary> & ciphs);
+    static std::list<unsigned int> * search(const Token & token,
+                                       const std::list<Binary> & ciphs);
+    static bool searchExists(const Token & token, const std::list<Binary> & ciphs);
 
     static const bool canDecrypt = (SWPCiphSize % AES_BLOCK_SIZE == 0);
 

@@ -9,7 +9,9 @@
 #include <util/util.hh>
 #include <util/cryptdb_log.hh>
 
+
 using namespace std;
+using namespace NTL;
 
 void
 myassert(bool value, const string &mess)

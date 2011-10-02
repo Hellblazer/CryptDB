@@ -35,7 +35,7 @@ SECLEVELS(__temp_m)
     SECLEVEL_LAST
 } SECLEVEL;
 
-const string levelnames[] = {
+const std::string levelnames[] = {
 #define __temp_m(n) #n,
 SECLEVELS(__temp_m)
 #undef __temp_m
@@ -46,12 +46,12 @@ SECLEVELS(__temp_m)
 //a set of encryptions
 class EncSet {
 public:
-    map<onion, SECLEVEL> osl; //max level on each onion
-    EncSet(map<onion, SECLEVEL> input);
+    std::map<onion, SECLEVEL> osl; //max level on each onion
+    EncSet(std::map<onion, SECLEVEL> input);
     EncSet(const EncSet & es);
     EncSet();
     int restrict(onion o, SECLEVEL maxl);
-    pair<onion, SECLEVEL> chooseOne() const;//decides which encryption scheme to use out of multiple in a set
+    std::pair<onion, SECLEVEL> chooseOne() const;//decides which encryption scheme to use out of multiple in a set
     int remove(onion o);
     EncSet intersect(const EncSet & es2) const;
     ~EncSet() {}
@@ -99,14 +99,14 @@ public:
 class ItemMeta {
 	onion o;
 	SECLEVEL uptolevel;
-	string basekey;
+	std::string basekey;
 };
 
 class Analysis {
 public:
 
-	map<string, FieldMeta *> fieldToMeta;
-	map<string, ItemMeta *> itemToMeta;
+	std::map<std::string, FieldMeta *> fieldToMeta;
+	std::map<std::string, ItemMeta *> itemToMeta;
 
 	bool hasConverged;
 
@@ -116,13 +116,13 @@ public:
 class FieldReturned {
 	bool encrypted;
 	bool includeInResult;
-	string key;
+	std::string key;
 	unsigned int SaltIndex;
-	string nameForReturn;
+	std::string nameForReturn;
 };
 
 class ReturnMeta {
-	vector<FieldReturned *> retFM;
+	std::vector<FieldReturned *> retFM;
 };
 
 
@@ -155,10 +155,10 @@ public:
 
 	bool soft;      /* can be evaluated at proxy */
 
-	string why_t;
+	std::string why_t;
 	Item *why_t_item;
 
 	const constraints *parent;
 };
 
-string  rewrite(const string &db, const string &q, ReturnMeta &rmeta);
+std::string rewrite(const std::string &db, const std::string &q, ReturnMeta &rmeta);

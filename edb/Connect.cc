@@ -10,6 +10,9 @@
 #include <edb/Connect.hh>
 #include <util/cryptdb_log.hh>
 
+
+using namespace std;
+
 Connect::Connect(string server, string user, string passwd,
                  string dbname, uint port)
 {

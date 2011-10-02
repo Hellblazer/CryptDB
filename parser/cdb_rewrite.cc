@@ -24,6 +24,9 @@
 
 #include <parser/cdb_rewrite.hh>
 
+
+using namespace std;
+
 static bool just_strings = false;
 
 #define CIPHER_TYPES(m)                                                 \

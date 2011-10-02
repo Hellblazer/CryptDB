@@ -9,6 +9,8 @@
 #include <util/ctr.hh>
 
 
+using namespace std;
+
 AES_KEY *
 get_AES_KEY(const string &key)
 {

@@ -11,6 +11,8 @@
 #include <util/cryptdb_log.hh>
 
 
+using namespace std;
+
 #define NODIGITS 4
 
 //------------------------------------------------------------------------------------------

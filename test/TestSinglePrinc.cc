@@ -13,6 +13,8 @@
 #include <util/cryptdb_log.hh>
 
 
+using namespace std;
+
 static int ntest = 0;
 static int npass = 0;
 

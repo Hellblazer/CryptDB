@@ -11,6 +11,10 @@
 #include <util/ctr.hh>
 #include <util/cryptdb_log.hh>
 
+
+using namespace std;
+using namespace NTL;
+
 // TODO: simplify CryptoManager using a function taking from level to level
 // for a type of data using union for answers or inputs
 // TODO: optimizations for CryptAPP, HOM especially; for each user, for each
@@ -838,7 +842,7 @@ CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft,
 
 }
 
-void CryptoManager::loadEncTables(string filename) {
+void CryptoManager::loadEncTables(const string &filename) {
     ifstream file(filename);
 
     useEncTables = true;

@@ -53,13 +53,13 @@ public:
     //setups the elliptic curve and systems parameters
     ECJoin();
 
-    ECJoinSK * getSKey(const AES_KEY * baseKey, const string & columnKey);
+    ECJoinSK * getSKey(const AES_KEY * baseKey, const std::string & columnKey);
 
     //returns secret key needed to adjust from encryption with key 1 to encryption with key 2
     ECDeltaSK * getDeltaKey(const ECJoinSK * key1, const ECJoinSK *  key2);
 
-    string encrypt(const ECJoinSK * sk, const string & ptext);
-    static string adjust(const ECDeltaSK * deltaSK, const string & ctext);
+    std::string encrypt(const ECJoinSK * sk, const std::string & ptext);
+    static std::string adjust(const ECDeltaSK * deltaSK, const std::string & ctext);
 
     virtual
     ~ECJoin();
@@ -87,6 +87,6 @@ private:
     //returns a random point on the EC
     EC_POINT * randomPoint();
     // a PRF with 128 bits security, but bytesLong output
-    static string PRFForEC(const AES_KEY * sk, const string & ptext);
-    static string point2Str(const EC_GROUP * group, const EC_POINT * point);
+    static std::string PRFForEC(const AES_KEY * sk, const std::string & ptext);
+    static std::string point2Str(const EC_GROUP * group, const EC_POINT * point);
 };

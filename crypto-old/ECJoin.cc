@@ -7,6 +7,7 @@
 #include <util/cryptdb_log.hh>
 
 
+using namespace std;
 
 static EC_POINT *
 my_EC_POINT_new(EC_GROUP * group) {

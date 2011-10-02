@@ -10,6 +10,9 @@
 #include <crypto-old/Binary.hh>
 #include <util/errstream.hh>
 
+
+using namespace std;
+
 Binary::Binary()
 {
     content = 0;
@@ -174,7 +177,7 @@ Binary::toBinary(unsigned long val, int no_bytes)
 }
 
 Binary
-Binary::toBinary(string val)
+Binary::toBinary(const std::string &val)
 {
     Binary res((uint) val.length());
     memcpy(res.content, val.data(), res.len);

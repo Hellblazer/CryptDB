@@ -3,6 +3,9 @@
 #include <crypto-old/blowfish_data.hh>
 #include <util/ctr.hh>
 
+
+using namespace std;
+
 /*
  * Based on lib/bf60.c from HiStar.
  */

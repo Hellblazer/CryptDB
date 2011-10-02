@@ -7,7 +7,6 @@
 #include <edb/Connect.hh>
 #include <edb/MultiPrinc.hh>
 
-using namespace std;
 
 #define TESTING 1
 
@@ -24,9 +23,9 @@ class EDBProxy {
      * secure mode (queries are plain).
      */
 
-    EDBProxy(string server, string user, string psswd, string dbname,
+    EDBProxy(std::string server, std::string user, std::string psswd, std::string dbname,
               uint port = 0, bool multiPrinc = false, bool allDefaultEncrypted = false);
-    void setMasterKey(const string &mkey);
+    void setMasterKey(const std::string &mkey);
 
     // ========= QUERIES ===== //
 
@@ -37,18 +36,18 @@ class EDBProxy {
 
     //Mode 1: Translation of query, execution of query, and translation of
     // results
-    ResType execute(const string &query);
+    ResType execute(const std::string &query);
 
     //no security:
-    ResType plain_execute(const string &query);
+    ResType plain_execute(const std::string &query);
 
     //Mode 2: Only translations
     //query must be \0 terminated
-    list<string> rewriteEncryptQuery(const string &query, bool &considered)
+    std::list<std::string> rewriteEncryptQuery(const std::string &query, bool &considered)
         throw (CryptDBError);
 
     //query should be the original, untranslated query
-    ResType decryptResults(const string &query, const ResType &dbAnswer);
+    ResType decryptResults(const std::string &query, const ResType &dbAnswer);
 
     //==== EXIT =================//
 
@@ -65,16 +64,16 @@ class EDBProxy {
     void createEncryptionTables(int noOPE, int noHOM);
     void replenishEncryptionTables();
     */
-    void generateEncTables(list<OPESpec> & opes,
+    void generateEncTables(std::list<OPESpec> & opes,
     		unsigned int minHOM, unsigned int maxHOM,
-    		unsigned int randomPoolSize, string outputfile);
-    void loadEncTables(string filename);
+    		unsigned int randomPoolSize, std::string outputfile);
+    void loadEncTables(std::string filename);
     // TRAINING
 
     // trains client on queries from given file and adjusts schema and
     // security level
     void
-    runQueries(string queryFile, bool execute=false) throw (CryptDBError);
+    runQueries(std::string queryFile, bool execute=false) throw (CryptDBError);
     void
     setStateFromTraining();
 
@@ -82,7 +81,7 @@ class EDBProxy {
 
     void outputOnionState();
     //temporarily public for testing
-    void getEncForFromFilter(command comm, list<string> query, TMKM & tmkm,
+    void getEncForFromFilter(command comm, std::list<std::string> query, TMKM & tmkm,
                              QueryMeta & qm);
 
  private:
@@ -95,9 +94,9 @@ class EDBProxy {
     MultiPrinc * mp;     // deals with multi-principal tasks
 
     // Schema state
-    map<string, string> tableNameMap;     //map of anonymized table name to
+    std::map<std::string, std::string> tableNameMap;     //map of anonymized table name to
                                           // table name
-    map<string, TableMetadata *> tableMetaMap;     //map of table name to
+    std::map<std::string, TableMetadata *> tableMetaMap;     //map of table name to
                                                    // table metadata
     unsigned int totalTables;
     unsigned int totalIndexes;
@@ -111,106 +110,106 @@ class EDBProxy {
 #if TESTING
  public:
 #endif
-    bool considerQuery(command com, const string &query);
+    bool considerQuery(command com, const std::string &query);
 
 
     //CREATE
     //the Encrypt functions rewrite a query by anonymizing, encrypting, and
     // translating it; they also generate decryption queries
     //the Decrypt functions decrypt the result from the server
-    list<string> rewriteEncryptCreate(const string &query)
+    std::list<std::string> rewriteEncryptCreate(const std::string &query)
         throw (CryptDBError);
     bool overwrite_creates;
 
     //INSERT
-    list<string> rewriteEncryptInsert(const string &query)
+    std::list<std::string> rewriteEncryptInsert(const std::string &query)
         throw (CryptDBError);
     //returns the value to be included in an insert a given value of a
     // field/table
-    string processValsToInsert(string field, FieldMetadata * fm, string table, TableMetadata * tm, uint64_t salt,
-                               string value, TMKM & tmkm, bool null = false);
+    std::string processValsToInsert(std::string field, FieldMetadata * fm, std::string table, TableMetadata * tm, uint64_t salt,
+                               std::string value, TMKM & tmkm, bool null = false);
 
 
     //FILTERS ("WHERE")
     //process where clause
-    list<string>
-    processFilters(list<string>::iterator & wordsIt, list<string> & words,
-                   QueryMeta & qm, string resultQuery,
+    std::list<std::string>
+    processFilters(std::list<std::string>::iterator & wordsIt, std::list<std::string> & words,
+                   QueryMeta & qm, std::string resultQuery,
                    FieldsToDecrypt fieldsDec, TMKM & tmkm,
-                   list<string> subqueries = list<string>())
+                   std::list<std::string> subqueries = std::list<std::string>())
         throw (CryptDBError);
-    string processOperation(string operation, string op1, string op2,
-                            QueryMeta & qm, string encryptedsubquery,
+    std::string processOperation(std::string operation, std::string op1, std::string op2,
+                            QueryMeta & qm, std::string encryptedsubquery,
                             TMKM & tmkm)
         throw (CryptDBError);
 
     //UPDATE
-    list<string> rewriteEncryptUpdate(const string &query)
+    std::list<std::string> rewriteEncryptUpdate(const std::string &query)
         throw (CryptDBError);
 
     //SELECT
-    list<string> rewriteEncryptSelect(const string &query)
+    std::list<std::string> rewriteEncryptSelect(const std::string &query)
         throw (CryptDBError);
-    ResType rewriteDecryptSelect(const string &query, const ResType &dbAnswer);
-    ResType decryptResultsWrapper(const string &query, DBResult * dbres);
+    ResType rewriteDecryptSelect(const std::string &query, const ResType &dbAnswer);
+    ResType decryptResultsWrapper(const std::string &query, DBResult * dbres);
     //prepared decryptions
-    list<string>  processDecryptions(FieldsToDecrypt fieldsDec,
+    std::list<std::string>  processDecryptions(FieldsToDecrypt fieldsDec,
                                      TMKM & tmkm)
         throw (CryptDBError);
     //isSubquery indicates that the current query is a subquery of a large
     // nested query
-    list<string> rewriteSelectHelper(
-        list<string> words, bool isSubquery = false,
-        list<string> subqueries = list<string>())
+    std::list<std::string> rewriteSelectHelper(
+        std::list<std::string> words, bool isSubquery = false,
+        std::list<std::string> subqueries = std::list<std::string>())
         throw (CryptDBError);
 
     //DROP
-    list<string> rewriteEncryptDrop(const string &query)
+    std::list<std::string> rewriteEncryptDrop(const std::string &query)
         throw (CryptDBError);
 
     //DELETE
-    list<string> rewriteEncryptDelete(const string &query)
+    std::list<std::string> rewriteEncryptDelete(const std::string &query)
         throw (CryptDBError);
 
     //BEGIN
-    list<string> rewriteEncryptBegin(const string &query)
+    std::list<std::string> rewriteEncryptBegin(const std::string &query)
         throw (CryptDBError);
 
     //COMMIT
-    list<string> rewriteEncryptCommit(const string &query)
+    std::list<std::string> rewriteEncryptCommit(const std::string &query)
         throw (CryptDBError);
 
     //ALTER
-    list<string> rewriteEncryptAlter(const string &query)
+    std::list<std::string> rewriteEncryptAlter(const std::string &query)
         throw (CryptDBError);
-    list<string> processIndex(list<string> & words,
-                              list<string>::iterator & wordsIt)
+    std::list<std::string> processIndex(std::list<std::string> & words,
+                              std::list<std::string>::iterator & wordsIt)
         throw (CryptDBError);
 
     //wrapper for the crypto class - changes master key encryption for
     // multi-keying
-    string crypt(string data, fieldType ft, string fullname,
-                 string anonfullname,
+    std::string crypt(std::string data, fieldType ft, std::string fullname,
+                 std::string anonfullname,
                  SECLEVEL fromlevel, SECLEVEL tolevel, uint64_t salt,
                  //optional, for MULTIPRINC
                  TMKM & tmkm, bool & isBin,
-                 const vector<SqlItem> &res = vector<SqlItem>());
+                 const std::vector<SqlItem> &res = std::vector<SqlItem>());
 
     //performs above crypt and marshalls binaries for MySQL query
-    string
-    dataForQuery(const string &data, fieldType ft,
-                 const string &fullname, const string &anonfullname,
+    std::string
+    dataForQuery(const std::string &data, fieldType ft,
+                 const std::string &fullname, const std::string &anonfullname,
                  SECLEVEL fromlevel, SECLEVEL tolevel, uint64_t salt,
                  //optional, for MULTIPRINC
                  TMKM &tmkm,
-                 const vector<SqlItem> &res = vector<SqlItem>());
+                 const std::vector<SqlItem> &res = std::vector<SqlItem>());
     // OTHER
 
     void dropTables();
 
 
     //syntax: train are_all_fields_encrypted createsfile indexfile queryfile
-    list<string> rewriteEncryptTrain(const string & query);
+    std::list<std::string> rewriteEncryptTrain(const std::string & query);
 
  protected:
     //these are protected mostly for testing purposes

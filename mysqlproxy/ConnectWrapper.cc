@@ -9,6 +9,8 @@
 #include <util/scoped_lock.hh>
 
 
+using namespace std;
+
 class WrapperState {
  public:
     string last_query;

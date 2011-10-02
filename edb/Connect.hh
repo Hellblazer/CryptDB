@@ -13,8 +13,6 @@
 #include <util/util.hh>
 
 
-using namespace std;
-
 class DBResult {
  private:
     DBResult();
@@ -32,15 +30,15 @@ class DBResult {
 class Connect {
  public:
     // dbname is the name of the local db
-    Connect(string server, string user, string passwd,
-            string dbname, uint port = 0);
+    Connect(std::string server, std::string user, std::string passwd,
+            std::string dbname, uint port = 0);
 
     // returns true if execution was ok; caller must delete DBResult
-    bool execute(const string &query, DBResult *&);
-    bool execute(const string &query);
+    bool execute(const std::string &query, DBResult *&);
+    bool execute(const std::string &query);
 
     // returns error message if a query caused error
-    string getError();
+    std::string getError();
 
     my_ulonglong last_insert_id();
 

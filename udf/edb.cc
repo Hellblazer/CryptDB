@@ -20,6 +20,9 @@
 #include <util/util.hh>
 
 
+using namespace std;
+using namespace NTL;
+
 extern "C" {
 #if MYSQL_S
 

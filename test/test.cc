@@ -36,6 +36,7 @@
 
 
 using namespace std;
+using namespace NTL;
 
 static string __attribute__((unused))
 padPasswd(const string &s)

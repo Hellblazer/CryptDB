@@ -9,6 +9,8 @@
 #include <test/TestMultiPrinc.hh>
 
 
+using namespace std;
+
 static int ntest = 0;
 static int npass = 0;
 
