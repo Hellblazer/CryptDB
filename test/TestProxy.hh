@@ -6,8 +6,10 @@
  */
 
 #include <signal.h>
-#include <edb/Connect.h>
-#include <test/test_utils.h>
+
+#include <edb/Connect.hh>
+#include <test/test_utils.hh>
+
 
 #ifndef TESTPROXY_H_
 #define TESTPROXY_H_

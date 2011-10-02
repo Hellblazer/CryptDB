@@ -19,11 +19,13 @@
 #ifndef SWPSEARCH_H_
 #define SWPSEARCH_H_
 
-#include <util/util.h>
-#include <crypto-old/Binary.h>
 #include <openssl/aes.h>
 #include <openssl/rand.h>
 #include <list>
+
+#include <util/util.hh>
+#include <crypto-old/Binary.hh>
+
 
 // for all following constants unit is bytes
 

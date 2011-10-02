@@ -5,7 +5,8 @@
  *
  */
 
-#include <test/test_utils.h>
+#include <test/test_utils.hh>
+
 
 void
 PrintRes(const ResType &res)

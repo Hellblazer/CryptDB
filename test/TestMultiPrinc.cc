@@ -6,7 +6,8 @@
  */
 
 #include <util/cryptdb_log.hh>
-#include <test/TestMultiPrinc.h>
+#include <test/TestMultiPrinc.hh>
+
 
 static int ntest = 0;
 static int npass = 0;

@@ -3,8 +3,9 @@
  *
  */
 
-#include <edb/EDBProxy.h>
-#include <test/test_utils.h>
+#include <edb/EDBProxy.hh>
+#include <test/test_utils.hh>
+
 
 #ifndef TESTNOTCONSIDER_H_
 #define TESTNOTCONSIDER_H_

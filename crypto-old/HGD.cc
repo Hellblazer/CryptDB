@@ -1,7 +1,7 @@
 #include <assert.h>
 #include <stdio.h>
 #include <NTL/RR.h>
-#include <crypto-old/HGD.h>
+#include <crypto-old/HGD.hh>
 
 using namespace std;
 

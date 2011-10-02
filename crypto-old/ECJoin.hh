@@ -32,7 +32,8 @@
 #include <openssl/obj_mac.h>
 #include <openssl/bn.h>
 #include <openssl/ec.h>
-#include <crypto-old/BasicCrypto.h>
+
+#include <crypto-old/BasicCrypto.hh>
 
 
 struct ECJoinSK{

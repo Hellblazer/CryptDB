@@ -3,9 +3,11 @@
 #include <openssl/aes.h>
 #include <NTL/ZZ.h>
 #include <NTL/RR.h>
-#include <crypto-old/OPE.h>
-#include <crypto-old/HGD.h>
-#include <util/util.h>
+
+#include <crypto-old/OPE.hh>
+#include <crypto-old/HGD.hh>
+#include <util/util.hh>
+
 
 using namespace NTL;
 using namespace std;

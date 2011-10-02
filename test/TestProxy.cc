@@ -6,7 +6,8 @@
  */
 
 #include <util/cryptdb_log.hh>
-#include <test/TestProxy.h>
+#include <test/TestProxy.hh>
+
 
 static int ntest = 0;
 static int npass = 0;

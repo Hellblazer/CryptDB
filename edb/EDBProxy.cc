@@ -2,7 +2,7 @@
 #include <fstream>
 #include <set>
 
-#include <edb/EDBProxy.h>
+#include <edb/EDBProxy.hh>
 #include <util/ctr.hh>
 #include <util/cryptdb_log.hh>
 #include <util/cleanup.hh>

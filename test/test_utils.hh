@@ -9,7 +9,9 @@
 
 #include <string>
 #include <assert.h>
-#include <edb/EDBProxy.h>
+
+#include <edb/EDBProxy.hh>
+
 
 class TestConfig {
  public:

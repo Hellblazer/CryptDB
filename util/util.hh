@@ -22,7 +22,7 @@
 #include <sstream>
 #include <NTL/ZZ.h>
 
-#include <util/params.h>
+#include <util/params.hh>
 
 using namespace NTL;
 using namespace std;

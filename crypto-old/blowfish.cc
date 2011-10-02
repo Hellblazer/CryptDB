@@ -1,6 +1,6 @@
 #include <assert.h>
-#include <crypto-old/BasicCrypto.h>
-#include <crypto-old/blowfish_data.h>
+#include <crypto-old/BasicCrypto.hh>
+#include <crypto-old/blowfish_data.hh>
 #include <util/ctr.hh>
 
 /*

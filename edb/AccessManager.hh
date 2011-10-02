@@ -7,14 +7,15 @@
 #ifndef ACCESSMANAGER2_H_
 #define ACCESSMANAGER2_H_
 
-#include <util/util.h>
-
 #include <string>
 #include <map>
 #include <set>
 #include <list>
-#include <edb/Connect.h>
-#include <crypto-old/CryptoManager.h>
+
+#include <edb/Connect.hh>
+#include <crypto-old/CryptoManager.hh>
+#include <util/util.hh>
+
 
 using namespace std;
 

@@ -5,8 +5,9 @@
  *
  */
 
-#include <test/TestNotConsider.h>
+#include <test/TestNotConsider.hh>
 #include <util/cryptdb_log.hh>
+
 
 static int ntest = 0;
 static int npass = 0;

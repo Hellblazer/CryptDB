@@ -14,8 +14,8 @@
 #include <openssl/aes.h>
 #include <openssl/evp.h>
 #include <openssl/blowfish.h>
-#include <util/util.h>
 
+#include <util/util.hh>
 
 AES_KEY * get_AES_KEY(const string &key);
 AES_KEY * get_AES_enc_key(const string & key);

@@ -5,7 +5,8 @@
 #include <assert.h>
 
 #include <openssl/rand.h>
-#include <util/util.h>
+
+#include <util/util.hh>
 #include <util/cryptdb_log.hh>
 
 using namespace std;

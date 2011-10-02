@@ -7,8 +7,9 @@
 
 #include <iomanip>
 
-#include <edb/AccessManager.h>
+#include <edb/AccessManager.hh>
 #include <util/cryptdb_log.hh>
+
 
 #define NODIGITS 4
 

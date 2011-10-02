@@ -7,7 +7,7 @@
 
 #include <list>
 #include <iostream>
-#include <crypto-old/Binary.h>
+#include <crypto-old/Binary.hh>
 #include <util/errstream.hh>
 
 Binary::Binary()

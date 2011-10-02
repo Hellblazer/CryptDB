@@ -5,7 +5,7 @@
  *      Author: raluca
  */
 
-#include <edb/Translator.h>
+#include <edb/Translator.hh>
 #include <util/cryptdb_log.hh>
 
 string

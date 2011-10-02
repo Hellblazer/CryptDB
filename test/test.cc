@@ -13,26 +13,26 @@
 #include <time.h>
 #include <sys/wait.h>
 
-#include <crypto-old/OPE.h>
-#include <crypto-old/HGD.h>
-#include <crypto-old/CryptoManager.h>
+#include <crypto-old/OPE.hh>
+#include <crypto-old/HGD.hh>
+#include <crypto-old/CryptoManager.hh>
 
-#include <edb/EDBProxy.h>
-#include <edb/AccessManager.h>
-#include <edb/Connect.h>
+#include <edb/EDBProxy.hh>
+#include <edb/AccessManager.hh>
+#include <edb/Connect.hh>
 
-#include <util/util.h>
-#include <util/params.h>
+#include <util/util.hh>
+#include <util/params.hh>
 #include <util/cryptdb_log.hh>
 
-#include <test/test_utils.h>
-#include <test/TestSinglePrinc.h>
-#include <test/TestMultiPrinc.h>
-#include <test/TestCrypto.h>
-#include <test/TestAccessManager.h>
-#include <test/TestProxy.h>
-#include <test/TestQueries.h>
-#include <test/TestNotConsider.h>
+#include <test/test_utils.hh>
+#include <test/TestSinglePrinc.hh>
+#include <test/TestMultiPrinc.hh>
+#include <test/TestCrypto.hh>
+#include <test/TestAccessManager.hh>
+#include <test/TestProxy.hh>
+#include <test/TestQueries.hh>
+#include <test/TestNotConsider.hh>
 
 
 using namespace std;

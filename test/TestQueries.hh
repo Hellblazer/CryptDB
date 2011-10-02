@@ -5,9 +5,11 @@
 
 #include <signal.h>
 #include <stdlib.h>
-#include <edb/EDBProxy.h>
-#include <edb/Connect.h>
-#include <test/test_utils.h>
+
+#include <edb/EDBProxy.hh>
+#include <edb/Connect.hh>
+#include <test/test_utils.hh>
+
 
 #ifndef TESTQUERIES_H_
 #define TESTQUERIES_H_

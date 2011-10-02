@@ -8,10 +8,10 @@
 #include <openssl/aes.h>
 #include <openssl/rsa.h>
 #include <openssl/evp.h>
-#include <crypto-old/OPE.h>
-#include <util/util.h>
-#include <crypto-old/SWPSearch.h>
-#include <crypto-old/BasicCrypto.h>
+#include <util/util.hh>
+#include <crypto-old/OPE.hh>
+#include <crypto-old/SWPSearch.hh>
+#include <crypto-old/BasicCrypto.hh>
 
 
 //returns the highest security level lower than sl that allows equality

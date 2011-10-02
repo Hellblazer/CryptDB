@@ -2,7 +2,6 @@
 #define _OPE_H
 
 #include <stdio.h>
-#include <util/util.h>
 
 /*
  *
@@ -22,12 +21,12 @@ class OPE {
      * sizes are in bits
      * requires: key should have a number of bytes equal to OPE_KEY_SIZE
      */
-    OPE(const string &key, unsigned int OPEPlaintextSize,
+    OPE(const std::string &key, unsigned int OPEPlaintextSize,
         unsigned int OPECiphertextSize);
     ~OPE();
 
-    string encrypt(const string &plaintext);
-    string decrypt(const string &ciphertext);
+    std::string encrypt(const std::string &plaintext);
+    std::string decrypt(const std::string &ciphertext);
 
     uint64_t encrypt(uint32_t plaintext);
     uint32_t decrypt(uint64_t ciphertext);

@@ -5,7 +5,8 @@
  *
  */
 
-#include <test/TestAccessManager.h>
+#include <test/TestAccessManager.hh>
+
 
 static int ntest = 0;
 static int npass = 0;

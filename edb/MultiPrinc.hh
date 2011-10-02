@@ -8,9 +8,10 @@
 #ifndef MULTIPRINC_H_
 #define MULTIPRINC_H_
 
-#include <util/util.h>
-#include <edb/AccessManager.h>
-#include <edb/Translator.h>
+#include <util/util.hh>
+#include <edb/AccessManager.hh>
+#include <edb/Translator.hh>
+
 
 class MultiPrinc {
  public:

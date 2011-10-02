@@ -7,7 +7,7 @@
 
 #include <stdexcept>
 #include <assert.h>
-#include <edb/Connect.h>
+#include <edb/Connect.hh>
 #include <util/cryptdb_log.hh>
 
 Connect::Connect(string server, string user, string passwd,

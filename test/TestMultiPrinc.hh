@@ -5,7 +5,8 @@
  *  Author: cat_red
  */
 
-#include <test/test_utils.h>
+#include <test/test_utils.hh>
+
 
 #ifndef TESTMULTIPRINC_H_
 #define TESTMULTIPRINC_H_
