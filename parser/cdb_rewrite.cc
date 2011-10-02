@@ -1042,7 +1042,7 @@ rewrite(const string & db, const string & q, ReturnMeta & rmeta)
     lex_rewrite(db, lex, analysis, rmeta);
 
     stringstream ss;
-    ss << lex;
+    ss << *lex;
 
     return ss.str();
 }
