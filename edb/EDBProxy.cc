@@ -2,10 +2,11 @@
 #include <fstream>
 #include <set>
 
-#include <edb/EDBProxy.hh>
 #include <util/ctr.hh>
 #include <util/cryptdb_log.hh>
 #include <util/cleanup.hh>
+
+#include <edb/EDBProxy.hh>
 
 
 using namespace std;
@@ -159,34 +160,27 @@ createAll(Connect * conn)
 
 EDBProxy::EDBProxy(string server, string user, string psswd, string dbname,
                      uint port, bool multiPrinc, bool defaultEnc)
+    : VERBOSE( VERBOSE_EDBProxy )
+    , dropOnExit( false )
+    , isSecure( false )
+    , allDefaultEncrypted( defaultEnc )
+#if 0
+    , meta_db( "proxy_db" )
+#endif
+    , conn( new Connect(server, user, psswd, dbname, port) )
+    , pm( nullptr )
+    , mp( multiPrinc ? new MultiPrinc(conn) : nullptr )
+    , totalTables( 0 )
+    , totalIndexes( 0 )
+    , overwrite_creates( false )
+
 {
-    isSecure = false;
-    VERBOSE = VERBOSE_EDBProxy;
-    dropOnExit = false;
-
-    /* Make a connection to the database */
-    conn = new Connect(server, user, psswd, dbname, port);
-
     dropAll(conn);
     createAll(conn);
     LOG(edb_v) << "UDFs loaded successfully";
-
-    totalTables = 0;
-    totalIndexes = 0;
-
-    if (multiPrinc) {
-        LOG(edb_v) << "multiprinc mode";
-        mp = new MultiPrinc(conn);
-    } else {
-        LOG(edb) << "single princ mode";
-        mp = NULL;
-    }
-
-    overwrite_creates = false;
+    LOG(edb_v) << (multiPrinc ? "multi princ mode" : "single princ mode");
 
     assert_s (!(multiPrinc && defaultEnc), "cannot have fields encrypted by default in multiprinc because we need to know encfor princ");
-    this->allDefaultEncrypted = defaultEnc;
-
 }
 
 void

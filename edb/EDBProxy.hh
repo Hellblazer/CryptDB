@@ -2,11 +2,13 @@
 
 #include <iostream>
 #include <fstream>
+#include <algorithm>
 
 #include <edb/Translator.hh>
 #include <edb/Connect.hh>
 #include <edb/MultiPrinc.hh>
 
+#include <parser/embedmysql.hh>
 
 #define TESTING 1
 
@@ -88,7 +90,9 @@ class EDBProxy {
  private:
     bool isSecure;
     bool allDefaultEncrypted;
-
+#if 0
+    embedmysql meta_db; // to connect to the embedded db, persisting meta info
+#endif
     Connect * conn;     // to connect to the DBMs
     CryptoManager * cm;     // for cryptography
     ParserMeta * pm;     // for speeding up parsing

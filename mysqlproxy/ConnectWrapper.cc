@@ -3,10 +3,11 @@
 #include <assert.h>
 #include <lua5.1/lua.hpp>
 
-#include <edb/EDBProxy.hh>
 #include <util/ctr.hh>
 #include <util/cryptdb_log.hh>
 #include <util/scoped_lock.hh>
+
+#include <edb/EDBProxy.hh>
 
 
 using namespace std;
