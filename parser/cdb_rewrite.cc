@@ -388,7 +388,18 @@ static class ANON : public CItemSubtypeIT<Item_string, Item::Type::STRING_ITEM> 
     }
     virtual void do_enforce_type(Item_string *i, const constraints &tr, Analysis & a) const
     {
-        cerr << "Need to encrypt " << *i << " with: " << tr.encset.extract_singleton() << endl;
+        auto c = tr.encset.extract_singleton();
+        cerr << "Need to encrypt " << *i << " with: " << c << endl;
+        auto it = a.itemToMeta.find(i);
+        ItemMeta *im;
+        if (it == a.itemToMeta.end()) {
+            a.itemToMeta[i] = im = new ItemMeta;
+        } else {
+            im = it->second;
+        }
+        im->o         = c.first;
+        im->uptolevel = c.second.first;
+        im->basekey   = c.second.second;
     }
 } ANON;
 
@@ -400,7 +411,18 @@ static class ANON : public CItemSubtypeIT<Item_num, Item::Type::INT_ITEM> {
     }
     virtual void do_enforce_type(Item_num *i, const constraints &tr, Analysis & a) const
     {
-        cerr << "Need to encrypt " << *i << " with: " << tr.encset.extract_singleton() << endl;
+        auto c = tr.encset.extract_singleton();
+        cerr << "Need to encrypt " << *i << " with: " << c << endl;
+        auto it = a.itemToMeta.find(i);
+        ItemMeta *im;
+        if (it == a.itemToMeta.end()) {
+            a.itemToMeta[i] = im = new ItemMeta;
+        } else {
+            im = it->second;
+        }
+        im->o         = c.first;
+        im->uptolevel = c.second.first;
+        im->basekey   = c.second.second;
     }
 } ANON;
 
@@ -412,7 +434,18 @@ static class ANON : public CItemSubtypeIT<Item_decimal, Item::Type::DECIMAL_ITEM
     }
     virtual void do_enforce_type(Item_decimal *i, const constraints &tr, Analysis & a) const
     {
-        cerr << "Need to encrypt " << *i << " with: " << tr.encset.extract_singleton() << endl;
+        auto c = tr.encset.extract_singleton();
+        cerr << "Need to encrypt " << *i << " with: " << c << endl;
+        auto it = a.itemToMeta.find(i);
+        ItemMeta *im;
+        if (it == a.itemToMeta.end()) {
+            a.itemToMeta[i] = im = new ItemMeta;
+        } else {
+            im = it->second;
+        }
+        im->o         = c.first;
+        im->uptolevel = c.second.first;
+        im->basekey   = c.second.second;
     }
 } ANON;
 
