@@ -9,37 +9,8 @@
  *  TODO: need to integrate it with util.h: some declarations are repeated
  */
 
-typedef enum onion {oDET, oOPE, oAGG, oNONE, oSWP, oINVALID} onion;
+#include <util/onions.hh>
 
-#define SECLEVELS(m)    \
-    m(INVALID)          \
-    m(PLAIN)            \
-    m(PLAIN_DET)        \
-    m(DETJOIN)          \
-    m(DET)              \
-    m(SEMANTIC_DET)     \
-    m(PLAIN_OPE)        \
-    m(OPEJOIN)          \
-    m(OPE)              \
-    m(SEMANTIC_OPE)     \
-    m(PLAIN_AGG)        \
-    m(SEMANTIC_AGG)     \
-    m(PLAIN_SWP)        \
-    m(SWP)              \
-    m(SEMANTIC_VAL)     \
-    m(SECLEVEL_LAST)
-
-typedef enum class SECLEVEL {
-#define __temp_m(n) n,
-SECLEVELS(__temp_m)
-#undef __temp_m
-} SECLEVEL;
-
-const std::string levelnames[] = {
-#define __temp_m(n) #n,
-SECLEVELS(__temp_m)
-#undef __temp_m
-};
 
 /**
  * Field here is either:
