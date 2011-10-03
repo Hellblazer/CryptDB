@@ -631,22 +631,19 @@ MetaAccess::CreateTables()
     std::set<string>::iterator it_s;
     //Public Keys table
     sql = "DROP TABLE IF EXISTS " + public_table;
-    if(!conn->execute(sql)) {
-        LOG(am) << "error with sql query " << sql;
+    if (execute(sql) < 0) {
         return -1;
     }
     sql = "CREATE TABLE " + public_table + " (Type " +  PRINCTYPE +
           ", Value " PRINCVALUE ", Asym_Public_Key " TN_PK_KEY
           ", Asym_Secret_Key " TN_PK_KEY
           ", Salt " + TN_SALT + ", PRIMARY KEY (Type,Value))";
-    if(!conn->execute(sql)) {
-        LOG(am) << "error with sql query " << sql;
+    if (execute(sql) < 0) {
         return -1;
     }
     //Access Keys table
     sql = "DROP TABLE IF EXISTS " + access_table;
-    if(!conn->execute(sql)) {
-        LOG(am) << "error with sql query " << sql;
+    if (execute(sql) < 0) {
         return -1;
     }
     sql = "CREATE TABLE " + access_table + " (hasAccessType " + 
@@ -656,8 +653,7 @@ MetaAccess::CreateTables()
           ", Asym_Key " TN_PK_KEY ", PRIMARY KEY (hasAccessType," +
           " hasAccessValue, accessToType, accessToValue), " +
           "KEY (accessToType, accessToValue))";
-    if(!conn->execute(sql)) {
-        LOG(am) << "error with sql query " << sql;
+    if (execute(sql) < 0) {
         return -1;
     }
     return 0;
@@ -672,16 +668,10 @@ MetaAccess::DeleteTables()
     //Public Keys table
     //TODO: fix PRINCVALUE to be application specific
     sql = "DROP TABLE IF EXISTS " + public_table + ";";
-    if(!conn->execute(sql)) {
-        LOG(am) << "error with sql query " << sql;
-        return -1;
-    }
+    execute(sql);
     //Access Keys table
     sql = "DROP TABLE IF EXISTS " + access_table + ";";
-    if(!conn->execute(sql)) {
-        LOG(am) << "error with sql query " << sql;
-        return -1;
-    }    
+    execute(sql);
     return 0;
 }
 
@@ -702,12 +692,12 @@ MetaAccess::PrintMaps()
     map<string, std::set<string> >::iterator it_ms;
     std::set<string>::iterator it_s;
 
-    cerr << "Principle --> Generic" << endl;
+    cerr << "Principal --> Generic" << endl;
     for(it_m = prinToGen.begin(); it_m != prinToGen.end(); it_m++) {
         cerr << "  "  << it_m->first << "->" << it_m->second << endl;
     }
 
-    cerr << "Generic --> Principle" << endl;
+    cerr << "Generic --> Principal" << endl;
     for(it_ms = genToPrin.begin(); it_ms != genToPrin.end(); it_ms++) {
         cerr << "  " << it_ms->first << "->";
         for(it_s = it_ms->second.begin(); it_s != it_ms->second.end();
@@ -717,7 +707,7 @@ MetaAccess::PrintMaps()
         cerr << endl;
     }
 
-    cerr << "Principle ---can access---> Principle" << endl;
+    cerr << "Principal ---can access---> Principal" << endl;
     for(it_ms = genHasAccessToList.begin(); it_ms != genHasAccessToList.end();
         it_ms++) {
         cerr << "  " << it_ms->first << "->";
@@ -728,7 +718,7 @@ MetaAccess::PrintMaps()
         cerr << endl;
     }
 
-    cerr << "Principle <---can access--- Principle" << endl;
+    cerr << "Principal <---can access--- Principal" << endl;
     for(it_ms = genAccessibleByList.begin(); it_ms != genAccessibleByList.end();
         it_ms++) {
         cerr << "  " << it_ms->first << "->";
@@ -1761,14 +1751,7 @@ KeyAccess::SelectAccessCol(Prin hasAccess, Prin accessTo, string column)
     }
     sql += ";";
     LOG(am_v) << sql;
-    DBResult * dbres;
-    if(!conn->execute(sql, dbres)) {
-        LOG(am) << "SQL error with query: " << sql;
-        return ResType(false);
-    }
-    auto res = dbres->unpack();
-    delete dbres;
-    return res;
+    return execute(sql);
 }
 
 ResType
@@ -1777,14 +1760,7 @@ KeyAccess::SelectPublicCol(Prin prin, string column)
     assert_s(prin.gen != "", "prin argument to SelectPublic or SelectPublicCount has no gen");
     string sql = "SELECT " + column + " FROM " + meta->publicTableName() + 
                  " WHERE Type = '" + prin.gen + "' AND Value = '" + prin.value + "'";
-    DBResult * dbres;
-    if(!conn->execute(sql, dbres)) {
-        LOG(am) << "SQL error with query: " << sql;
-        return ResType(false);
-    }
-    auto res = dbres->unpack();
-    delete dbres;
-    return res;
+    return execute(sql);
 }
 
 //TODO: modify for access_table rather than multiple tables

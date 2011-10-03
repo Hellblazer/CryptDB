@@ -80,6 +80,7 @@ testMeta_native(const TestConfig &tc, Connect * conn) {
     meta->addAccess("u.uname","u.uid");
     
     record(tc, meta->CheckAccess(), test + "CheckAccess--good tree");  
+    meta->CreateTables();
 
     record(tc, meta->addAccessCheck("g.acc","g.gid") < 0, test + "succeeded in adding illegal access link");
     record(tc, meta->addEqualsCheck("u.acc","g.acc") < 0, test + "succeeded in adding illegal equality");
@@ -326,7 +327,7 @@ testMetaAlerations(const TestConfig &tc, KeyAccess *am) {
     record(tc, am->addEquals("u.uid", "u.c") == 0, test + "add equality failed (case 4)");
     
     record(tc, am->addAccess("u.uid", "f.fid") == 0, test + "add access failed");
-    record(tc, am->addAccess("new.thing","m.mess") < 0, test + "illegal access (new principle would break the access tree) was added");
+    record(tc, am->addAccess("new.thing","m.mess") < 0, test + "illegal access (new principal would break the access tree) was added");
     
     //check that meta is still correctly structured
     record(tc, am->getGeneric("u.user") == am->getGeneric("u.uid"), test + "u.user and u.uid should have the same generic");
