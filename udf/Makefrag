@@ -3,8 +3,9 @@ OBJDIRS	+= udf
 all:    $(OBJDIR)/udf/edb.so
 
 $(OBJDIR)/udf/edb.so: $(OBJDIR)/udf/edb.o \
-		      $(OBJDIR)/libedbcrypto.so
-	$(CXX) -shared -o $@ $< $(LDFLAGS) -ledbcrypto
+		      $(OBJDIR)/libedbcrypto.so \
+		      $(OBJDIR)/libedbutil.so 
+	$(CXX) -shared -o $@ $< $(LDFLAGS) -ledbcrypto -ledbutil
 
 install: install_udf
 
