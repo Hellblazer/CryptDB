@@ -1,5 +1,4 @@
-#ifndef _UTIL_H
-#define _UTIL_H
+#pragma once
 
 /*
  * util.h
@@ -22,14 +21,12 @@
 #include <sstream>
 #include <NTL/ZZ.h>
 
-#include <util/params.h>
+#include <util/onions.hh>
+#include <util/params.hh>
 
-using namespace NTL;
-using namespace std;
 
 // ==== CONSTANTS ============== //
 
-#define PAILLIER_LEN_BYTES 256
 #define SVAL2(s) #s
 #define SVAL(s) SVAL2(s)
 
@@ -69,8 +66,6 @@ const unsigned int AES_KEY_BYTES = AES_KEY_SIZE/bitsPerByte;
 const unsigned int MASTER_KEY_SIZE = AES_KEY_SIZE; //master key
 
 const unsigned int OPE_KEY_SIZE = AES_KEY_SIZE;
-const unsigned int OPE_PLAINTEXT_SIZE = 32;
-const unsigned int OPE_CIPHERTEXT_SIZE = 64;
 
 const unsigned int EncryptedIntSize = 128;
 
@@ -80,15 +75,15 @@ const unsigned int bytesOfTextForOPE = 20; //texts may be ordered
                                            // bytes should be used for sorting
 
 // text supports search only on words separated by these separators
-const string wordSeparators = "; .,'-{}()";
+const std::string wordSeparators = "; .,'-{}()";
 
-const string dec_first_key =
+const std::string dec_first_key =
     "\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x01\x02\x03\x04\x05\x06";
-const string PWD_TABLE_PREFIX = "pwdcryptdb__";
+const std::string PWD_TABLE_PREFIX = "pwdcryptdb__";
 
 //maps the name of an annotation we want to process to the number of fields
 // after this annotation relevant to it
-const std::set<string> annotations =
+const std::set<std::string> annotations =
 {"enc", "search", "encfor", "equals", "givespsswd", "hasaccessto"};
 
 // ============= DATA STRUCTURES ===================================//
@@ -104,9 +99,9 @@ typedef PGresult DBResult_native;
 class SqlItem;
 
 typedef struct AutoInc {
-    AutoInc(string fieldval=""):incvalue(0), field(fieldval) {}
+    AutoInc(std::string fieldval=""):incvalue(0), field(fieldval) {}
     my_ulonglong incvalue;
-    string field;
+    std::string field;
 } AutoInc;
 
 class ResType {
@@ -114,83 +109,47 @@ class ResType {
     explicit ResType(bool okflag = true) : ok(okflag) {}
 
     bool ok;  // query executed successfully
-    vector<string> names;
-    vector<enum_field_types> types;
-    vector<vector<SqlItem> > rows;
+    std::vector<std::string> names;
+    std::vector<enum_field_types> types;
+    std::vector<std::vector<SqlItem> > rows;
     AutoInc ai;
 };
 
 typedef struct CryptDBError {
  public:
-    CryptDBError(const string &m) : msg(m)
+    CryptDBError(const std::string &m) : msg(m)
     {
     }
-    string msg;
+    std::string msg;
 } CryptDBError;
 
-typedef enum fieldType {TYPE_TEXT, TYPE_INTEGER, TYPE_AGG_RESULT_COUNT,
-                        TYPE_AGG_RESULT_SUM, TYPE_AGG_RESULT_SET,
-                        TYPE_OPE} fieldType;
-typedef enum onion {oDET, oOPE, oAGG, oNONE, oSWP, oINVALID} onion;
-
 typedef struct ParserMeta {
-    std::set<string> clauseKeywords_p;
-    std::set<string> querySeparators_p;
+    std::set<std::string> clauseKeywords_p;
+    std::set<std::string> querySeparators_p;
     ParserMeta();
 } ParserMeta;
-
-#define SECLEVELS(m)    \
-    m(INVALID)          \
-    m(PLAIN)            \
-    m(PLAIN_DET)        \
-    m(DETJOIN)          \
-    m(DET)              \
-    m(SEMANTIC_DET)     \
-    m(PLAIN_OPE)        \
-    m(OPEJOIN)          \
-    m(OPE)              \
-    m(SEMANTIC_OPE)     \
-    m(PLAIN_AGG)        \
-    m(SEMANTIC_AGG)     \
-    m(PLAIN_SWP)        \
-    m(SWP)              \
-    m(SEMANTIC_VAL)
-
-typedef enum class SECLEVEL {
-#define __temp_m(n) n,
-SECLEVELS(__temp_m)
-#undef __temp_m
-    SECLEVEL_LAST
-} SECLEVEL;
-
-const string levelnames[] = {
-#define __temp_m(n) #n,
-SECLEVELS(__temp_m)
-#undef __temp_m
-    "SECLEVEL_LAST"
-};
 
 typedef enum class cmd {
     CREATE, UPDATE, INSERT, SELECT, DROP, DELETE, BEGIN,
     COMMIT, ALTER, TRAIN, OTHER
 } command;
 
-const string BASE_SALT_NAME = "cdb_salt";
+const std::string BASE_SALT_NAME = "cdb_salt";
 
 typedef struct FieldMetadata {
 
     bool isEncrypted;     //indicates if this field is encrypted or not
 
     fieldType type;
-    string fieldName;
+    std::string fieldName;
 
     bool can_be_null;
     enum_field_types mysql_type;
 
-    string anonFieldNameDET;
-    string anonFieldNameOPE;
-    string anonFieldNameAGG;
-    string anonFieldNameSWP;
+    std::string anonFieldNameDET;
+    std::string anonFieldNameOPE;
+    std::string anonFieldNameAGG;
+    std::string anonFieldNameSWP;
 
     //true if the onions are used
     bool has_ope;
@@ -198,7 +157,7 @@ typedef struct FieldMetadata {
     bool has_search;
     bool has_salt; //whether this field has its own salt
 
-    string salt_name;
+    std::string salt_name;
 
     FieldMetadata();
 
@@ -213,30 +172,30 @@ typedef struct FieldMetadata {
     bool update_set_performed;
 
     //returns true if the given field exists in the database
-    static bool exists(const string &field);
+    static bool exists(const std::string &field);
 
 } FieldMetadata;
 
 typedef struct IndexMetadata {
-    string anonIndexName;
-    list<string> fields;
+    std::string anonIndexName;
+    std::list<std::string> fields;
     bool isUnique;
 } IndexMetadata;
 
 typedef struct TableMetadata { //each anonymized field
-    list<string> fieldNames;     //in order field names
+    std::list<std::string> fieldNames;     //in order field names
     unsigned int tableNo;
-    string anonTableName;
-    map<string, string> fieldNameMap;     //map of anonymized field name to
-                                          // true field name
-    map<string, FieldMetadata *> fieldMetaMap;     //map of true field name to
-                                                   // field metadata
-    string salt_name;
+    std::string anonTableName;
+    std::map<std::string, std::string> fieldNameMap;
+        // map of anonymized field name to true field name
+    std::map<std::string, FieldMetadata *> fieldMetaMap;
+        // map of true field name to field metadata
+    std::string salt_name;
 
     AutoInc ai;     //autoincrement
 
-    list<string> primaryKey;
-    list<IndexMetadata *> indexes;
+    std::list<std::string> primaryKey;
+    std::list<IndexMetadata *> indexes;
     bool hasEncrypted;     //true if the table contains an encrypted field
     bool hasSensitive;    //true if any field is involved in access control of mp
 
@@ -245,34 +204,34 @@ typedef struct TableMetadata { //each anonymized field
 } TableMetadata;
 
 typedef struct FieldsToDecrypt {
-    list<string> OPEJoinFields;
-    list<string> OPEFields;
-    list<string> DETFields;
-    list<string> DETJoinFields;
+    std::list<std::string> OPEJoinFields;
+    std::list<std::string> OPEFields;
+    std::list<std::string> DETFields;
+    std::list<std::string> DETJoinFields;
 } FieldsToDecrypt;
 
 class Operation {
  public:
-    static bool isOp(const string &op);
-    static bool isDET(const string &op);
-    static bool isOPE(const string &op);
-    static bool isILIKE(const string &op);
-    static bool isIN(const string &op);
+    static bool isOp(const std::string &op);
+    static bool isDET(const std::string &op);
+    static bool isOPE(const std::string &op);
+    static bool isILIKE(const std::string &op);
+    static bool isIN(const std::string &op);
 
  private:
 };
 
 typedef struct OPESpec {
-   string fieldname;
+   std::string fieldname;
    unsigned int minv;
    unsigned int maxv;
 } OPESpec;
 
 
 typedef struct QueryMeta {
-    map<string, string> tabToAlias, aliasToTab;
-    list<string> tables;
-    map<string, string> aliasToField;
+    std::map<std::string, std::string> tabToAlias, aliasToTab;
+    std::list<std::string> tables;
+    std::map<std::string, std::string> aliasToField;
 
     void cleanup();
 } QueryMeta;
@@ -281,19 +240,19 @@ typedef struct ResMeta {
 
     size_t nFields, nTuples, nTrueFields;
 
-    /* Indexes in the following vectors correspond to entries in the raw
+    /* Indexes in the following std::vectors correspond to entries in the raw
        response from the DBMS */
 
     bool * isSalt;     //isSalt[i] = true if i-th entry is salt
 
     //maps not anonymized full field name or anonymized table name to salt index in the results
-    map<string, int> SaltIndexes;
+    std::map<std::string, int> SaltIndexes;
 
-    string * table;     //real table of each field
-    string * field;     //real name of each field
+    std::string * table;     //real table of each field
+    std::string * field;     //real name of each field
     onion * o;     //onion of each field
 
-    string * namesForRes;     //this is the name of the field to be included
+    std::string * namesForRes;     //this is the name of the field to be included
                               // in result -- considering aliases -- for
                               // aggregates, use field inside
 
@@ -321,12 +280,12 @@ typedef struct ResMeta {
 } ResMeta;
 
 typedef struct Result {
-    vector<vector<string> > a;
+    std::vector<std::vector<std::string> > a;
 } Result;
 
 typedef struct Predicate {
-    string name;
-    list<string> fields;
+    std::string name;
+    std::list<std::string> fields;
 } Predicate;
 
 /********* Data structures for multi-key CryptDB -- should not be used by
@@ -335,45 +294,43 @@ typedef struct Predicate {
 
 
 typedef struct AccessRelation {
-	AccessRelation(string hacc, string acct) {
-		hasAccess = hacc;
-		accessTo = acct;
-	}
-	string hasAccess;
-	string accessTo;
+    AccessRelation(const std::string &hacc, const std::string &acct) {
+        hasAccess = hacc;
+        accessTo = acct;
+    }
+    std::string hasAccess;
+    std::string accessTo;
 } AccessRelation;
 
 
 typedef struct AccessRelationComp {
   bool operator() (const AccessRelation& lhs, const AccessRelation& rhs) const {
- 		if (lhs.hasAccess < rhs.hasAccess) {
-  			return true;
-  		}
-  		if (lhs.hasAccess > rhs.hasAccess) {
-  			return false;
-  		}
+         if (lhs.hasAccess < rhs.hasAccess) {
+              return true;
+          }
+          if (lhs.hasAccess > rhs.hasAccess) {
+              return false;
+          }
 
-  		if (lhs.accessTo < rhs.accessTo) {
-  			return true;
-  		} else {
-  			return false;
-  		}
-  	}
+          if (lhs.accessTo < rhs.accessTo) {
+              return true;
+          } else {
+              return false;
+          }
+      }
 } AccessRelationComp;
 
 //permanent metadata for multi-key CryptDB - stores which field is encrypted
 // for which field
 typedef struct MultiKeyMeta {
     //e.g., msg_text encrypted for principal u.id
-    map<string, string> encForMap;
+    std::map<std::string, std::string> encForMap;
     //contains an element if that element has some field encrypted to it
-    map<string, bool > reverseEncFor;
-    map<AccessRelation, Predicate *, AccessRelationComp> condAccess;     //maps a field having accessto to
+    std::map<std::string, bool > reverseEncFor;
+    std::map<AccessRelation, Predicate *, AccessRelationComp> condAccess;     //maps a field having accessto to
                                              // any conditional predicate it
                                              // may have
-    MultiKeyMeta() {
-        encForMap = map<string,string>();
-    }
+    MultiKeyMeta() {}
     ~MultiKeyMeta() {
         for (auto i = condAccess.begin(); i != condAccess.end(); i++) {
            delete i->second;
@@ -387,15 +344,15 @@ typedef struct TempMKM {
     //maps a field (fullname) that has another field encrypted for it to its
     // value
     // groups.gid    23
-    map<string, string> encForVal;
+    std::map<std::string, std::string> encForVal;
 
     //maps a field that has another field encrypted for it to the index in the
-    // response list of values containing its value
+    // response std::list of values containing its value
     // groups.gid 5
-    map<string, int> encForReturned;
+    std::map<std::string, int> encForReturned;
 
     // contains fullnames of principals that were seen already in a response
-    map<string, bool> principalsSeen;
+    std::map<std::string, bool> principalsSeen;
 
     //true if current processing is query rather
     bool processingQuery;
@@ -405,19 +362,19 @@ typedef struct TempMKM {
     // be returned in the response to the application
     // maps position in raw DBMS response to whether it should be returned to
     // user or not
-    map<unsigned int, bool> returnBitMap;
+    std::map<unsigned int, bool> returnBitMap;
 } TMKM;
 
 //=============  Useful functions =========================//
 
 // extracts (nobytes) bytes from int by placing the most significant bits at
 // the end
-string BytesFromInt(uint64_t value, unsigned int noBytes);
+std::string BytesFromInt(uint64_t value, unsigned int noBytes);
 uint64_t IntFromBytes(const unsigned char * bytes, unsigned int noBytes);
 
-void assert_s (bool value, const string &msg)
+void assert_s (bool value, const std::string &msg)
     throw (CryptDBError);
-void myassert(bool value, const string &mess = "assertion failed");
+void myassert(bool value, const std::string &mess = "assertion failed");
 
 double timeInSec(struct timeval tvstart, struct timeval tvend);
 
@@ -426,38 +383,38 @@ const std::set<char> delimsStay = {'(', ')', '=', ',', '>', '<'};
 const std::set<char> delimsGo   = {';', ' ', '\t', '\n'};
 const std::set<char> keepIntact = {'\''};
 
-bool isKeyword(const string &token);
-bool isAgg(const string &token);
+bool isKeyword(const std::string &token);
+bool isAgg(const std::string &token);
 
 #define NELEM(array) (sizeof((array)) / sizeof((array)[0]))
-const std::set<string> commands =
+const std::set<std::string> commands =
     { "select", "create", "insert", "update", "delete", "drop", "alter" };
-const std::set<string> aggregates = { "max", "min", "sum", "count" };
-const std::set<string> createMetaKeywords = { "primary", "key", "unique" };
-const std::set<string> comparisons = { ">", "<", "=" };
+const std::set<std::string> aggregates = { "max", "min", "sum", "count" };
+const std::set<std::string> createMetaKeywords = { "primary", "key", "unique" };
+const std::set<std::string> comparisons = { ">", "<", "=" };
 
-const string math[]=
+const std::string math[]=
 {"+","-","(",")","*","/",".","0","1","2","3","4","5","6","7","8","9"};
 const unsigned int noMath = NELEM(math);
 
 const ParserMeta parserMeta = ParserMeta();
 
-string randomBytes(unsigned int len);
+std::string randomBytes(unsigned int len);
 uint64_t randomValue();
 
-string stringToByteInts(const string &s);
-string angleBrackets(const string &s);
-static inline string id_op(const string &x) { return x; }
+std::string stringToByteInts(const std::string &s);
+std::string angleBrackets(const std::string &s);
+static inline std::string id_op(const std::string &x) { return x; }
 
 /*
- * Turn a list (of type C) into a string, applying op to each element.
- * Handy ops are id_op, angleBrackets, and stringToByteInts.
+ * Turn a std::list (of type C) into a std::string, applying op to each element.
+ * Handy ops are id_op, angleBrackets, and std::stringToByteInts.
  */
 template<class C, class T>
-string
+std::string
 toString(const C &l, T op)
 {
-    stringstream ss;
+    std::stringstream ss;
     bool first = true;
     for (auto i = l.begin(); i != l.end(); i++) {
         if (first)
@@ -472,16 +429,16 @@ toString(const C &l, T op)
 }
 
 // tries to represent value in minimum no of bytes, avoiding the \0 character
-string StringFromVal(uint64_t value, unsigned int padLen = 0);
+std::string StringFromVal(uint64_t value, unsigned int padLen = 0);
 
-ZZ UInt64_tToZZ (uint64_t value);
+NTL::ZZ UInt64_tToZZ (uint64_t value);
 
-string StringFromZZ(const ZZ &x);
-ZZ ZZFromString(const string &s);
+std::string StringFromZZ(const NTL::ZZ &x);
+NTL::ZZ ZZFromString(const std::string &s);
 
 //rolls an interator forward
 template<typename T> void
-roll(typename list<T>::iterator & it,  int count)
+roll(typename std::list<T>::iterator & it,  int count)
 {
     if (count < 0) {
         for (int i = 0; i < -count; i++) {
@@ -497,26 +454,26 @@ roll(typename list<T>::iterator & it,  int count)
 
 template <typename T>
 bool
-isLastIterator(typename list<T>::iterator it,
-               typename list<T>::iterator endit)
+isLastIterator(typename std::list<T>::iterator it,
+               typename std::list<T>::iterator endit)
 {
     roll<T>(it, 1);
     return it == endit;
 }
 
-//returns a Postgres bigint representation in string form for x
-string strFromVal(uint64_t x);
-string strFromVal(uint32_t x);
+//returns a Postgres bigint representation in std::string form for x
+std::string strFromVal(uint64_t x);
+std::string strFromVal(uint32_t x);
 
 
 
-uint64_t valFromStr(const string & str);
+uint64_t valFromStr(const std::string & str);
 
 //marshalls a binary value into characters readable by Postgres
-string marshallBinary(const string &s);
+std::string marshallBinary(const std::string &s);
 /*
-string  marshallSalt(const string & s);
-string unmarshallSalt(const string & s);
+std::string  marshallSalt(const std::string & s);
+std::string unmarshallSalt(const std::string & s);
 */
 
 
@@ -524,57 +481,57 @@ string unmarshallSalt(const string & s);
 // sets newlen to the length of the result..
 // marshall and unmarshallBinary are not inverses of each other.
 // XXX why not?
-string unmarshallBinary(const string &s);
+std::string unmarshallBinary(const std::string &s);
 
-void consolidate(list<string> & words);
+void consolidate(std::list<std::string> & words);
 
 /********* SQL QUERY PARSING ******/
 
-// splits query in a list of string tokens; the tokens are obtained by
+// splits query in a std::list of std::string tokens; the tokens are obtained by
 // splitting query at every character contained in delimsStay or delimsGo; the
 // tokens will include the characters
 // from delimsStay encountered
-list<string> getSQLWords(const string &query);
+std::list<std::string> getSQLWords(const std::string &query);
 
-//parses a given string str, by splitting it according to the delimiters in
-// delimsStay, delimsGo ; if a piece of string
+//parses a given std::string str, by splitting it according to the delimiters in
+// delimsStay, delimsGo ; if a piece of std::string
 // is included in two keepIntact delimiters, it is not broken into pieces even
-// if this string
+// if this std::string
 //contains delimiters; delimsStay are kept in the result, delimsGo are
 // discarded
-list<string> parse(const string &str,
+std::list<std::string> parse(const std::string &str,
                    const std::set<char> &delimsStay,
                    const std::set<char> &delimsGo,
                    const std::set<char> &keepIntact);
 
-command getCommand(const string &query)
+command getCommand(const std::string &query)
     throw (CryptDBError);
 
-//returns a string representing a value pointed to by it and advances it
-string getVal(list<string>::iterator & it);
+//returns a std::string representing a value pointed to by it and advances it
+std::string getVal(std::list<std::string>::iterator & it);
 
 //checks that the value of the current iterator is s1 or s2;  if it is s1,
 // increment iterator and return s1, if it is s2, return ""; else throws
 // exception
-string checkStr(list<string>::iterator & it, list<string> & lst,
-                const string &s1, const string &s2);
+std::string checkStr(std::list<std::string>::iterator & it, std::list<std::string> & lst,
+                const std::string &s1, const std::string &s2);
 
 //acts only if the first field is "(";
 //returns position after matching ")" mirroring all contents
-string processParen(list<string>::iterator & it, const list<string> & words);
+std::string processParen(std::list<std::string>::iterator & it, const std::list<std::string> & words);
 
-bool isQuerySeparator(const string &st);
+bool isQuerySeparator(const std::string &st);
 
 //returns the alias that should be pointed by it or "" if there is no such
 // alias
-string getAlias(list<string>::iterator & it, list<string> & words);
+std::string getAlias(std::list<std::string>::iterator & it, std::list<std::string> & words);
 
 // "it" should point to item after a field
 //echos any aliases, commas or )  in the result,
 //advances it after any set of  comma or ),  stops on query separator, or end
 // of query, whichever comes first
 //also enforces that there is at most one alias
-string processAlias(list<string>::iterator & it, list<string> & words);
+std::string processAlias(std::list<std::string>::iterator & it, std::list<std::string> & words);
 
 //echoes in output all tokens pointed to by it up to when any of the
 // terminators are encountered or it reached end of words
@@ -584,21 +541,21 @@ string processAlias(list<string>::iterator & it, list<string> & words);
 // else it points to terminator
 //if skipParentBlock, it looks for terminators only outside of any nested
 // parenthesis block
-string mirrorUntilTerm(list<string>::iterator & it, const list<string> & words,
-                       const std::set<string> &terms,
+std::string mirrorUntilTerm(std::list<std::string>::iterator & it, const std::list<std::string> & words,
+                       const std::set<std::string> &terms,
                        bool stopAfterTerm = 1,
                        bool skipParenBlock = 0);
 
 //returns the iterator that points at the first keyword in lst, or the end of
 // the lst if such keyword was not found
-list<string>::iterator itAtKeyword(list<string> & lst, const string &keyword);
+std::list<std::string>::iterator itAtKeyword(std::list<std::string> & lst, const std::string &keyword);
 
 //returns the contents of str before the first encounter with c
-string getBeforeChar(const string &str, char c);
+std::string getBeforeChar(const std::string &str, char c);
 
 //performs a case insensitive search
 template<class T>
-bool contains(const string &token, const T &values)
+bool contains(const std::string &token, const T &values)
 {
     for (auto i = values.begin(); i != values.end(); i++)
         if (equalsIgnoreCase(token, *i))
@@ -607,21 +564,21 @@ bool contains(const string &token, const T &values)
 }
 
 //performs a case insensitive search
-bool isOnly(const string &token, const string * values, unsigned int noValues);
+bool isOnly(const std::string &token, const std::string * values, unsigned int noValues);
 
-void addIfNotContained(const string &token, list<string> & lst);
-void addIfNotContained(const string &token1, const string &token2,
-                       list<pair<string, string> > & lst);
+void addIfNotContained(const std::string &token, std::list<std::string> & lst);
+void addIfNotContained(const std::string &token1, const std::string &token2,
+                       std::list<std::pair<std::string, std::string> > & lst);
 
-string removeApostrophe(const string &data);
-bool hasApostrophe(const string &data);
+std::string removeApostrophe(const std::string &data);
+bool hasApostrophe(const std::string &data);
 
-string homomorphicAdd(const string &val1, const string &val2,
-                      const string &valN2);
+std::string homomorphicAdd(const std::string &val1, const std::string &val2,
+                      const std::string &valN2);
 
-string toLowerCase(const string &token);
+std::string toLowerCase(const std::string &token);
 
-bool equalsIgnoreCase(const string &s1, const string &s2);
+bool equalsIgnoreCase(const std::string &s1, const std::string &s2);
 
 class SqlItem {
  public:
@@ -629,9 +586,9 @@ class SqlItem {
 
     bool null;
     enum_field_types type;
-    string data;
+    std::string data;
 
-    string to_string() const {
+    std::string to_string() const {
         if (null)
             return "NULL";
         if (type == MYSQL_TYPE_BLOB)
@@ -650,8 +607,7 @@ class SqlItem {
 
 /**** HELPERS FOR EVAL **************/
 
-string
-getQuery(ifstream & qFile);
+std::string getQuery(std::ifstream & qFile);
 
 
 class Timer {
@@ -671,7 +627,7 @@ class Timer {
 
     //milliseconds
     double lap_ms() {
-    	return ((double)lap()) / 1000.0;
+        return ((double)lap()) / 1000.0;
     }
 
  private:
@@ -683,5 +639,3 @@ class Timer {
 
     uint64_t start;
 };
-
-#endif   /* _UTIL_H */

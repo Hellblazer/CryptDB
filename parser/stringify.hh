@@ -5,16 +5,15 @@
 #include <sstream>
 #include <stdexcept>
 
-using namespace std;
 
-static inline ostream&
-operator<<(ostream &out, String &s)
+static inline std::ostream&
+operator<<(std::ostream &out, String &s)
 {
-    return out << string(s.ptr(), s.length());
+    return out << std::string(s.ptr(), s.length());
 }
 
-static inline ostream&
-operator<<(ostream &out, Item &i)
+static inline std::ostream&
+operator<<(std::ostream &out, Item &i)
 {
     String s;
     i.print(&s, QT_ORDINARY);
@@ -32,8 +31,8 @@ noparen(List<T> &l)
 }
 
 template<class T>
-static inline ostream&
-operator<<(ostream &out, List_noparen<T> &l)
+static inline std::ostream&
+operator<<(std::ostream &out, List_noparen<T> &l)
 {
     bool first = true;
     for (auto it = List_iterator<T>(l);;) {
@@ -50,14 +49,14 @@ operator<<(ostream &out, List_noparen<T> &l)
 }
 
 template<class T>
-static inline ostream&
-operator<<(ostream &out, List<T> &l)
+static inline std::ostream&
+operator<<(std::ostream &out, List<T> &l)
 {
     return out << "(" << noparen(l) << ")";
 }
 
-static inline ostream&
-operator<<(ostream &out, SELECT_LEX &select_lex)
+static inline std::ostream&
+operator<<(std::ostream &out, SELECT_LEX &select_lex)
 {
     // TODO(stephentu): mysql's select print is
     // missing some parts, like procedure, into outfile,
@@ -68,8 +67,8 @@ operator<<(ostream &out, SELECT_LEX &select_lex)
     return out << s;
 }
 
-static inline ostream&
-operator<<(ostream &out, SELECT_LEX_UNIT &select_lex_unit)
+static inline std::ostream&
+operator<<(std::ostream &out, SELECT_LEX_UNIT &select_lex_unit)
 {
     String s;
     select_lex_unit.print(&s, QT_ORDINARY);
@@ -120,8 +119,8 @@ sql_type_to_string(enum_field_types tpe)
     ASSERT_NOT_REACHED();
 }
 
-static ostream&
-operator<<(ostream &out, Create_field &f)
+static std::ostream&
+operator<<(std::ostream &out, Create_field &f)
 {
     // emit field name + type definition
     out << f.field_name << " " << sql_type_to_string(f.sql_type);
@@ -256,11 +255,11 @@ operator<<(ostream &out, Create_field &f)
     return out;
 }
 
-static ostream&
-operator<<(ostream &out, Key_part_spec &k)
+static std::ostream&
+operator<<(std::ostream &out, Key_part_spec &k)
 {
     // field name
-    string field_name(k.field_name.str, k.field_name.length);
+    std::string field_name(k.field_name.str, k.field_name.length);
 
     out << field_name;
 
@@ -274,14 +273,14 @@ operator<<(ostream &out, Key_part_spec &k)
     return out;
 }
 
-static inline string
+static inline std::string
 convert_lex_str(const LEX_STRING &l)
 {
-    return string(l.str, l.length);
+    return std::string(l.str, l.length);
 }
 
-static ostream&
-operator<<(ostream &out, Key &k)
+static std::ostream&
+operator<<(std::ostream &out, Key &k)
 {
     // TODO: constraint
 
@@ -301,7 +300,7 @@ operator<<(ostream &out, Key &k)
     out << kname;
 
     // index_name
-    string key_name(k.name.str, k.name.length);
+    std::string key_name(k.name.str, k.name.length);
     if (!key_name.empty()) {
         out << " " << key_name;
     }
@@ -315,8 +314,8 @@ operator<<(ostream &out, Key &k)
     if (k.type == Key::FOREIGN_KEY) {
         auto fk = static_cast< Foreign_key& >(k);
         out << " references ";
-        const string &db_str(convert_lex_str(fk.ref_table->db));
-        const string &tl_str(convert_lex_str(fk.ref_table->table));
+        const std::string &db_str(convert_lex_str(fk.ref_table->db));
+        const std::string &tl_str(convert_lex_str(fk.ref_table->table));
         if (!db_str.empty()) {
             out << "`" << db_str << "`.`" << tl_str << "`";
         } else {
@@ -329,7 +328,7 @@ operator<<(ostream &out, Key &k)
 }
 
 static void
-do_create_table(ostream &out, LEX &lex)
+do_create_table(std::ostream &out, LEX &lex)
 {
     assert(lex.sql_command == SQLCOM_CREATE_TABLE);
 
@@ -389,8 +388,8 @@ do_create_table(ostream &out, LEX &lex)
     }
 }
 
-static inline ostream&
-operator<<(ostream &out, LEX &lex)
+static inline std::ostream&
+operator<<(std::ostream &out, LEX &lex)
 {
     String s;
     THD *t = current_thd;
@@ -615,7 +614,7 @@ operator<<(ostream &out, LEX &lex)
         break;
 
     default:
-        for (stringstream ss;;) {
+        for (std::stringstream ss;;) {
             ss << "unhandled sql command " << lex.sql_command;
             throw std::runtime_error(ss.str());
         }

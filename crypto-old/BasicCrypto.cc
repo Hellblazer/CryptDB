@@ -5,9 +5,12 @@
  */
 
 #include <assert.h>
-#include <crypto-old/BasicCrypto.h>
+#include <crypto-old/BasicCrypto.hh>
 #include <util/ctr.hh>
+#include <util/util.hh>
 
+
+using namespace std;
 
 AES_KEY *
 get_AES_KEY(const string &key)

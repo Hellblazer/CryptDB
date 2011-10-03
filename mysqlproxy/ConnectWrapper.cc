@@ -3,10 +3,14 @@
 #include <assert.h>
 #include <lua5.1/lua.hpp>
 
-#include <edb/EDBProxy.h>
 #include <util/ctr.hh>
 #include <util/cryptdb_log.hh>
 #include <util/scoped_lock.hh>
+
+#include <edb/EDBProxy.hh>
+
+
+using namespace std;
 
 class WrapperState {
  public:
@@ -214,7 +218,7 @@ rewrite(lua_State *L)
         } else {
             try {
                 new_queries = cl->rewriteEncryptQuery(query, clients[client]->considered);
-		//cerr << "query: " << *new_queries.begin() << " considered ? " << clients[client]->considered << "\n";
+                //cerr << "query: " << *new_queries.begin() << " considered ? " << clients[client]->considered << "\n";
             } catch (CryptDBError &e) {
                 LOG(wrapper) << "cannot rewrite " << query << ": " << e.msg;
                 lua_pushnil(L);

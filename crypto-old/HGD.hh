@@ -1,6 +1,5 @@
 #include <NTL/ZZ.h>
 
-using namespace NTL;
 
 /*
  * KK is the number of elements drawn from an urn where there are NN1 white
@@ -11,5 +10,5 @@ using namespace NTL;
  * The implementation is based on an adaptation of the H2PEC alg for large
  * numbers, see HGD.c for details
  */
-ZZ HGD(ZZ KK, ZZ NN1, ZZ NN2, ZZ SEED, unsigned int seedLen,
-       unsigned int RRPrecision);
+NTL::ZZ HGD(NTL::ZZ KK, NTL::ZZ NN1, NTL::ZZ NN2, NTL::ZZ SEED, unsigned int seedLen,
+            unsigned int RRPrecision);

@@ -1,3 +1,5 @@
+#pragma once
+
 /*
  * TestQueries.h
  *
@@ -5,12 +7,11 @@
 
 #include <signal.h>
 #include <stdlib.h>
-#include <edb/EDBProxy.h>
-#include <edb/Connect.h>
-#include <test/test_utils.h>
 
-#ifndef TESTQUERIES_H_
-#define TESTQUERIES_H_
+#include <edb/EDBProxy.hh>
+#include <edb/Connect.hh>
+#include <test/test_utils.hh>
+
 
 typedef enum test_mode {
     UNENCRYPTED, SINGLE, MULTI,
@@ -18,20 +19,20 @@ typedef enum test_mode {
 } test_mode;
 
 struct QueryChoice {
-    const vector<string> plain;
-    const vector<string> single;
-    const vector<string> multi;
+    const std::vector<std::string> plain;
+    const std::vector<std::string> single;
+    const std::vector<std::string> multi;
 
-    QueryChoice(const vector<string> &plain_arg,
-                const vector<string> &single_arg,
-                const vector<string> &multi_arg)
+    QueryChoice(const std::vector<std::string> &plain_arg,
+                const std::vector<std::string> &single_arg,
+                const std::vector<std::string> &multi_arg)
         : plain(plain_arg), single(single_arg), multi(multi_arg)
     {
         assert(plain_arg.size() == single_arg.size());
         assert(plain_arg.size() == multi_arg.size());
     }
 
-    const vector<string> &choose(test_mode t) const {
+    const std::vector<std::string> &choose(test_mode t) const {
         switch (t) {
         case UNENCRYPTED:
         case PROXYPLAIN:
@@ -56,15 +57,15 @@ struct QueryChoice {
 };
 
 struct QueryList {
-    string name;
+    std::string name;
     QueryChoice create;
-    vector<Query> common;
+    std::vector<Query> common;
     QueryChoice drop;
 
-    QueryList(string namearg,
-              vector<string> pc, vector<string> sc, vector<string> mc,
-              vector<Query> c,
-              vector<string> pd, vector<string> sd, vector<string> md)
+    QueryList(std::string namearg,
+              std::vector<std::string> pc, std::vector<std::string> sc, std::vector<std::string> mc,
+              std::vector<Query> c,
+              std::vector<std::string> pd, std::vector<std::string> sd, std::vector<std::string> md)
         : name(namearg),
           create(pc, sc, mc),
           common(c),
@@ -77,7 +78,7 @@ class Connection {
     Connection(const TestConfig &tc, test_mode type);
     ~Connection();
 
-    ResType execute(string query);
+    ResType execute(std::string query);
     my_ulonglong executeLast();
 
     void restart();
@@ -95,13 +96,13 @@ class Connection {
     std::set<Connect *>::iterator conn;
     pid_t proxy_pid;
 
-    ResType executeConn(string query);
-    ResType executeEDBProxy(string query);
+    ResType executeConn(std::string query);
+    ResType executeEDBProxy(std::string query);
 
     my_ulonglong executeLastConn();
     my_ulonglong executeLastEDB();
 
-    void executeFail(string query);
+    void executeFail(std::string query);
 };
 
 class TestQueries {
@@ -112,5 +113,3 @@ class TestQueries {
     static void run(const TestConfig &tc, int argc, char ** argv);
 
 };
-
-#endif /* TESTQUERIES_H_ */

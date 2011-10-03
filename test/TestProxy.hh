@@ -1,3 +1,5 @@
+#pragma once
+
 /*
  * TestProxy.h
  *
@@ -6,11 +8,10 @@
  */
 
 #include <signal.h>
-#include <edb/Connect.h>
-#include <test/test_utils.h>
 
-#ifndef TESTPROXY_H_
-#define TESTPROXY_H_
+#include <edb/Connect.hh>
+#include <test/test_utils.hh>
+
 
 class TestProxy {
  public:
@@ -20,5 +21,3 @@ class TestProxy {
     
     static void run(const TestConfig &tc, int argc, char ** argv);
 };
-
-#endif /*TESTPROXY_H_ */

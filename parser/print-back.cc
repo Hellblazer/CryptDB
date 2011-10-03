@@ -22,6 +22,9 @@
 #include <parser/embedmysql.hh>
 #include <parser/stringify.hh>
 
+
+using namespace std;
+
 inline static void
 query_parse_and_print(const std::string &db, const std::string &q)
 {

@@ -3,7 +3,6 @@
 #include <vector>
 #include <stdint.h>
 
-using namespace std;
 
 template<class BlockCipher>
 void

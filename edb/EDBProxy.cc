@@ -2,10 +2,14 @@
 #include <fstream>
 #include <set>
 
-#include <edb/EDBProxy.h>
 #include <util/ctr.hh>
 #include <util/cryptdb_log.hh>
 #include <util/cleanup.hh>
+
+#include <edb/EDBProxy.hh>
+
+
+using namespace std;
 
 #if MYSQL_S
 
@@ -19,7 +23,6 @@
 #define FUNC_ADD_FINAL "agg"
 #define SUM_AGG "agg"
 #define FUNC_ADD_SET "func_add_set"
-
 
 #else
 
@@ -157,34 +160,27 @@ createAll(Connect * conn)
 
 EDBProxy::EDBProxy(string server, string user, string psswd, string dbname,
                      uint port, bool multiPrinc, bool defaultEnc)
+    : VERBOSE( VERBOSE_EDBProxy )
+    , dropOnExit( false )
+    , isSecure( false )
+    , allDefaultEncrypted( defaultEnc )
+#if 0
+    , meta_db( "proxy_db" )
+#endif
+    , conn( new Connect(server, user, psswd, dbname, port) )
+    , pm( nullptr )
+    , mp( multiPrinc ? new MultiPrinc(conn) : nullptr )
+    , totalTables( 0 )
+    , totalIndexes( 0 )
+    , overwrite_creates( false )
+
 {
-    isSecure = false;
-    VERBOSE = VERBOSE_EDBProxy;
-    dropOnExit = false;
-
-    /* Make a connection to the database */
-    conn = new Connect(server, user, psswd, dbname, port);
-
     dropAll(conn);
     createAll(conn);
     LOG(edb_v) << "UDFs loaded successfully";
-
-    totalTables = 0;
-    totalIndexes = 0;
-
-    if (multiPrinc) {
-        LOG(edb_v) << "multiprinc mode";
-        mp = new MultiPrinc(conn);
-    } else {
-        LOG(edb) << "single princ mode";
-        mp = NULL;
-    }
-
-    overwrite_creates = false;
+    LOG(edb_v) << (multiPrinc ? "multi princ mode" : "single princ mode");
 
     assert_s (!(multiPrinc && defaultEnc), "cannot have fields encrypted by default in multiprinc because we need to know encfor princ");
-    this->allDefaultEncrypted = defaultEnc;
-
 }
 
 void
@@ -1605,8 +1601,8 @@ expandWildCard(list<string> & words, QueryMeta & qm, map<string,
 
 void
 EDBProxy::generateEncTables(list<OPESpec> & opes,
-		unsigned int minHOM, unsigned int maxHOM,
-		unsigned int randomPoolSize, string outputfile) {
+                unsigned int minHOM, unsigned int maxHOM,
+                unsigned int randomPoolSize, string outputfile) {
 
     ofstream file(outputfile);
 
@@ -3362,8 +3358,8 @@ throw (CryptDBError)
     //some queries do not need to be encrypted
     if (!considerQuery(com, query)) {
         LOG(edb_v) << "query not considered: " << query;
-	// cerr << "query not considered : " << query;
-	list<string> res;
+        // cerr << "query not considered : " << query;
+        list<string> res;
         res.push_back(query);
         considered = false;
         return res;

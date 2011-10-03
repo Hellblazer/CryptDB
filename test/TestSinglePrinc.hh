@@ -1,3 +1,5 @@
+#pragma once
+
 /*
  * TestSinglePrinc.h
  *
@@ -5,11 +7,9 @@
  *      Author: raluca
  */
 
-#include <edb/EDBProxy.h>
-#include <test/test_utils.h>
+#include <edb/EDBProxy.hh>
+#include <test/test_utils.hh>
 
-#ifndef TESTSINGLEPRINC_H_
-#define TESTSINGLEPRINC_H_
 
 class TestSinglePrinc {
  public:
@@ -19,5 +19,3 @@ class TestSinglePrinc {
 
     static void run(const TestConfig &tc, int argc, char ** argv);
 };
-
-#endif /* TESTSINGLEPRINC_H_ */

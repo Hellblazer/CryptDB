@@ -7,9 +7,14 @@
 #include <fstream>
 #include <istream>
 
-#include <crypto-old/CryptoManager.h>
+#include <crypto-old/CryptoManager.hh>
 #include <util/ctr.hh>
 #include <util/cryptdb_log.hh>
+#include <util/util.hh>
+
+
+using namespace std;
+using namespace NTL;
 
 // TODO: simplify CryptoManager using a function taking from level to level
 // for a type of data using union for answers or inputs
@@ -130,23 +135,23 @@ CryptoManager::CryptoManager(const string &masterKeyArg)
 }
 
 void CryptoManager::generateRandomPool(unsigned int randomPoolSize, string filename) {
-	ofstream file(filename, ios::app);
+    ofstream file(filename, ios::app);
 
-	/*
-	 * Pre-generate a bunch of r^n mod n^2 values..
-	 */
+    /*
+     * Pre-generate a bunch of r^n mod n^2 values..
+     */
 
-	file << "randomPool" << " " << StringFromVal(randomPoolSize) << "\n";
+    file << "randomPool" << " " << StringFromVal(randomPoolSize) << "\n";
 
-	HOMRandCache.clear();
-	for (unsigned int i = 0; i < randomPoolSize; i++) {
-		ZZ r = RandomLen_ZZ(Paillier_len_bits/2) % Paillier_n;
-		ZZ rn = PowerMod(Paillier_g, Paillier_n*r, Paillier_n2);
+    HOMRandCache.clear();
+    for (unsigned int i = 0; i < randomPoolSize; i++) {
+        ZZ r = RandomLen_ZZ(Paillier_len_bits/2) % Paillier_n;
+        ZZ rn = PowerMod(Paillier_g, Paillier_n*r, Paillier_n2);
 
-		file << rn << "\n";
-	}
+        file << rn << "\n";
+    }
 
-	file.close();
+    file.close();
 }
 
 //this function should in fact be provided by the programmer
@@ -239,11 +244,11 @@ decreaseLevel(SECLEVEL l, fieldType ft,  onion o)
         switch (l) {
         case SECLEVEL::SEMANTIC_OPE: {return SECLEVEL::OPE; }
         case SECLEVEL::OPE: {
-        	if (ft == TYPE_INTEGER) {
-        		return SECLEVEL::OPEJOIN;
-        	} else {
-        		return SECLEVEL::PLAIN_OPE;
-        	}
+            if (ft == TYPE_INTEGER) {
+                return SECLEVEL::OPEJOIN;
+            } else {
+                return SECLEVEL::PLAIN_OPE;
+            }
         }
         case SECLEVEL::OPEJOIN: {return SECLEVEL::PLAIN_OPE;}
         default: {
@@ -292,11 +297,11 @@ increaseLevel(SECLEVEL l, fieldType ft, onion o)
         switch (l) {
         case SECLEVEL::OPE: {return SECLEVEL::SEMANTIC_OPE; }
         case SECLEVEL::PLAIN_OPE: {
-        	if (ft == TYPE_INTEGER) {
-        		return SECLEVEL::OPEJOIN;
-        	} else {
-        		return SECLEVEL::OPE;
-        	}
+            if (ft == TYPE_INTEGER) {
+                return SECLEVEL::OPEJOIN;
+            } else {
+                return SECLEVEL::OPE;
+            }
         }
         case SECLEVEL::OPEJOIN: {return SECLEVEL::OPE;}
         default: {
@@ -445,7 +450,7 @@ CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft,
                 }
 
                 if (fromlevel == SECLEVEL::OPEJOIN) {
-                	fromlevel = decreaseLevel(fromlevel, ft, oOPE);
+                    fromlevel = decreaseLevel(fromlevel, ft, oOPE);
                     if (fromlevel == tolevel) {
                         return strFromVal(val);
                     }
@@ -643,8 +648,8 @@ CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft,
 
             if (fromlevel == SECLEVEL::OPEJOIN) {
 
-            	fromlevel = increaseLevel(fromlevel, ft, oOPE);
-            	val = encrypt_OPE_enctables((uint32_t)val, fullfieldname);
+                fromlevel = increaseLevel(fromlevel, ft, oOPE);
+                val = encrypt_OPE_enctables((uint32_t)val, fullfieldname);
                 if (fromlevel == tolevel) {
                     return strFromVal(val);
                 }
@@ -838,7 +843,7 @@ CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft,
 
 }
 
-void CryptoManager::loadEncTables(string filename) {
+void CryptoManager::loadEncTables(const string &filename) {
     ifstream file(filename);
 
     useEncTables = true;
@@ -889,15 +894,15 @@ void CryptoManager::loadEncTables(string filename) {
     }
 
     if (!file.eof()) {
-    	file >> fieldname;
-    	file >> count;
-    	 cerr << "loading for " << fieldname << " count " << count << "\n";
+        file >> fieldname;
+        file >> count;
+         cerr << "loading for " << fieldname << " count " << count << "\n";
 
-    	for (unsigned int i = 0; i < count; i++) {
-    		ZZ val;
-    		file >> val;
-    		HOMRandCache.push_back(val);
-    	}
+        for (unsigned int i = 0; i < count; i++) {
+            ZZ val;
+            file >> val;
+            HOMRandCache.push_back(val);
+        }
 
     }
 
@@ -1415,18 +1420,18 @@ CryptoManager::encrypt_Paillier(uint64_t val)
         LOG(crypto_v) << "HOM miss for " << val;
     
     
-	auto it2 = HOMRandCache.begin();
-	if (it2 != HOMRandCache.end()) {
-	  ZZ rn = *it2;
-	  HOMRandCache.pop_front();
+        auto it2 = HOMRandCache.begin();
+        if (it2 != HOMRandCache.end()) {
+            ZZ rn = *it2;
+            HOMRandCache.pop_front();
 
-	  ZZ c = (PowerMod(Paillier_g, to_ZZ((uint) val), Paillier_n2) * rn) % Paillier_n2;
-	  return StringFromZZ(c);
-	}
+            ZZ c = (PowerMod(Paillier_g, to_ZZ((uint) val), Paillier_n2) * rn) % Paillier_n2;
+            return StringFromZZ(c);
+        }
 
-	cerr << "HOM and RAND Pool miss for " << val << "\n";
+        cerr << "HOM and RAND Pool miss for " << val << "\n";
     }
-	
+    
     ZZ r = RandomLen_ZZ(Paillier_len_bits/2) % Paillier_n;
     ZZ c = PowerMod(Paillier_g, to_ZZ((uint) val) + Paillier_n*r, Paillier_n2);
     return StringFromZZ(c);

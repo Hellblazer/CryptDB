@@ -36,8 +36,8 @@ embedmysql::embedmysql(const std::string &dir)
           "--language=" MYSQL_BUILD_DIR "/sql/share/"
         };
 
-    assert(0 == mysql_server_init(sizeof(mysql_av) / sizeof(mysql_av[0]),
-                                  (char**) mysql_av, 0));
+    assert(0 == mysql_library_init(sizeof(mysql_av) / sizeof(mysql_av[0]),
+                                   (char**) mysql_av, 0));
     m = mysql_init(0);
 
     mysql_options(m, MYSQL_OPT_USE_EMBEDDED_CONNECTION, 0);

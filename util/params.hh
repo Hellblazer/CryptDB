@@ -1,5 +1,4 @@
-#ifndef _PARAMS_H
-#define _PARAMS_H
+#pragma once
 
 /*
  *  config.h
@@ -30,5 +29,3 @@ const bool VERBOSE_G = false;
 const bool VERBOSE_KEYACCESS = true;
 const bool VERBOSE_EDBProxy = true;
 const bool VERBOSE_EDBProxy_VERY = true;
-
-#endif   /* _PARAMS_H */

@@ -1,3 +1,5 @@
+#pragma once
+
 /*
  * TestCrypto.h
  *
@@ -5,11 +7,11 @@
  *      Author: cat_red
  */
 
-#pragma once
-#include <crypto-old/CryptoManager.h>
-#include <crypto-old/HGD.h>
-#include <crypto-old/OPE.h>
-#include <test/test_utils.h>
+#include <crypto-old/CryptoManager.hh>
+#include <crypto-old/HGD.hh>
+#include <crypto-old/OPE.hh>
+#include <test/test_utils.hh>
+
 
 class TestCrypto {
  public:

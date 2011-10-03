@@ -1,3 +1,5 @@
+#pragma once
+
 /*
  * test_utils.h
  *
@@ -5,16 +7,16 @@
  *   Author: cat_red
  */
 
-#pragma once
-
 #include <string>
 #include <assert.h>
-#include <edb/EDBProxy.h>
+
+#include <edb/EDBProxy.hh>
+
 
 class TestConfig {
  public:
     TestConfig() {
-    	// default values
+        // default values
         user = "root";
         pass = "letmein";
         host = "localhost";
@@ -47,14 +49,14 @@ class TestConfig {
 };
 
 struct Query {
-    string query;
+    std::string query;
     bool test_res;
 
     Query()
     {
     }
 
-    Query(string q, bool res) {
+    Query(std::string q, bool res) {
         query = q;
         test_res = res;
     }
@@ -64,11 +66,11 @@ struct Query {
 
 void PrintRes(const ResType &res);
 
-template <int N> ResType convert(string rows[][N], int num_rows);
+template <int N> ResType convert(std::string rows[][N], int num_rows);
 
-ResType myExecute(EDBProxy * cl, string query);
+ResType myExecute(EDBProxy * cl, std::string query);
 
-ResType myCreate(EDBProxy * cl, string annotated_query, string plain_query);
+ResType myCreate(EDBProxy * cl, std::string annotated_query, std::string plain_query);
 
 static inline void
 assert_res(const ResType &r, const char *msg)

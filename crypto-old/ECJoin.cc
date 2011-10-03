@@ -3,10 +3,12 @@
  *
  */
 
-#include <crypto-old/ECJoin.h>
+#include <crypto-old/ECJoin.hh>
 #include <util/cryptdb_log.hh>
+#include <util/util.hh>
 
 
+using namespace std;
 
 static EC_POINT *
 my_EC_POINT_new(EC_GROUP * group) {
