@@ -24,113 +24,82 @@
 
 #include <parser/cdb_rewrite.hh>
 
+#define UNIMPLEMENTED \
+    throw runtime_error(string("Unimplemented: ") + \
+                        string(__PRETTY_FUNCTION__))
 
 using namespace std;
 
-#define CIPHER_TYPES(m)                                                     \
-        m(none)     /* no data needed (blind writes) */                     \
-        m(any)      /* just need to decrypt the result */                   \
-        m(plain)    /* evaluate Item on the server, e.g. for WHERE */       \
-        m(order)    /* evaluate order on the server, e.g. for SORT BY */    \
-        m(equal)    /* evaluate dups on the server, e.g. for GROUP BY */    \
-        m(like)     /* need to do LIKE */                                   \
-        m(homadd)   /* addition */
-
-enum class cipher_type {
-#define __temp_m(n) n,
-    CIPHER_TYPES(__temp_m)
-#undef __temp_m
-};
-
-static const string cipher_type_names[] = {
-#define __temp_m(n) #n,
-    CIPHER_TYPES(__temp_m)
-#undef __temp_m
-};
-
-EncSet::EncSet(map<onion, SECLEVEL> input)
+static inline bool
+FieldQualifies(const string &restriction,
+               const string &field)
 {
-    osl = input;
+    return restriction.empty() || restriction == field;
 }
 
-EncSet::EncSet()
-{
-    osl = FULL_EncSet.osl;
-}
-
-int
-EncSet::restrict(onion o, SECLEVEL maxl)
+bool
+EncDesc::restrict(onion o, SECLEVEL maxl)
 {
     //TODO:
     //assert(maxl is on onion o);
 
-    auto it = osl.find(o);
-    if (it == osl.end()) {
-        return -1;
-    }
+    auto it = olm.find(o);
+    assert(it != olm.end());
+
     if (it->second > maxl) {
-        osl[o] = maxl;
-        return 0;
+        it->second = maxl;
+        return true;
     }
 
-    return -1;
+    return false;
 }
 
-int
-EncSet::remove(onion o)
-{
-    auto it = osl.find(o);
-
-    if (it == osl.end()) {
-        return -1;
-    }
-
-    osl.erase(it);
-    return 0;
-}
+EncSet::EncSet() : osl(FULL_EncSet.osl) {}
 
 EncSet
 EncSet::intersect(const EncSet & es2) const
 {
-    map<onion, SECLEVEL> res = map<onion, SECLEVEL>();
-    for (map<onion, SECLEVEL>::const_iterator it2 = es2.osl.begin() ; it2 != es2.osl.end(); it2++) {
-        map<onion, SECLEVEL>::const_iterator it = osl.find(it2->first);
+    OnionLevelFieldMap m;
+    for (auto it2 = es2.osl.begin();
+         it2 != es2.osl.end(); ++it2) {
+        auto it = osl.find(it2->first);
         if (it != osl.end()) {
-        res[it2->first] = (SECLEVEL)min((int)it->second, (int)it2->second);
+            SECLEVEL sl = (SECLEVEL)min((int)it->second.first,
+                                        (int)it2->second.first);
+            if (it->second.second.empty()) {
+                m[it->first] = LevelFieldPair(
+                        sl, it2->second.second);
+            } else if (it2->second.second.empty()) {
+                m[it->first] = LevelFieldPair(
+                        sl, it->second.second);
+            } else if (it->second.second == it2->second.second) {
+                m[it->first] = LevelFieldPair(
+                        sl, it->second.second);
+            }
         }
     }
-    return EncSet(res);
+    return EncSet(m);
 }
 
-pair<onion, SECLEVEL>
+EncSet
 EncSet::chooseOne() const
 {
-    if (osl.size() == 0) {
-        return pair<onion, SECLEVEL>(oINVALID, SECLEVEL::INVALID);
+    static const onion onion_order[] = {
+        oAGG,
+        oSWP,
+        oDET,
+        oOPE,
+    };
+    static size_t onion_size = sizeof(onion_order) / sizeof(onion_order[0]);
+    for (size_t i = 0; i < onion_size; i++) {
+        auto it = osl.find(onion_order[i]);
+        if (it != osl.end()) {
+            OnionLevelFieldMap m;
+            m[onion_order[i]] = it->second;
+            return EncSet(m);
+        }
     }
-    auto it = osl.find(oAGG);
-    if (it != osl.end()) {
-        return pair<onion, SECLEVEL>(oAGG, it->second);
-    }
-    it = osl.find(oSWP);
-    if (it != osl.end()){
-        return pair<onion, SECLEVEL>(oSWP, it->second);
-    }
-    it = osl.find(oDET);
-    if (it != osl.end()){
-        return pair<onion, SECLEVEL>(oDET, it->second);
-    }
-    it = osl.find(oOPE);
-    if (it != osl.end()){
-        return pair<onion, SECLEVEL>(oOPE, it->second);
-    }
-
-    return pair<onion, SECLEVEL>(oINVALID, SECLEVEL::INVALID);
-}
-
-EncSet::EncSet(const EncSet & es)
-{
-    osl = es.osl;
+    return EncSet(OnionLevelFieldMap());
 }
 
 static ostream&
@@ -140,8 +109,24 @@ operator<<(ostream &out, const EncSet & es)
         out << "empty encset";
     }
     for (auto it : es.osl) {
-        out << "(onion " << it.first;
-        out << ", " << " level " << levelnames[(int)it.second] << ") ";
+        out << "(onion " << it.first
+            << ", level " << levelnames[(int)it.second.first]
+            << ", field `" << (it.second.second.empty() ? "*" : it.second.second) << "`"
+            << ") ";
+    }
+    return out;
+}
+
+static ostream&
+operator<<(ostream &out, const EncDesc & ed)
+{
+    if (ed.olm.size() == 0) {
+        out << "empty encdesc";
+    }
+    for (auto it : ed.olm) {
+        out << "(onion " << it.first
+            << ", level " << levelnames[(int)it.second]
+            << ") ";
     }
     return out;
 }
@@ -160,11 +145,20 @@ operator<<(ostream &out, const constraints &r)
     return out;
 }
 
+static ostream&
+operator<<(ostream &out, const OnionLevelFieldPair &p)
+{
+    out << "(onion " << p.first
+        << ", level " << levelnames[(int)p.second.first]
+        << ", field `" << (p.second.second.empty() ? "*" : p.second.second) << "`"
+        << ")";
+    return out;
+}
 
 class CItemType {
  public:
-    virtual void do_analyze(Item *, const constraints&, Analysis & a) const = 0;
-
+    virtual EncSet do_gather(Item *, const constraints&, Analysis &) const = 0;
+    virtual void   do_enforce(Item *, const constraints&, Analysis &) const = 0;
 };
 
 
@@ -179,13 +173,14 @@ class CItemTypeDir : public CItemType {
         if (x != types.end())
             thrower() << "duplicate key " << t;
         types[t] = ct;
-        //cerr << "ADDING to types (" << t << " " << ct << ")\n";
     }
 
-    void do_analyze(Item *i, const constraints &tr, Analysis & a) const {
-        //cerr << "CItemTypeDir do_analyze " << *i << " encset is " << tr.encset << "\n";
-        //cerr << "this item is of type " << i->type() << "\n";
-        lookup(i)->do_analyze(i, tr, a);
+    EncSet do_gather(Item *i, const constraints &tr, Analysis &a) const {
+        return lookup(i)->do_gather(i, tr, a);
+    }
+
+    void do_enforce(Item *i, const constraints &tr, Analysis &a) const {
+        return lookup(i)->do_enforce(i, tr, a);
     }
 
  protected:
@@ -245,27 +240,43 @@ static class CItemFuncNameDir : public CItemTypeDir<std::string> {
 /*
  * Helper functions to look up via directory & invoke method.
  */
-static void
-analyze(Item *i, const constraints &tr, Analysis & a)
+static inline EncSet
+gather(Item *i, const constraints &tr, Analysis & a)
 {
-    //cerr << "before itemTypes.do_analyze item" << *i << "\n";
-    itemTypes.do_analyze(i, tr, a);
-    
+    return itemTypes.do_gather(i, tr, a);
 }
 
+static inline void
+enforce(Item *i, const constraints &tr, Analysis & a)
+{
+    return itemTypes.do_enforce(i, tr, a);
+}
+
+static inline void
+analyze(Item *i, const constraints &tr, Analysis & a)
+{
+    EncSet e(gather(i, tr, a));
+    e = e.chooseOne();
+    enforce(i, tr.clone_with(e), a);
+}
 
 /*
  * CItemType classes for supported Items: supporting machinery.
  */
 template<class T>
 class CItemSubtype : public CItemType {
-    virtual void do_analyze(Item *i, const constraints &tr, Analysis & a) const {
-        cerr << "CItemSubtype do_analyze " << *i << " encset " << tr.encset << "\n";
-        do_analyze_type((T*) i, tr, a);
+    virtual EncSet do_gather(Item *i, const constraints &tr, Analysis & a) const {
+        cerr << "CItemSubtype do_gather " << *i << " encset " << tr.encset << "\n";
+        return do_gather_type((T*) i, tr, a);
+    }
+    virtual void do_enforce(Item *i, const constraints &tr, Analysis & a) const {
+        cerr << "CItemSubtype do_enforce " << *i << " encset " << tr.encset << "\n";
+        do_enforce_type((T*) i, tr, a);
     }
 
  private:
-    virtual void do_analyze_type(T *, const constraints&, Analysis & a) const = 0;
+    virtual EncSet do_gather_type(T *, const constraints&, Analysis & a) const = 0;
+    virtual void   do_enforce_type(T *, const constraints&, Analysis & a) const = 0;
 };
 
 template<class T, Item::Type TYPE>
@@ -299,116 +310,185 @@ class CItemSubtypeFN : public CItemSubtype<T> {
 static void process_select_lex(st_select_lex *select_lex, const constraints &tr, Analysis & a);
 
 static class ANON : public CItemSubtypeIT<Item_field, Item::Type::FIELD_ITEM> {
-    virtual void do_analyze_type(Item_field *i, const constraints &tr, Analysis & a) const {
-    cerr << "CItemSubtypeIT do_analyze " << *i << "\n";
-    
-    //apply encsets from constraints
 
-    //there are more than one onion that can support this operation so we need to pick one
-    pair<onion, SECLEVEL> encpair = tr.encset.chooseOne();
-    
-    stringstream fieldtemp;
-    fieldtemp << *i;
-    string fieldname = fieldtemp.str();
-    auto it = a.fieldToMeta.find(fieldname);
-    if (it == a.fieldToMeta.end()) {
-        //todo: there should be a map of FULL_EncSets depending on object type
-        a.fieldToMeta[fieldname] = new FieldMeta(FULL_EncSet);
-        it = a.fieldToMeta.find(fieldname);
+    inline string extract_fieldname(Item_field *i) const
+    {
+        stringstream fieldtemp;
+        fieldtemp << *i;
+        return fieldtemp.str();
     }
-    int res = it->second->exposedLevels.restrict(encpair.first, encpair.second);
-    
-    if (res>=0) {
-        cerr << "has not converged\n";
-        a.hasConverged = false;
+
+    virtual EncSet do_gather_type(Item_field *i, const constraints &tr, Analysis & a) const {
+        cerr << "CItemSubtypeIT do_gather " << *i << "\n";
+
+        string fieldname = extract_fieldname(i);
+
+        // check compatibility for each of the constraints given
+        // in the incoming enc set, either filtering them out, or
+        // by modification
+        OnionLevelFieldMap m;
+        for (auto it = tr.encset.osl.begin();
+             it != tr.encset.osl.end();
+             ++it) {
+            // if the field is a wildcard, then replace it with this field
+            // (or if it's the same field
+            if (FieldQualifies(it->second.second, fieldname)) {
+                m[it->first] = it->second;
+                m[it->first].second = fieldname;
+            } else {
+                // in the case of DET_JOIN/OPE_JOIN,
+                // we take the constraint regardless of
+                // field (since we can convert), and we update the
+                // field to *this* field if we are lexicographically
+                // ahead
+                if (it->first == oDET || it->first == oOPE) {
+                    m[it->first] = LevelFieldPair(
+                            it->first == oDET ?
+                                SECLEVEL::DETJOIN : SECLEVEL::OPEJOIN,
+                            it->second.second < fieldname ?
+                                it->second.second : fieldname);
+                }
+            }
+        }
+
+        return EncSet(m);
     }
-    
-    cerr << "ENCSET FOR FIELD " << fieldname << " is " << a.fieldToMeta[fieldname]->exposedLevels << "\n";
+
+    virtual void
+    do_enforce_type(Item_field *i, const constraints &tr, Analysis & a) const
+    {
+        assert(tr.encset.empty() || tr.encset.singleton());
+        if (tr.encset.empty()) {
+            throw runtime_error("bail out");
+        }
+        auto encpair = tr.encset.extract_singleton();
+
+        string fieldname = extract_fieldname(i);
+        auto it = a.fieldToMeta.find(fieldname);
+        if (it == a.fieldToMeta.end()) {
+            //todo: there should be a map of FULL_EncSets depending on object type
+            a.fieldToMeta[fieldname] = new FieldMeta(FULL_EncDesc);
+            it = a.fieldToMeta.find(fieldname);
+        }
+        if (it->second->exposedLevels.restrict(encpair.first,
+                                               encpair.second.first)) {
+            cerr << "has not converged\n";
+            a.hasConverged = false;
+        }
+        cerr << "ENCSET FOR FIELD " << fieldname << " is " << a.fieldToMeta[fieldname]->exposedLevels << "\n";
     }
+
 } ANON;
 
 static class ANON : public CItemSubtypeIT<Item_string, Item::Type::STRING_ITEM> {
-    virtual void do_analyze_type(Item_string *i, const constraints &tr, Analysis & a) const {
-        cerr << "CItemSubtypeIT const string do_analyze " << *i << "\n";
+    virtual EncSet do_gather_type(Item_string *i, const constraints &tr, Analysis & a) const {
+        cerr << "CItemSubtypeIT const string do_gather " << *i << "\n";
         /* constant strings are always ok */
+        return tr.encset;
+    }
+    virtual void do_enforce_type(Item_string *i, const constraints &tr, Analysis & a) const
+    {
+        cerr << "Need to encrypt " << *i << " with: " << tr.encset.extract_singleton() << endl;
     }
 } ANON;
 
 static class ANON : public CItemSubtypeIT<Item_num, Item::Type::INT_ITEM> {
-    virtual void do_analyze_type(Item_num *i, const constraints &tr, Analysis & a) const {
-        cerr << "CItemSubtypeIT num do_analyze " << *i << "\n";
+    virtual EncSet do_gather_type(Item_num *i, const constraints &tr, Analysis & a) const {
+        cerr << "CItemSubtypeIT num do_gather " << *i << "\n";
         /* constant ints are always ok */
+        return tr.encset;
+    }
+    virtual void do_enforce_type(Item_num *i, const constraints &tr, Analysis & a) const
+    {
+        cerr << "Need to encrypt " << *i << " with: " << tr.encset.extract_singleton() << endl;
     }
 } ANON;
 
 static class ANON : public CItemSubtypeIT<Item_decimal, Item::Type::DECIMAL_ITEM> {
-    virtual void do_analyze_type(Item_decimal *i, const constraints &tr, Analysis & a) const {
-        cerr << "CItemSubtypeIT decimal do_analyze " << *i << "\n";
+    virtual EncSet do_gather_type(Item_decimal *i, const constraints &tr, Analysis & a) const {
+        cerr << "CItemSubtypeIT decimal do_gather " << *i << "\n";
         /* constant decimals are always ok */
+        return tr.encset;
+    }
+    virtual void do_enforce_type(Item_decimal *i, const constraints &tr, Analysis & a) const
+    {
+        cerr << "Need to encrypt " << *i << " with: " << tr.encset.extract_singleton() << endl;
     }
 } ANON;
 
 static class ANON : public CItemSubtypeFT<Item_func_neg, Item_func::Functype::NEG_FUNC> {
-    virtual void do_analyze_type(Item_func_neg *i, const constraints &tr, Analysis & a) const {
-        analyze(i->arguments()[0], tr, a);
+    virtual EncSet do_gather_type(Item_func_neg *i, const constraints &tr, Analysis & a) const {
+        return gather(i->arguments()[0], tr, a);
+    }
+    virtual void do_enforce_type(Item_func_neg *i, const constraints &tr, Analysis & a) const {
+        enforce(i->arguments()[0], tr, a);
     }
 } ANON;
 
 static class ANON : public CItemSubtypeFT<Item_func_not, Item_func::Functype::NOT_FUNC> {
-    virtual void do_analyze_type(Item_func_not *i, const constraints &tr, Analysis & a) const {
-        analyze(i->arguments()[0], tr, a);
+    virtual EncSet do_gather_type(Item_func_not *i, const constraints &tr, Analysis & a) const {
+        return gather(i->arguments()[0], tr, a);
+    }
+    virtual void do_enforce_type(Item_func_not *i, const constraints &tr, Analysis & a) const {
+        enforce(i->arguments()[0], tr, a);
     }
 } ANON;
 
 static class ANON : public CItemSubtypeIT<Item_subselect, Item::Type::SUBSELECT_ITEM> {
-    virtual void do_analyze_type(Item_subselect *i, const constraints &tr, Analysis & a) const {
-    
+    virtual EncSet do_gather_type(Item_subselect *i, const constraints &tr, Analysis & a) const {
         st_select_lex *select_lex = i->get_select_lex();
         process_select_lex(select_lex, tr, a);
+        return tr.encset;
     }
+    virtual void do_enforce_type(Item_subselect *i, const constraints &tr, Analysis & a) const
+    {}
 } ANON;
 
 extern const char str_in_optimizer[] = "<in_optimizer>";
 static class ANON : public CItemSubtypeFN<Item_in_optimizer, str_in_optimizer> {
-    virtual void do_analyze_type(Item_in_optimizer *i, const constraints &tr, Analysis & a) const {
-        cerr << "CItemSubtypeFN do_analyze " << *i << "\n";
-        
+    virtual EncSet do_gather_type(Item_in_optimizer *i, const constraints &tr, Analysis & a) const {
+        cerr << "CItemSubtypeFN do_gather " << *i << "\n";
+
         Item **args = i->arguments();
         analyze(args[0], constraints(EMPTY_EncSet, "in_opt", i, &tr), a);
-        analyze(args[1], constraints(EMPTY_EncSet,  "in_opt", i, &tr), a);
+        analyze(args[1], constraints(EMPTY_EncSet, "in_opt", i, &tr), a);
+        return tr.encset;
     }
+    virtual void do_enforce_type(Item_in_optimizer *i, const constraints &tr, Analysis & a) const
+    {}
 } ANON;
 
 static class ANON : public CItemSubtypeIT<Item_cache, Item::Type::CACHE_ITEM> {
-    virtual void do_analyze_type(Item_cache *i, const constraints &tr, Analysis & a) const {
-        
+    virtual EncSet do_gather_type(Item_cache *i, const constraints &tr, Analysis & a) const {
         Item *example = (*i).*rob<Item_cache, Item*, &Item_cache::example>::ptr();
         if (example)
-            analyze(example, tr, a);
+            return gather(example, tr, a);
+        return tr.encset;
     }
+    virtual void do_enforce_type(Item_cache *i, const constraints &tr, Analysis & a) const
+    {}
 } ANON;
 
 template<Item_func::Functype FT, class IT>
 class CItemCompare : public CItemSubtypeFT<Item_func, FT> {
-    virtual void do_analyze_type(Item_func *i, const constraints &tr, Analysis & a) const {
-        cerr << "CItemCompare do_analyze func " << *i << "\n";
-                
+    virtual EncSet do_gather_type(Item_func *i, const constraints &tr, Analysis & a) const {
+        cerr << "CItemCompare do_gather func " << *i << "\n";
+
         EncSet t2;
-        
+
         if (FT == Item_func::Functype::EQ_FUNC ||
-                FT == Item_func::Functype::EQUAL_FUNC ||
-                FT == Item_func::Functype::NE_FUNC)
-        {
+            FT == Item_func::Functype::EQUAL_FUNC ||
+            FT == Item_func::Functype::NE_FUNC) {
             t2 = EQ_EncSet;
         } else {
             t2 = ORD_EncSet;
         }
-        
+
         Item **args = i->arguments();
         const char *reason = "compare_func";
         if (!args[0]->const_item() && !args[1]->const_item())
             reason = "compare_func_join";
-        
+
         EncSet new_encset = tr.encset.intersect(t2);
         //cerr << "intersect " << tr << " with " << t2 << " result is " << new_encset << " \n";
 
@@ -417,8 +497,16 @@ class CItemCompare : public CItemSubtypeFT<Item_func, FT> {
             exit(-1);//TODO: throw some exception
         }
 
-        analyze(args[0], constraints(new_encset, reason, i, &tr), a);
-        analyze(args[1], constraints(new_encset, reason, i, &tr), a);
+        new_encset = gather(args[0], constraints(new_encset, reason, i, &tr), a);
+        return gather(args[1], constraints(new_encset, reason, i, &tr), a);
+    }
+    virtual void do_enforce_type(Item_func *i, const constraints &tr, Analysis & a) const {
+        Item **args = i->arguments();
+        const char *reason = "compare_func";
+        if (!args[0]->const_item() && !args[1]->const_item())
+            reason = "compare_func_join";
+        enforce(args[0], constraints(tr.encset, reason, i, &tr), a);
+        enforce(args[1], constraints(tr.encset, reason, i, &tr), a);
     }
 };
 
@@ -432,8 +520,8 @@ static CItemCompare<Item_func::Functype::LE_FUNC,    Item_func_le>    ANON;
 
 template<Item_func::Functype FT, class IT>
 class CItemCond : public CItemSubtypeFT<Item_cond, FT> {
-    virtual void do_analyze_type(Item_cond *i, const constraints &tr, Analysis & a) const {
-        cerr << "CItemCond do_analyze " << *i << "\n";
+    virtual EncSet do_gather_type(Item_cond *i, const constraints &tr, Analysis & a) const {
+        cerr << "CItemCond do_gather " << *i << "\n";
         //cerr << "do_a_t item_cond reason " << tr << "\n";
         auto it = List_iterator<Item>(*i->argument_list());
         //we split the current item in the different subexpressions
@@ -443,7 +531,10 @@ class CItemCond : public CItemSubtypeFT<Item_cond, FT> {
                 break;
             analyze(argitem, constraints(tr.encset, "cond", i, &tr), a);
         }
+        return tr.encset;
     }
+    virtual void do_enforce_type(Item_cond *i, const constraints &tr, Analysis & a) const
+    {}
 };
 
 static CItemCond<Item_func::Functype::COND_AND_FUNC, Item_cond_and> ANON;
@@ -451,34 +542,40 @@ static CItemCond<Item_func::Functype::COND_OR_FUNC,  Item_cond_or>  ANON;
 
 template<Item_func::Functype FT>
 class CItemNullcheck : public CItemSubtypeFT<Item_bool_func, FT> {
-    virtual void do_analyze_type(Item_bool_func *i, const constraints &tr, Analysis & a) const {
+    virtual EncSet do_gather_type(Item_bool_func *i, const constraints &tr, Analysis & a) const {
         Item **args = i->arguments();
         for (uint x = 0; x < i->argument_count(); x++)
             analyze(args[x], constraints(EMPTY_EncSet,  "nullcheck", i, &tr), a);
+        return tr.encset;
     }
+    virtual void do_enforce_type(Item_bool_func *i, const constraints &tr, Analysis & a) const
+    {}
 };
 
 static CItemNullcheck<Item_func::Functype::ISNULL_FUNC> ANON;
 static CItemNullcheck<Item_func::Functype::ISNOTNULL_FUNC> ANON;
 
 static class ANON : public CItemSubtypeFT<Item_func_get_system_var, Item_func::Functype::GSYSVAR_FUNC> {
-    virtual void do_analyze_type(Item_func_get_system_var *i, const constraints &tr, Analysis & a) const {}
+    virtual EncSet do_gather_type(Item_func_get_system_var *i, const constraints &tr, Analysis & a) const {
+        return tr.encset;
+    }
+    virtual void do_enforce_type(Item_func_get_system_var *i, const constraints &tr, Analysis & a) const
+    {}
 } ANON;
 
 template<const char *NAME>
 class CItemAdditive : public CItemSubtypeFN<Item_func_additive_op, NAME> {
-    virtual void do_analyze_type(Item_func_additive_op *i, const constraints &tr, Analysis & a) const {
-            
-        //TODO
-        /*
-          Item **args = i->arguments();
-          if (tr.t == cipher_type::any) {
-            analyze(args[0], constraints(cipher_type::homadd, "additive", i, &tr), a);
-            analyze(args[1], constraints(cipher_type::homadd, "additive", i, &tr), a);
-        } else {
-            analyze(args[0], constraints(EMPTY_EncSet, "additivex", i, &tr), a);
-            analyze(args[1], constraints(EMPTY_EncSet, "additivex", i, &tr), a);
-            }*/
+    virtual EncSet do_gather_type(Item_func_additive_op *i, const constraints &tr, Analysis & a) const {
+        Item **args = i->arguments();
+        assert(i->argument_count() == 2);
+        EncSet cur = tr.encset.intersect(ADD_EncSet);
+        cur = gather(args[0], constraints(cur, "additive", i, &tr), a);
+        return gather(args[1], constraints(cur, "additive", i, &tr), a);
+    }
+    virtual void do_enforce_type(Item_func_additive_op *i, const constraints &tr, Analysis & a) const {
+        Item **args = i->arguments();
+        enforce(args[0], constraints(tr.encset, "additive", i, &tr), a);
+        enforce(args[1], constraints(tr.encset, "additive", i, &tr), a);
     }
 };
 
@@ -490,11 +587,14 @@ static CItemAdditive<str_minus> ANON;
 
 template<const char *NAME>
 class CItemMath : public CItemSubtypeFN<Item_func, NAME> {
-    virtual void do_analyze_type(Item_func *i, const constraints &tr, Analysis & a) const {
+    virtual EncSet do_gather_type(Item_func *i, const constraints &tr, Analysis & a) const {
         Item **args = i->arguments();
         for (uint x = 0; x < i->argument_count(); x++)
-        analyze(args[x], constraints(EMPTY_EncSet, "math", i, &tr), a);
+            analyze(args[x], constraints(EMPTY_EncSet, "math", i, &tr), a);
+        return tr.encset;
     }
+    virtual void do_enforce_type(Item_func *i, const constraints &tr, Analysis & a) const
+    {}
 };
 
 extern const char str_mul[] = "*";
@@ -532,35 +632,49 @@ static CItemMath<str_radians> ANON;
 
 extern const char str_if[] = "if";
 static class ANON : public CItemSubtypeFN<Item_func_if, str_if> {
-    virtual void do_analyze_type(Item_func_if *i, const constraints &tr, Analysis & a) const {
+    virtual EncSet do_gather_type(Item_func_if *i, const constraints &tr, Analysis & a) const {
         Item **args = i->arguments();
-        analyze(args[0], constraints(FULL_EncSet, "if_cond", i, &tr), a);
-        analyze(args[1], tr, a);
-        analyze(args[2], tr, a);
+        assert(i->argument_count() == 3);
+        analyze(args[0], constraints(tr.encset, "if_cond", i, &tr), a);
+        analyze(args[1], constraints(tr.encset, "true_branch", i, &tr), a);
+        analyze(args[2], constraints(tr.encset, "false_branch", i, &tr), a);
+        return tr.encset;
     }
+    virtual void do_enforce_type(Item_func_if *i, const constraints &tr, Analysis & a) const
+    {}
 } ANON;
 
 extern const char str_nullif[] = "nullif";
 static class ANON : public CItemSubtypeFN<Item_func_nullif, str_nullif> {
-    virtual void do_analyze_type(Item_func_nullif *i, const constraints &tr, Analysis & a) const {
+    virtual EncSet do_gather_type(Item_func_nullif *i, const constraints &tr, Analysis & a) const {
+        Item **args = i->arguments();
+        EncSet cur = EQ_EncSet;
+        for (uint x = 0; x < i->argument_count(); x++)
+            cur = gather(args[x], constraints(cur, "nullif", i, &tr), a);
+        return cur;
+    }
+    virtual void do_enforce_type(Item_func_nullif *i, const constraints &tr, Analysis & a) const {
         Item **args = i->arguments();
         for (uint x = 0; x < i->argument_count(); x++)
-            analyze(args[x], constraints(EQ_EncSet, "nullif", i, &tr), a);
+            enforce(args[x], constraints(tr.encset, "nullif", i, &tr), a);
     }
 } ANON;
 
 extern const char str_coalesce[] = "coalesce";
 static class ANON : public CItemSubtypeFN<Item_func_coalesce, str_coalesce> {
-    virtual void do_analyze_type(Item_func_coalesce *i, const constraints &tr, Analysis & a) const {
+    virtual EncSet do_gather_type(Item_func_coalesce *i, const constraints &tr, Analysis & a) const {
         Item **args = i->arguments();
         for (uint x = 0; x < i->argument_count(); x++)
             analyze(args[x], tr, a);
+        return tr.encset;
     }
+    virtual void do_enforce_type(Item_func_coalesce *i, const constraints &tr, Analysis & a) const
+    {}
 } ANON;
 
 extern const char str_case[] = "case";
 static class ANON : public CItemSubtypeFN<Item_func_case, str_case> {
-    virtual void do_analyze_type(Item_func_case *i, const constraints &tr, Analysis & a) const {
+    virtual EncSet do_gather_type(Item_func_case *i, const constraints &tr, Analysis & a) const {
         Item **args = i->arguments();
         int first_expr_num = (*i).*rob<Item_func_case, int,
                 &Item_func_case::first_expr_num>::ptr();
@@ -584,16 +698,22 @@ static class ANON : public CItemSubtypeFN<Item_func_case, str_case> {
                 constraints(EQ_EncSet, "case_w/first", i, &tr), a);
             analyze(args[x+1], tr, a);
         }
+        return tr.encset;
     }
+    virtual void do_enforce_type(Item_func_case *i, const constraints &tr, Analysis & a) const
+    {}
 } ANON;
 
 template<const char *NAME>
 class CItemStrconv : public CItemSubtypeFN<Item_str_conv, NAME> {
-    virtual void do_analyze_type(Item_str_conv *i, const constraints & tr, Analysis & a) const {
+    virtual EncSet do_gather_type(Item_str_conv *i, const constraints & tr, Analysis & a) const {
         Item **args = i->arguments();
         for (uint x = 0; x < i->argument_count(); x++)
             analyze(args[x], constraints(EMPTY_EncSet, "strconv", i, &tr), a);
+        return tr.encset;
     }
+    virtual void do_enforce_type(Item_str_conv *i, const constraints &tr, Analysis & a) const
+    {}
 };
 
 extern const char str_lcase[] = "lcase";
@@ -628,7 +748,11 @@ static CItemStrconv<str_regexp> ANON;
 
 template<const char *NAME>
 class CItemLeafFunc : public CItemSubtypeFN<Item_func, NAME> {
-    virtual void do_analyze_type(Item_func *i, const constraints &tr, Analysis & a) const {}
+    virtual EncSet do_gather_type(Item_func *i, const constraints &tr, Analysis & a) const {
+        return tr.encset;
+    }
+    virtual void do_enforce_type(Item_func *i, const constraints &tr, Analysis & a) const
+    {}
 };
 
 extern const char str_found_rows[] = "found_rows";
@@ -641,21 +765,26 @@ extern const char str_rand[] = "rand";
 static CItemLeafFunc<str_rand> ANON;
 
 static class ANON : public CItemSubtypeFT<Item_extract, Item_func::Functype::EXTRACT_FUNC> {
-    virtual void do_analyze_type(Item_extract *i, const constraints &tr, Analysis & a) const {
-        /* XXX perhaps too conservative */
+    virtual EncSet do_gather_type(Item_extract *i, const constraints &tr, Analysis & a) const {
         analyze(i->arguments()[0], constraints(EMPTY_EncSet, "extract", i, &tr), a);
+        return tr.encset;
     }
+    virtual void do_enforce_type(Item_extract *i, const constraints &tr, Analysis & a) const
+    {}
 } ANON;
 
 template<const char *NAME>
 class CItemDateExtractFunc : public CItemSubtypeFN<Item_int_func, NAME> {
-    virtual void do_analyze_type(Item_int_func *i, const constraints &tr, Analysis & a) const {
+    virtual EncSet do_gather_type(Item_int_func *i, const constraints &tr, Analysis & a) const {
         Item **args = i->arguments();
         for (uint x = 0; x < i->argument_count(); x++) {
             /* assuming we separately store different date components */
             analyze(args[x], tr, a);
         }
+        return tr.encset;
     }
+    virtual void do_enforce_type(Item_int_func *i, const constraints &tr, Analysis & a) const
+    {}
 };
 
 extern const char str_second[] = "second";
@@ -684,18 +813,25 @@ static CItemDateExtractFunc<str_unix_timestamp> ANON;
 
 extern const char str_date_add_interval[] = "date_add_interval";
 static class ANON : public CItemSubtypeFN<Item_date_add_interval, str_date_add_interval> {
-    virtual void do_analyze_type(Item_date_add_interval *i, const constraints &tr, Analysis & a) const {
+    virtual EncSet do_gather_type(Item_date_add_interval *i, const constraints &tr, Analysis & a) const {
         Item **args = i->arguments();
         for (uint x = 0; x < i->argument_count(); x++) {
             /* XXX perhaps too conservative */
             analyze(args[x], constraints(EMPTY_EncSet, "date_add", i, &tr), a);
         }
+        return tr.encset;
     }
+    virtual void do_enforce_type(Item_date_add_interval *i, const constraints &tr, Analysis & a) const
+    {}
 } ANON;
 
 template<const char *NAME>
 class CItemDateNow : public CItemSubtypeFN<Item_func_now, NAME> {
-    virtual void do_analyze_type(Item_func_now *i, const constraints &tr, Analysis & a) const {}
+    virtual EncSet do_gather_type(Item_func_now *i, const constraints &tr, Analysis & a) const {
+        return tr.encset;
+    }
+    virtual void do_enforce_type(Item_func_now *i, const constraints &tr, Analysis & a) const
+    {}
 };
 
 extern const char str_now[] = "now";
@@ -709,11 +845,14 @@ static CItemDateNow<str_sysdate> ANON;
 
 template<const char *NAME>
 class CItemBitfunc : public CItemSubtypeFN<Item_func_bit, NAME> {
-    virtual void do_analyze_type(Item_func_bit *i, const constraints &tr, Analysis & a) const {
+    virtual EncSet do_gather_type(Item_func_bit *i, const constraints &tr, Analysis & a) const {
         Item **args = i->arguments();
         for (uint x = 0; x < i->argument_count(); x++)
             analyze(args[x], constraints(EMPTY_EncSet, "bitfunc", i, &tr), a);
+        return tr.encset;
     }
+    virtual void do_enforce_type(Item_func_bit *i, const constraints &tr, Analysis & a) const
+    {}
 };
 
 extern const char str_bit_not[] = "~";
@@ -729,7 +868,7 @@ extern const char str_bit_and[] = "&";
 static CItemBitfunc<str_bit_and> ANON;
 
 static class ANON : public CItemSubtypeFT<Item_func_like, Item_func::Functype::LIKE_FUNC> {
-    virtual void do_analyze_type(Item_func_like *i, const constraints &tr, Analysis & a) const {
+    virtual EncSet do_gather_type(Item_func_like *i, const constraints &tr, Analysis & a) const {
         Item **args = i->arguments();
         if (args[1]->type() == Item::Type::STRING_ITEM) {
             string s(args[1]->str_value.ptr(), args[1]->str_value.length());
@@ -747,7 +886,10 @@ static class ANON : public CItemSubtypeFT<Item_func_like, Item_func::Functype::L
             for (uint x = 0; x < i->argument_count(); x++)
                 analyze(args[x], constraints(EMPTY_EncSet, "like-non-const", i, &tr), a);
         }
+        return tr.encset;
     }
+    virtual void do_enforce_type(Item_func_like *i, const constraints &tr, Analysis & a) const
+    {}
 } ANON;
 
 static class ANON : public CItemSubtypeFT<Item_func, Item_func::Functype::FUNC_SP> {
@@ -755,33 +897,44 @@ static class ANON : public CItemSubtypeFT<Item_func, Item_func::Functype::FUNC_S
         thrower() << "unsupported store procedure call " << *i;
     }
 
-    virtual void do_analyze_type(Item_func *i, const constraints &tr, Analysis & a) const __attribute__((noreturn)) { error(i); }
+    virtual EncSet do_gather_type(Item_func *i, const constraints &tr, Analysis & a) const __attribute__((noreturn)) { error(i); }
+    virtual void do_enforce_type(Item_func *i, const constraints &tr, Analysis & a) const __attribute__((noreturn))
+    { error(i); }
 } ANON;
 
 static class ANON : public CItemSubtypeFT<Item_func_in, Item_func::Functype::IN_FUNC> {
-    virtual void do_analyze_type(Item_func_in *i, const constraints &tr, Analysis & a) const {
+    virtual EncSet do_gather_type(Item_func_in *i, const constraints &tr, Analysis & a) const {
         Item **args = i->arguments();
         for (uint x = 0; x < i->argument_count(); x++)
-        analyze(args[x], constraints(EQ_EncSet, "in", i, &tr), a);
+            analyze(args[x], constraints(EQ_EncSet, "in", i, &tr), a);
+        return tr.encset;
     }
+    virtual void do_enforce_type(Item_func_in *i, const constraints &tr, Analysis & a) const
+    {}
 } ANON;
 
 static class ANON : public CItemSubtypeFT<Item_func_in, Item_func::Functype::BETWEEN> {
-    virtual void do_analyze_type(Item_func_in *i, const constraints &tr, Analysis & a) const {
+    virtual EncSet do_gather_type(Item_func_in *i, const constraints &tr, Analysis & a) const {
         Item **args = i->arguments();
         for (uint x = 0; x < i->argument_count(); x++)
-        analyze(args[x], constraints(ORD_EncSet, "between", i, &tr), a);
+            analyze(args[x], constraints(ORD_EncSet, "between", i, &tr), a);
+        return tr.encset;
     }
+    virtual void do_enforce_type(Item_func_in *i, const constraints &tr, Analysis & a) const
+    {}
 } ANON;
 
 template<const char *FN>
 class CItemMinMax : public CItemSubtypeFN<Item_func_min_max, FN> {
-    virtual void do_analyze_type(Item_func_min_max *i, const constraints &tr, Analysis & a) const {
+    virtual EncSet do_gather_type(Item_func_min_max *i, const constraints &tr, Analysis & a) const {
         //cerr << "do_a_t Item_fuc_min_max reason " << tr << "\n";
         Item **args = i->arguments();
         for (uint x = 0; x < i->argument_count(); x++)
             analyze(args[x], constraints(ORD_EncSet, "min/max", i, &tr), a);
+        return tr.encset;
     }
+    virtual void do_enforce_type(Item_func_min_max *i, const constraints &tr, Analysis & a) const
+    {}
 };
 
 extern const char str_greatest[] = "greatest";
@@ -792,21 +945,27 @@ static CItemMinMax<str_least> ANON;
 
 extern const char str_strcmp[] = "strcmp";
 static class ANON : public CItemSubtypeFN<Item_func_strcmp, str_strcmp> {
-    virtual void do_analyze_type(Item_func_strcmp *i, const constraints &tr, Analysis & a) const {
+    virtual EncSet do_gather_type(Item_func_strcmp *i, const constraints &tr, Analysis & a) const {
         //cerr << "do_a_t Item_func_strcmp reason " << tr << "\n";
         Item **args = i->arguments();
         for (uint x = 0; x < i->argument_count(); x++)
             analyze(args[x], constraints(EQ_EncSet, "strcmp", i, &tr), a);
+        return tr.encset;
     }
+    virtual void do_enforce_type(Item_func_strcmp *i, const constraints &tr, Analysis & a) const
+    {}
 } ANON;
 
 template<Item_sum::Sumfunctype SFT>
 class CItemCount : public CItemSubtypeST<Item_sum_count, SFT> {
-    virtual void do_analyze_type(Item_sum_count *i, const constraints &tr, Analysis & a) const {
-    //cerr << "do_a_t Item_sum_count reason " << tr << "\n";
-    if (i->has_with_distinct())
-        analyze(i->get_arg(0), constraints(EQ_EncSet, "sum", i, &tr, false), a);
+    virtual EncSet do_gather_type(Item_sum_count *i, const constraints &tr, Analysis & a) const {
+        //cerr << "do_a_t Item_sum_count reason " << tr << "\n";
+        if (i->has_with_distinct())
+            analyze(i->get_arg(0), constraints(EQ_EncSet, "count distinct", i, &tr, false), a);
+        return tr.encset;
     }
+    virtual void do_enforce_type(Item_sum_count *i, const constraints &tr, Analysis & a) const
+    {}
 };
 
 static CItemCount<Item_sum::Sumfunctype::COUNT_FUNC> ANON;
@@ -814,10 +973,13 @@ static CItemCount<Item_sum::Sumfunctype::COUNT_DISTINCT_FUNC> ANON;
 
 template<Item_sum::Sumfunctype SFT>
 class CItemChooseOrder : public CItemSubtypeST<Item_sum_hybrid, SFT> {
-    virtual void do_analyze_type(Item_sum_hybrid *i, const constraints &tr, Analysis & a) const {
-    //cerr << "do_a_t Item_sum_hybrid reason " << tr << "\n";
-    analyze(i->get_arg(0), constraints(ORD_EncSet, "min/max_agg", i, &tr, false), a);
+    virtual EncSet do_gather_type(Item_sum_hybrid *i, const constraints &tr, Analysis & a) const {
+        //cerr << "do_a_t Item_sum_hybrid reason " << tr << "\n";
+        analyze(i->get_arg(0), constraints(ORD_EncSet, "min/max_agg", i, &tr, false), a);
+        return tr.encset;
     }
+    virtual void do_enforce_type(Item_sum_hybrid *i, const constraints &tr, Analysis & a) const
+    {}
 };
 
 static CItemChooseOrder<Item_sum::Sumfunctype::MIN_FUNC> ANON;
@@ -825,14 +987,16 @@ static CItemChooseOrder<Item_sum::Sumfunctype::MAX_FUNC> ANON;
 
 template<Item_sum::Sumfunctype SFT>
 class CItemSum : public CItemSubtypeST<Item_sum_sum, SFT> {
-    virtual void do_analyze_type(Item_sum_sum *i, const constraints &tr, Analysis & a) const {
-    cerr << "do_a_t Item_sum_sum reason " << tr  << "\n";
-    if (i->has_with_distinct())
-        analyze(i->get_arg(0), constraints(EQ_EncSet, "agg_distinct", i, &tr, false), a);
+    virtual EncSet do_gather_type(Item_sum_sum *i, const constraints &tr, Analysis & a) const {
+        cerr << "do_a_t Item_sum_sum reason " << tr  << "\n";
+        if (i->has_with_distinct())
+            analyze(i->get_arg(0), constraints(EQ_EncSet, "agg_distinct", i, &tr, false), a);
 
-    analyze(i->get_arg(0), constraints(tr.encset.intersect(ADD_EncSet), "sum/avg", i, &tr, false), a);
-
+        analyze(i->get_arg(0), constraints(tr.encset.intersect(ADD_EncSet), "sum/avg", i, &tr, false), a);
+        return tr.encset;
     }
+    virtual void do_enforce_type(Item_sum_sum *i, const constraints &tr, Analysis & a) const
+    {}
 };
 
 static CItemSum<Item_sum::Sumfunctype::SUM_FUNC> ANON;
@@ -841,14 +1005,17 @@ static CItemSum<Item_sum::Sumfunctype::AVG_FUNC> ANON;
 static CItemSum<Item_sum::Sumfunctype::AVG_DISTINCT_FUNC> ANON;
 
 static class ANON : public CItemSubtypeST<Item_sum_bit, Item_sum::Sumfunctype::SUM_BIT_FUNC> {
-    virtual void do_analyze_type(Item_sum_bit *i, const constraints &tr, Analysis & a) const {
+    virtual EncSet do_gather_type(Item_sum_bit *i, const constraints &tr, Analysis & a) const {
         cerr << "do_a_t Item_sum_bit reason " << tr << "\n";
         analyze(i->get_arg(0), constraints(EMPTY_EncSet, "bitagg", i, &tr, false), a);
+        return tr.encset;
     }
+    virtual void do_enforce_type(Item_sum_bit *i, const constraints &tr, Analysis & a) const
+    {}
 } ANON;
 
 static class ANON : public CItemSubtypeST<Item_func_group_concat, Item_sum::Sumfunctype::GROUP_CONCAT_FUNC> {
-    virtual void do_analyze_type(Item_func_group_concat *i, const constraints &tr, Analysis & a) const {
+    virtual EncSet do_gather_type(Item_func_group_concat *i, const constraints &tr, Analysis & a) const {
         cerr << "do_a_t Item_func_group reason " << tr << "\n";
         uint arg_count_field = (*i).*rob<Item_func_group_concat, uint,
                 &Item_func_group_concat::arg_count_field>::ptr();
@@ -858,32 +1025,45 @@ static class ANON : public CItemSubtypeST<Item_func_group_concat, Item_sum::Sumf
         }
 
         /* XXX order, unused in trace queries.. */
+        return tr.encset;
     }
+    virtual void do_enforce_type(Item_func_group_concat *i, const constraints &tr, Analysis & a) const
+    {}
 } ANON;
 
 static class ANON : public CItemSubtypeFT<Item_char_typecast, Item_func::Functype::CHAR_TYPECAST_FUNC> {
-    virtual void do_analyze_type(Item_char_typecast *i, const constraints &tr, Analysis & a) const {
+    virtual EncSet do_gather_type(Item_char_typecast *i, const constraints &tr, Analysis & a) const {
         thrower() << "what does Item_char_typecast do?";
+        UNIMPLEMENTED;
     }
+    virtual void do_enforce_type(Item_char_typecast *i, const constraints &tr, Analysis & a) const
+    {}
 } ANON;
 
 extern const char str_cast_as_signed[] = "cast_as_signed";
 static class ANON : public CItemSubtypeFN<Item_func_signed, str_cast_as_signed> {
-    virtual void do_analyze_type(Item_func_signed *i, const constraints &tr, Analysis & a) const {
+    virtual EncSet do_gather_type(Item_func_signed *i, const constraints &tr, Analysis & a) const {
         cerr << "do_a_t Item_func_signed reason " << tr << "\n";
         analyze(i->arguments()[0], tr, a);
+        return tr.encset;
     }
+    virtual void do_enforce_type(Item_func_signed *i, const constraints &tr, Analysis & a) const
+    {}
 } ANON;
 
 static class ANON : public CItemSubtypeIT<Item_ref, Item::Type::REF_ITEM> {
-    virtual void do_analyze_type(Item_ref *i, const constraints &tr, Analysis & a) const {
+    virtual EncSet do_gather_type(Item_ref *i, const constraints &tr, Analysis & a) const {
         cerr << "do_a_t Item_ref reason " << tr << "\n";
         if (i->ref) {
             analyze(*i->ref, tr, a);
+            return tr.encset;
         } else {
             thrower() << "how to resolve Item_ref::ref?";
+            UNIMPLEMENTED;
         }
     }
+    virtual void do_enforce_type(Item_ref *i, const constraints &tr, Analysis & a) const
+    {}
 } ANON;
 
 
@@ -940,9 +1120,9 @@ process_table_list(List<TABLE_LIST> *tll, Analysis & a)
         if (t->on_expr)
             analyze(t->on_expr, constraints(EMPTY_EncSet, "join_cond", t->on_expr, 0), a);
 
-        std::string db(t->db, t->db_length);
-        std::string table_name(t->table_name, t->table_name_length);
-        std::string alias(t->alias);
+        //std::string db(t->db, t->db_length);
+        //std::string table_name(t->table_name, t->table_name_length);
+        //std::string alias(t->alias);
 
         if (t->derived) {
             st_select_lex_unit *u = t->derived;
