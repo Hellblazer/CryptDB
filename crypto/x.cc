@@ -14,6 +14,7 @@
 #include <crypto/paillier.hh>
 #include <crypto/bn.hh>
 #include <crypto/ecjoin.hh>
+#include <crypto/search.hh>
 #include <util/timer.hh>
 #include <NTL/ZZ.h>
 #include <NTL/RR.h>
@@ -179,6 +180,17 @@ test_ecjoin()
     assert(p1 == p5);
 }
 
+static void
+test_search()
+{
+    search_priv s("my key");
+
+    auto cl = s.transform({"hello", "world", "hello", "testing", "test"});
+    assert(s.match(cl, s.wordkey("hello")));
+    assert(!s.match(cl, s.wordkey("Hello")));
+    assert(s.match(cl, s.wordkey("world")));
+}
+
 int
 main(int ac, char **av)
 {
@@ -188,6 +200,7 @@ main(int ac, char **av)
 
     test_bn();
     test_ecjoin();
+    test_search();
     test_paillier();
 
     AES aes128(u.rand_vec<uint8_t>(16));
