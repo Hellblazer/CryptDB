@@ -6,6 +6,7 @@
 #include <fstream>
 #include <util/errstream.hh>
 #include <NTL/ZZ.h>
+#include <crypto/bn.hh>
 
 class PRNG {
  public:
@@ -34,6 +35,12 @@ class PRNG {
         uint8_t buf[NumBits(max)/8 + 1];
         rand_bytes(sizeof(buf), buf);
         return NTL::ZZFromBytes(buf, sizeof(buf)) % max;
+    }
+
+    bignum rand_bn_mod(const bignum &max) {
+        uint8_t buf[BN_num_bytes(max.bn())];
+        rand_bytes(sizeof(buf), buf);
+        return bignum(buf, sizeof(buf)) % max;
     }
 
     virtual ~PRNG() {}

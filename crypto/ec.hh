@@ -6,30 +6,30 @@
 class ec_point {
  public:
     ec_point(const EC_GROUP *group) {
-        g = group;
-        p = EC_POINT_new(g);
+        gr = group;
+        pt = EC_POINT_new(gr);
     }
 
     ec_point(const ec_point &other) {
-        g = other.g;
-        p = EC_POINT_dup(other.p, g);
+        gr = other.gr;
+        pt = EC_POINT_dup(other.pt, gr);
     }
 
     ~ec_point() {
-        EC_POINT_free(p);
+        EC_POINT_free(pt);
     }
 
-    ec_point operator*(const bignum &n) {
+    ec_point operator*(const bignum &n) const {
         bignum zero(0);
-        ec_point res(g);
-        assert(EC_POINT_mul(g, res.p(), zero.bn(),
-                            p, n.bn(), bignum_ctx::the_ctx()));
+        ec_point res(gr);
+        assert(EC_POINT_mul(gr, res.p(), zero.bn(),
+                            pt, n.bn(), bignum_ctx::the_ctx()));
         return res;
     }
 
-    EC_POINT *p() { return p; }
+    EC_POINT *p() { return pt; }
 
  private:
-    EC_POINT *p;
-    EC_GROUP *g;
+    EC_POINT *pt;
+    const EC_GROUP *gr;
 };

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <stdexcept>
+#include <ostream>
 #include <openssl/bn.h>
 #include <openssl/crypto.h>
 
@@ -32,6 +34,16 @@ class bignum {
     bignum(const bignum &other) {
         BN_init(&b);
         assert(BN_copy(&b, other.bn()));
+    }
+
+    bignum(const uint8_t *buf, size_t nbytes) {
+        BN_init(&b);
+        assert(BN_bin2bn(buf, nbytes, &b));
+    }
+
+    bignum(std::vector<uint8_t> v) {
+        BN_init(&b);
+        assert(BN_bin2bn(&v[0], v.size(), &b));
     }
 
     ~bignum() { BN_free(&b); }
@@ -69,6 +81,12 @@ class bignum {
     pred(operator>=, >= 0)
     pred(operator==, == 0)
 #undef pred
+
+    bignum invmod(const bignum &mod) {
+        bignum r;
+        assert(BN_mod_inverse(r.bn(), &b, mod.bn(), bignum_ctx::the_ctx()));
+        return r;
+    }
 
  private:
     BIGNUM b;
