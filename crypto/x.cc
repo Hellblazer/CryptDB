@@ -13,6 +13,7 @@
 #include <crypto/hmac.hh>
 #include <crypto/paillier.hh>
 #include <crypto/bn.hh>
+#include <crypto/ecjoin.hh>
 #include <util/timer.hh>
 #include <NTL/ZZ.h>
 #include <NTL/RR.h>
@@ -154,6 +155,28 @@ test_bn()
     assert(r >= 183);
     assert(r >= 181);
     assert(r >  181);
+
+    streamrng<arc4> rand("seed");
+    assert(rand.rand_bn_mod(1000) == 498);
+}
+
+static void
+test_ecjoin()
+{
+    ecjoin_priv e("hello world");
+
+    auto p1 = e.hash("some data", "hash key");
+    auto p2 = e.hash("some data", "hash key");
+    assert(p1 == p2);
+
+    auto p3 = e.hash("some data", "another hash key");
+    auto p4 = e.hash("other data", "hash key");
+    assert(p1 != p4);
+    assert(p3 != p4);
+
+    bignum d = e.delta("another hash key", "hash key");
+    auto p5 = e.adjust(p3, d);
+    assert(p1 == p5);
 }
 
 int
@@ -164,7 +187,7 @@ main(int ac, char **av)
     cout << u.rand<int64_t>() << endl;
 
     test_bn();
-
+    test_ecjoin();
     test_paillier();
 
     AES aes128(u.rand_vec<uint8_t>(16));
