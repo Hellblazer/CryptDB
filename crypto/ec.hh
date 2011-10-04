@@ -1,5 +1,6 @@
 #pragma once
 
+#include <ostream>
 #include <openssl/ec.h>
 #include <openssl/bn.h>
 
@@ -27,9 +28,31 @@ class ec_point {
         return res;
     }
 
+    bool operator==(const ec_point &other) const {
+        return EC_POINT_cmp(gr, pt, other.pt, bignum_ctx::the_ctx()) == 0;
+    }
+
+    bool operator!=(const ec_point &other) const {
+        return EC_POINT_cmp(gr, pt, other.pt, bignum_ctx::the_ctx()) != 0;
+    }
+
+    std::string to_string(point_conversion_form_t form =
+                          POINT_CONVERSION_UNCOMPRESSED) const {
+        char *s = EC_POINT_point2hex(gr, pt, form, bignum_ctx::the_ctx());
+        std::string r(s);
+        free(s);
+        return r;
+    }
+
     EC_POINT *p() { return pt; }
 
  private:
     EC_POINT *pt;
     const EC_GROUP *gr;
 };
+
+static inline std::ostream&
+operator<<(std::ostream &out, const ec_point &p)
+{
+    return out << p.to_string();
+}
