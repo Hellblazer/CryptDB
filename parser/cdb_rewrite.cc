@@ -349,7 +349,9 @@ do_optimize_const_item(T *i, Analysis &a) {
         // on the current_thd. Thus, we must call create_embedded_thd
         // again.
         assert(create_embedded_thd(0));
-        assert(current_thd != NULL);
+
+        THD *thd = current_thd;
+        assert(thd != NULL);
 
         MYSQL_RES *r = mysql_store_result(m);
         if (r) {
@@ -365,6 +367,9 @@ do_optimize_const_item(T *i, Analysis &a) {
             assert(row != NULL);
 
             char *p = row[0];
+            unsigned long *lengths = mysql_fetch_lengths(r);
+            assert(lengths != NULL);
+
             if (p) {
 
 //enum enum_field_types { MYSQL_TYPE_DECIMAL, MYSQL_TYPE_TINY,
@@ -388,17 +393,30 @@ do_optimize_const_item(T *i, Analysis &a) {
 //            MYSQL_TYPE_GEOMETRY=255
 //};
 
+                cerr << "p: " << p << endl;
+                cerr << "field->type: " << field->type << endl;
+
                 switch (field->type) {
                     case MYSQL_TYPE_SHORT:
                     case MYSQL_TYPE_LONG:
                     case MYSQL_TYPE_LONGLONG:
                     case MYSQL_TYPE_INT24:
-                        {
-                            long long int v = strtoll(p, NULL, 10);
-                            rep = new Item_int(v);
-                        }
+                        rep = new Item_int(strtoll(p, NULL, 10));
                         break;
-
+                    case MYSQL_TYPE_FLOAT:
+                    case MYSQL_TYPE_DOUBLE:
+                        rep = new Item_float(p, lengths[0]);
+                        break;
+                    case MYSQL_TYPE_DECIMAL:
+                    case MYSQL_TYPE_NEWDECIMAL:
+                        rep = new Item_decimal(p, lengths[0], i->default_charset());
+                        break;
+                    case MYSQL_TYPE_VARCHAR:
+                    case MYSQL_TYPE_VAR_STRING:
+                        rep = new Item_string(thd->strdup(p),
+                                              lengths[0],
+                                              i->default_charset());
+                        break;
                     default:
                         // TODO(stephentu): implement the rest of the data types
                         break;
