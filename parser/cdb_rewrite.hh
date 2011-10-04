@@ -133,12 +133,34 @@ public:
 
 class Analysis {
 public:
-    Analysis() : hasConverged(false) {}
+    Analysis() : hasConverged(false) {
+        // create mysql connection to embedded
+        // server
+        m = mysql_init(0);
+        assert(m);
+        mysql_options(m, MYSQL_OPT_USE_EMBEDDED_CONNECTION, 0);
+        if (!mysql_real_connect(m, 0, 0, 0, 0, 0, 0, CLIENT_MULTI_STATEMENTS)) {
+            mysql_close(m);
+            fatal() << "mysql_real_connect: " << mysql_error(m);
+        }
+    }
+
+    ~Analysis() {
+        mysql_close(m);
+    }
+
+    inline MYSQL* conn() {
+        mysql_thread_init();
+        return m;
+    }
 
     std::map<std::string, FieldMeta *> fieldToMeta;
     std::map<Item*, ItemMeta *> itemToMeta;
 
     bool hasConverged;
+
+private:
+    MYSQL *m;
 };
 
 class FieldReturned {
