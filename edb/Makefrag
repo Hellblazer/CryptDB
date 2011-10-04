@@ -1,7 +1,6 @@
 OBJDIRS	+= edb
 
-CRYPTDB_SRCS := AccessManager.cc EDBProxy.cc Connect.cc Translator.cc \
-		MultiPrinc.cc
+CRYPTDB_SRCS := AccessManager.cc EDBProxy.cc Connect.cc MultiPrinc.cc
 
 all:	$(OBJDIR)/libcryptdb.so
 

@@ -10,6 +10,8 @@
 #include <algorithm>
 #include <stdio.h>
 
+#include <parser/Translator.hh>
+
 #include <sql_select.h>
 #include <sql_delete.h>
 #include <sql_insert.h>
@@ -22,7 +24,13 @@
 #include <util/cleanup.hh>
 #include <util/rob.hh>
 
+
 #include <parser/cdb_rewrite.hh>
+
+
+static unsigned int counter = 0;
+
+
 
 #define UNIMPLEMENTED \
     throw runtime_error(string("Unimplemented: ") + \
@@ -36,6 +44,7 @@ FieldQualifies(const string &restriction,
 {
     return restriction.empty() || restriction == field;
 }
+
 
 bool
 EncDesc::restrict(onion o, SECLEVEL maxl)
@@ -80,6 +89,8 @@ EncSet::intersect(const EncSet & es2) const
     }
     return EncSet(m);
 }
+
+
 
 EncSet
 EncSet::chooseOne() const
@@ -167,7 +178,7 @@ scramble_table_name(const char *orig_table_name,
     // A) do an actual mapping
     // B) figure out where to actually allocate the memory for strs
     //    (right now, just putting it in the THD mem pools)
-    string tname0 = tname + "_scrambled";
+    string tname0 = anonymizeTableName(counter++, tname, false);
     char *tname0p = thd->strmake(tname0.c_str(), tname0.size());
     new_table_length = tname0.size();
     return tname0p;
@@ -536,6 +547,7 @@ static class ANON : public CItemSubtypeIT<Item_field, Item::Type::FIELD_ITEM> {
                 }
             }
         }
+
 
         return EncSet(m);
     }

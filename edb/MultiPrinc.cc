@@ -31,28 +31,6 @@ MultiPrinc::~MultiPrinc()
 
 }
 
-string
-fullName(string field, string name)
-{
-    if (isTableField(field)) {
-        return field;
-    } else {
-        return name + "." + field;
-    }
-}
-
-bool
-isTableField(string token)
-{
-    size_t pos = token.find(".");
-
-    if (pos == string::npos) {
-        return false;
-    } else {
-        return true;
-    }
-}
-
 const bool VERBOSE = true;
 
 void

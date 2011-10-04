@@ -54,7 +54,7 @@ public:
     EncSet chooseOne() const;
 
     EncSet intersect(const EncSet & es2) const;
-
+    
     inline bool empty() const { return osl.empty(); }
 
     inline bool singleton() const { return osl.size() == 1; }
