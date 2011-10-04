@@ -155,11 +155,30 @@ operator<<(ostream &out, const OnionLevelFieldPair &p)
     return out;
 }
 
+static inline char *
+scramble_table_name(const char *orig_table_name,
+                    size_t      orig_table_name_length,
+                    size_t     &new_table_length)
+{
+    THD *thd = current_thd;
+    assert(thd);
+    string tname(orig_table_name, orig_table_name_length);
+    // TODO(stephentu):
+    // A) do an actual mapping
+    // B) figure out where to actually allocate the memory for strs
+    //    (right now, just putting it in the THD mem pools)
+    string tname0 = tname + "_scrambled";
+    char *tname0p = thd->strmake(tname0.c_str(), tname0.size());
+    new_table_length = tname0.size();
+    return tname0p;
+}
+
 class CItemType {
  public:
     virtual EncSet do_gather(Item *, const constraints&, Analysis &) const = 0;
     virtual void   do_enforce(Item *, const constraints&, Analysis &) const = 0;
     virtual Item * do_optimize(Item *, Analysis &) const = 0;
+    virtual Item * do_rewrite(Item *, Analysis &) const = 0;
 };
 
 
@@ -186,6 +205,10 @@ class CItemTypeDir : public CItemType {
 
     Item* do_optimize(Item *i, Analysis &a) const {
         return lookup(i)->do_optimize(i, a);
+    }
+
+    Item* do_rewrite(Item *i, Analysis &a) const {
+        return lookup(i)->do_rewrite(i, a);
     }
 
  protected:
@@ -275,6 +298,15 @@ optimize(Item **i, Analysis &a) {
         // deleting the lex
         // delete *i;
 
+        *i = i0;
+    }
+}
+
+// TODO: template this with optimize()
+static inline void
+rewrite(Item **i, Analysis &a) {
+    Item *i0 = itemTypes.do_rewrite(*i, a);
+    if (i0 != *i) {
         *i = i0;
     }
 }
@@ -391,6 +423,16 @@ do_optimize_type_self_and_args(T *i, Analysis &a) {
     }
 }
 
+template <class T>
+static Item *
+do_rewrite_type_args(T *i, Analysis &a) {
+    Item **args = i->arguments();
+    for (uint x = 0; x < i->argument_count(); x++) {
+        rewrite(&args[x], a);
+    }
+    return i;
+}
+
 /*
  * CItemType classes for supported Items: supporting machinery.
  */
@@ -407,12 +449,16 @@ class CItemSubtype : public CItemType {
     virtual Item* do_optimize(Item *i, Analysis & a) const {
         return do_optimize_type((T*) i, a);
     }
+    virtual Item* do_rewrite(Item *i, Analysis & a) const {
+        return do_rewrite_type((T*) i, a);
+    }
  private:
     virtual EncSet do_gather_type(T *, const constraints&, Analysis & a) const = 0;
     virtual void   do_enforce_type(T *, const constraints&, Analysis & a) const = 0;
     virtual Item * do_optimize_type(T *i, Analysis & a) const {
         return do_optimize_const_item(i, a);
     }
+    virtual Item * do_rewrite_type(T *i, Analysis & a) const { return i; }
 };
 
 template<class T, Item::Type TYPE>
@@ -446,6 +492,8 @@ class CItemSubtypeFN : public CItemSubtype<T> {
 static void process_select_lex(st_select_lex *select_lex, const constraints &tr, Analysis & a);
 
 static void optimize_select_lex(st_select_lex *select_lex, Analysis & a);
+
+static void rewrite_select_lex(st_select_lex *select_lex, Analysis & a);
 
 static class ANON : public CItemSubtypeIT<Item_field, Item::Type::FIELD_ITEM> {
 
@@ -514,6 +562,19 @@ static class ANON : public CItemSubtypeIT<Item_field, Item::Type::FIELD_ITEM> {
             a.hasConverged = false;
         }
         cerr << "ENCSET FOR FIELD " << fieldname << " is " << a.fieldToMeta[fieldname]->exposedLevels << "\n";
+    }
+
+    virtual Item *
+    do_rewrite_type(Item_field *i, Analysis & a) const
+    {
+        // fix table name
+        size_t l = 0;
+        i->table_name = scramble_table_name(i->table_name,
+                                            strlen(i->table_name),
+                                            l);
+        // TODO: pick the column corresponding to the onion we want
+
+        return i;
     }
 
 } ANON;
@@ -708,6 +769,9 @@ class CItemCompare : public CItemSubtypeFT<Item_func, FT> {
     virtual Item * do_optimize_type(Item_func *i, Analysis & a) const {
         return do_optimize_type_self_and_args(i, a);
     }
+    virtual Item * do_rewrite_type(Item_func *i, Analysis & a) const {
+        return do_rewrite_type_args(i, a);
+    }
 };
 
 static CItemCompare<Item_func::Functype::EQ_FUNC,    Item_func_eq>    ANON;
@@ -785,6 +849,10 @@ class CItemAdditive : public CItemSubtypeFN<Item_func_additive_op, NAME> {
     }
     virtual Item * do_optimize_type(Item_func_additive_op *i, Analysis & a) const {
         return do_optimize_type_self_and_args(i, a);
+    }
+    virtual Item * do_rewrite_type(Item_func_additive_op *i, Analysis & a) const {
+        // TODO: replace with a hom-add function...
+        return do_rewrite_type_args(i, a);
     }
 };
 
@@ -1380,6 +1448,30 @@ process_select_lex(st_select_lex *select_lex, const constraints &tr, Analysis & 
                           "order", *o->item, 0, select_lex->select_limit ? false : true), a);
 }
 
+// TODO: template this
+static void
+rewrite_select_lex(st_select_lex *select_lex, Analysis & a)
+{
+    auto item_it = List_iterator<Item>(select_lex->item_list);
+    for (;;) {
+        if (!item_it++)
+            break;
+        rewrite(item_it.ref(), a);
+    }
+
+    if (select_lex->where)
+        rewrite(&select_lex->where, a);
+
+    if (select_lex->having)
+        rewrite(&select_lex->having, a);
+
+    for (ORDER *o = select_lex->group_list.first; o; o = o->next)
+        rewrite(o->item, a);
+
+    for (ORDER *o = select_lex->order_list.first; o; o = o->next)
+        rewrite(o->item, a);
+}
+
 static void
 optimize_table_list(List<TABLE_LIST> *tll, Analysis &a)
 {
@@ -1439,6 +1531,36 @@ process_table_list(List<TABLE_LIST> *tll, Analysis & a)
              */
             Analysis a;
             process_select_lex(u->first_select(), constraints(EMPTY_EncSet,  "sub-select", 0, 0, false), a);
+        }
+    }
+}
+
+static void
+rewrite_table_list(List<TABLE_LIST> *tll, Analysis & a)
+{
+
+    List_iterator<TABLE_LIST> join_it(*tll);
+    for (;;) {
+        TABLE_LIST *t = join_it++;
+        if (!t)
+            break;
+
+
+        t->table_name = scramble_table_name(t->table_name,
+                                            t->table_name_length,
+                                            t->table_name_length);
+
+        if (t->nested_join) {
+            rewrite_table_list(&t->nested_join->join_list, a);
+            return;
+        }
+
+        if (t->on_expr)
+            rewrite(&t->on_expr, a);
+
+        if (t->derived) {
+            st_select_lex_unit *u = t->derived;
+            rewrite_select_lex(u->first_select(), a);
         }
     }
 }
@@ -1512,6 +1634,8 @@ int adjustOnions(const std::string &db, const Analysis & analysis)
 static int
 lex_rewrite(const string & db, LEX * lex, Analysis & analysis, ReturnMeta & rmeta)
 {
+    rewrite_table_list(&lex->select_lex.top_join_list, analysis);
+    rewrite_select_lex(&lex->select_lex, analysis);
     return true;
 }
 
