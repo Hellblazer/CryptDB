@@ -17,10 +17,10 @@
 
 #include <parser/embedmysql.hh>
 #include <parser/stringify.hh>
-#include <parser/cdb_rewrite.hh>
 
 #include <util/errstream.hh>
 
+#include <parser/cdb_rewrite.hh>
 
 using namespace std;
 
@@ -46,7 +46,7 @@ main(int ac, char **av)
             "--character-set-server=utf8",
             "--language=" MYSQL_BUILD_DIR "/sql/share/"
     };
-    assert(0 == mysql_server_init(sizeof(mysql_av) / sizeof(mysql_av[0]),
+    assert(0 == mysql_library_init(sizeof(mysql_av) / sizeof(mysql_av[0]),
             (char**) mysql_av, 0));
     assert(0 == mysql_thread_init());
 
