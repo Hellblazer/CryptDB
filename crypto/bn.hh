@@ -9,6 +9,11 @@ class bignum_ctx {
     ~bignum_ctx() { BN_CTX_free(c); }
     BN_CTX *ctx() { return c; }
 
+    static BN_CTX *the_ctx() {
+        static bignum_ctx cx;
+        return cx.ctx();
+    }
+
  private:
     BN_CTX *c;
 };
@@ -49,8 +54,8 @@ class bignum {
 
     op(operator+, BN_add)
     op(operator-, BN_sub)
-    op(operator%, BN_mod, ctx())
-    op(operator*, BN_mul, ctx())
+    op(operator%, BN_mod, bignum_ctx::the_ctx())
+    op(operator*, BN_mul, bignum_ctx::the_ctx())
 #undef op
 
 #define pred(predname, cmp)                                     \
@@ -67,11 +72,6 @@ class bignum {
 
  private:
     BIGNUM b;
-
-    static BN_CTX *ctx() {
-        static bignum_ctx cx;
-        return cx.ctx();
-    }
 };
 
 static inline std::ostream&
