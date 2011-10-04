@@ -12,6 +12,7 @@
 #include <crypto/sha.hh>
 #include <crypto/hmac.hh>
 #include <crypto/paillier.hh>
+#include <crypto/bn.hh>
 #include <util/timer.hh>
 #include <NTL/ZZ.h>
 #include <NTL/RR.h>
@@ -137,12 +138,32 @@ test_paillier()
     assert(pp.decrypt(sum) == (pt0 + pt1));
 }
 
+static void
+test_bn()
+{
+    bignum a(123);
+    bignum b(20);
+    bignum c(78);
+    bignum d(500);
+
+    auto r = (a + b * c) % d;
+    assert(r == 183);
+    assert(r <= 183);
+    assert(r <= 184);
+    assert(r <  184);
+    assert(r >= 183);
+    assert(r >= 181);
+    assert(r >  181);
+}
+
 int
 main(int ac, char **av)
 {
     urandom u;
     cout << u.rand<uint64_t>() << endl;
     cout << u.rand<int64_t>() << endl;
+
+    test_bn();
 
     test_paillier();
 
