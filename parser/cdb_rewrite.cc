@@ -1410,6 +1410,9 @@ optimize_select_lex(st_select_lex *select_lex, Analysis & a)
     if (select_lex->where)
         optimize(&select_lex->where, a);
 
+    if (select_lex->join && select_lex->join->conds)
+        optimize(&select_lex->join->conds, a);
+
     if (select_lex->having)
         optimize(&select_lex->having, a);
 
@@ -1437,6 +1440,9 @@ process_select_lex(st_select_lex *select_lex, const constraints &tr, Analysis & 
     if (select_lex->where)
         analyze(select_lex->where, constraints(FULL_EncSet, "where", select_lex->where, 0), a);
 
+    if (select_lex->join && select_lex->join->conds)
+        analyze(select_lex->join->conds, constraints(FULL_EncSet, "join->conds", select_lex->join->conds, 0), a);
+
     if (select_lex->having)
         analyze(select_lex->having, constraints(FULL_EncSet, "having", select_lex->having, 0), a);
 
@@ -1461,6 +1467,9 @@ rewrite_select_lex(st_select_lex *select_lex, Analysis & a)
 
     if (select_lex->where)
         rewrite(&select_lex->where, a);
+
+    if (select_lex->join && select_lex->join->conds)
+        rewrite(&select_lex->join->conds, a);
 
     if (select_lex->having)
         rewrite(&select_lex->having, a);
