@@ -944,6 +944,7 @@ bool my_yyoverflow(short **a, YYSTYPE **b, ulong *yystacksize);
 %token  ELSE                          /* SQL-2003-R */
 %token  ELSEIF_SYM
 %token  ENABLE_SYM
+%token  ENC_SYM
 %token  ENCLOSED
 %token  END                           /* SQL-2003-R */
 %token  ENDS_SYM
@@ -5663,6 +5664,8 @@ attribute:
           NULL_SYM { Lex->type&= ~ NOT_NULL_FLAG; }
         | not NULL_SYM { Lex->type|= NOT_NULL_FLAG; }
         | DEFAULT now_or_signed_literal { Lex->default_value=$2; }
+	| ENC_SYM { Lex->type|= ENC_FLAG; }
+	| ENC_SYM FOR_SYM field_ident{ Lex->type|= ENC_FLAG; Lex->enc_for_field=$3; }
         | ON UPDATE_SYM NOW_SYM optional_braces
           {
             Item *item= new (YYTHD->mem_root) Item_func_now_local();

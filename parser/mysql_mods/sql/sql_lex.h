@@ -2233,6 +2233,7 @@ struct LEX: public Query_tables_list
   LEX_SERVER_OPTIONS server_options;
   USER_RESOURCES mqh;
   ulong type;
+  LEX_STRING enc_for_field;
   /*
     This variable is used in post-parse stage to declare that sum-functions,
     or functions which have sense only if GROUP BY is present, are allowed.

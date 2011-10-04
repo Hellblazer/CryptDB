@@ -190,6 +190,7 @@ static SYMBOL symbols[] = {
   { "ELSE",             SYM(ELSE)},
   { "ELSEIF",           SYM(ELSEIF_SYM)},
   { "ENABLE",		SYM(ENABLE_SYM)},
+  { "ENC",		SYM(ENC_SYM)},
   { "ENCLOSED",		SYM(ENCLOSED)},
   { "END",		SYM(END)},
   { "ENDS",		SYM(ENDS_SYM)},
@@ -654,7 +655,7 @@ static SYMBOL sql_functions[] = {
   { "TRIM",		SYM(TRIM)},
   { "VARIANCE",		SYM(VARIANCE_SYM)},
   { "VAR_POP",		SYM(VARIANCE_SYM)},
-  { "VAR_SAMP",		SYM(VAR_SAMP_SYM)},
+  { "VAR_SAMP",		SYM(VAR_SAMP_SYM)}
 };
 
 #endif /* LEX_INCLUDED */
