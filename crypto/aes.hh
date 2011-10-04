@@ -1,5 +1,7 @@
 #pragma once
 
+#include <stdint.h>
+#include <assert.h>
 #include <openssl/aes.h>
 #include <vector>
 

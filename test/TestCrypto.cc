@@ -7,8 +7,12 @@
 
 #include <util/cryptdb_log.hh>
 #include <crypto/pbkdf2.hh>
-#include <crypto-old/ECJoin.h>
-#include <test/TestCrypto.h>
+#include <crypto-old/ECJoin.hh>
+#include <test/TestCrypto.hh>
+
+
+using namespace std;
+using namespace NTL;
 
 TestCrypto::TestCrypto()
 {

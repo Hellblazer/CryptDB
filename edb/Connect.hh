@@ -1,3 +1,5 @@
+#pragma once
+
 /*
  * Connect.h
  *
@@ -5,14 +7,10 @@
  *      Author: raluca
  */
 
-#ifndef CONNECT_H_
-#define CONNECT_H_
-
 #include <vector>
 #include <string>
-#include <util/util.h>
+#include <util/util.hh>
 
-using namespace std;
 
 class DBResult {
  private:
@@ -31,15 +29,15 @@ class DBResult {
 class Connect {
  public:
     // dbname is the name of the local db
-    Connect(string server, string user, string passwd,
-            string dbname, uint port = 0);
+    Connect(std::string server, std::string user, std::string passwd,
+            std::string dbname, uint port = 0);
 
     // returns true if execution was ok; caller must delete DBResult
-    bool execute(const string &query, DBResult *&);
-    bool execute(const string &query);
+    bool execute(const std::string &query, DBResult *&);
+    bool execute(const std::string &query);
 
     // returns error message if a query caused error
-    string getError();
+    std::string getError();
 
     my_ulonglong last_insert_id();
 
@@ -52,5 +50,3 @@ class Connect {
     PGconn * conn;     //connection
 #endif
 };
-
-#endif /* CONNECT_H_ */

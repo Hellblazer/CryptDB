@@ -1,3 +1,5 @@
+#pragma once
+
 /*
  * TestAccessManager.h
  *
@@ -5,11 +7,9 @@
  *  Author: cat_red
  */
 
-#include <edb/AccessManager.h>
-#include <test/test_utils.h>
+#include <edb/AccessManager.hh>
+#include <test/test_utils.hh>
 
-#ifndef TESTACCESSMANAGER_H_
-#define TESTACCESSMANAGER
 
 class TestAccessManager {
  public:
@@ -19,5 +19,3 @@ class TestAccessManager {
 
   static void run(const TestConfig &tc, int argc, char ** argv);
 };
-
-#endif /* TESTACCESSMANAGER */

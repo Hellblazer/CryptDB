@@ -1,3 +1,5 @@
+#pragma once
+
 /*
  * Crypto.h
  *
@@ -16,14 +18,12 @@
  *        -- removind a layer of PRP/encryption given by the counter
  */
 
-#ifndef SWPSEARCH_H_
-#define SWPSEARCH_H_
-
-#include <util/util.h>
-#include <crypto-old/Binary.h>
 #include <openssl/aes.h>
 #include <openssl/rand.h>
 #include <list>
+
+#include <crypto-old/Binary.hh>
+
 
 // for all following constants unit is bytes
 
@@ -48,8 +48,8 @@ class SWP {
      * Returns: NULL on problem.
      */
 
-    static list<Binary> * encrypt(const Binary & key,
-                                  const list<Binary> & words);
+    static std::list<Binary> * encrypt(const Binary & key,
+                                  const std::list<Binary> & words);
 
     /*
      * Decrypts each word in the list ciphs.
@@ -59,8 +59,8 @@ class SWP {
      *
      */
 
-    static list<Binary> * decrypt(const Binary & key,
-                                  const list<Binary> & ciphs);
+    static std::list<Binary> * decrypt(const Binary & key,
+                                  const std::list<Binary> & ciphs);
 
     /*
      * Given the secret key and the word to search for, returns the token to
@@ -73,9 +73,9 @@ class SWP {
      * that match the token based on SWP or a boolean indicating whether
      * the value exists in the given ciphertexts or not.
      */
-    static list<unsigned int> * search(const Token & token,
-                                       const list<Binary> & ciphs);
-    static bool searchExists(const Token & token, const list<Binary> & ciphs);
+    static std::list<unsigned int> * search(const Token & token,
+                                       const std::list<Binary> & ciphs);
+    static bool searchExists(const Token & token, const std::list<Binary> & ciphs);
 
     static const bool canDecrypt = (SWPCiphSize % AES_BLOCK_SIZE == 0);
 
@@ -121,5 +121,3 @@ class SWP {
                                Binary & wordKey);
 
 };
-
-#endif /* SWPSEARCH_H_ */

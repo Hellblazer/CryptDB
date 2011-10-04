@@ -5,8 +5,11 @@
  *      Author: raluca
  */
 
-#include <edb/Translator.h>
+#include <edb/Translator.hh>
 #include <util/cryptdb_log.hh>
+
+
+using namespace std;
 
 string
 anonymizeTableName(unsigned int tableNo, string tableName, bool multiPrinc)

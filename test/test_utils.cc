@@ -5,7 +5,10 @@
  *
  */
 
-#include <test/test_utils.h>
+#include <test/test_utils.hh>
+
+
+using namespace std;
 
 void
 PrintRes(const ResType &res)

@@ -151,19 +151,19 @@ class perfsum_base {
     scoped_spinlock x(get_sums_lock());
     auto sums = get_sums();
     std::sort(sums->begin(), sums->end(),
-	      [](perfsum_base *a, perfsum_base *b) { return a->name < b->name; });
+              [](perfsum_base *a, perfsum_base *b) { return a->name < b->name; });
     for (perfsum_base *ps: *sums) {
       if (ps->disp == hide || !ps->get_enabled())
-	continue;
+        continue;
       auto p = ps->get_stats();
       print_row(ps->name, ps->get_names(), w0, w, [](const std::string &name)
-		{ return name; });
+                { return name; });
       print_row("  avg",   p, w0, w, [](const std::pair<uint64_t, uint64_t> &e)
-	        { return ((double) e.second) / (double) e.first; });
+                { return ((double) e.second) / (double) e.first; });
       print_row("  total", p, w0, w, [](const std::pair<uint64_t, uint64_t> &e)
-		{ return e.second; });
+                { return e.second; });
       print_row("  count", p, w0, w, [](const std::pair<uint64_t, uint64_t> &e)
-		{ return e.first; });
+                { return e.first; });
     }
   }
 
@@ -181,7 +181,7 @@ class perfsum_base {
  private:
   template<class Row, class Callback>
   static void print_row(const std::string &rowname, const Row &r,
-			int w0, int w, Callback f)
+                        int w0, int w, Callback f)
   {
     std::cout << std::left << std::setw(w0) << rowname;
     for (const auto &elem: r)
@@ -207,14 +207,14 @@ template<typename Enabler, typename... Counters>
 class perfsum_ctr : public perfsum_base, public Enabler {
  public:
   perfsum_ctr(const ctrgroup_chain<Counters...> *c,
-	      const std::string &n, display_opt d)
+              const std::string &n, display_opt d)
     : perfsum_base(n, d), cg(c), base(0)
   {
     reset();
   }
 
   perfsum_ctr(const std::string &n,
-	      const perfsum_ctr<Enabler, Counters...> *basesum, display_opt d)
+              const perfsum_ctr<Enabler, Counters...> *basesum, display_opt d)
     : perfsum_base(n, d), cg(basesum->cg), base(basesum)
   {
     reset();
@@ -237,10 +237,10 @@ class perfsum_ctr : public perfsum_base, public Enabler {
     std::vector<std::pair<uint64_t, uint64_t> > v;
     for (uint i = 0; i < cg->nctr; i++) {
       uint64_t b =
-	base ? base->addcpus([i](const stats *s) { return s->sum[i]; })
-	     : addcpus([](const stats *s) { return s->count; });
+        base ? base->addcpus([i](const stats *s) { return s->sum[i]; })
+             : addcpus([](const stats *s) { return s->count; });
       v.push_back(std::make_pair(b,
-	addcpus([i](const stats *s) { return s->sum[i]; })));
+        addcpus([i](const stats *s) { return s->sum[i]; })));
     }
     return v;
   }
@@ -285,7 +285,7 @@ class perfsum_ctr_inlinegroup :
 {
  public:
   perfsum_ctr_inlinegroup(const std::string &n, perfsum_base::display_opt d,
-			  Counters*... ctrs)
+                          Counters*... ctrs)
     : ctrgroup_chain<Counters...>(ctrs...),
       perfsum_ctr<Enabler, Counters...>(this, n, d) {}
 };
@@ -293,7 +293,7 @@ class perfsum_ctr_inlinegroup :
 template<typename Enabler = default_enabler, typename... Counters>
 perfsum_ctr<Enabler, Counters...>
 perfsum(const std::string &name, const ctrgroup_chain<Counters...> *c,
-	const perfsum_base::display_opt d = perfsum_base::show)
+        const perfsum_base::display_opt d = perfsum_base::show)
 {
   return perfsum_ctr<Enabler, Counters...>(c, name, d);
 }
@@ -308,7 +308,7 @@ perfsum_group(const std::string &name, Counters*... c)
 template<typename Enabler, typename... Counters>
 perfsum_ctr<Enabler, Counters...>
 perfsum_frac(const std::string &name,
-	     const perfsum_ctr<Enabler, Counters...> *base)
+             const perfsum_ctr<Enabler, Counters...> *base)
 {
   return perfsum_ctr<Enabler, Counters...>(name, base, perfsum_base::show);
 }
@@ -499,10 +499,10 @@ killable_region(perfsum_ctr<Enabler, Counters...> *ps)
  */
 #define __PERF_CONCAT2(a, b)  a ## b
 #define __PERF_CONCAT(a, b)   __PERF_CONCAT2(a, b)
-#define __PERF_ANON	      __PERF_CONCAT(__anon_id_, __COUNTER__)
+#define __PERF_ANON           __PERF_CONCAT(__anon_id_, __COUNTER__)
 
-#define __PERF_REGION(region_var, sum_var, region_type, text, group)	\
-  static auto __PERF_CONCAT(sum_var, _sum) = perfsum(text, group);	\
+#define __PERF_REGION(region_var, sum_var, region_type, text, group)      \
+  static auto __PERF_CONCAT(sum_var, _sum) = perfsum(text, group);        \
   auto region_var = region_type(&__PERF_CONCAT(sum_var, _sum));
 
 #define ANON_REGION(text, group) \

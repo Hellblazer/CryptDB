@@ -22,6 +22,9 @@
 #include <util/cleanup.hh>
 #include <util/rob.hh>
 
+
+using namespace std;
+
 static bool just_strings = false;
 
 #define CIPHER_TYPES(m)                                                 \

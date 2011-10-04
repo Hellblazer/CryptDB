@@ -6,7 +6,10 @@
  */
 
 #include <util/cryptdb_log.hh>
-#include <test/TestProxy.h>
+#include <test/TestProxy.hh>
+
+
+using namespace std;
 
 static int ntest = 0;
 static int npass = 0;
@@ -23,7 +26,7 @@ TestProxy::~TestProxy()
 
 static void
 checkQuery(const TestConfig &tc, Connect * conn, const string &query,
-	   const vector<string> &names, const vector<vector<string>> &rows)
+           const vector<string> &names, const vector<vector<string>> &rows)
 {
     ntest++;
     ResType expected;
@@ -47,23 +50,23 @@ checkQuery(const TestConfig &tc, Connect * conn, const string &query,
 
     DBResult * dbres;
     if (!conn->execute(query, dbres)) {
-	LOG(test) << "Query:" << query << " could not execute";
-	if (tc.stop_if_fail) {
-	    assert_s(false, query + " could not execute");
-	}
-	return;
+        LOG(test) << "Query:" << query << " could not execute";
+        if (tc.stop_if_fail) {
+            assert_s(false, query + " could not execute");
+        }
+        return;
     }
     ResType res = dbres->unpack();
     //PrintRes(res);
     if (!match(res, expected)) {
-	if (tc.stop_if_fail) {
-	    LOG(test) << query << "\nshould have returned:\n";
-	    PrintRes(expected);
-	    LOG(test) << "but actually returned\n";
-	    PrintRes(res);
-	    assert_s(false,query + " returned incorrect result");
-	}
-	return;
+        if (tc.stop_if_fail) {
+            LOG(test) << query << "\nshould have returned:\n";
+            PrintRes(expected);
+            LOG(test) << "but actually returned\n";
+            PrintRes(res);
+            assert_s(false,query + " returned incorrect result");
+        }
+        return;
     }
     npass++;
 }
@@ -72,10 +75,10 @@ static void
 record(const TestConfig &tc, bool result, string test) {
     ntest++;
     if (!result) {
-	if (tc.stop_if_fail) {
-	    assert_s(false, test);
-	}
-	return;
+        if (tc.stop_if_fail) {
+            assert_s(false, test);
+        }
+        return;
     }
     npass++;
 }
@@ -115,16 +118,16 @@ Basic(const TestConfig &tc, Connect *conn) {
 
     //check inserts worked correctly
     checkQuery(tc, conn, "SELECT * FROM t1",
-	       {"id", "name", "age", "pass"},
-	       { {"1", "Lymond", "29", "secretLymond"},
-		 {"2", "Philippa", "20", "secretPippa"},
-		 {"3", "Oonagh O-Dwyer", "30", "secretOonagh"},
-		 {"4", "Phelim O-Liam Roe", "28", "secretPhelim"} });
+               {"id", "name", "age", "pass"},
+               { {"1", "Lymond", "29", "secretLymond"},
+                 {"2", "Philippa", "20", "secretPippa"},
+                 {"3", "Oonagh O-Dwyer", "30", "secretOonagh"},
+                 {"4", "Phelim O-Liam Roe", "28", "secretPhelim"} });
     checkQuery(tc, conn, "SELECT * FROM t2",
-	       {"id", "so", "book"},
-	       { {"1", "3", "Queens Play"},
-		 {"3", "4", "Queens Play"},
-		 {"1", "2", "Checkmate"} });
+               {"id", "so", "book"},
+               { {"1", "3", "Queens Play"},
+                 {"3", "4", "Queens Play"},
+                 {"1", "2", "Checkmate"} });
 
     
 }
@@ -134,52 +137,52 @@ TestProxy::run(const TestConfig &tc, int argc, char ** argv)
 {
     
     if (argc > 2 || ((argc == 2) && (strncmp(argv[1], "help", 4) == 0))) {
-	cerr << "Command should be    $EDBDIR/tests/test proxy [ single | multi | plain ]\nDefault is to test plain" << endl;
-	return;
+        cerr << "Command should be    $EDBDIR/tests/test proxy [ single | multi | plain ]\nDefault is to test plain" << endl;
+        return;
     }
 
     pid_t pid = fork();
     if (pid == 0) {
-	cerr << "child happened" << endl;
-	//run proxy in child
-	string edbdir = getenv("EDBDIR");
-	string script_path = "--proxy-lua-script=" + edbdir + "/../mysqlproxy/wrapper.lua";
-	execl("/usr/local/bin/mysql-proxy", "mysql-proxy", "--plugins=proxy", "--max-open-files=1024", script_path.c_str(), "--proxy-address=localhost:3307", "--proxy-backend-addresses=localhost:3306", (char *) 0);
+        cerr << "child happened" << endl;
+        //run proxy in child
+        string edbdir = getenv("EDBDIR");
+        string script_path = "--proxy-lua-script=" + edbdir + "/../mysqlproxy/wrapper.lua";
+        execl("/usr/local/bin/mysql-proxy", "mysql-proxy", "--plugins=proxy", "--max-open-files=1024", script_path.c_str(), "--proxy-address=localhost:3307", "--proxy-backend-addresses=localhost:3306", (char *) 0);
     } else if (pid < 0) {
-	cerr << "failed to fork" << endl;
-	exit(1);
+        cerr << "failed to fork" << endl;
+        exit(1);
     } else {
-	sleep(1);
-	Connect *conn;
-	conn = new Connect(tc.host, tc.user, tc.pass, tc.db, tc.port);
-	
-	if (argc == 2) {
-	    if (strncmp(argv[1], "single", 6) == 0) {
-		cerr << "Creating single principle tables" << endl;
-		CreateSingle(conn);
-	    } else if (strncmp(argv[1], "multi", 5) == 0) {
-		cerr << "Creating multi principle tables" << endl;
-		CreateMulti(conn);
-	    } else if (strncmp(argv[1], "plain", 5) == 0) {
-		cerr << "Creating plain principle tables" << endl;
-		CreatePlain(conn);
-	    }
-	} else if (argc == 1) {
-	    cerr << "Creating plain principle tables" << endl;
-	    CreatePlain(conn);
-	}
-	
-	cerr << "Test simple queries..." << endl;
-	Basic(tc, conn);
-	//cerr << "Test simple queries (multi principle)..." << endl;
-	//BasicMulti();
+        sleep(1);
+        Connect *conn;
+        conn = new Connect(tc.host, tc.user, tc.pass, tc.db, tc.port);
+        
+        if (argc == 2) {
+            if (strncmp(argv[1], "single", 6) == 0) {
+                cerr << "Creating single principle tables" << endl;
+                CreateSingle(conn);
+            } else if (strncmp(argv[1], "multi", 5) == 0) {
+                cerr << "Creating multi principle tables" << endl;
+                CreateMulti(conn);
+            } else if (strncmp(argv[1], "plain", 5) == 0) {
+                cerr << "Creating plain principle tables" << endl;
+                CreatePlain(conn);
+            }
+        } else if (argc == 1) {
+            cerr << "Creating plain principle tables" << endl;
+            CreatePlain(conn);
+        }
+        
+        cerr << "Test simple queries..." << endl;
+        Basic(tc, conn);
+        //cerr << "Test simple queries (multi principle)..." << endl;
+        //BasicMulti();
     
-	conn->execute("DROP TABLE t1, t2");
-	conn->~Connect();
+        conn->execute("DROP TABLE t1, t2");
+        conn->~Connect();
 
-	cerr << "RESULT: " << npass << "/" << ntest << " passed." << endl;
+        cerr << "RESULT: " << npass << "/" << ntest << " passed." << endl;
 
-	//kill child proxy
-	kill(pid, SIGKILL);
+        //kill child proxy
+        kill(pid, SIGKILL);
     }
 }

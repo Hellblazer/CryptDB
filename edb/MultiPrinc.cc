@@ -3,9 +3,12 @@
  *
  */
 
-#include <edb/MultiPrinc.h>
+#include <edb/MultiPrinc.hh>
 #include <util/ctr.hh>
 #include <util/cryptdb_log.hh>
+
+
+using namespace std;
 
 MultiPrinc::MultiPrinc(Connect * connarg)
 {
@@ -21,7 +24,7 @@ MultiPrinc::~MultiPrinc()
 {
 
     for (auto predIt = mkm.condAccess.begin(); predIt != mkm.condAccess.end(); predIt++) {
-    	assert_s(conn->execute("DROP FUNCTION " + predIt->second->name + ";"), "Failed to drop predicate");
+        assert_s(conn->execute("DROP FUNCTION " + predIt->second->name + ";"), "Failed to drop predicate");
     }
 
     delete accMan;
@@ -76,10 +79,9 @@ MultiPrinc::processAnnotation(list<string>::iterator & wordsIt,
         mkm.encForMap[fullName(currentField, tablename)] = fullName(field2,
                                                                     tablename);
         //cerr << "e\n";
-        LOG(mp) << "==> " <<
-        		fullName(currentField, tablename) << " " << fullName(
-        				field2,
-        				tablename);
+        LOG(mp) << "==> "
+                << fullName(currentField, tablename) << " "
+                << fullName(field2, tablename);
         mkm.reverseEncFor[fullName(field2, tablename)] = true;
         encryptfield = true;
 
@@ -167,7 +169,7 @@ MultiPrinc::processAnnotation(list<string>::iterator & wordsIt,
             assert_s(resacc >=0, "access manager addAccessto failed");
             encryptfield = false;
             if (equalsIgnoreCase(*wordsIt, "if")) {             //predicate
-            	LOG(mp) << "has predicate";
+                LOG(mp) << "has predicate";
                 wordsIt++;                 // go over "if"
                 Predicate * pred = new Predicate();
                 pred->name = *wordsIt;
@@ -562,8 +564,8 @@ MultiPrinc::checkPredicate(const AccessRelation & accRel, map<string, string> & 
 {
     ANON_REGION(__func__, &perf_cg);
 
-	if (mkm.condAccess.find(accRel) != mkm.condAccess.end()) {
-    	Predicate * pred = mkm.condAccess[accRel];
+    if (mkm.condAccess.find(accRel) != mkm.condAccess.end()) {
+        Predicate * pred = mkm.condAccess[accRel];
 
         //need to check correctness of this predicate
         string query = "SELECT " +  pred->name + "( ";

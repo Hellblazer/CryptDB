@@ -9,8 +9,11 @@
  * TODO: add tests for NULL (inserts with some fields null, selects)
  */
 
-#include <test/TestSinglePrinc.h>
+#include <test/TestSinglePrinc.hh>
 #include <util/cryptdb_log.hh>
+
+
+using namespace std;
 
 static int ntest = 0;
 static int npass = 0;
@@ -513,17 +516,17 @@ testSelect(const TestConfig &tc, EDBProxy * cl)
 
     query.push_back("SELECT sum(age) FROM t1 GROUP BY address");
     string rows24[5][1] = { {"sum(age)"},
-			    {"30"},
-			    {"10"},
-			    {"16"},
-			    {"18"} };
+                            {"30"},
+                            {"10"},
+                            {"16"},
+                            {"18"} };
     reply.push_back(convert(rows24,5));
 
     query.push_back("SELECT salary, max(id) FROM t1 GROUP BY salary");
     string rows24a[4][2] = { {"salary", "max(id)"},
-			    {"0", "4"},
-			    {"1000", "2"},
-			    {"100000", "5"} };
+                            {"0", "4"},
+                            {"1000", "2"},
+                            {"100000", "5"} };
     reply.push_back(convert(rows24a,4));
 
     query.push_back("SELECT * FROM t1 GROUP BY age ORDER BY age");
@@ -996,7 +999,7 @@ testSearch(const TestConfig &tc, EDBProxy * cl)
         "DROP TABLE IF EXISTS table0, table1, table2, table3, table4, table5, table6, table7, table8, table9, table10, table11, table12, t3");
 
     assert_res(myCreate(cl, "CREATE TABLE t3 (id integer, searchable enc search text)",
-			"CREATE TABLE t3 (id integer, searchable text)"),
+                        "CREATE TABLE t3 (id integer, searchable text)"),
                  "testSearch couldn't create table");
 
     assert_res(myExecute(cl, "INSERT INTO t3 VALUES (1, 'short text')"),

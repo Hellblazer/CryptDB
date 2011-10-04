@@ -1,18 +1,20 @@
 #pragma once
 
+#include <assert.h>
+
 template<class Hash>
 class hmac {
  public:
-    hmac(const std::string &key) {
+    hmac(const void *keydata, size_t keylen) {
         assert(Hash::blocksize >= Hash::hashsize);
 
         uint8_t k[Hash::blocksize];
         memset(k, 0, sizeof(k));
-        if (key.length() <= Hash::blocksize) {
-            memcpy(k, key.data(), key.length());
+        if (keylen <= Hash::blocksize) {
+            memcpy(k, keydata, keylen);
         } else {
             Hash kh;
-            kh.update(key.data(), key.length());
+            kh.update(keydata, keylen);
             kh.final(k);
         }
 
@@ -44,17 +46,18 @@ class hmac {
         return v;
     }
 
-    static std::vector<uint8_t> mac(const std::vector<uint8_t> &v, const std::string &key) {
-        hmac x(key);
-        x.update(&v[0], v.size());
-        return x.final();
+#define mac_type(DTYPE, KTYPE)                                              \
+    static std::vector<uint8_t> mac(const DTYPE &v, const KTYPE &key) {     \
+        hmac x(&key[0], key.size());                                        \
+        x.update(&v[0], v.size());                                          \
+        return x.final();                                                   \
     }
 
-    static std::vector<uint8_t> mac(const std::string &m, const std::string &key) {
-        hmac x(key);
-        x.update(m.data(), m.length());
-        return x.final();
-    }
+    mac_type(std::string, std::string)
+    mac_type(std::string, std::vector<uint8_t>)
+    mac_type(std::vector<uint8_t>, std::string)
+    mac_type(std::vector<uint8_t>, std::vector<uint8_t>)
+#undef mac_type
 
  private:
     uint8_t opad[Hash::blocksize];

@@ -5,4 +5,10 @@ all:    $(OBJDIR)/libedbutil.so
 $(OBJDIR)/libedbutil.so: $(patsubst %.cc,$(OBJDIR)/util/%.o,$(UTILSRC))
 	$(CXX) -shared -o $@ $^ $(LDFLAGS)
 
+install: install_util
+
+.PHONY: install_util
+install_util: $(OBJDIR)/libedbutil.so
+	install -m 644 $(OBJDIR)/libedbutil.so /usr/lib
+
 # vim: set noexpandtab:
