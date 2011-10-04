@@ -155,10 +155,30 @@ operator<<(ostream &out, const OnionLevelFieldPair &p)
     return out;
 }
 
+static inline char *
+scramble_table_name(const char *orig_table_name,
+                    size_t      orig_table_name_length,
+                    size_t     &new_table_length)
+{
+    THD *thd = current_thd;
+    assert(thd);
+    string tname(orig_table_name, orig_table_name_length);
+    // TODO(stephentu):
+    // A) do an actual mapping
+    // B) figure out where to actually allocate the memory for strs
+    //    (right now, just putting it in the THD mem pools)
+    string tname0 = tname + "_scrambled";
+    char *tname0p = thd->strmake(tname0.c_str(), tname0.size());
+    new_table_length = tname0.size();
+    return tname0p;
+}
+
 class CItemType {
  public:
     virtual EncSet do_gather(Item *, const constraints&, Analysis &) const = 0;
     virtual void   do_enforce(Item *, const constraints&, Analysis &) const = 0;
+    virtual Item * do_optimize(Item *, Analysis &) const = 0;
+    virtual Item * do_rewrite(Item *, Analysis &) const = 0;
 };
 
 
@@ -180,7 +200,15 @@ class CItemTypeDir : public CItemType {
     }
 
     void do_enforce(Item *i, const constraints &tr, Analysis &a) const {
-        return lookup(i)->do_enforce(i, tr, a);
+        lookup(i)->do_enforce(i, tr, a);
+    }
+
+    Item* do_optimize(Item *i, Analysis &a) const {
+        return lookup(i)->do_optimize(i, a);
+    }
+
+    Item* do_rewrite(Item *i, Analysis &a) const {
+        return lookup(i)->do_rewrite(i, a);
     }
 
  protected:
@@ -260,6 +288,151 @@ analyze(Item *i, const constraints &tr, Analysis & a)
     enforce(i, tr.clone_with(e), a);
 }
 
+static inline void
+optimize(Item **i, Analysis &a) {
+    Item *i0 = itemTypes.do_optimize(*i, a);
+    if (i0 != *i) {
+        // item i was optimized (replaced) by i0
+
+        // don't delete explicitly, b/c this is handled by
+        // deleting the lex
+        // delete *i;
+
+        *i = i0;
+    }
+}
+
+// TODO: template this with optimize()
+static inline void
+rewrite(Item **i, Analysis &a) {
+    Item *i0 = itemTypes.do_rewrite(*i, a);
+    if (i0 != *i) {
+        *i = i0;
+    }
+}
+
+extern "C" void *create_embedded_thd(int client_flag);
+
+template <class T>
+static Item *
+do_optimize_const_item(T *i, Analysis &a) {
+    if (i->const_item()) {
+        // ask embedded DB to eval this const item,
+        // then replace this item with the eval-ed constant
+        //
+        // WARNING: we must make sure that the primitives like
+        // int literals, string literals, override this method
+        // and not ask the server.
+
+        // very hacky...
+        stringstream buf;
+        buf << "SELECT " << *i;
+        string q(buf.str());
+
+        MYSQL *m = a.conn();
+        if (mysql_query(m, q.c_str()))
+            fatal() << "mysql_query: " << mysql_error(m);
+
+        // HACK(stephentu):
+        // Calling mysql_query seems to have destructive effects
+        // on the current_thd. Thus, we must call create_embedded_thd
+        // again.
+        assert(create_embedded_thd(0));
+        assert(current_thd != NULL);
+
+        MYSQL_RES *r = mysql_store_result(m);
+        if (r) {
+            Item *rep = NULL;
+
+            assert(mysql_num_rows(r) == 1);
+            assert(mysql_num_fields(r) == 1);
+
+            MYSQL_FIELD *field = mysql_fetch_field_direct(r, 0);
+            assert(field != NULL);
+
+            MYSQL_ROW row = mysql_fetch_row(r);
+            assert(row != NULL);
+
+            char *p = row[0];
+            if (p) {
+
+//enum enum_field_types { MYSQL_TYPE_DECIMAL, MYSQL_TYPE_TINY,
+//            MYSQL_TYPE_SHORT,  MYSQL_TYPE_LONG,
+//            MYSQL_TYPE_FLOAT,  MYSQL_TYPE_DOUBLE,
+//            MYSQL_TYPE_NULL,   MYSQL_TYPE_TIMESTAMP,
+//            MYSQL_TYPE_LONGLONG,MYSQL_TYPE_INT24,
+//            MYSQL_TYPE_DATE,   MYSQL_TYPE_TIME,
+//            MYSQL_TYPE_DATETIME, MYSQL_TYPE_YEAR,
+//            MYSQL_TYPE_NEWDATE, MYSQL_TYPE_VARCHAR,
+//            MYSQL_TYPE_BIT,
+//                        MYSQL_TYPE_NEWDECIMAL=246,
+//            MYSQL_TYPE_ENUM=247,
+//            MYSQL_TYPE_SET=248,
+//            MYSQL_TYPE_TINY_BLOB=249,
+//            MYSQL_TYPE_MEDIUM_BLOB=250,
+//            MYSQL_TYPE_LONG_BLOB=251,
+//            MYSQL_TYPE_BLOB=252,
+//            MYSQL_TYPE_VAR_STRING=253,
+//            MYSQL_TYPE_STRING=254,
+//            MYSQL_TYPE_GEOMETRY=255
+//};
+
+                switch (field->type) {
+                    case MYSQL_TYPE_SHORT:
+                    case MYSQL_TYPE_LONG:
+                    case MYSQL_TYPE_LONGLONG:
+                    case MYSQL_TYPE_INT24:
+                        {
+                            long long int v = strtoll(p, NULL, 10);
+                            rep = new Item_int(v);
+                        }
+                        break;
+
+                    default:
+                        // TODO(stephentu): implement the rest of the data types
+                        break;
+                }
+            } else {
+                // this represents NULL
+                rep = new Item_null();
+            }
+            mysql_free_result(r);
+            if (rep != NULL) return rep;
+        } else {
+            // some error in dealing with the DB
+            cerr << "could not retrieve result set" << endl;
+        }
+    }
+    return i;
+}
+
+template <class T>
+static Item *
+do_optimize_type_self_and_args(T *i, Analysis &a) {
+    Item *i0 = do_optimize_const_item(i, a);
+    if (i0 == i) {
+        // no optimizations done at top level
+        // try children
+        Item **args = i->arguments();
+        for (uint x = 0; x < i->argument_count(); x++) {
+            optimize(&args[x], a);
+        }
+        return i;
+    } else {
+        return i0;
+    }
+}
+
+template <class T>
+static Item *
+do_rewrite_type_args(T *i, Analysis &a) {
+    Item **args = i->arguments();
+    for (uint x = 0; x < i->argument_count(); x++) {
+        rewrite(&args[x], a);
+    }
+    return i;
+}
+
 /*
  * CItemType classes for supported Items: supporting machinery.
  */
@@ -273,10 +446,19 @@ class CItemSubtype : public CItemType {
         cerr << "CItemSubtype do_enforce " << *i << " encset " << tr.encset << "\n";
         do_enforce_type((T*) i, tr, a);
     }
-
+    virtual Item* do_optimize(Item *i, Analysis & a) const {
+        return do_optimize_type((T*) i, a);
+    }
+    virtual Item* do_rewrite(Item *i, Analysis & a) const {
+        return do_rewrite_type((T*) i, a);
+    }
  private:
     virtual EncSet do_gather_type(T *, const constraints&, Analysis & a) const = 0;
     virtual void   do_enforce_type(T *, const constraints&, Analysis & a) const = 0;
+    virtual Item * do_optimize_type(T *i, Analysis & a) const {
+        return do_optimize_const_item(i, a);
+    }
+    virtual Item * do_rewrite_type(T *i, Analysis & a) const { return i; }
 };
 
 template<class T, Item::Type TYPE>
@@ -308,6 +490,10 @@ class CItemSubtypeFN : public CItemSubtype<T> {
  * Actual item handlers.
  */
 static void process_select_lex(st_select_lex *select_lex, const constraints &tr, Analysis & a);
+
+static void optimize_select_lex(st_select_lex *select_lex, Analysis & a);
+
+static void rewrite_select_lex(st_select_lex *select_lex, Analysis & a);
 
 static class ANON : public CItemSubtypeIT<Item_field, Item::Type::FIELD_ITEM> {
 
@@ -378,6 +564,19 @@ static class ANON : public CItemSubtypeIT<Item_field, Item::Type::FIELD_ITEM> {
         cerr << "ENCSET FOR FIELD " << fieldname << " is " << a.fieldToMeta[fieldname]->exposedLevels << "\n";
     }
 
+    virtual Item *
+    do_rewrite_type(Item_field *i, Analysis & a) const
+    {
+        // fix table name
+        size_t l = 0;
+        i->table_name = scramble_table_name(i->table_name,
+                                            strlen(i->table_name),
+                                            l);
+        // TODO: pick the column corresponding to the onion we want
+
+        return i;
+    }
+
 } ANON;
 
 static class ANON : public CItemSubtypeIT<Item_string, Item::Type::STRING_ITEM> {
@@ -400,6 +599,9 @@ static class ANON : public CItemSubtypeIT<Item_string, Item::Type::STRING_ITEM> 
         im->o         = c.first;
         im->uptolevel = c.second.first;
         im->basekey   = c.second.second;
+    }
+    virtual Item * do_optimize_type(Item_string *i, Analysis & a) const {
+        return i;
     }
 } ANON;
 
@@ -424,6 +626,9 @@ static class ANON : public CItemSubtypeIT<Item_num, Item::Type::INT_ITEM> {
         im->uptolevel = c.second.first;
         im->basekey   = c.second.second;
     }
+    virtual Item * do_optimize_type(Item_num *i, Analysis & a) const {
+        return i;
+    }
 } ANON;
 
 static class ANON : public CItemSubtypeIT<Item_decimal, Item::Type::DECIMAL_ITEM> {
@@ -447,6 +652,9 @@ static class ANON : public CItemSubtypeIT<Item_decimal, Item::Type::DECIMAL_ITEM
         im->uptolevel = c.second.first;
         im->basekey   = c.second.second;
     }
+    virtual Item * do_optimize_type(Item_decimal *i, Analysis & a) const {
+        return i;
+    }
 } ANON;
 
 static class ANON : public CItemSubtypeFT<Item_func_neg, Item_func::Functype::NEG_FUNC> {
@@ -456,6 +664,9 @@ static class ANON : public CItemSubtypeFT<Item_func_neg, Item_func::Functype::NE
     virtual void do_enforce_type(Item_func_neg *i, const constraints &tr, Analysis & a) const {
         enforce(i->arguments()[0], tr, a);
     }
+    virtual Item * do_optimize_type(Item_func_neg *i, Analysis & a) const {
+        return do_optimize_type_self_and_args(i, a);
+    }
 } ANON;
 
 static class ANON : public CItemSubtypeFT<Item_func_not, Item_func::Functype::NOT_FUNC> {
@@ -464,6 +675,9 @@ static class ANON : public CItemSubtypeFT<Item_func_not, Item_func::Functype::NO
     }
     virtual void do_enforce_type(Item_func_not *i, const constraints &tr, Analysis & a) const {
         enforce(i->arguments()[0], tr, a);
+    }
+    virtual Item * do_optimize_type(Item_func_not *i, Analysis & a) const {
+        return do_optimize_type_self_and_args(i, a);
     }
 } ANON;
 
@@ -475,6 +689,10 @@ static class ANON : public CItemSubtypeIT<Item_subselect, Item::Type::SUBSELECT_
     }
     virtual void do_enforce_type(Item_subselect *i, const constraints &tr, Analysis & a) const
     {}
+    virtual Item * do_optimize_type(Item_subselect *i, Analysis & a) const {
+        optimize_select_lex(i->get_select_lex(), a);
+        return i;
+    }
 } ANON;
 
 extern const char str_in_optimizer[] = "<in_optimizer>";
@@ -489,6 +707,9 @@ static class ANON : public CItemSubtypeFN<Item_in_optimizer, str_in_optimizer> {
     }
     virtual void do_enforce_type(Item_in_optimizer *i, const constraints &tr, Analysis & a) const
     {}
+    virtual Item * do_optimize_type(Item_in_optimizer *i, Analysis & a) const {
+        return do_optimize_type_self_and_args(i, a);
+    }
 } ANON;
 
 static class ANON : public CItemSubtypeIT<Item_cache, Item::Type::CACHE_ITEM> {
@@ -500,6 +721,10 @@ static class ANON : public CItemSubtypeIT<Item_cache, Item::Type::CACHE_ITEM> {
     }
     virtual void do_enforce_type(Item_cache *i, const constraints &tr, Analysis & a) const
     {}
+    virtual Item * do_optimize_type(Item_cache *i, Analysis & a) const {
+        // TODO(stephentu): figure out how to use rob here
+        return i;
+    }
 } ANON;
 
 template<Item_func::Functype FT, class IT>
@@ -541,6 +766,12 @@ class CItemCompare : public CItemSubtypeFT<Item_func, FT> {
         enforce(args[0], constraints(tr.encset, reason, i, &tr), a);
         enforce(args[1], constraints(tr.encset, reason, i, &tr), a);
     }
+    virtual Item * do_optimize_type(Item_func *i, Analysis & a) const {
+        return do_optimize_type_self_and_args(i, a);
+    }
+    virtual Item * do_rewrite_type(Item_func *i, Analysis & a) const {
+        return do_rewrite_type_args(i, a);
+    }
 };
 
 static CItemCompare<Item_func::Functype::EQ_FUNC,    Item_func_eq>    ANON;
@@ -568,6 +799,9 @@ class CItemCond : public CItemSubtypeFT<Item_cond, FT> {
     }
     virtual void do_enforce_type(Item_cond *i, const constraints &tr, Analysis & a) const
     {}
+    virtual Item * do_optimize_type(Item_cond *i, Analysis & a) const {
+        return do_optimize_type_self_and_args(i, a);
+    }
 };
 
 static CItemCond<Item_func::Functype::COND_AND_FUNC, Item_cond_and> ANON;
@@ -583,6 +817,9 @@ class CItemNullcheck : public CItemSubtypeFT<Item_bool_func, FT> {
     }
     virtual void do_enforce_type(Item_bool_func *i, const constraints &tr, Analysis & a) const
     {}
+    virtual Item * do_optimize_type(Item_bool_func *i, Analysis & a) const {
+        return do_optimize_type_self_and_args(i, a);
+    }
 };
 
 static CItemNullcheck<Item_func::Functype::ISNULL_FUNC> ANON;
@@ -610,6 +847,13 @@ class CItemAdditive : public CItemSubtypeFN<Item_func_additive_op, NAME> {
         enforce(args[0], constraints(tr.encset, "additive", i, &tr), a);
         enforce(args[1], constraints(tr.encset, "additive", i, &tr), a);
     }
+    virtual Item * do_optimize_type(Item_func_additive_op *i, Analysis & a) const {
+        return do_optimize_type_self_and_args(i, a);
+    }
+    virtual Item * do_rewrite_type(Item_func_additive_op *i, Analysis & a) const {
+        // TODO: replace with a hom-add function...
+        return do_rewrite_type_args(i, a);
+    }
 };
 
 extern const char str_plus[] = "+";
@@ -628,6 +872,9 @@ class CItemMath : public CItemSubtypeFN<Item_func, NAME> {
     }
     virtual void do_enforce_type(Item_func *i, const constraints &tr, Analysis & a) const
     {}
+    virtual Item * do_optimize_type(Item_func *i, Analysis & a) const {
+        return do_optimize_type_self_and_args(i, a);
+    }
 };
 
 extern const char str_mul[] = "*";
@@ -675,6 +922,9 @@ static class ANON : public CItemSubtypeFN<Item_func_if, str_if> {
     }
     virtual void do_enforce_type(Item_func_if *i, const constraints &tr, Analysis & a) const
     {}
+    virtual Item * do_optimize_type(Item_func_if *i, Analysis & a) const {
+        return do_optimize_type_self_and_args(i, a);
+    }
 } ANON;
 
 extern const char str_nullif[] = "nullif";
@@ -691,6 +941,9 @@ static class ANON : public CItemSubtypeFN<Item_func_nullif, str_nullif> {
         for (uint x = 0; x < i->argument_count(); x++)
             enforce(args[x], constraints(tr.encset, "nullif", i, &tr), a);
     }
+    virtual Item * do_optimize_type(Item_func_nullif *i, Analysis & a) const {
+        return do_optimize_type_self_and_args(i, a);
+    }
 } ANON;
 
 extern const char str_coalesce[] = "coalesce";
@@ -703,6 +956,9 @@ static class ANON : public CItemSubtypeFN<Item_func_coalesce, str_coalesce> {
     }
     virtual void do_enforce_type(Item_func_coalesce *i, const constraints &tr, Analysis & a) const
     {}
+    virtual Item * do_optimize_type(Item_func_coalesce *i, Analysis & a) const {
+        return do_optimize_type_self_and_args(i, a);
+    }
 } ANON;
 
 extern const char str_case[] = "case";
@@ -735,6 +991,9 @@ static class ANON : public CItemSubtypeFN<Item_func_case, str_case> {
     }
     virtual void do_enforce_type(Item_func_case *i, const constraints &tr, Analysis & a) const
     {}
+    virtual Item * do_optimize_type(Item_func_case *i, Analysis & a) const {
+        return do_optimize_type_self_and_args(i, a);
+    }
 } ANON;
 
 template<const char *NAME>
@@ -747,6 +1006,9 @@ class CItemStrconv : public CItemSubtypeFN<Item_str_conv, NAME> {
     }
     virtual void do_enforce_type(Item_str_conv *i, const constraints &tr, Analysis & a) const
     {}
+    virtual Item * do_optimize_type(Item_str_conv *i, Analysis & a) const {
+        return do_optimize_type_self_and_args(i, a);
+    }
 };
 
 extern const char str_lcase[] = "lcase";
@@ -804,6 +1066,9 @@ static class ANON : public CItemSubtypeFT<Item_extract, Item_func::Functype::EXT
     }
     virtual void do_enforce_type(Item_extract *i, const constraints &tr, Analysis & a) const
     {}
+    virtual Item * do_optimize_type(Item_extract *i, Analysis & a) const {
+        return do_optimize_type_self_and_args(i, a);
+    }
 } ANON;
 
 template<const char *NAME>
@@ -818,6 +1083,9 @@ class CItemDateExtractFunc : public CItemSubtypeFN<Item_int_func, NAME> {
     }
     virtual void do_enforce_type(Item_int_func *i, const constraints &tr, Analysis & a) const
     {}
+    virtual Item * do_optimize_type(Item_int_func *i, Analysis & a) const {
+        return do_optimize_type_self_and_args(i, a);
+    }
 };
 
 extern const char str_second[] = "second";
@@ -856,6 +1124,9 @@ static class ANON : public CItemSubtypeFN<Item_date_add_interval, str_date_add_i
     }
     virtual void do_enforce_type(Item_date_add_interval *i, const constraints &tr, Analysis & a) const
     {}
+    virtual Item * do_optimize_type(Item_date_add_interval *i, Analysis & a) const {
+        return do_optimize_type_self_and_args(i, a);
+    }
 } ANON;
 
 template<const char *NAME>
@@ -886,6 +1157,9 @@ class CItemBitfunc : public CItemSubtypeFN<Item_func_bit, NAME> {
     }
     virtual void do_enforce_type(Item_func_bit *i, const constraints &tr, Analysis & a) const
     {}
+    virtual Item * do_optimize_type(Item_func_bit *i, Analysis & a) const {
+        return do_optimize_type_self_and_args(i, a);
+    }
 };
 
 extern const char str_bit_not[] = "~";
@@ -923,6 +1197,9 @@ static class ANON : public CItemSubtypeFT<Item_func_like, Item_func::Functype::L
     }
     virtual void do_enforce_type(Item_func_like *i, const constraints &tr, Analysis & a) const
     {}
+    virtual Item * do_optimize_type(Item_func_like *i, Analysis & a) const {
+        return do_optimize_type_self_and_args(i, a);
+    }
 } ANON;
 
 static class ANON : public CItemSubtypeFT<Item_func, Item_func::Functype::FUNC_SP> {
@@ -944,6 +1221,9 @@ static class ANON : public CItemSubtypeFT<Item_func_in, Item_func::Functype::IN_
     }
     virtual void do_enforce_type(Item_func_in *i, const constraints &tr, Analysis & a) const
     {}
+    virtual Item * do_optimize_type(Item_func_in *i, Analysis & a) const {
+        return do_optimize_type_self_and_args(i, a);
+    }
 } ANON;
 
 static class ANON : public CItemSubtypeFT<Item_func_in, Item_func::Functype::BETWEEN> {
@@ -955,6 +1235,9 @@ static class ANON : public CItemSubtypeFT<Item_func_in, Item_func::Functype::BET
     }
     virtual void do_enforce_type(Item_func_in *i, const constraints &tr, Analysis & a) const
     {}
+    virtual Item * do_optimize_type(Item_func_in *i, Analysis & a) const {
+        return do_optimize_type_self_and_args(i, a);
+    }
 } ANON;
 
 template<const char *FN>
@@ -968,6 +1251,9 @@ class CItemMinMax : public CItemSubtypeFN<Item_func_min_max, FN> {
     }
     virtual void do_enforce_type(Item_func_min_max *i, const constraints &tr, Analysis & a) const
     {}
+    virtual Item * do_optimize_type(Item_func_min_max *i, Analysis & a) const {
+        return do_optimize_type_self_and_args(i, a);
+    }
 };
 
 extern const char str_greatest[] = "greatest";
@@ -987,6 +1273,9 @@ static class ANON : public CItemSubtypeFN<Item_func_strcmp, str_strcmp> {
     }
     virtual void do_enforce_type(Item_func_strcmp *i, const constraints &tr, Analysis & a) const
     {}
+    virtual Item * do_optimize_type(Item_func_strcmp *i, Analysis & a) const {
+        return do_optimize_type_self_and_args(i, a);
+    }
 } ANON;
 
 template<Item_sum::Sumfunctype SFT>
@@ -1062,6 +1351,7 @@ static class ANON : public CItemSubtypeST<Item_func_group_concat, Item_sum::Sumf
     }
     virtual void do_enforce_type(Item_func_group_concat *i, const constraints &tr, Analysis & a) const
     {}
+    // TODO(stephentu): figure out how to rob the arg fields for optimization
 } ANON;
 
 static class ANON : public CItemSubtypeFT<Item_char_typecast, Item_func::Functype::CHAR_TYPECAST_FUNC> {
@@ -1082,6 +1372,9 @@ static class ANON : public CItemSubtypeFN<Item_func_signed, str_cast_as_signed> 
     }
     virtual void do_enforce_type(Item_func_signed *i, const constraints &tr, Analysis & a) const
     {}
+    virtual Item * do_optimize_type(Item_func_signed *i, Analysis & a) const {
+        return do_optimize_type_self_and_args(i, a);
+    }
 } ANON;
 
 static class ANON : public CItemSubtypeIT<Item_ref, Item::Type::REF_ITEM> {
@@ -1103,6 +1396,33 @@ static class ANON : public CItemSubtypeIT<Item_ref, Item::Type::REF_ITEM> {
 /*
  * Some helper functions.
  */
+
+static void
+optimize_select_lex(st_select_lex *select_lex, Analysis & a)
+{
+    auto item_it = List_iterator<Item>(select_lex->item_list);
+    for (;;) {
+        if (!item_it++)
+            break;
+        optimize(item_it.ref(), a);
+    }
+
+    if (select_lex->where)
+        optimize(&select_lex->where, a);
+
+    if (select_lex->join && select_lex->join->conds)
+        optimize(&select_lex->join->conds, a);
+
+    if (select_lex->having)
+        optimize(&select_lex->having, a);
+
+    for (ORDER *o = select_lex->group_list.first; o; o = o->next)
+        optimize(o->item, a);
+
+    for (ORDER *o = select_lex->order_list.first; o; o = o->next)
+        optimize(o->item, a);
+}
+
 static void
 process_select_lex(st_select_lex *select_lex, const constraints &tr, Analysis & a)
 {
@@ -1120,6 +1440,9 @@ process_select_lex(st_select_lex *select_lex, const constraints &tr, Analysis & 
     if (select_lex->where)
         analyze(select_lex->where, constraints(FULL_EncSet, "where", select_lex->where, 0), a);
 
+    if (select_lex->join && select_lex->join->conds)
+        analyze(select_lex->join->conds, constraints(FULL_EncSet, "join->conds", select_lex->join->conds, 0), a);
+
     if (select_lex->having)
         analyze(select_lex->having, constraints(FULL_EncSet, "having", select_lex->having, 0), a);
 
@@ -1129,6 +1452,57 @@ process_select_lex(st_select_lex *select_lex, const constraints &tr, Analysis & 
     for (ORDER *o = select_lex->order_list.first; o; o = o->next)
         analyze(*o->item, constraints(ORD_EncSet,
                           "order", *o->item, 0, select_lex->select_limit ? false : true), a);
+}
+
+// TODO: template this
+static void
+rewrite_select_lex(st_select_lex *select_lex, Analysis & a)
+{
+    auto item_it = List_iterator<Item>(select_lex->item_list);
+    for (;;) {
+        if (!item_it++)
+            break;
+        rewrite(item_it.ref(), a);
+    }
+
+    if (select_lex->where)
+        rewrite(&select_lex->where, a);
+
+    if (select_lex->join && select_lex->join->conds)
+        rewrite(&select_lex->join->conds, a);
+
+    if (select_lex->having)
+        rewrite(&select_lex->having, a);
+
+    for (ORDER *o = select_lex->group_list.first; o; o = o->next)
+        rewrite(o->item, a);
+
+    for (ORDER *o = select_lex->order_list.first; o; o = o->next)
+        rewrite(o->item, a);
+}
+
+static void
+optimize_table_list(List<TABLE_LIST> *tll, Analysis &a)
+{
+    List_iterator<TABLE_LIST> join_it(*tll);
+    for (;;) {
+        TABLE_LIST *t = join_it++;
+        if (!t)
+            break;
+
+        if (t->nested_join) {
+            optimize_table_list(&t->nested_join->join_list, a);
+            return;
+        }
+
+        if (t->on_expr)
+            optimize(&t->on_expr, a);
+
+        if (t->derived) {
+            st_select_lex_unit *u = t->derived;
+            optimize_select_lex(u->first_select(), a);
+        }
+    }
 }
 
 static void
@@ -1171,6 +1545,36 @@ process_table_list(List<TABLE_LIST> *tll, Analysis & a)
 }
 
 static void
+rewrite_table_list(List<TABLE_LIST> *tll, Analysis & a)
+{
+
+    List_iterator<TABLE_LIST> join_it(*tll);
+    for (;;) {
+        TABLE_LIST *t = join_it++;
+        if (!t)
+            break;
+
+
+        t->table_name = scramble_table_name(t->table_name,
+                                            t->table_name_length,
+                                            t->table_name_length);
+
+        if (t->nested_join) {
+            rewrite_table_list(&t->nested_join->join_list, a);
+            return;
+        }
+
+        if (t->on_expr)
+            rewrite(&t->on_expr, a);
+
+        if (t->derived) {
+            st_select_lex_unit *u = t->derived;
+            rewrite_select_lex(u->first_select(), a);
+        }
+    }
+}
+
+static void
 do_query_analyze(const std::string &db, const std::string &q, LEX * lex, Analysis & analysis) {
     // iterate over the entire select statement..
     // based on st_select_lex::print in mysql-server/sql/sql_select.cc
@@ -1202,7 +1606,10 @@ do_query_analyze(const std::string &db, const std::string &q, LEX * lex, Analysi
 static void
 query_analyze(const std::string &db, const std::string &q, LEX * lex, Analysis & analysis)
 {
-    cerr << "in query_analyze\n";
+    // optimize the query first
+    optimize_table_list(&lex->select_lex.top_join_list, analysis);
+    optimize_select_lex(&lex->select_lex, analysis);
+
     //runs at most twice
     while (!analysis.hasConverged) {
         analysis.hasConverged = true;
@@ -1236,6 +1643,8 @@ int adjustOnions(const std::string &db, const Analysis & analysis)
 static int
 lex_rewrite(const string & db, LEX * lex, Analysis & analysis, ReturnMeta & rmeta)
 {
+    rewrite_table_list(&lex->select_lex.top_join_list, analysis);
+    rewrite_select_lex(&lex->select_lex, analysis);
     return true;
 }
 
