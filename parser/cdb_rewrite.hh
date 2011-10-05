@@ -3,14 +3,13 @@
 /*
  * cdb_rewrite.hh
  *
- *  Created on: Sep 29, 2011
- *      Author: raluca
  *
  *  TODO: need to integrate it with util.h: some declarations are repeated
  */
 
 #include <util/onions.hh>
 
+using namespace std;
 
 /**
  * Field here is either:
@@ -21,7 +20,6 @@
 typedef std::pair<SECLEVEL, std::string> LevelFieldPair;
 typedef std::map<onion, LevelFieldPair>  OnionLevelFieldMap;
 typedef std::pair<onion, LevelFieldPair> OnionLevelFieldPair;
-
 typedef std::map<onion, SECLEVEL>        OnionLevelMap;
 
 /**
@@ -30,7 +28,7 @@ typedef std::map<onion, SECLEVEL>        OnionLevelMap;
 class EncDesc {
 public:
     EncDesc(OnionLevelMap input) : olm(input) {}
-
+    EncDesc(const EncDesc & ed): olm(ed.olm) {}
     /**
      * Returns true if something was changed, false otherwise.
      */
@@ -117,10 +115,68 @@ const EncSet EMPTY_EncSet = {
 };
 
 
-class FieldMeta {
+/******* ENCRYPTED SCHEMA INFORMATION ********/
+
+
+//TODO: FieldMeta and TableMeta are partly duplicates with the original
+// FieldMetadata an TableMetadata
+// which contains data we want to add to this structure soon
+// we can remove old ones when we have needed functionality here
+typedef struct FieldMeta {
+
+    bool isEncrypted;     //indicates if this field is encrypted or not
+    bool can_be_null;
+		     
+    
+    fieldType type;
+    std::string fieldName;
+
+    enum_field_types mysql_type;
+
+    map<onion, string> onionnames;
+    EncDesc encdesc;
+    
+    bool has_salt; //whether this field has its own salt
+    std::string salt_name;
+
+    FieldMeta();
+
+} FieldMeta;
+
+
+typedef struct TableMeta {
+   
+    std::list<std::string> fieldNames;     //in order field names
+    unsigned int tableNo;
+    std::string anonTableName;
+   
+    std::map<std::string, FieldMeta *> fieldMetaMap;
+
+    bool has_salt;
+    std::string salt_name;
+
+
+    bool hasEncrypted;     //true if the table contains an encrypted field
+
+    TableMeta();
+    ~TableMeta();
+} TableMeta;
+
+
+typedef struct SchemaInfo {
+    std::map<std::string, TableMeta *> tableMetaMap;
+    unsigned int totalTables;
+    SchemaInfo():totalTables(0) {};
+} SchemaInfo;
+
+/***************************************************/
+
+
+// metadata for field analysis
+class FieldAMeta {
 public:
     EncDesc exposedLevels; //field identifier to max sec level allowed to process a query
-    FieldMeta(const EncDesc & ed) : exposedLevels(ed) {}
+    FieldAMeta(const EncDesc & ed) : exposedLevels(ed) {}
 };
 
 //Metadata about how to encrypt an item
@@ -133,7 +189,7 @@ public:
 
 class Analysis {
 public:
-    Analysis() : hasConverged(false) {
+    Analysis(SchemaInfo * schema) : hasConverged(false), schema(schema) {
         // create mysql connection to embedded
         // server
         m = mysql_init(0);
@@ -145,6 +201,8 @@ public:
         }
     }
 
+   
+
     ~Analysis() {
         mysql_close(m);
     }
@@ -154,10 +212,13 @@ public:
         return m;
     }
 
-    std::map<std::string, FieldMeta *> fieldToMeta;
+    std::map<std::string, FieldAMeta *> fieldToAMeta;
     std::map<Item*, ItemMeta *> itemToMeta;
 
     bool hasConverged;
+    SchemaInfo * schema;
+    
+
 
 private:
     MYSQL *m;
@@ -210,6 +271,7 @@ public:
     }
 
     EncSet encset;
+    SchemaInfo * schema;
 
     bool soft;      /* can be evaluated at proxy */
 
@@ -219,4 +281,19 @@ public:
     const constraints *parent;
 };
 
-std::string rewrite(const std::string &db, const std::string &q, ReturnMeta &rmeta);
+
+class Rewriter {
+
+public:
+    Rewriter(const std::string & db);
+    std::string rewrite(const std::string &q, ReturnMeta &rmeta);    
+private:
+
+    string db;
+    
+    SchemaInfo *  schema;
+    
+    unsigned int totalTables;
+    unsigned int totalIndexes;
+
+};

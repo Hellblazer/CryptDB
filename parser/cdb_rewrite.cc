@@ -28,9 +28,6 @@
 #include <parser/cdb_rewrite.hh>
 
 
-static unsigned int counter = 0;
-
-
 
 #define UNIMPLEMENTED \
     throw runtime_error(string("Unimplemented: ") + \
@@ -167,10 +164,11 @@ operator<<(ostream &out, const OnionLevelFieldPair &p)
 }
 
 static inline char *
-scramble_table_name(const char *orig_table_name,
+anonymize_table_name(const char *orig_table_name,
                     size_t      orig_table_name_length,
-                    size_t     &new_table_length)
+		     size_t     &new_table_length, Analysis & a)
 {
+    cerr << "in anonymize \n";
     THD *thd = current_thd;
     assert(thd);
     string tname(orig_table_name, orig_table_name_length);
@@ -178,9 +176,10 @@ scramble_table_name(const char *orig_table_name,
     // A) do an actual mapping
     // B) figure out where to actually allocate the memory for strs
     //    (right now, just putting it in the THD mem pools)
-    string tname0 = anonymizeTableName(counter++, tname, false);
+    string tname0 = anonymizeTableName(a.schema->totalTables++, tname, false);
     char *tname0p = thd->strmake(tname0.c_str(), tname0.size());
     new_table_length = tname0.size();
+    cerr << "Returning \n";
     return tname0p;
 }
 
@@ -580,18 +579,18 @@ static class ANON : public CItemSubtypeIT<Item_field, Item::Type::FIELD_ITEM> {
         auto encpair = tr.encset.extract_singleton();
 
         string fieldname = extract_fieldname(i);
-        auto it = a.fieldToMeta.find(fieldname);
-        if (it == a.fieldToMeta.end()) {
+        auto it = a.fieldToAMeta.find(fieldname);
+        if (it == a.fieldToAMeta.end()) {
             //todo: there should be a map of FULL_EncSets depending on object type
-            a.fieldToMeta[fieldname] = new FieldMeta(FULL_EncDesc);
-            it = a.fieldToMeta.find(fieldname);
+            a.fieldToAMeta[fieldname] = new FieldAMeta(FULL_EncDesc);
+            it = a.fieldToAMeta.find(fieldname);
         }
         if (it->second->exposedLevels.restrict(encpair.first,
                                                encpair.second.first)) {
             cerr << "has not converged\n";
             a.hasConverged = false;
         }
-        cerr << "ENCSET FOR FIELD " << fieldname << " is " << a.fieldToMeta[fieldname]->exposedLevels << "\n";
+        cerr << "ENCSET FOR FIELD " << fieldname << " is " << a.fieldToAMeta[fieldname]->exposedLevels << "\n";
     }
 
     virtual Item *
@@ -599,9 +598,9 @@ static class ANON : public CItemSubtypeIT<Item_field, Item::Type::FIELD_ITEM> {
     {
         // fix table name
         size_t l = 0;
-        i->table_name = scramble_table_name(i->table_name,
+        i->table_name = anonymize_table_name(i->table_name,
                                             strlen(i->table_name),
-                                            l);
+					     l, a);
         // TODO: pick the column corresponding to the onion we want
 
         return i;
@@ -1568,7 +1567,7 @@ process_table_list(List<TABLE_LIST> *tll, Analysis & a)
              * should really come from the items that eventually
              * reference columns in this derived table.
              */
-            Analysis a;
+          
             process_select_lex(u->first_select(), constraints(EMPTY_EncSet,  "sub-select", 0, 0, false), a);
         }
     }
@@ -1585,9 +1584,9 @@ rewrite_table_list(List<TABLE_LIST> *tll, Analysis & a)
             break;
 
 
-        t->table_name = scramble_table_name(t->table_name,
+        t->table_name = anonymize_table_name(t->table_name,
                                             t->table_name_length,
-                                            t->table_name_length);
+					     t->table_name_length, a);
 
         if (t->nested_join) {
             rewrite_table_list(&t->nested_join->join_list, a);
@@ -1665,6 +1664,35 @@ int adjustOnions(const std::string &db, const Analysis & analysis)
     return 0;
 }
 
+
+FieldMeta::FieldMeta():encdesc(FULL_EncDesc)
+{
+    isEncrypted = false;
+
+    can_be_null = true;
+
+
+    type = TYPE_TEXT;
+
+    salt_name = "";
+    has_salt = true;
+    
+}
+
+TableMeta::TableMeta() {
+    anonTableName = "";
+    tableNo = 0;
+    hasEncrypted = false;
+}
+
+TableMeta::~TableMeta()
+{
+    for (auto i = fieldMetaMap.begin(); i != fieldMetaMap.end(); i++)
+        delete i->second;
+
+}
+
+
 /*
  * Rewrites lex by translating and encrypting based on information in analysis.
  *
@@ -1678,15 +1706,20 @@ lex_rewrite(const string & db, LEX * lex, Analysis & analysis, ReturnMeta & rmet
     return true;
 }
 
+Rewriter::Rewriter(const std::string & db):db(db){
+    //TODO: load schema
+    schema = new SchemaInfo();
+}
+
 string
-rewrite(const string & db, const string & q, ReturnMeta & rmeta)
+Rewriter::rewrite(const string & q, ReturnMeta & rmeta)
 {
     query_parse p(db, q);
     LEX *lex = p.lex();
 
     cerr << "query lex is " << *lex << "\n";
 
-    Analysis analysis;
+    Analysis analysis(schema);
     query_analyze(db, q, lex, analysis);
 
     assert(adjustOnions(db, analysis) >= 0);
@@ -1698,6 +1731,7 @@ rewrite(const string & db, const string & q, ReturnMeta & rmeta)
 
     return ss.str();
 }
+
 
 /*
 ResType
