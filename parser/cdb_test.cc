@@ -38,7 +38,7 @@ main(int ac, char **av)
     snprintf(dir_arg, sizeof(dir_arg), "--datadir=%s", av[1]);
 
 
-    
+
     const char *mysql_av[] =
     { "progname",
             "--skip-grant-tables",
@@ -72,7 +72,7 @@ main(int ac, char **av)
 
         string db = s.substr(0, space);
         cerr << "db: " << db << "\n";
-	if (!r) {r = new Rewriter(db);};
+        if (!r) {r = new Rewriter(db);};
         string q = s.substr(space + 1);
         cerr << "q: " << q << "\n";
         string new_q;

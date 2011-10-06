@@ -52,7 +52,7 @@ public:
     EncSet chooseOne() const;
 
     EncSet intersect(const EncSet & es2) const;
-    
+
     inline bool empty() const { return osl.empty(); }
 
     inline bool singleton() const { return osl.size() == 1; }
@@ -71,6 +71,14 @@ const EncDesc FULL_EncDesc = {
             {oDET, SECLEVEL::SEMANTIC_DET},
             {oOPE, SECLEVEL::SEMANTIC_OPE},
             {oAGG, SECLEVEL::SEMANTIC_AGG},
+            {oSWP, SECLEVEL::SWP         },
+        }
+};
+
+const EncDesc EQ_SEARCH_EncDesc = {
+        {
+            {oDET, SECLEVEL::SEMANTIC_DET},
+            {oOPE, SECLEVEL::SEMANTIC_OPE},
             {oSWP, SECLEVEL::SWP         },
         }
 };
@@ -124,12 +132,12 @@ const EncSet EMPTY_EncSet = {
 // we can remove old ones when we have needed functionality here
 typedef struct FieldMeta {
 
-    std::string fname; 
+    std::string fname;
     Create_field * sql_field;
-    
+
     map<onion, string> onionnames;
     EncDesc encdesc;
-    
+
     bool has_salt; //whether this field has its own salt
     std::string salt_name;
 
@@ -139,11 +147,11 @@ typedef struct FieldMeta {
 
 
 typedef struct TableMeta {
-   
+
     std::list<std::string> fieldNames;     //in order field names
     unsigned int tableNo;
     std::string anonTableName;
-   
+
     std::map<std::string, FieldMeta *> fieldMetaMap;
 
     bool has_salt;
@@ -200,10 +208,10 @@ public:
 	    fatal() << "failed query : " << use_q <<"\n";
 	}
 	assert(create_embedded_thd(0));
-	
+
     }
 
-   
+
 
     ~Analysis() {
         mysql_close(m);
@@ -217,7 +225,7 @@ public:
     std::map<std::string, FieldAMeta *> fieldToAMeta;
     std::map<Item*, ItemMeta *> itemToMeta;
     SchemaInfo * schema;
-    
+
 private:
     MYSQL *m;
 };
@@ -270,7 +278,7 @@ public:
 
     EncSet encset;
     SchemaInfo * schema;
- 
+
     bool soft;      /* can be evaluated at proxy */
 
     std::string why_t;
@@ -284,13 +292,13 @@ class Rewriter {
 
 public:
     Rewriter(const std::string & db);
-    std::string rewrite(const std::string &q, ReturnMeta &rmeta);    
+    std::string rewrite(const std::string &q, ReturnMeta &rmeta);
 private:
 
     string db;
-    
+
     SchemaInfo *  schema;
-    
+
     unsigned int totalTables;
 
 
