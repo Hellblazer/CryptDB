@@ -28,7 +28,6 @@
 #include <parser/cdb_rewrite.hh>
 
 
-
 #define UNIMPLEMENTED \
     throw runtime_error(string("Unimplemented: ") + \
                         string(__PRETTY_FUNCTION__))
@@ -42,6 +41,14 @@ FieldQualifies(const string &restriction,
     return restriction.empty() || restriction == field;
 }
 
+static
+void print(const map<string, TableMeta*>& t) {
+    cerr<<"tables ";
+    for (auto p:t) {
+	cerr << p.first << " ";
+    }
+    cerr << "\n";
+}
 
 bool
 EncDesc::restrict(onion o, SECLEVEL maxl)
@@ -168,7 +175,7 @@ anonymize_table_name(const char *orig_table_name,
                     size_t      orig_table_name_length,
 		     size_t     &new_table_length, Analysis & a)
 {
-    cerr << "in anonymize \n";
+    
     THD *thd = current_thd;
     assert(thd);
     string tname(orig_table_name, orig_table_name_length);
@@ -176,10 +183,18 @@ anonymize_table_name(const char *orig_table_name,
     // A) do an actual mapping
     // B) figure out where to actually allocate the memory for strs
     //    (right now, just putting it in the THD mem pools)
-    string tname0 = anonymizeTableName(a.schema->totalTables++, tname, false);
+    //cerr << "tname is <" << tname << ">\n";
+    print(a.schema->tableMetaMap);
+    string tname0;
+    //hack for now, will fix soon
+    if (a.schema->tableMetaMap.find(tname) == a.schema->tableMetaMap.end()) {
+	tname0 = tname;
+    } else {
+	tname0 = a.schema->tableMetaMap[tname]->anonTableName;
+    }
     char *tname0p = thd->strmake(tname0.c_str(), tname0.size());
     new_table_length = tname0.size();
-    cerr << "Returning \n";
+    
     return tname0p;
 }
 
@@ -321,7 +336,7 @@ rewrite(Item **i, Analysis &a) {
     }
 }
 
-extern "C" void *create_embedded_thd(int client_flag);
+
 
 template <class T>
 static Item *
@@ -585,11 +600,9 @@ static class ANON : public CItemSubtypeIT<Item_field, Item::Type::FIELD_ITEM> {
             a.fieldToAMeta[fieldname] = new FieldAMeta(FULL_EncDesc);
             it = a.fieldToAMeta.find(fieldname);
         }
-        if (it->second->exposedLevels.restrict(encpair.first,
-                                               encpair.second.first)) {
-            cerr << "has not converged\n";
-            a.hasConverged = false;
-        }
+        it->second->exposedLevels.restrict(encpair.first,
+					   encpair.second.first);
+
         cerr << "ENCSET FOR FIELD " << fieldname << " is " << a.fieldToAMeta[fieldname]->exposedLevels << "\n";
     }
 
@@ -1462,7 +1475,7 @@ process_select_lex(st_select_lex *select_lex, const constraints &tr, Analysis & 
         Item *item = item_it++;
         if (!item)
             break;
-        cerr << "before analyze item " << *item << "\n";
+        
         analyze(item, tr, a);
     }
 
@@ -1604,10 +1617,92 @@ rewrite_table_list(List<TABLE_LIST> *tll, Analysis & a)
 }
 
 static void
+add_table(SchemaInfo * schema, const string & table, LEX *lex) {
+    //cerr << "in add table " << table << " \n";
+    
+    TableMeta *tm = new TableMeta();
+    schema->tableMetaMap[table] = tm;
+    
+    tm->tableNo = schema->totalTables++;
+    tm->anonTableName = anonymizeTableName(tm->tableNo, table, false);
+
+    unsigned int index =  0;
+    for (auto it = List_iterator<Create_field>(lex->alter_info.create_list);;) {
+	Create_field * field = it++;
+	if (!field) {
+	    break;
+	}
+	FieldMeta * fm = new FieldMeta();
+	
+	fm->sql_field = field->clone(current_thd->mem_root);//??what inputs?
+	
+	fm->fname = string(fm->sql_field->field_name);
+	//cerr << "field " << fm->fname << "\n";
+	fm->encdesc = FULL_EncDesc;
+	
+	for (auto pr : fm->encdesc.olm) {
+	    fm->onionnames[pr.first] = anonymizeFieldName(index, pr.first, fm->fname, false);
+	}
+
+	fm->has_salt = true;
+	fm->salt_name = getFieldSalt(index, tm->anonTableName);
+
+	assert(tm->fieldMetaMap.find(fm->fname) == tm->fieldMetaMap.end());
+	tm->fieldMetaMap[fm->fname] = fm;
+	tm->fieldNames.push_back(fm->fname);
+
+	index++;
+       
+    }
+    
+   
+}
+
+/*
+ * Analyzes create query.
+ * Updates encrypted schema info.
+ *
+ */
+static void
+process_create_lex(LEX * lex, Analysis & a) {
+   
+    cerr << "in process create lex\n";
+    
+    // table name
+    string table = lex->select_lex.table_list.first->table_name;
+
+    cerr << "table " << table << "\n";
+    add_table(a.schema, table, lex);
+
+    print(a.schema->tableMetaMap);
+    //TODO: support for "create table like"
+    /*
+    if (lex.create_info.options & HA_LEX_CREATE_TABLE_LIKE) {
+        // create table ... like tbl_name
+        out << " like ";
+        TABLE_LIST *select_tables=
+          lex.create_last_non_select_table->next_global;
+        out << select_tables->alias;
+    } else {
+    
+    auto cl = lex.alter_info.create_list;
+    auto kl = lex.alter_info.key_list;
+    */
+
+}
+
+static void
 do_query_analyze(const std::string &db, const std::string &q, LEX * lex, Analysis & analysis) {
     // iterate over the entire select statement..
     // based on st_select_lex::print in mysql-server/sql/sql_select.cc
-    cerr << "in do_query_analyze\n";
+    
+    if (lex->sql_command == SQLCOM_CREATE_TABLE) {
+	process_create_lex(lex, analysis);
+	print(analysis.schema->tableMetaMap);
+	return;
+	
+    }
+
     process_table_list(&lex->select_lex.top_join_list, analysis);
 
     process_select_lex(&lex->select_lex,
@@ -1639,12 +1734,11 @@ query_analyze(const std::string &db, const std::string &q, LEX * lex, Analysis &
     optimize_table_list(&lex->select_lex.top_join_list, analysis);
     optimize_select_lex(&lex->select_lex, analysis);
 
-    //runs at most twice
-    while (!analysis.hasConverged) {
-        analysis.hasConverged = true;
-        do_query_analyze(db, q, lex, analysis);
-    }
+    do_query_analyze(db, q, lex, analysis);
+    //print(analysis.schema->tableMetaMap);
+
 }
+
 
 /*
  * Examines the embedded database and the encryption levels needed for a query (as given by analysis).
@@ -1658,8 +1752,8 @@ query_analyze(const std::string &db, const std::string &q, LEX * lex, Analysis &
  * Returns negative on error.
  *
  */
-static
-int adjustOnions(const std::string &db, const Analysis & analysis)
+static int
+adjustOnions(const std::string &db, const Analysis & analysis)
 {
     return 0;
 }
@@ -1667,13 +1761,8 @@ int adjustOnions(const std::string &db, const Analysis & analysis)
 
 FieldMeta::FieldMeta():encdesc(FULL_EncDesc)
 {
-    isEncrypted = false;
-
-    can_be_null = true;
-
-
-    type = TYPE_TEXT;
-
+    fname = "";
+    sql_field = NULL;
     salt_name = "";
     has_salt = true;
     
@@ -1682,7 +1771,6 @@ FieldMeta::FieldMeta():encdesc(FULL_EncDesc)
 TableMeta::TableMeta() {
     anonTableName = "";
     tableNo = 0;
-    hasEncrypted = false;
 }
 
 TableMeta::~TableMeta()
@@ -1706,9 +1794,25 @@ lex_rewrite(const string & db, LEX * lex, Analysis & analysis, ReturnMeta & rmet
     return true;
 }
 
+static int
+updateMeta(const string & db, const string & q, LEX * lex, Analysis & a) {
+    if (lex->sql_command == SQLCOM_CREATE_TABLE) {
+	//need to update embedded schema with the new table
+
+        if (mysql_query(a.conn(), q.c_str())) {
+            fatal() << "mysql_query: " << mysql_error(a.conn());
+	}
+	assert(create_embedded_thd(0));
+
+    }
+    return adjustOnions(db, a);
+    
+}
+
 Rewriter::Rewriter(const std::string & db):db(db){
     //TODO: load schema
     schema = new SchemaInfo();
+    totalTables = 0;
 }
 
 string
@@ -1717,21 +1821,23 @@ Rewriter::rewrite(const string & q, ReturnMeta & rmeta)
     query_parse p(db, q);
     LEX *lex = p.lex();
 
+   
     cerr << "query lex is " << *lex << "\n";
 
-    Analysis analysis(schema);
+    Analysis analysis(db, schema);
     query_analyze(db, q, lex, analysis);
 
-    assert(adjustOnions(db, analysis) >= 0);
+    //print(analysis.schema->tableMetaMap);
+    assert(updateMeta(db, q, lex, analysis) >= 0);
 
     lex_rewrite(db, lex, analysis, rmeta);
 
     stringstream ss;
+    
     ss << *lex;
 
     return ss.str();
 }
-
 
 /*
 ResType

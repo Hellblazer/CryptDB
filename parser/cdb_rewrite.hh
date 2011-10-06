@@ -124,15 +124,9 @@ const EncSet EMPTY_EncSet = {
 // we can remove old ones when we have needed functionality here
 typedef struct FieldMeta {
 
-    bool isEncrypted;     //indicates if this field is encrypted or not
-    bool can_be_null;
-		     
+    std::string fname; 
+    Create_field * sql_field;
     
-    fieldType type;
-    std::string fieldName;
-
-    enum_field_types mysql_type;
-
     map<onion, string> onionnames;
     EncDesc encdesc;
     
@@ -155,10 +149,7 @@ typedef struct TableMeta {
     bool has_salt;
     std::string salt_name;
 
-
-    bool hasEncrypted;     //true if the table contains an encrypted field
-
-    TableMeta();
+     TableMeta();
     ~TableMeta();
 } TableMeta;
 
@@ -166,8 +157,12 @@ typedef struct TableMeta {
 typedef struct SchemaInfo {
     std::map<std::string, TableMeta *> tableMetaMap;
     unsigned int totalTables;
+    embedmysql * embed_db;
+
     SchemaInfo():totalTables(0) {};
+    ~SchemaInfo() {cerr << "called schema destructor"; tableMetaMap.clear();}
 } SchemaInfo;
+
 
 /***************************************************/
 
@@ -186,10 +181,11 @@ public:
     SECLEVEL uptolevel;
     std::string basekey;
 };
+extern "C" void *create_embedded_thd(int client_flag);
 
 class Analysis {
 public:
-    Analysis(SchemaInfo * schema) : hasConverged(false), schema(schema) {
+    Analysis(const string & db, SchemaInfo * schema) : schema(schema) {
         // create mysql connection to embedded
         // server
         m = mysql_init(0);
@@ -199,6 +195,12 @@ public:
             mysql_close(m);
             fatal() << "mysql_real_connect: " << mysql_error(m);
         }
+	string use_q = "USE " + db + ";";
+	if (mysql_query(m, use_q.c_str())) {
+	    fatal() << "failed query : " << use_q <<"\n";
+	}
+	assert(create_embedded_thd(0));
+	
     }
 
    
@@ -214,12 +216,8 @@ public:
 
     std::map<std::string, FieldAMeta *> fieldToAMeta;
     std::map<Item*, ItemMeta *> itemToMeta;
-
-    bool hasConverged;
     SchemaInfo * schema;
     
-
-
 private:
     MYSQL *m;
 };
@@ -272,7 +270,7 @@ public:
 
     EncSet encset;
     SchemaInfo * schema;
-
+ 
     bool soft;      /* can be evaluated at proxy */
 
     std::string why_t;
@@ -294,6 +292,6 @@ private:
     SchemaInfo *  schema;
     
     unsigned int totalTables;
-    unsigned int totalIndexes;
+
 
 };
