@@ -442,7 +442,7 @@ do_optimize_const_item(T *i, Analysis &a) {
                     case MYSQL_TYPE_LONG:
                     case MYSQL_TYPE_LONGLONG:
                     case MYSQL_TYPE_INT24:
-                        rep = new Item_int(strtoll(p, NULL, 10));
+                        rep = new Item_int((long long) strtoll(p, NULL, 10));
                         break;
                     case MYSQL_TYPE_FLOAT:
                     case MYSQL_TYPE_DOUBLE:
