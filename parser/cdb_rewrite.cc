@@ -87,8 +87,6 @@ EncSet::intersect(const EncSet & es2) const
     return EncSet(m);
 }
 
-
-
 EncSet
 EncSet::chooseOne() const
 {
@@ -165,8 +163,9 @@ operator<<(ostream &out, const OnionLevelFieldPair &p)
 
 static inline char *
 anonymize_table_name(const char *orig_table_name,
-                    size_t      orig_table_name_length,
-		     size_t     &new_table_length, Analysis & a)
+                     size_t      orig_table_name_length,
+                     size_t     &new_table_length,
+                     Analysis & a)
 {
     cerr << "in anonymize \n";
     THD *thd = current_thd;
@@ -180,6 +179,36 @@ anonymize_table_name(const char *orig_table_name,
     char *tname0p = thd->strmake(tname0.c_str(), tname0.size());
     new_table_length = tname0.size();
     cerr << "Returning \n";
+    return tname0p;
+}
+
+static char *
+get_column_name(const char *orig_table_name,
+                size_t      orig_table_name_length,
+                onion       onion_type,
+                size_t     &new_table_length,
+                Analysis   &a)
+{
+    THD *thd = current_thd;
+    assert(thd);
+    string tname(orig_table_name, orig_table_name_length);
+    stringstream s;
+    s << tname << "_anon_";
+    // TODO(stephentu):
+    // A) fix this mapping
+    // B) handle non-encrypted columns
+    const char *p = NULL;
+    switch (onion_type) {
+    case oDET: p = "det";     break;
+    case oOPE: p = "ope";     break;
+    case oAGG: p = "agg";     break;
+    case oSWP: p = "swp";     break;
+    default:   assert(false); break;
+    }
+    s << p;
+    string tname0(s.str());
+    char *tname0p = thd->strmake(tname0.c_str(), tname0.size());
+    new_table_length = tname0.size();
     return tname0p;
 }
 
@@ -317,6 +346,7 @@ static inline void
 rewrite(Item **i, Analysis &a) {
     Item *i0 = itemTypes.do_rewrite(*i, a);
     if (i0 != *i) {
+        i0->name = (*i)->name; // preserve the name (alias)
         *i = i0;
     }
 }
@@ -451,12 +481,32 @@ do_optimize_type_self_and_args(T *i, Analysis &a) {
     }
 }
 
+static void
+record_item_meta_for_constraints(Item *i,
+                                 const constraints &tr,
+                                 Analysis &a)
+{
+    auto c = tr.encset.extract_singleton();
+    cerr << "Need to encrypt " << *i << " with: " << c << endl;
+    auto it = a.itemToMeta.find(i);
+    ItemMeta *im;
+    if (it == a.itemToMeta.end()) {
+        a.itemToMeta[i] = im = new ItemMeta;
+    } else {
+        im = it->second;
+    }
+    im->o         = c.first;
+    im->uptolevel = c.second.first;
+    im->basekey   = c.second.second;
+}
+
 template <class T>
 static Item *
 do_rewrite_type_args(T *i, Analysis &a) {
     Item **args = i->arguments();
     for (uint x = 0; x < i->argument_count(); x++) {
         rewrite(&args[x], a);
+        args[x]->name = NULL; // args should never have aliases...
     }
     return i;
 }
@@ -591,6 +641,7 @@ static class ANON : public CItemSubtypeIT<Item_field, Item::Type::FIELD_ITEM> {
             a.hasConverged = false;
         }
         cerr << "ENCSET FOR FIELD " << fieldname << " is " << a.fieldToAMeta[fieldname]->exposedLevels << "\n";
+        record_item_meta_for_constraints(i, tr, a);
     }
 
     virtual Item *
@@ -599,10 +650,19 @@ static class ANON : public CItemSubtypeIT<Item_field, Item::Type::FIELD_ITEM> {
         // fix table name
         size_t l = 0;
         i->table_name = anonymize_table_name(i->table_name,
-                                            strlen(i->table_name),
-					     l, a);
-        // TODO: pick the column corresponding to the onion we want
-
+                                             strlen(i->table_name),
+                                             l, a);
+        // pick the column corresponding to the onion we want
+        auto it = a.itemToMeta.find(i);
+        if (it == a.itemToMeta.end()) {
+            // this is a bug, we should have recorded this in enforce()
+            fatal() << "should have recorded item meta object in enforce()";
+        }
+        ItemMeta *im = it->second;
+        i->field_name = get_column_name(i->field_name,
+                                        strlen(i->field_name),
+                                        im->o,
+                                        l, a);
         return i;
     }
 
@@ -616,18 +676,7 @@ static class ANON : public CItemSubtypeIT<Item_string, Item::Type::STRING_ITEM> 
     }
     virtual void do_enforce_type(Item_string *i, const constraints &tr, Analysis & a) const
     {
-        auto c = tr.encset.extract_singleton();
-        cerr << "Need to encrypt " << *i << " with: " << c << endl;
-        auto it = a.itemToMeta.find(i);
-        ItemMeta *im;
-        if (it == a.itemToMeta.end()) {
-            a.itemToMeta[i] = im = new ItemMeta;
-        } else {
-            im = it->second;
-        }
-        im->o         = c.first;
-        im->uptolevel = c.second.first;
-        im->basekey   = c.second.second;
+        record_item_meta_for_constraints(i, tr, a);
     }
     virtual Item * do_optimize_type(Item_string *i, Analysis & a) const {
         return i;
@@ -642,18 +691,7 @@ static class ANON : public CItemSubtypeIT<Item_num, Item::Type::INT_ITEM> {
     }
     virtual void do_enforce_type(Item_num *i, const constraints &tr, Analysis & a) const
     {
-        auto c = tr.encset.extract_singleton();
-        cerr << "Need to encrypt " << *i << " with: " << c << endl;
-        auto it = a.itemToMeta.find(i);
-        ItemMeta *im;
-        if (it == a.itemToMeta.end()) {
-            a.itemToMeta[i] = im = new ItemMeta;
-        } else {
-            im = it->second;
-        }
-        im->o         = c.first;
-        im->uptolevel = c.second.first;
-        im->basekey   = c.second.second;
+        record_item_meta_for_constraints(i, tr, a);
     }
     virtual Item * do_optimize_type(Item_num *i, Analysis & a) const {
         return i;
@@ -668,18 +706,7 @@ static class ANON : public CItemSubtypeIT<Item_decimal, Item::Type::DECIMAL_ITEM
     }
     virtual void do_enforce_type(Item_decimal *i, const constraints &tr, Analysis & a) const
     {
-        auto c = tr.encset.extract_singleton();
-        cerr << "Need to encrypt " << *i << " with: " << c << endl;
-        auto it = a.itemToMeta.find(i);
-        ItemMeta *im;
-        if (it == a.itemToMeta.end()) {
-            a.itemToMeta[i] = im = new ItemMeta;
-        } else {
-            im = it->second;
-        }
-        im->o         = c.first;
-        im->uptolevel = c.second.first;
-        im->basekey   = c.second.second;
+        record_item_meta_for_constraints(i, tr, a);
     }
     virtual Item * do_optimize_type(Item_decimal *i, Analysis & a) const {
         return i;
@@ -862,6 +889,48 @@ static class ANON : public CItemSubtypeFT<Item_func_get_system_var, Item_func::F
     {}
 } ANON;
 
+// This is a bit of a hack: until our embedded DB actually has these UDFs for
+// hom-add, then we will just lie about its existence. Eventually we could
+// probably pull the udf_func object out of the embedded db.
+
+static LEX_STRING s_HomAdd = {
+        (char*)"hom_add",
+        sizeof("hom_add"),
+    };
+
+static udf_func s_HomAddUdfFunc = {
+        s_HomAdd,
+        STRING_RESULT,
+        UDFTYPE_FUNCTION,
+        NULL,
+        NULL,
+        NULL,
+        NULL,
+        NULL,
+        NULL,
+        NULL,
+        0L,
+    };
+
+static LEX_STRING s_HomSub = {
+        (char*)"hom_sub",
+        sizeof("hom_sub"),
+    };
+
+static udf_func s_HomSubUdfFunc = {
+        s_HomSub,
+        STRING_RESULT,
+        UDFTYPE_FUNCTION,
+        NULL,
+        NULL,
+        NULL,
+        NULL,
+        NULL,
+        NULL,
+        NULL,
+        0L,
+    };
+
 template<const char *NAME>
 class CItemAdditive : public CItemSubtypeFN<Item_func_additive_op, NAME> {
     virtual EncSet do_gather_type(Item_func_additive_op *i, const constraints &tr, Analysis & a) const {
@@ -880,8 +949,19 @@ class CItemAdditive : public CItemSubtypeFN<Item_func_additive_op, NAME> {
         return do_optimize_type_self_and_args(i, a);
     }
     virtual Item * do_rewrite_type(Item_func_additive_op *i, Analysis & a) const {
-        // TODO: replace with a hom-add function...
-        return do_rewrite_type_args(i, a);
+        // rewrite children
+        do_rewrite_type_args(i, a);
+
+        List<Item> l;
+        Item **args = i->arguments();
+        for (uint x = 0; x < i->argument_count(); x++) {
+            l.push_back(args[x]);
+        }
+
+        // replace with hom_(add/sub)
+        return strcmp(NAME, "+") == 0 ?
+            new Item_func_udf_str(&s_HomAddUdfFunc, l) :
+            new Item_func_udf_str(&s_HomSubUdfFunc, l) ;
     }
 };
 
@@ -1439,7 +1519,9 @@ optimize_select_lex(st_select_lex *select_lex, Analysis & a)
     if (select_lex->where)
         optimize(&select_lex->where, a);
 
-    if (select_lex->join && select_lex->join->conds)
+    if (select_lex->join &&
+        select_lex->join->conds &&
+        select_lex->where != select_lex->join->conds)
         optimize(&select_lex->join->conds, a);
 
     if (select_lex->having)
@@ -1469,7 +1551,17 @@ process_select_lex(st_select_lex *select_lex, const constraints &tr, Analysis & 
     if (select_lex->where)
         analyze(select_lex->where, constraints(FULL_EncSet, "where", select_lex->where, 0), a);
 
-    if (select_lex->join && select_lex->join->conds)
+    // TODO(stephentu): I'm not sure if we can ever have a
+    // select_lex->where != select_lex->join->conds, but
+    // it is not clear to me why this branch should execute
+    // in the case where select_lex->where = select_lex->join->conds, and
+    // it breaks the assumption (at least in re-write) that there will be
+    // exactly one pass per item.
+    //
+    // I'm leaving this like so for now. Feel free to resolve it as fit
+    if (select_lex->join &&
+        select_lex->join->conds &&
+        select_lex->where != select_lex->join->conds)
         analyze(select_lex->join->conds, constraints(FULL_EncSet, "join->conds", select_lex->join->conds, 0), a);
 
     if (select_lex->having)
@@ -1497,8 +1589,9 @@ rewrite_select_lex(st_select_lex *select_lex, Analysis & a)
     if (select_lex->where)
         rewrite(&select_lex->where, a);
 
-    if (select_lex->join && select_lex->join->conds)
-        rewrite(&select_lex->join->conds, a);
+    if (select_lex->join &&
+        select_lex->join->conds &&
+        select_lex->where != select_lex->join->conds)
 
     if (select_lex->having)
         rewrite(&select_lex->having, a);
@@ -1567,7 +1660,7 @@ process_table_list(List<TABLE_LIST> *tll, Analysis & a)
              * should really come from the items that eventually
              * reference columns in this derived table.
              */
-          
+
             process_select_lex(u->first_select(), constraints(EMPTY_EncSet,  "sub-select", 0, 0, false), a);
         }
     }
@@ -1585,8 +1678,8 @@ rewrite_table_list(List<TABLE_LIST> *tll, Analysis & a)
 
 
         t->table_name = anonymize_table_name(t->table_name,
-                                            t->table_name_length,
-					     t->table_name_length, a);
+                                             t->table_name_length,
+                                             t->table_name_length, a);
 
         if (t->nested_join) {
             rewrite_table_list(&t->nested_join->join_list, a);
@@ -1676,7 +1769,7 @@ FieldMeta::FieldMeta():encdesc(FULL_EncDesc)
 
     salt_name = "";
     has_salt = true;
-    
+
 }
 
 TableMeta::TableMeta() {
