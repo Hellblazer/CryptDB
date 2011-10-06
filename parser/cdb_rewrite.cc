@@ -198,34 +198,31 @@ anonymize_table_name(const char *orig_table_name,
 }
 
 static char *
-get_column_name(const char *orig_table_name,
-                size_t      orig_table_name_length,
-                onion       onion_type,
-                size_t     &new_table_length,
+getCStr(const string & v) {
+    unsigned int len = v.length();
+    char * res = (char *)malloc(len+1);
+    memcpy(res, v.data(), len);
+    res[len] = '\0';
+    return res;
+}
+
+static char * 
+get_column_name(const string & table,
+		const string & field,
+		onion o, 
                 Analysis   &a)
 {
-    THD *thd = current_thd;
-    assert(thd);
-    string tname(orig_table_name, orig_table_name_length);
-    stringstream s;
-    s << tname << "_anon_";
-    // TODO(stephentu):
-    // A) fix this mapping
-    // B) handle non-encrypted columns
-    const char *p = NULL;
-    switch (onion_type) {
-    case oDET: p = "det";     break;
-    case oOPE: p = "ope";     break;
-    case oAGG: p = "agg";     break;
-    case oSWP: p = "swp";     break;
-    default:   assert(false); break;
+    auto it = a.schema->tableMetaMap.find(table);
+    if (it == a.schema->tableMetaMap.end())
+    {
+	thrower() << "table " << table << "unknown \n";
     }
-    s << p;
-    string tname0(s.str());
-    char *tname0p = thd->strmake(tname0.c_str(), tname0.size());
-    new_table_length = tname0.size();
-    return tname0p;
-}
+    auto fit = it->second->fieldMetaMap.find(field);
+    if (fit == it->second->fieldMetaMap.end()) {
+	thrower() << "field " << field << "unknown \n";
+    }
+    return getCStr(fit->second->onionnames[o]);
+}   
 
 class CItemType {
  public:
@@ -662,6 +659,7 @@ static class ANON : public CItemSubtypeIT<Item_field, Item::Type::FIELD_ITEM> {
     {
         // fix table name
         size_t l = 0;
+	const char * table = i->table_name;
         i->table_name = anonymize_table_name(i->table_name,
                                              strlen(i->table_name),
                                              l, a);
@@ -672,10 +670,8 @@ static class ANON : public CItemSubtypeIT<Item_field, Item::Type::FIELD_ITEM> {
             fatal() << "should have recorded item meta object in enforce()";
         }
         ItemMeta *im = it->second;
-        i->field_name = get_column_name(i->field_name,
-                                        strlen(i->field_name),
-                                        im->o,
-                                        l, a);
+	cerr << "onion is " << im->o << "\n";
+	i->field_name = get_column_name(string(table), string(i->field_name), im->o,  a);
         return i;
     }
 
