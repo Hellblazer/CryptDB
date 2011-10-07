@@ -257,8 +257,20 @@ void EDBProxy::readMetaInfo( ) {
     DBResult* reply;
     Connect pconn( meta_db.conn() );
 
-    if (pconn.execute( "CREATE DATABASE proxy_db", reply)) {
-        sCreateMetaSchema( pconn );
+    pconn.execute( "SHOW DATABASES", reply );
+    ResType show_type = reply->unpack();
+    bool found_dbname = false;
+    for (auto db_it = show_type.rows.begin(); db_it != show_type.rows.end(); ++db_it) {
+        auto db_info = *db_it;
+        auto field_it = db_info.begin();
+        if ((*field_it).to_string() == "proxy_db") {
+            found_dbname = true;
+        }
+    }
+
+    if (!found_dbname) {
+        if (pconn.execute( "CREATE DATABASE proxy_db", reply))
+            sCreateMetaSchema( pconn );
     }
 
     pconn.execute( "USE proxy_db", reply );
@@ -385,14 +397,17 @@ static string sGetProxyDirectory( const string& proxy_directory, const string& d
         result += "/" + dbname;
     }
 
+    string message = "embedded_db in: ";
+
     struct stat st;
     if (stat(result.c_str(), &st) != 0) {
         string mkdir_cmd = "mkdir -p " + result;
         if (system( mkdir_cmd.c_str() ) == -1)
-            cerr << "failed to " << mkdir_cmd.c_str() << endl;
+            message = "failed to mkdir -p ";
     }
 
-    cerr << result << endl;
+    cerr << message << result << endl;
+
     return result; // ignore result of system call
 }
 
