@@ -1077,7 +1077,7 @@ interactiveTest(const TestConfig &tc, int ac, char **av)
         }
     }
 
-    cl->exit();
+    delete cl;
     cout << "Goodbye!\n";
 
 }
@@ -1170,8 +1170,8 @@ microEvaluate(const TestConfig &tc, int argc, char ** argv)
     clsecure->execute("DROP TABLE tableeval;");
     clplain->execute("DROP TABLE tableeval;");
 
-    clsecure->exit();
-    clplain->exit();
+    delete clsecure;
+    delete clplain;
 
 }
 
@@ -1223,7 +1223,7 @@ testEDBProxy(const TestConfig &tc)
 
     cl->execute("DROP TABLE people;");
 
-    cl->exit();
+    delete cl;
 
     cout << "\n------------------- \n Integration test succeeded \n\n";
 }
@@ -1312,7 +1312,7 @@ createTables(string file, EDBProxy * cl)
                 if (!cl->execute(query).ok) {
                     cerr << "FAILED on query " << query << "\n";
                     createsFile.close();
-                    cl->exit();
+                    delete cl;
                     exit(1);
                 }
             }
@@ -1439,7 +1439,7 @@ test_train(const TestConfig &tc)
     cl->train_finish();
     cl->create_trained_instance();
 
-    cl->exit();
+    delete cl;
 
 }
  */
@@ -1460,7 +1460,7 @@ test_train(const TestConfig &tc)
                                 if (res == NULL) {
                                         cerr << "FAILED on query " << query <<
                                            "\n";
-                                        cl->exit();
+                                        delete cl;
                                         tracefile.close();
                                         exit(1);
                                 }
@@ -1600,7 +1600,7 @@ suffix(int no)
                                         cerr << "retrying \n";
                                         sleep(10);
                                         res = cl->execute(query);
-                                //cl->exit();
+                                //delete cl;
                                 //dataFile.close();
                                 //exit(1);
                                 }
@@ -2010,7 +2010,7 @@ suffix(int no)
                    " " << okTranCount << "\n";
         }
 
-    cl->exit();
+        delete cl;
 
         return;
    }
@@ -2032,8 +2032,8 @@ suffix(int no)
         int res = system("psql < eval/tpcc/sqlTableCreates");
         res = system("psql < eval/tpcc/index.sql");
 
-        cl->exit(false);
-        plaincl->exit(false);
+        delete cl;
+        delete plaincl;
 
    }
 
@@ -2117,7 +2117,7 @@ suffix(int no)
                         if (res == NULL) {
                                 cerr << "FAILED on query " << query << "\n";
                                 cerr << "query no " << index << "\n";
-                                cl->exit();
+                                delete cl;
                                 tracefile.close();
                                 exit(1);
                         }
@@ -2451,7 +2451,7 @@ encryptionTablesTest(const TestConfig &tc, int ac, char **av)
     if (!cl->execute("INSERT INTO try VALUES (10000001);").ok) return;
     if (!cl->execute("SELECT age FROM try WHERE age > 1000000;").ok) return;
     if (!cl->execute("DROP TABLE try;").ok) return;
-    cl->exit();
+    delete cl;
 }
 */
 static void

@@ -3915,6 +3915,8 @@ EDBProxy::exit()
 
 EDBProxy::~EDBProxy()
 {
+    this->exit();
+
     for (auto i = tableMetaMap.begin(); i != tableMetaMap.end(); i++)
         delete i->second;
 
