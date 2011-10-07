@@ -3,14 +3,13 @@
 /*
  * cdb_rewrite.hh
  *
- *  Created on: Sep 29, 2011
- *      Author: raluca
  *
  *  TODO: need to integrate it with util.h: some declarations are repeated
  */
 
 #include <util/onions.hh>
 
+using namespace std;
 
 /**
  * Field here is either:
@@ -21,7 +20,6 @@
 typedef std::pair<SECLEVEL, std::string> LevelFieldPair;
 typedef std::map<onion, LevelFieldPair>  OnionLevelFieldMap;
 typedef std::pair<onion, LevelFieldPair> OnionLevelFieldPair;
-
 typedef std::map<onion, SECLEVEL>        OnionLevelMap;
 
 /**
@@ -30,7 +28,7 @@ typedef std::map<onion, SECLEVEL>        OnionLevelMap;
 class EncDesc {
 public:
     EncDesc(OnionLevelMap input) : olm(input) {}
-
+    EncDesc(const EncDesc & ed): olm(ed.olm) {}
     /**
      * Returns true if something was changed, false otherwise.
      */
@@ -77,6 +75,14 @@ const EncDesc FULL_EncDesc = {
         }
 };
 
+const EncDesc EQ_SEARCH_EncDesc = {
+        {
+            {oDET, SECLEVEL::SEMANTIC_DET},
+            {oOPE, SECLEVEL::SEMANTIC_OPE},
+            {oSWP, SECLEVEL::SWP         },
+        }
+};
+
 const EncSet EQ_EncSet = {
         {
             {oDET, LevelFieldPair(SECLEVEL::DET, "")},
@@ -117,10 +123,63 @@ const EncSet EMPTY_EncSet = {
 };
 
 
-class FieldMeta {
+/******* ENCRYPTED SCHEMA INFORMATION ********/
+
+
+//TODO: FieldMeta and TableMeta are partly duplicates with the original
+// FieldMetadata an TableMetadata
+// which contains data we want to add to this structure soon
+// we can remove old ones when we have needed functionality here
+typedef struct FieldMeta {
+
+    std::string fname;
+    Create_field * sql_field;
+
+    map<onion, string> onionnames;
+    EncDesc encdesc;
+
+    bool has_salt; //whether this field has its own salt
+    std::string salt_name;
+
+    FieldMeta();
+
+} FieldMeta;
+
+
+typedef struct TableMeta {
+
+    std::list<std::string> fieldNames;     //in order field names
+    unsigned int tableNo;
+    std::string anonTableName;
+
+    std::map<std::string, FieldMeta *> fieldMetaMap;
+
+    bool has_salt;
+    std::string salt_name;
+
+     TableMeta();
+    ~TableMeta();
+} TableMeta;
+
+
+typedef struct SchemaInfo {
+    std::map<std::string, TableMeta *> tableMetaMap;
+    unsigned int totalTables;
+    embedmysql * embed_db;
+
+    SchemaInfo():totalTables(0) {};
+    ~SchemaInfo() {cerr << "called schema destructor"; tableMetaMap.clear();}
+} SchemaInfo;
+
+
+/***************************************************/
+
+
+// metadata for field analysis
+class FieldAMeta {
 public:
     EncDesc exposedLevels; //field identifier to max sec level allowed to process a query
-    FieldMeta(const EncDesc & ed) : exposedLevels(ed) {}
+    FieldAMeta(const EncDesc & ed) : exposedLevels(ed) {}
 };
 
 //Metadata about how to encrypt an item
@@ -130,10 +189,11 @@ public:
     SECLEVEL uptolevel;
     std::string basekey;
 };
+extern "C" void *create_embedded_thd(int client_flag);
 
 class Analysis {
 public:
-    Analysis() : hasConverged(false) {
+    Analysis(const string & db, SchemaInfo * schema) : schema(schema) {
         // create mysql connection to embedded
         // server
         m = mysql_init(0);
@@ -143,7 +203,15 @@ public:
             mysql_close(m);
             fatal() << "mysql_real_connect: " << mysql_error(m);
         }
+	string use_q = "USE " + db + ";";
+	if (mysql_query(m, use_q.c_str())) {
+	    fatal() << "failed query : " << use_q <<"\n";
+	}
+	assert(create_embedded_thd(0));
+
     }
+
+
 
     ~Analysis() {
         mysql_close(m);
@@ -154,10 +222,9 @@ public:
         return m;
     }
 
-    std::map<std::string, FieldMeta *> fieldToMeta;
+    std::map<std::string, FieldAMeta *> fieldToAMeta;
     std::map<Item*, ItemMeta *> itemToMeta;
-
-    bool hasConverged;
+    SchemaInfo * schema;
 
 private:
     MYSQL *m;
@@ -210,6 +277,7 @@ public:
     }
 
     EncSet encset;
+    SchemaInfo * schema;
 
     bool soft;      /* can be evaluated at proxy */
 
@@ -219,4 +287,19 @@ public:
     const constraints *parent;
 };
 
-std::string rewrite(const std::string &db, const std::string &q, ReturnMeta &rmeta);
+
+class Rewriter {
+
+public:
+    Rewriter(const std::string & db);
+    std::string rewrite(const std::string &q, ReturnMeta &rmeta);
+private:
+
+    string db;
+
+    SchemaInfo *  schema;
+
+    unsigned int totalTables;
+
+
+};

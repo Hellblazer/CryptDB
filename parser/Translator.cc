@@ -5,11 +5,35 @@
  *      Author: raluca
  */
 
-#include <edb/Translator.hh>
+#include <parser/Translator.hh>
 #include <util/cryptdb_log.hh>
 
 
 using namespace std;
+
+
+string
+fullName(string field, string name)
+{
+    if (isTableField(field)) {
+        return field;
+    } else {
+        return name + "." + field;
+    }
+}
+
+bool
+isTableField(string token)
+{
+    size_t pos = token.find(".");
+
+    if (pos == string::npos) {
+        return false;
+    } else {
+        return true;
+    }
+}
+
 
 string
 anonymizeTableName(unsigned int tableNo, string tableName, bool multiPrinc)

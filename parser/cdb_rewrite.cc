@@ -10,6 +10,8 @@
 #include <algorithm>
 #include <stdio.h>
 
+#include <parser/Translator.hh>
+
 #include <sql_select.h>
 #include <sql_delete.h>
 #include <sql_insert.h>
@@ -22,7 +24,9 @@
 #include <util/cleanup.hh>
 #include <util/rob.hh>
 
+
 #include <parser/cdb_rewrite.hh>
+
 
 #define UNIMPLEMENTED \
     throw runtime_error(string("Unimplemented: ") + \
@@ -35,6 +39,61 @@ FieldQualifies(const string &restriction,
                const string &field)
 {
     return restriction.empty() || restriction == field;
+}
+
+static inline bool
+IsMySQLTypeNumeric(enum_field_types t) {
+    switch (t) {
+        case MYSQL_TYPE_DECIMAL:
+        case MYSQL_TYPE_TINY:
+        case MYSQL_TYPE_SHORT:
+        case MYSQL_TYPE_LONG:
+        case MYSQL_TYPE_FLOAT:
+        case MYSQL_TYPE_DOUBLE:
+        case MYSQL_TYPE_LONGLONG:
+        case MYSQL_TYPE_INT24:
+        case MYSQL_TYPE_NEWDECIMAL:
+
+        // numeric also includes dates for now,
+        // since it makes sense to do +/- on date types
+        case MYSQL_TYPE_TIMESTAMP:
+        case MYSQL_TYPE_DATE:
+        case MYSQL_TYPE_TIME:
+        case MYSQL_TYPE_DATETIME:
+        case MYSQL_TYPE_YEAR:
+        case MYSQL_TYPE_NEWDATE:
+            return true;
+        default: return false;
+    }
+}
+
+static FieldMeta *
+get_field_meta(const Item_field *i, Analysis &a)
+{
+    assert(i != NULL);
+    assert(a.schema != NULL);
+    // locate table first
+    auto tblit = a.schema->tableMetaMap.find(i->table_name);
+    if (tblit == a.schema->tableMetaMap.end()) return NULL;
+    TableMeta *tm = tblit->second;
+    assert(tm != NULL);
+
+    // now locate field
+    auto fdit = tm->fieldMetaMap.find(i->field_name);
+    if (fdit == tm->fieldMetaMap.end()) return NULL;
+    FieldMeta *fm = fdit->second;
+    assert(fm != NULL);
+
+    return fm;
+}
+
+static
+void print(const map<string, TableMeta*>& t) {
+    cerr<<"tables ";
+    for (auto p:t) {
+        cerr << p.first << " ";
+    }
+    cerr << "\n";
 }
 
 bool
@@ -84,11 +143,13 @@ EncSet::intersect(const EncSet & es2) const
 EncSet
 EncSet::chooseOne() const
 {
+    // Order of selection is encoded in this array.
+    // The onions appearing earlier are the more preferred ones.
     static const onion onion_order[] = {
-        oAGG,
-        oSWP,
         oDET,
         oOPE,
+        oAGG,
+        oSWP,
     };
     static size_t onion_size = sizeof(onion_order) / sizeof(onion_order[0]);
     for (size_t i = 0; i < onion_size; i++) {
@@ -156,10 +217,12 @@ operator<<(ostream &out, const OnionLevelFieldPair &p)
 }
 
 static inline char *
-scramble_table_name(const char *orig_table_name,
-                    size_t      orig_table_name_length,
-                    size_t     &new_table_length)
+anonymize_table_name(const char *orig_table_name,
+                     size_t      orig_table_name_length,
+                     size_t     &new_table_length,
+                     Analysis & a)
 {
+
     THD *thd = current_thd;
     assert(thd);
     string tname(orig_table_name, orig_table_name_length);
@@ -167,10 +230,45 @@ scramble_table_name(const char *orig_table_name,
     // A) do an actual mapping
     // B) figure out where to actually allocate the memory for strs
     //    (right now, just putting it in the THD mem pools)
-    string tname0 = tname + "_scrambled";
+    //cerr << "tname is <" << tname << ">\n";
+    print(a.schema->tableMetaMap);
+    string tname0;
+    //hack for now, will fix soon
+    if (a.schema->tableMetaMap.find(tname) == a.schema->tableMetaMap.end()) {
+        tname0 = tname;
+    } else {
+        tname0 = a.schema->tableMetaMap[tname]->anonTableName;
+    }
     char *tname0p = thd->strmake(tname0.c_str(), tname0.size());
     new_table_length = tname0.size();
+
     return tname0p;
+}
+
+static char *
+getCStr(const string & v) {
+    unsigned int len = v.length();
+    char * res = (char *)malloc(len+1);
+    memcpy(res, v.data(), len);
+    res[len] = '\0';
+    return res;
+}
+
+static char *
+get_column_name(const string & table,
+                const string & field,
+                onion o,
+                Analysis   &a)
+{
+    auto it = a.schema->tableMetaMap.find(table);
+    if (it == a.schema->tableMetaMap.end()) {
+        thrower() << "table " << table << "unknown \n";
+    }
+    auto fit = it->second->fieldMetaMap.find(field);
+    if (fit == it->second->fieldMetaMap.end()) {
+        thrower() << "field " << field << "unknown \n";
+    }
+    return getCStr(fit->second->onionnames[o]);
 }
 
 class CItemType {
@@ -307,11 +405,12 @@ static inline void
 rewrite(Item **i, Analysis &a) {
     Item *i0 = itemTypes.do_rewrite(*i, a);
     if (i0 != *i) {
+        i0->name = (*i)->name; // preserve the name (alias)
         *i = i0;
     }
 }
 
-extern "C" void *create_embedded_thd(int client_flag);
+
 
 template <class T>
 static Item *
@@ -338,7 +437,9 @@ do_optimize_const_item(T *i, Analysis &a) {
         // on the current_thd. Thus, we must call create_embedded_thd
         // again.
         assert(create_embedded_thd(0));
-        assert(current_thd != NULL);
+
+        THD *thd = current_thd;
+        assert(thd != NULL);
 
         MYSQL_RES *r = mysql_store_result(m);
         if (r) {
@@ -354,6 +455,9 @@ do_optimize_const_item(T *i, Analysis &a) {
             assert(row != NULL);
 
             char *p = row[0];
+            unsigned long *lengths = mysql_fetch_lengths(r);
+            assert(lengths != NULL);
+
             if (p) {
 
 //enum enum_field_types { MYSQL_TYPE_DECIMAL, MYSQL_TYPE_TINY,
@@ -377,17 +481,30 @@ do_optimize_const_item(T *i, Analysis &a) {
 //            MYSQL_TYPE_GEOMETRY=255
 //};
 
+                cerr << "p: " << p << endl;
+                cerr << "field->type: " << field->type << endl;
+
                 switch (field->type) {
                     case MYSQL_TYPE_SHORT:
                     case MYSQL_TYPE_LONG:
                     case MYSQL_TYPE_LONGLONG:
                     case MYSQL_TYPE_INT24:
-                        {
-                            long long int v = strtoll(p, NULL, 10);
-                            rep = new Item_int(v);
-                        }
+                        rep = new Item_int((long long) strtoll(p, NULL, 10));
                         break;
-
+                    case MYSQL_TYPE_FLOAT:
+                    case MYSQL_TYPE_DOUBLE:
+                        rep = new Item_float(p, lengths[0]);
+                        break;
+                    case MYSQL_TYPE_DECIMAL:
+                    case MYSQL_TYPE_NEWDECIMAL:
+                        rep = new Item_decimal(p, lengths[0], i->default_charset());
+                        break;
+                    case MYSQL_TYPE_VARCHAR:
+                    case MYSQL_TYPE_VAR_STRING:
+                        rep = new Item_string(thd->strdup(p),
+                                              lengths[0],
+                                              i->default_charset());
+                        break;
                     default:
                         // TODO(stephentu): implement the rest of the data types
                         break;
@@ -423,12 +540,32 @@ do_optimize_type_self_and_args(T *i, Analysis &a) {
     }
 }
 
+static void
+record_item_meta_for_constraints(Item *i,
+                                 const constraints &tr,
+                                 Analysis &a)
+{
+    auto c = tr.encset.extract_singleton();
+    cerr << "Need to encrypt " << *i << " with: " << c << endl;
+    auto it = a.itemToMeta.find(i);
+    ItemMeta *im;
+    if (it == a.itemToMeta.end()) {
+        a.itemToMeta[i] = im = new ItemMeta;
+    } else {
+        im = it->second;
+    }
+    im->o         = c.first;
+    im->uptolevel = c.second.first;
+    im->basekey   = c.second.second;
+}
+
 template <class T>
 static Item *
 do_rewrite_type_args(T *i, Analysis &a) {
     Item **args = i->arguments();
     for (uint x = 0; x < i->argument_count(); x++) {
         rewrite(&args[x], a);
+        args[x]->name = NULL; // args should never have aliases...
     }
     return i;
 }
@@ -537,6 +674,7 @@ static class ANON : public CItemSubtypeIT<Item_field, Item::Type::FIELD_ITEM> {
             }
         }
 
+
         return EncSet(m);
     }
 
@@ -550,18 +688,24 @@ static class ANON : public CItemSubtypeIT<Item_field, Item::Type::FIELD_ITEM> {
         auto encpair = tr.encset.extract_singleton();
 
         string fieldname = extract_fieldname(i);
-        auto it = a.fieldToMeta.find(fieldname);
-        if (it == a.fieldToMeta.end()) {
-            //todo: there should be a map of FULL_EncSets depending on object type
-            a.fieldToMeta[fieldname] = new FieldMeta(FULL_EncDesc);
-            it = a.fieldToMeta.find(fieldname);
+        auto it = a.fieldToAMeta.find(fieldname);
+        if (it == a.fieldToAMeta.end()) {
+            FieldMeta *fm = get_field_meta(i, a);
+            if (fm) {
+                // bootstrap a new FieldAMeta from the FieldMeta's encdesc
+                a.fieldToAMeta[fieldname] = new FieldAMeta(fm->encdesc);
+                it = a.fieldToAMeta.find(fieldname);
+            } else {
+                // we aren't aware of this field. this is an error
+                // for now
+                fatal() << "Cannot find FieldMeta information for: " << *i;
+            }
         }
-        if (it->second->exposedLevels.restrict(encpair.first,
-                                               encpair.second.first)) {
-            cerr << "has not converged\n";
-            a.hasConverged = false;
-        }
-        cerr << "ENCSET FOR FIELD " << fieldname << " is " << a.fieldToMeta[fieldname]->exposedLevels << "\n";
+        it->second->exposedLevels.restrict(encpair.first,
+                                           encpair.second.first);
+
+        cerr << "ENCSET FOR FIELD " << fieldname << " is " << a.fieldToAMeta[fieldname]->exposedLevels << "\n";
+        record_item_meta_for_constraints(i, tr, a);
     }
 
     virtual Item *
@@ -569,11 +713,19 @@ static class ANON : public CItemSubtypeIT<Item_field, Item::Type::FIELD_ITEM> {
     {
         // fix table name
         size_t l = 0;
-        i->table_name = scramble_table_name(i->table_name,
-                                            strlen(i->table_name),
-                                            l);
-        // TODO: pick the column corresponding to the onion we want
-
+        const char * table = i->table_name;
+        i->table_name = anonymize_table_name(i->table_name,
+                                             strlen(i->table_name),
+                                             l, a);
+        // pick the column corresponding to the onion we want
+        auto it = a.itemToMeta.find(i);
+        if (it == a.itemToMeta.end()) {
+            // this is a bug, we should have recorded this in enforce()
+            fatal() << "should have recorded item meta object in enforce()";
+        }
+        ItemMeta *im = it->second;
+        cerr << "onion is " << im->o << "\n";
+        i->field_name = get_column_name(string(table), string(i->field_name), im->o,  a);
         return i;
     }
 
@@ -587,18 +739,7 @@ static class ANON : public CItemSubtypeIT<Item_string, Item::Type::STRING_ITEM> 
     }
     virtual void do_enforce_type(Item_string *i, const constraints &tr, Analysis & a) const
     {
-        auto c = tr.encset.extract_singleton();
-        cerr << "Need to encrypt " << *i << " with: " << c << endl;
-        auto it = a.itemToMeta.find(i);
-        ItemMeta *im;
-        if (it == a.itemToMeta.end()) {
-            a.itemToMeta[i] = im = new ItemMeta;
-        } else {
-            im = it->second;
-        }
-        im->o         = c.first;
-        im->uptolevel = c.second.first;
-        im->basekey   = c.second.second;
+        record_item_meta_for_constraints(i, tr, a);
     }
     virtual Item * do_optimize_type(Item_string *i, Analysis & a) const {
         return i;
@@ -613,18 +754,7 @@ static class ANON : public CItemSubtypeIT<Item_num, Item::Type::INT_ITEM> {
     }
     virtual void do_enforce_type(Item_num *i, const constraints &tr, Analysis & a) const
     {
-        auto c = tr.encset.extract_singleton();
-        cerr << "Need to encrypt " << *i << " with: " << c << endl;
-        auto it = a.itemToMeta.find(i);
-        ItemMeta *im;
-        if (it == a.itemToMeta.end()) {
-            a.itemToMeta[i] = im = new ItemMeta;
-        } else {
-            im = it->second;
-        }
-        im->o         = c.first;
-        im->uptolevel = c.second.first;
-        im->basekey   = c.second.second;
+        record_item_meta_for_constraints(i, tr, a);
     }
     virtual Item * do_optimize_type(Item_num *i, Analysis & a) const {
         return i;
@@ -639,18 +769,7 @@ static class ANON : public CItemSubtypeIT<Item_decimal, Item::Type::DECIMAL_ITEM
     }
     virtual void do_enforce_type(Item_decimal *i, const constraints &tr, Analysis & a) const
     {
-        auto c = tr.encset.extract_singleton();
-        cerr << "Need to encrypt " << *i << " with: " << c << endl;
-        auto it = a.itemToMeta.find(i);
-        ItemMeta *im;
-        if (it == a.itemToMeta.end()) {
-            a.itemToMeta[i] = im = new ItemMeta;
-        } else {
-            im = it->second;
-        }
-        im->o         = c.first;
-        im->uptolevel = c.second.first;
-        im->basekey   = c.second.second;
+        record_item_meta_for_constraints(i, tr, a);
     }
     virtual Item * do_optimize_type(Item_decimal *i, Analysis & a) const {
         return i;
@@ -833,6 +952,48 @@ static class ANON : public CItemSubtypeFT<Item_func_get_system_var, Item_func::F
     {}
 } ANON;
 
+// This is a bit of a hack: until our embedded DB actually has these UDFs for
+// hom-add, then we will just lie about its existence. Eventually we could
+// probably pull the udf_func object out of the embedded db.
+
+static LEX_STRING s_HomAdd = {
+        (char*)"hom_add",
+        sizeof("hom_add"),
+    };
+
+static udf_func s_HomAddUdfFunc = {
+        s_HomAdd,
+        STRING_RESULT,
+        UDFTYPE_FUNCTION,
+        NULL,
+        NULL,
+        NULL,
+        NULL,
+        NULL,
+        NULL,
+        NULL,
+        0L,
+    };
+
+static LEX_STRING s_HomSub = {
+        (char*)"hom_sub",
+        sizeof("hom_sub"),
+    };
+
+static udf_func s_HomSubUdfFunc = {
+        s_HomSub,
+        STRING_RESULT,
+        UDFTYPE_FUNCTION,
+        NULL,
+        NULL,
+        NULL,
+        NULL,
+        NULL,
+        NULL,
+        NULL,
+        0L,
+    };
+
 template<const char *NAME>
 class CItemAdditive : public CItemSubtypeFN<Item_func_additive_op, NAME> {
     virtual EncSet do_gather_type(Item_func_additive_op *i, const constraints &tr, Analysis & a) const {
@@ -851,8 +1012,19 @@ class CItemAdditive : public CItemSubtypeFN<Item_func_additive_op, NAME> {
         return do_optimize_type_self_and_args(i, a);
     }
     virtual Item * do_rewrite_type(Item_func_additive_op *i, Analysis & a) const {
-        // TODO: replace with a hom-add function...
-        return do_rewrite_type_args(i, a);
+        // rewrite children
+        do_rewrite_type_args(i, a);
+
+        List<Item> l;
+        Item **args = i->arguments();
+        for (uint x = 0; x < i->argument_count(); x++) {
+            l.push_back(args[x]);
+        }
+
+        // replace with hom_(add/sub)
+        return strcmp(NAME, "+") == 0 ?
+            new Item_func_udf_str(&s_HomAddUdfFunc, l) :
+            new Item_func_udf_str(&s_HomSubUdfFunc, l) ;
     }
 };
 
@@ -1410,7 +1582,9 @@ optimize_select_lex(st_select_lex *select_lex, Analysis & a)
     if (select_lex->where)
         optimize(&select_lex->where, a);
 
-    if (select_lex->join && select_lex->join->conds)
+    if (select_lex->join &&
+        select_lex->join->conds &&
+        select_lex->where != select_lex->join->conds)
         optimize(&select_lex->join->conds, a);
 
     if (select_lex->having)
@@ -1433,14 +1607,24 @@ process_select_lex(st_select_lex *select_lex, const constraints &tr, Analysis & 
         Item *item = item_it++;
         if (!item)
             break;
-        cerr << "before analyze item " << *item << "\n";
+
         analyze(item, tr, a);
     }
 
     if (select_lex->where)
         analyze(select_lex->where, constraints(FULL_EncSet, "where", select_lex->where, 0), a);
 
-    if (select_lex->join && select_lex->join->conds)
+    // TODO(stephentu): I'm not sure if we can ever have a
+    // select_lex->where != select_lex->join->conds, but
+    // it is not clear to me why this branch should execute
+    // in the case where select_lex->where = select_lex->join->conds, and
+    // it breaks the assumption (at least in re-write) that there will be
+    // exactly one pass per item.
+    //
+    // I'm leaving this like so for now. Feel free to resolve it as fit
+    if (select_lex->join &&
+        select_lex->join->conds &&
+        select_lex->where != select_lex->join->conds)
         analyze(select_lex->join->conds, constraints(FULL_EncSet, "join->conds", select_lex->join->conds, 0), a);
 
     if (select_lex->having)
@@ -1468,8 +1652,9 @@ rewrite_select_lex(st_select_lex *select_lex, Analysis & a)
     if (select_lex->where)
         rewrite(&select_lex->where, a);
 
-    if (select_lex->join && select_lex->join->conds)
-        rewrite(&select_lex->join->conds, a);
+    if (select_lex->join &&
+        select_lex->join->conds &&
+        select_lex->where != select_lex->join->conds)
 
     if (select_lex->having)
         rewrite(&select_lex->having, a);
@@ -1538,7 +1723,7 @@ process_table_list(List<TABLE_LIST> *tll, Analysis & a)
              * should really come from the items that eventually
              * reference columns in this derived table.
              */
-            Analysis a;
+
             process_select_lex(u->first_select(), constraints(EMPTY_EncSet,  "sub-select", 0, 0, false), a);
         }
     }
@@ -1555,9 +1740,9 @@ rewrite_table_list(List<TABLE_LIST> *tll, Analysis & a)
             break;
 
 
-        t->table_name = scramble_table_name(t->table_name,
-                                            t->table_name_length,
-                                            t->table_name_length);
+        t->table_name = anonymize_table_name(t->table_name,
+                                             t->table_name_length,
+                                             t->table_name_length, a);
 
         if (t->nested_join) {
             rewrite_table_list(&t->nested_join->join_list, a);
@@ -1575,10 +1760,95 @@ rewrite_table_list(List<TABLE_LIST> *tll, Analysis & a)
 }
 
 static void
+add_table(SchemaInfo * schema, const string & table, LEX *lex) {
+    //cerr << "in add table " << table << " \n";
+
+    TableMeta *tm = new TableMeta();
+    schema->tableMetaMap[table] = tm;
+
+    tm->tableNo = schema->totalTables++;
+    tm->anonTableName = anonymizeTableName(tm->tableNo, table, false);
+
+    unsigned int index =  0;
+    for (auto it = List_iterator<Create_field>(lex->alter_info.create_list);;) {
+        Create_field * field = it++;
+        if (!field) {
+            break;
+        }
+        FieldMeta * fm = new FieldMeta();
+
+        fm->sql_field = field->clone(current_thd->mem_root);//??what inputs?
+
+        fm->fname = string(fm->sql_field->field_name);
+
+        // certain field types cannot have certain onions. for instance,
+        // AGG makes no sense for non numeric types
+        if (IsMySQLTypeNumeric(field->sql_type)) {
+            fm->encdesc = FULL_EncDesc;
+        } else {
+            fm->encdesc = EQ_SEARCH_EncDesc;
+        }
+
+        for (auto pr : fm->encdesc.olm) {
+            fm->onionnames[pr.first] = anonymizeFieldName(index, pr.first, fm->fname, false);
+        }
+
+        fm->has_salt = true;
+        fm->salt_name = getFieldSalt(index, tm->anonTableName);
+
+        assert(tm->fieldMetaMap.find(fm->fname) == tm->fieldMetaMap.end());
+        tm->fieldMetaMap[fm->fname] = fm;
+        tm->fieldNames.push_back(fm->fname);
+
+        index++;
+
+    }
+}
+
+/*
+ * Analyzes create query.
+ * Updates encrypted schema info.
+ *
+ */
+static void
+process_create_lex(LEX * lex, Analysis & a) {
+
+    cerr << "in process create lex\n";
+
+    // table name
+    string table = lex->select_lex.table_list.first->table_name;
+
+    cerr << "table " << table << "\n";
+    add_table(a.schema, table, lex);
+
+    print(a.schema->tableMetaMap);
+    //TODO: support for "create table like"
+    /*
+    if (lex.create_info.options & HA_LEX_CREATE_TABLE_LIKE) {
+        // create table ... like tbl_name
+        out << " like ";
+        TABLE_LIST *select_tables=
+          lex.create_last_non_select_table->next_global;
+        out << select_tables->alias;
+    } else {
+
+    auto cl = lex.alter_info.create_list;
+    auto kl = lex.alter_info.key_list;
+    */
+
+}
+
+static void
 do_query_analyze(const std::string &db, const std::string &q, LEX * lex, Analysis & analysis) {
     // iterate over the entire select statement..
     // based on st_select_lex::print in mysql-server/sql/sql_select.cc
-    cerr << "in do_query_analyze\n";
+
+    if (lex->sql_command == SQLCOM_CREATE_TABLE) {
+        process_create_lex(lex, analysis);
+        print(analysis.schema->tableMetaMap);
+        return;
+    }
+
     process_table_list(&lex->select_lex.top_join_list, analysis);
 
     process_select_lex(&lex->select_lex,
@@ -1610,12 +1880,11 @@ query_analyze(const std::string &db, const std::string &q, LEX * lex, Analysis &
     optimize_table_list(&lex->select_lex.top_join_list, analysis);
     optimize_select_lex(&lex->select_lex, analysis);
 
-    //runs at most twice
-    while (!analysis.hasConverged) {
-        analysis.hasConverged = true;
-        do_query_analyze(db, q, lex, analysis);
-    }
+    do_query_analyze(db, q, lex, analysis);
+    //print(analysis.schema->tableMetaMap);
+
 }
+
 
 /*
  * Examines the embedded database and the encryption levels needed for a query (as given by analysis).
@@ -1629,11 +1898,34 @@ query_analyze(const std::string &db, const std::string &q, LEX * lex, Analysis &
  * Returns negative on error.
  *
  */
-static
-int adjustOnions(const std::string &db, const Analysis & analysis)
+static int
+adjustOnions(const std::string &db, const Analysis & analysis)
 {
     return 0;
 }
+
+
+FieldMeta::FieldMeta():encdesc(FULL_EncDesc)
+{
+    fname = "";
+    sql_field = NULL;
+    salt_name = "";
+    has_salt = true;
+
+}
+
+TableMeta::TableMeta() {
+    anonTableName = "";
+    tableNo = 0;
+}
+
+TableMeta::~TableMeta()
+{
+    for (auto i = fieldMetaMap.begin(); i != fieldMetaMap.end(); i++)
+        delete i->second;
+
+}
+
 
 /*
  * Rewrites lex by translating and encrypting based on information in analysis.
@@ -1648,22 +1940,43 @@ lex_rewrite(const string & db, LEX * lex, Analysis & analysis, ReturnMeta & rmet
     return true;
 }
 
+static int
+updateMeta(const string & db, const string & q, LEX * lex, Analysis & a) {
+    if (lex->sql_command == SQLCOM_CREATE_TABLE) {
+        //need to update embedded schema with the new table
+        if (mysql_query(a.conn(), q.c_str())) {
+            fatal() << "mysql_query: " << mysql_error(a.conn());
+        }
+        assert(create_embedded_thd(0));
+    }
+    return adjustOnions(db, a);
+}
+
+Rewriter::Rewriter(const std::string & db):db(db){
+    //TODO: load schema
+    schema = new SchemaInfo();
+    totalTables = 0;
+}
+
 string
-rewrite(const string & db, const string & q, ReturnMeta & rmeta)
+Rewriter::rewrite(const string & q, ReturnMeta & rmeta)
 {
     query_parse p(db, q);
     LEX *lex = p.lex();
 
+
     cerr << "query lex is " << *lex << "\n";
 
-    Analysis analysis;
+    Analysis analysis(db, schema);
     query_analyze(db, q, lex, analysis);
 
-    assert(adjustOnions(db, analysis) >= 0);
+    //print(analysis.schema->tableMetaMap);
+    assert(updateMeta(db, q, lex, analysis) >= 0);
 
     lex_rewrite(db, lex, analysis, rmeta);
 
     stringstream ss;
+
     ss << *lex;
 
     return ss.str();

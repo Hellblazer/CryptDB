@@ -30,7 +30,7 @@ class sha {
         return x.final();
     }
 
-    static std::vector<uint8_t> hash(std::vector<uint8_t> &v) {
+    static std::vector<uint8_t> hash(const std::vector<uint8_t> &v) {
         sha x;
         x.update(&v[0], v.size());
         return x.final();
