@@ -408,7 +408,7 @@ static string sGetProxyDirectory( const string& proxy_directory, const string& d
 
     cerr << message << result << endl;
 
-    return result; // ignore result of system call
+    return result;
 }
 
 //============== Constructors ==================================//
