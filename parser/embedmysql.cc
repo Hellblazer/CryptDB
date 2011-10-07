@@ -22,6 +22,11 @@ static bool embed_active = false;
 
 embedmysql::embedmysql(const std::string &dir)
 {
+    struct stat st;
+    if (stat(dir.c_str(), &st) != 0) {
+        fatal() << "ERROR! The proxy_db directory: " << dir << " does not exist";
+    }
+
     if (!__sync_bool_compare_and_swap(&embed_active, false, true))
         fatal() << "only one embedmysql object can exist at once\n";
 
@@ -41,7 +46,7 @@ embedmysql::embedmysql(const std::string &dir)
     m = mysql_init(0);
 
     mysql_options(m, MYSQL_OPT_USE_EMBEDDED_CONNECTION, 0);
-    if (!mysql_real_connect(m, 0, 0, 0, 0, 0, 0, CLIENT_MULTI_STATEMENTS)) {
+    if (!mysql_real_connect(m, 0, 0, 0, "information_schema", 0, 0, CLIENT_MULTI_STATEMENTS)) {
         mysql_close(m);
         fatal() << "mysql_real_connect: " << mysql_error(m);
     }

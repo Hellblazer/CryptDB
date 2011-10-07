@@ -32,6 +32,8 @@ class Connect {
     Connect(std::string server, std::string user, std::string passwd,
             std::string dbname, uint port = 0);
 
+    Connect(MYSQL* _conn) : conn(_conn), close_on_destroy(false) { }
+
     // returns true if execution was ok; caller must delete DBResult
     bool execute(const std::string &query, DBResult *&);
     bool execute(const std::string &query);
@@ -45,8 +47,9 @@ class Connect {
 
  private:
 #if MYSQL_S
-    MYSQL * conn;
+    MYSQL *  conn;
 #else
     PGconn * conn;     //connection
 #endif
+    bool  close_on_destroy;
 };

@@ -25,8 +25,16 @@ class EDBProxy {
      * secure mode (queries are plain).
      */
 
-    EDBProxy(std::string server, std::string user, std::string psswd, std::string dbname,
-              uint port = 0, bool multiPrinc = false, bool allDefaultEncrypted = false);
+    EDBProxy(const std::string& server
+             , const std::string& user
+             , const std::string& psswd
+             , const std::string& dbname
+             , uint port = 0
+             , bool multiPrinc = false
+             , bool allDefaultEncrypted = false
+             , const std::string& proxy_directory = ""
+             );
+
     void setMasterKey(const std::string &mkey);
 
     // ========= QUERIES ===== //
@@ -90,9 +98,7 @@ class EDBProxy {
  private:
     bool isSecure;
     bool allDefaultEncrypted;
-#if 0
     embedmysql meta_db; // to connect to the embedded db, persisting meta info
-#endif
     Connect * conn;     // to connect to the DBMs
     CryptoManager * cm;     // for cryptography
     ParserMeta * pm;     // for speeding up parsing
@@ -215,6 +221,8 @@ class EDBProxy {
 
     //syntax: train are_all_fields_encrypted createsfile indexfile queryfile
     std::list<std::string> rewriteEncryptTrain(const std::string & query);
+
+    void readMetaInfo( ); // used by ctor to retrieve meta info from embedded database
 
  protected:
     //these are protected mostly for testing purposes
