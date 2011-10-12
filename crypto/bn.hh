@@ -1,5 +1,6 @@
 #pragma once
 
+#include <assert.h>
 #include <stdexcept>
 #include <ostream>
 #include <openssl/bn.h>

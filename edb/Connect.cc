@@ -15,6 +15,8 @@ using namespace std;
 
 Connect::Connect(string server, string user, string passwd,
                  string dbname, uint port)
+  : conn( nullptr)
+  , close_on_destroy( true )
 {
 #if MYSQL_S
     const char *dummy_argv[] =
@@ -124,11 +126,13 @@ Connect::last_insert_id()
 
 Connect::~Connect()
 {
+    if (close_on_destroy) {
 #if MYSQL_S
-    mysql_close(conn);
+        mysql_close(conn);
 #else /*postgres */
-    PQfinish(conn);
+        PQfinish(conn);
 #endif
+    }
 }
 
 DBResult::DBResult()

@@ -279,6 +279,10 @@ typedef struct ResMeta {
 
 } ResMeta;
 
+typedef struct ParseContext {
+
+} ParseContext;
+
 typedef struct Result {
     std::vector<std::vector<std::string> > a;
 } Result;

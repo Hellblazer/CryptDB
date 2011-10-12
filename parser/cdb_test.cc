@@ -37,6 +37,8 @@ main(int ac, char **av)
     char dir_arg[1024];
     snprintf(dir_arg, sizeof(dir_arg), "--datadir=%s", av[1]);
 
+
+
     const char *mysql_av[] =
     { "progname",
             "--skip-grant-tables",
@@ -55,6 +57,7 @@ main(int ac, char **av)
     int nerror = 0;
     int nskip = 0;
 
+    Rewriter * r = NULL;
     for (;;) {
         string s;
         getline(f, s);
@@ -69,6 +72,7 @@ main(int ac, char **av)
 
         string db = s.substr(0, space);
         cerr << "db: " << db << "\n";
+        if (!r) {r = new Rewriter(db);};
         string q = s.substr(space + 1);
         cerr << "q: " << q << "\n";
         string new_q;
@@ -78,7 +82,7 @@ main(int ac, char **av)
             try {
                 cerr << "before query " << "\n";
                 ReturnMeta rmeta;
-                new_q = rewrite(db, q, rmeta);
+                new_q = r->rewrite(q, rmeta);
             } catch (std::runtime_error &e) {
                 cout << "ERROR: " << e.what() << " in query " << q << endl;
                 nerror++;

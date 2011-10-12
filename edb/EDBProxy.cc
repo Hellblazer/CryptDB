@@ -2,6 +2,10 @@
 #include <fstream>
 #include <set>
 
+#include <unistd.h>
+#include <sys/types.h>
+#include <pwd.h>
+
 #include <util/ctr.hh>
 #include <util/cryptdb_log.hh>
 #include <util/cleanup.hh>
@@ -156,17 +160,272 @@ createAll(Connect * conn)
    }
  */
 
-//============== CONSTRUCTORS ==================================//
+static void sCreateMetaSchema( Connect& pconn ) {
 
-EDBProxy::EDBProxy(string server, string user, string psswd, string dbname,
-                     uint port, bool multiPrinc, bool defaultEnc)
+    DBResult* reply;
+
+    // Create persistent representation for TabledMetadata in edb/util.h
+    //
+    pconn.execute( "CREATE TABLE table_info"
+                   "( id bigint NOT NULL auto_increment PRIMARY KEY"
+                   ", name varchar(64) NOT NULL"
+                   ", anon_name varchar(64) NOT NULL"
+                   ", salt_name varchar(4096) NOT NULL"
+                   ", auto_inc_field varchar(64)"
+                   ", auto_inc_value bigint"
+                   ", UNIQUE INDEX idx_table_name( name )"
+                   ");"
+                   , reply );
+
+    // Create persistent representation for FieldMetadata in edb/util.h
+    //
+    pconn.execute( "CREATE TABLE column_info"
+                   "( id bigint NOT NULL auto_increment PRIMARY KEY"
+                   ", table_id bigint NOT NULL"
+                   ", field_type int NOT NULL"
+                   ", mysql_field_type int NOT NULL"
+                   ", name varchar(64) NOT NULL"
+                   ", anon_det_name varchar(64)"
+                   ", anon_ope_name varchar(64)"
+                   ", anon_agg_name varchar(64)"
+                   ", anon_swp_name varchar(64)"
+                   ", salt_name varchar(4096)"
+                   ", is_encrypted tinyint NOT NULL"
+                   ", can_be_null tinyint NOT NULL"
+                   ", has_ope tinyint NOT NULL"
+                   ", has_agg tinyint NOT NULL"
+                   ", has_search tinyint NOT NULL"
+                   ", has_salt tinyint NOT NULL"
+                   ", ope_used tinyint NOT NULL"
+                   ", agg_used tinyint NOT NULL"
+                   ", search_used tinyint NOT NULL"
+                   ", update_set_performed tinyint NOT NULL"
+                   ", sec_level_ope enum"
+                   "      ( 'INVALID'"
+                   "      , 'PLAIN'"
+                   "      , 'PLAIN_DET'"
+                   "      , 'DETJOIN'"
+                   "      , 'DET'"
+                   "      , 'SEMANTIC_DET'"
+                   "      , 'PLAIN_OPE'"
+                   "      , 'OPEJOIN'"
+                   "      , 'OPE'"
+                   "      , 'SEMANTIC_OPE'"
+                   "      , 'PLAIN_AGG'"
+                   "      , 'SEMANTIC_AGG'"
+                   "      , 'PLAIN_SWP'"
+                   "      , 'SWP'"
+                   "      , 'SEMANTIC_VAL'"
+                   "      , 'SECLEVEL_LAST'"
+                   "      ) NOT NULL DEFAULT 'INVALID'"
+                   ", sec_level_det enum"
+                   "      ( 'INVALID'"
+                   "      , 'PLAIN'"
+                   "      , 'PLAIN_DET'"
+                   "      , 'DETJOIN'"
+                   "      , 'DET'"
+                   "      , 'SEMANTIC_DET'"
+                   "      , 'PLAIN_OPE'"
+                   "      , 'OPEJOIN'"
+                   "      , 'OPE'"
+                   "      , 'SEMANTIC_OPE'"
+                   "      , 'PLAIN_AGG'"
+                   "      , 'SEMANTIC_AGG'"
+                   "      , 'PLAIN_SWP'"
+                   "      , 'SWP'"
+                   "      , 'SEMANTIC_VAL'"
+                   "      , 'SECLEVEL_LAST'"
+                   "      ) NOT NULL DEFAULT 'INVALID'"
+                   ", INDEX idx_column_name( name )"
+                   ", FOREIGN KEY( table_id ) REFERENCES table_info( id ) ON DELETE CASCADE"
+                   ");"
+                   , reply );
+
+    // Create persistent representation for IndexMetadata in edb/util.h
+    //
+    pconn.execute( "CREATE TABLE index_info"
+                   "( id bigint NOT NULL auto_increment PRIMARY KEY"
+                   ", table_id bigint NOT NULL"
+                   ", name varchar(64) NOT NULL"
+                   ", anon_name varchar(64) NOT NULL"
+                   ", FOREIGN KEY( table_id ) REFERENCES table_info( id ) ON DELETE CASCADE"
+                   ");"
+                   , reply );
+}
+
+void EDBProxy::readMetaInfo( ) {
+    DBResult* reply;
+    Connect pconn( meta_db.conn() );
+
+    pconn.execute( "SHOW DATABASES", reply );
+    ResType show_type = reply->unpack();
+    bool found_dbname = false;
+    for (auto db_it = show_type.rows.begin(); db_it != show_type.rows.end(); ++db_it) {
+        auto db_info = *db_it;
+        auto field_it = db_info.begin();
+        if ((*field_it).to_string() == "proxy_db") {
+            found_dbname = true;
+        }
+    }
+
+    if (!found_dbname) {
+        if (pconn.execute( "CREATE DATABASE proxy_db", reply))
+            sCreateMetaSchema( pconn );
+    }
+
+    pconn.execute( "USE proxy_db", reply );
+
+    pconn.execute( "SHOW TABLES", reply );
+    if (reply->n->row_count < 3) {
+        sCreateMetaSchema( pconn );
+    }
+
+    pconn.execute( "SELECT id, name, anon_name, salt_name, auto_inc_field, auto_inc_value FROM table_info", reply );
+
+    ResType res_type = reply->unpack();
+
+    for (auto table_it = res_type.rows.begin(); table_it != res_type.rows.end(); ++table_it) {
+        TableMetadata* tm = new TableMetadata();
+        auto table_info = *table_it;
+
+        auto field_it = table_info.begin();
+
+        tm->tableNo       = atoi((*field_it++).to_string().c_str());
+        string table_name =      (*field_it++).to_string();
+        tm->anonTableName =      (*field_it++).to_string();
+        tm->salt_name     =      (*field_it++).to_string();
+        tm->ai.field      =      (*field_it++).to_string();
+        tm->ai.incvalue   = atoi((*field_it++).to_string().c_str());
+        tm->hasEncrypted  = false;
+        tm->hasSensitive  = false;
+
+        tableMetaMap[table_name] = tm;
+
+        this->totalTables = tm->tableNo;
+    }
+
+    map<string,SECLEVEL> seclevel_map = {
+        {"INVALID", SECLEVEL::INVALID}, 
+        {"PLAIN", SECLEVEL::PLAIN}, 
+        {"PLAIN_DET", SECLEVEL::PLAIN_DET},
+        {"DETJOIN", SECLEVEL::DETJOIN}, 
+        {"DET", SECLEVEL::DET}, 
+        {"SEMANTIC_DET", SECLEVEL::SEMANTIC_DET}, 
+        {"PLAIN_OPE", SECLEVEL::PLAIN_OPE}, 
+        {"OPEJOIN", SECLEVEL::OPEJOIN}, 
+        {"OPE", SECLEVEL::OPE}, 
+        {"SEMANTIC_OPE", SECLEVEL::SEMANTIC_OPE}, 
+        {"PLAIN_AGG", SECLEVEL::PLAIN_AGG}, 
+        {"SEMANTIC_AGG", SECLEVEL::SEMANTIC_AGG}, 
+        {"PLAIN_SWP", SECLEVEL::PLAIN_SWP}, 
+        {"SWP", SECLEVEL::SWP}, 
+        {"SEMANTIC_VAL", SECLEVEL::SEMANTIC_VAL}, 
+        {"SECLEVEL_LAST", SECLEVEL::SECLEVEL_LAST}
+    };
+
+    for (auto tm_it = tableMetaMap.begin(); tm_it != tableMetaMap.end(); ++tm_it) {
+        TableMetadata* tm = tm_it->second;
+
+        char buf[16];
+        snprintf( buf, 15, "%d", tm->tableNo );
+        string table_id( buf );
+
+        pconn.execute( "SELECT field_type, mysql_field_type, name, anon_det_name, anon_ope_name, anon_agg_name, anon_swp_name,"
+                       "       salt_name, is_encrypted, can_be_null, has_ope, has_agg, has_search, has_salt,"
+                       "       ope_used, agg_used, search_used, update_set_performed, sec_level_ope, sec_level_det "
+                       "FROM column_info "
+                       "WHERE table_id=" + table_id, reply ); 
+
+        res_type = reply->unpack();
+
+        SqlItem si;
+        for (auto column_it = res_type.rows.begin(); column_it != res_type.rows.end(); ++column_it) {
+            FieldMetadata* fm = new FieldMetadata();
+            auto column_info = *column_it;
+
+            auto field_it = column_info.begin();
+
+            fm->type                 = (fieldType)atoi( (*field_it++).to_string().c_str() );
+            fm->mysql_type           = (enum_field_types)atoi( (*field_it++).to_string().c_str() );
+
+            string col_name          = (*field_it++).to_string();
+            fm->anonFieldNameDET     = (*field_it++).to_string();
+            fm->anonFieldNameOPE     = (*field_it++).to_string();
+            fm->anonFieldNameAGG     = (*field_it++).to_string();
+            fm->anonFieldNameSWP     = (*field_it++).to_string();
+            fm->salt_name            = (*field_it++).to_string();
+            fm->isEncrypted          = (*field_it++).to_string().compare( "1" ) == 0;
+            fm->can_be_null          = (*field_it++).to_string().compare( "1" ) == 0;
+            fm->has_ope              = (*field_it++).to_string().compare( "1" ) == 0;
+            fm->has_agg              = (*field_it++).to_string().compare( "1" ) == 0;
+            fm->has_search           = (*field_it++).to_string().compare( "1" ) == 0;
+            fm->has_salt             = (*field_it++).to_string().compare( "1" ) == 0;
+            fm->ope_used             = (*field_it++).to_string().compare( "1" ) == 0;
+            fm->agg_used             = (*field_it++).to_string().compare( "1" ) == 0;
+            fm->search_used          = (*field_it++).to_string().compare( "1" ) == 0;
+            fm->update_set_performed = (*field_it++).to_string().compare( "1" ) == 0;
+
+            fm->secLevelOPE          = seclevel_map[(*field_it++).to_string()];
+            fm->secLevelDET          = seclevel_map[(*field_it++).to_string()];
+
+            tm->fieldNameMap[fm->anonFieldNameDET] = col_name;
+            tm->fieldNameMap[fm->anonFieldNameOPE] = col_name;
+            tm->fieldNameMap[fm->anonFieldNameAGG] = col_name;
+            tm->fieldNameMap[fm->anonFieldNameSWP] = col_name;
+            tm->fieldMetaMap[col_name] = fm;
+
+            if (col_name.compare( tm->salt_name ))
+                // don't add the fmsalt field to fieldNames
+                // the insert pathway counts on it NOT being there
+                tm->fieldNames.push_back( col_name );
+
+
+            if (fm->isEncrypted) tm->hasEncrypted = true;
+            // FIXME!  what to do about tm->hasSensitive / multi-princ?
+        }
+    }
+}
+
+static string sGetProxyDirectory( const string& proxy_directory, const string& dbname) {
+
+    string result = proxy_directory;
+    if (result.length() == 0) {
+        // use user's home directory as 
+        result += getpwuid(getuid())->pw_dir;
+        result += "/" + dbname;
+    } else {
+        result += "/" + dbname;
+    }
+
+    string message = "embedded_db in: ";
+
+    struct stat st;
+    if (stat(result.c_str(), &st) != 0) {
+        string mkdir_cmd = "mkdir -p " + result;
+        if (system( mkdir_cmd.c_str() ) == -1)
+            message = "failed to mkdir -p ";
+    }
+
+    cerr << message << result << endl;
+
+    return result;
+}
+
+//============== Constructors ==================================//
+
+EDBProxy::EDBProxy(const string& server
+                   , const string& user
+                   , const string& psswd
+                   , const string& dbname
+                   , uint port
+                   , bool multiPrinc
+                   , bool defaultEnc
+                   , const string& proxy_directory)
     : VERBOSE( VERBOSE_EDBProxy )
     , dropOnExit( false )
     , isSecure( false )
     , allDefaultEncrypted( defaultEnc )
-#if 0
-    , meta_db( "proxy_db" )
-#endif
+    , meta_db( sGetProxyDirectory(proxy_directory, dbname) )
     , conn( new Connect(server, user, psswd, dbname, port) )
     , pm( nullptr )
     , mp( multiPrinc ? new MultiPrinc(conn) : nullptr )
@@ -181,6 +440,8 @@ EDBProxy::EDBProxy(string server, string user, string psswd, string dbname,
     LOG(edb_v) << (multiPrinc ? "multi princ mode" : "single princ mode");
 
     assert_s (!(multiPrinc && defaultEnc), "cannot have fields encrypted by default in multiprinc because we need to know encfor princ");
+
+    this->readMetaInfo( );
 }
 
 void
@@ -632,6 +893,67 @@ throw (CryptDBError)
         tm->fieldMetaMap[fmsalt->fieldName] = fmsalt;
     }
 
+
+    /* begin update persistent meta information in proxy_db */
+
+    Connect pconn( meta_db.conn() );
+
+    pconn.execute( "BEGIN;" );
+
+    string insert_into( "INSERT INTO" );
+
+    pconn.execute( insert_into + " table_info VALUES "
+                   + "( " + "0"               // the auto-incremented ID for this record
+                   + ", '" + tableName + "'"
+                   + ", '" + tm->anonTableName + "'"
+                   + ", '" + tm->salt_name + "'"
+                   + ", '" + tm->ai.field + "'"
+                   + ", " + "0"               // the auto_inc_value for the TableMetadata
+                   + ");" );
+
+    char table_id[16];
+    sprintf( table_id, "%lld", pconn.last_insert_id() );
+    
+
+    for (map<string, FieldMetadata*>::iterator it = tm->fieldMetaMap.begin(); it != tm->fieldMetaMap.end(); ++it) {
+        string col_name   = it->first;
+        FieldMetadata* fm = it->second;
+
+        char ftype[16];
+        char mtype[16];
+
+        snprintf( ftype, 15, "%d", fm->type );
+        snprintf( mtype, 15, "%d", fm->mysql_type );
+
+        pconn.execute( insert_into + " column_info VALUES "
+                       + "( " + "0"               // the auto-incremented ID for this record
+                       + ", " + table_id
+                       + ", " + ftype
+                       + ", " + mtype
+                       + ", " + "'" + col_name + "'"
+                       + ", " + (fm->anonFieldNameDET.empty() ? "null" : "'" + fm->anonFieldNameDET + "'" )
+                       + ", " + (fm->anonFieldNameOPE.empty() ? "null" : "'" + fm->anonFieldNameOPE + "'" )
+                       + ", " + (fm->anonFieldNameAGG.empty() ? "null" : "'" + fm->anonFieldNameAGG + "'" )
+                       + ", " + (fm->anonFieldNameSWP.empty() ? "null" : "'" + fm->anonFieldNameSWP + "'" )
+                       + ", " + (fm->salt_name.empty()        ? "null" : "'" + fm->salt_name + "'" )
+                       + ", " + (fm->isEncrypted ? "1" : "0")
+                       + ", " + (fm->can_be_null ? "1" : "0")
+                       + ", " + (fm->has_ope     ? "1" : "0")
+                       + ", " + (fm->has_agg     ? "1" : "0")
+                       + ", " + (fm->has_search  ? "1" : "0")
+                       + ", " + (fm->has_salt    ? "1" : "0")
+                       + ", " + (fm->ope_used    ? "1" : "0")
+                       + ", " + (fm->agg_used    ? "1" : "0")
+                       + ", " + (fm->search_used ? "1" : "0")
+                       + ", " + (fm->update_set_performed ? "1" : "0")
+                       + ", " + "'" + levelnames[(int)fm->secLevelOPE] + "'"
+                       + ", " + "'" + levelnames[(int)fm->secLevelDET] + "'"
+                       + ");" );
+    }
+
+    pconn.execute( "COMMIT;" );
+
+    /* end update persistent meta information in proxy_db */
 
     resultQuery += fieldSeq;
 
@@ -2547,6 +2869,18 @@ throw (CryptDBError)
 
     tableNameMap.erase(anonTableName);
 
+    Connect pconn( meta_db.conn() );
+    pconn.execute( "BEGIN;" );
+
+    string delete_from_table_info( "DELETE FROM table_info WHERE " );
+
+    pconn.execute( delete_from_table_info
+                  + "name='"      + tableName     + "' AND "
+                  + "anon_name='" + anonTableName + "'"
+                  + ";" );
+
+    pconn.execute( "COMMIT;" );
+
     list<string> resultList;
     resultList.push_back(result);
     return resultList;
@@ -3581,6 +3915,8 @@ EDBProxy::exit()
 
 EDBProxy::~EDBProxy()
 {
+    this->exit();
+
     for (auto i = tableMetaMap.begin(); i != tableMetaMap.end(); i++)
         delete i->second;
 

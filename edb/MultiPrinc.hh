@@ -8,7 +8,7 @@
  */
 
 #include <edb/AccessManager.hh>
-#include <edb/Translator.hh>
+#include <parser/Translator.hh>
 
 
 class MultiPrinc {
