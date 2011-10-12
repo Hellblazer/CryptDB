@@ -197,15 +197,20 @@ MetaAccess::addEqualsCheck(string princ1, string princ2)
         }
     }
     //update database to reflect new generic name (if exists)
+    int ret = 0;
     string sql = "UPDATE " + access_table + " SET hasAccessType = '" + new1 + "' WHERE hasAccessType = '" + old1 + "'";
-    execute(sql);
+    ret += execute(sql);
     sql = "UPDATE " + access_table + " SET hasAccessType = '" + new2 + "' WHERE hasAccessType = '" + old2 + "'";
-    execute(sql);
+    ret += execute(sql);
     sql = "UPDATE " + access_table + " SET accessToType = '" + new1 + "' WHERE accessToType = '" + old1 + "'";
-    execute(sql);
+    ret += execute(sql);
     sql = "UPDATE " + access_table + " SET accessToType = '" + new2 + "' WHERE accessToType = '" + old2 + "'";
-    execute(sql);
-    return 0;
+    ret += execute(sql);
+    sql = "UPDATE " + public_table + " SET Type = '" + new1 + "' WHERE Type = '" + old1 + "'";
+    ret += execute(sql);
+    sql = "UPDATE " + public_table + " SET Type = '" + new2 + "' WHERE Type = '" + old2 + "'";
+    ret += execute(sql);
+    return ret;
 }
 
 void
@@ -791,27 +796,30 @@ KeyAccess::addEquals(string prin1, string prin2)
                     }
                     prin2_values.insert(it->at(1).data);
                 }
-
-                if (it->at(2).data == gen1) {
-                    prin1_hasaccess.insert(Prin(it->at(0).data, it->at(1).data));
-                } else if (it->at(2).data == gen2) {
-                    prin2_hasaccess.insert(Prin(it->at(0).data, it->at(1).data));
-                }
-            
-            }
-            if (prin1_hasaccess.size() == prin2_hasaccess.size()) {
-                for (auto p1 = prin1_hasaccess.begin(); p1 != prin1_hasaccess.end(); p1++) {
-                    if (prin2_hasaccess.find(*p1) == prin2_hasaccess.end()) {
-                        LOG(am) << "addEquals failed: the new equals would alter the currently exist key links";
-                        return -1;
-                    }
-                }        
-            } else if (prin1_hasaccess.size() != 0 && prin2_hasaccess.size() != 0) {
-                LOG(am) << "addEquals failed: the new equals would alter the currently exist key links";
-                return -1;
             }
         }
-        meta->addEqualsCheck(prin1, prin2);
+        string old1 = getGeneric(prin1);
+        string old2 = getGeneric(prin2);
+        if (meta->addEqualsCheck(prin1, prin2) < 0) {
+            return -1;
+        }
+        //update all the data stored in local sets just now
+        set<Prin> new_keys;
+        for(auto k = keys.begin(); k != keys.end(); k++) {
+            if (k->first.gen == old1) {
+                new_keys.insert(k->first);
+            }
+            if (k->first.gen == old2) {
+                new_keys.insert(k->first);
+            }
+        }
+        for(auto k = new_keys.begin(); k != new_keys.end(); k++) {
+            Prin k_new = Prin(prin1, k->value);
+            k_new.gen = getGeneric(prin1);
+            keys[k_new] = keys[*k];
+            keys.erase(*k);
+        }
+        //TODO: update all the other maps too
         return 0;
     }
 
@@ -1222,7 +1230,7 @@ KeyAccess::getPrinKey(Prin prin)
         assert_s(
             keys[prin].key.length() == AES_KEY_BYTES,
             "getKey is trying to return a key of the wrong length");
-        LOG(am) << "got key from local map";
+        LOG(am_v) << "got key from local map";
         return keys[prin];
     }
 
@@ -1392,7 +1400,7 @@ KeyAccess::insertPsswd(Prin gives, const string &psswd)
                     continue;
                 }
                 ResType res = SelectAccess(hasAccess_prin, empty);
-                //cerr << "\tres okay " << res.rows.size() << endl;
+                //cerr << "res okay " << res.rows.size() << " for " << hasAccess_prin.gen << "=" << hasAccess_prin.value << endl;
                 if (res.rows.size() > 0) {
                     auto row = res.rows.begin();
                     while (row != res.rows.end()) {
@@ -1401,14 +1409,17 @@ KeyAccess::insertPsswd(Prin gives, const string &psswd)
                         //accessTo prin
                         new_prin.gen = row->at(2).data;
                         new_prin.value = row->at(3).data;
+                        //cerr << "  new_prin: " << new_prin.gen << "=" << new_prin.value << endl;
                         accessible_values.insert(new_prin);
                         string new_key = getKey(new_prin);
+                        //cerr << "  new_key: " << new_key << endl;
                         PrinKey new_prin_key;
                         //if key is not currently held by anyone
                         if (new_key.length() == 0) {
                             assert_s(getKey(
                                          hasAccess_prin).length() > 0,
                                      "there is a logical issue with insertPsswd: getKey should have the key for hasAccess");
+                            //cerr << row->at(0).data << "=" << row->at(1).data << " ---> " << row->at(2).data << "=" << row->at(3).data << endl;
                             if (row->at(6).null || row->at(6).data.size() == 0) {
                                 // symmetric key okay
                                 new_prin_key =
@@ -1420,6 +1431,7 @@ KeyAccess::insertPsswd(Prin gives, const string &psswd)
                                 new_prin_key = decryptAsym(row->at(6),
                                                            sec_key.key);
                             }
+                            //cerr << "\t got key: " << new_prin_key.key << endl;
                         }
                         //if key is currently held by someone else...
                         else {

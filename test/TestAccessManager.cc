@@ -317,12 +317,14 @@ testMultiBasic(const TestConfig &tc, KeyAccess * am) {
 }
 
 static void
-testMetaAlerations(const TestConfig &tc, KeyAccess *am) {
+testMetaAlterations(const TestConfig &tc, KeyAccess *am) {
     string test = "(meta changes) ";
     buildAll(am);
     record(tc, am->addEquals("u.user","u.uid") == 0, test + "add equality failed (case 3)");
-    //assert_s(false, "pause");
-    record(tc, am->addEquals("x.mailing_list", "m.mess") < 0, test + "added illegal equality (ml = m)");
+
+    record(tc, am->getKey(m5).length() == 0, test + "m5 key accessible with no one online!");
+    record(tc, am->addEquals("x.mailing_list", "m.mess") == 0, test + "didn't added legal equality (ml = m)");
+    record(tc, am->getKey(m5).length() == 0, test + "ml5 key accessible with no one online!");
 
     record(tc, am->addEquals("g.gid","m.mess") < 0, test + "illegal equality (gave access to previously inaccesible keys) was added");
     
@@ -334,7 +336,7 @@ testMetaAlerations(const TestConfig &tc, KeyAccess *am) {
     
     //check that meta is still correctly structured
     record(tc, am->getGeneric("u.user") == am->getGeneric("u.uid"), test + "u.user and u.uid should have the same generic");
-    record(tc, am->getGeneric("x.mailing_list") != am->getGeneric("m.mess"), test + "mailing_list and m.mess should not have the same generic");
+    record(tc, am->getGeneric("x.mailing_list") == am->getGeneric("m.mess"), test + "mailing_list and m.mess should have the same generic");
     record(tc, am->getGeneric("u.c") == am->getGeneric("u.uid"), test + "u.c and u.uid should have the same generic");
     record(tc, am->getGeneric("new.thing") == "", test + "new.thing should not have been created");
     //check that data is still all accessible (or not, as the case may be)...
@@ -359,7 +361,7 @@ testMetaAlerations(const TestConfig &tc, KeyAccess *am) {
     record(tc, am->getKey(u2).length() > 0, test+"bob can't access u2");
     record(tc, am->getKey(g5).length() > 0, test+"bob can't access g5");
     record(tc, am->getKey(m2).length() > 0, test+"bob can't access m2");
-    record(tc, am->getKey(m4).length() > 0, test+"bob can't access m4");
+    record(tc, am->getKey(m4).length() > 0, test+"bob can't access m4 (orphan)");
     record(tc, am->getKey(s6).length() > 0, test+"bob can't access s6");
     record(tc, am->getKey(m3).length() > 0, test+"bob can't access m3");
     record(tc, am->getKey(s4).length() > 0, test+"bob can't access s4");
@@ -827,7 +829,7 @@ TestAccessManager::run(const TestConfig &tc, int argc, char ** argv)
     ka->~KeyAccess();
     ka = buildTest(new Connect(tc.host, tc.user, tc.pass, tc.db));
     cerr << "altering meta post data intertion tests..." << endl;
-    testMetaAlerations(tc, ka);
+    testMetaAlterations(tc, ka);
 
     cerr << "RESULT: " << npass << "/" << ntest << " passed" << endl;
 

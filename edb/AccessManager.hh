@@ -107,7 +107,7 @@ class MetaAccess {
     void addEquals(std::string princ1, std::string princ2);
     //calls addEquals after the access tree has been established
     //returns: 0  if the equality was added
-    //         <0 if adding the equality would break the access tree
+    //         <0 if adding the equality would break the access tree, or some error occured
     int addEqualsCheck(std::string princ1, std::string princ2);
 
     //princHasAccess has access to princAccessible
