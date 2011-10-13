@@ -744,6 +744,13 @@ static class ANON : public CItemSubtypeIT<Item_string, Item::Type::STRING_ITEM> 
     virtual Item * do_optimize_type(Item_string *i, Analysis & a) const {
         return i;
     }
+    virtual Item * do_rewrite_type(Item_string *i, Analysis & a) const {
+        String s;
+        String *s0 = i->val_str(&s);
+        assert(s0 != NULL);
+        // TODO(stephentu): Do some actual encryption of the string here
+        return new Item_hex_string(s0->ptr(), s0->length());
+    }
 } ANON;
 
 static class ANON : public CItemSubtypeIT<Item_num, Item::Type::INT_ITEM> {
@@ -759,6 +766,11 @@ static class ANON : public CItemSubtypeIT<Item_num, Item::Type::INT_ITEM> {
     virtual Item * do_optimize_type(Item_num *i, Analysis & a) const {
         return i;
     }
+    virtual Item * do_rewrite_type(Item_num *i, Analysis & a) const {
+        longlong n = i->val_int();
+        // TODO(stephentu): Do some actual encryption of the int here
+        return new Item_int( n ^ 0xdeadbeef );
+    }
 } ANON;
 
 static class ANON : public CItemSubtypeIT<Item_decimal, Item::Type::DECIMAL_ITEM> {
@@ -773,6 +785,13 @@ static class ANON : public CItemSubtypeIT<Item_decimal, Item::Type::DECIMAL_ITEM
     }
     virtual Item * do_optimize_type(Item_decimal *i, Analysis & a) const {
         return i;
+    }
+    virtual Item * do_rewrite_type(Item_decimal *i, Analysis & a) const {
+        double n = i->val_real();
+        char buf[sizeof(double) * 2];
+        sprintf(buf, "%x", (unsigned int)n);
+        // TODO(stephentu): Do some actual encryption of the double here
+        return new Item_hex_string(buf, sizeof(buf));
     }
 } ANON;
 
