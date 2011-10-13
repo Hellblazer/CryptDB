@@ -1720,6 +1720,7 @@ rewrite_select_lex(st_select_lex *select_lex, Analysis & a)
     if (select_lex->join &&
         select_lex->join->conds &&
         select_lex->where != select_lex->join->conds)
+        rewrite(&select_lex->join->conds, a);
 
     if (select_lex->having)
         rewrite(&select_lex->having, a);
