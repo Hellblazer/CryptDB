@@ -2342,15 +2342,25 @@ lex_rewrite(const string & db, LEX * lex, Analysis & analysis, ReturnMeta & rmet
     return true;
 }
 
+static void
+drop_table(SchemaInfo * schema, const string & table) {
+    schema->totalTables--;
+    schema->tableMetaMap.erase(table);
+}
+
 static int
 updateMeta(const string & db, const string & q, LEX * lex, Analysis & a) {
-    if (lex->sql_command == SQLCOM_CREATE_TABLE) {
+    if (lex->sql_command == SQLCOM_CREATE_TABLE || lex->sql_command == SQLCOM_DROP_TABLE) {
+	if (lex->sql_command == SQLCOM_DROP_TABLE) {
+	    drop_table(a.schema, ((TABLE_LIST *)&lex->select_lex.table_list)->table_name);
+	}
         //need to update embedded schema with the new table
         if (mysql_query(a.conn(), q.c_str())) {
             fatal() << "mysql_query: " << mysql_error(a.conn());
         }
         assert(create_embedded_thd(0));
     }
+    
     return adjustOnions(db, a);
 }
 
