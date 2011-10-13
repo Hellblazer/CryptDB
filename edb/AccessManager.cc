@@ -993,7 +993,14 @@ KeyAccess::Print()
 
 int
 KeyAccess::insert(Prin hasAccess, Prin accessTo)
-{
+{    
+    if (!meta_finished) {
+        LOG(am) << "meta concluded" << endl;
+        if(CreateTables() < 0) {
+            return -1;
+        }
+    }    
+
     if (VERBOSE) {
         LOG(am_v) << "insert(" << hasAccess.type << "=" << hasAccess.value <<
         "," << accessTo.type << "=" << accessTo.value << ")";
@@ -1403,6 +1410,13 @@ KeyAccess::getSecretKey(Prin prin)
 int
 KeyAccess::insertPsswd(Prin gives, const string &psswd)
 {
+    if (!meta_finished) {
+        LOG(am) << "meta concluded" << endl;
+        if(CreateTables() < 0) {
+            return -1;
+        }
+    }
+
     if(VERBOSE) {
         LOG(am_v) << gives.type << " " << gives.value
                   << " is logging in with " << stringToByteInts(psswd);
