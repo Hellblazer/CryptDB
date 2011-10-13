@@ -277,6 +277,7 @@ class CItemType {
     virtual void   do_enforce(Item *, const constraints&, Analysis &) const = 0;
     virtual Item * do_optimize(Item *, Analysis &) const = 0;
     virtual Item * do_rewrite(Item *, Analysis &) const = 0;
+    virtual void   do_rewrite_proj(Item *, Analysis &, vector<Item *> &) const = 0;
 };
 
 
@@ -307,6 +308,10 @@ class CItemTypeDir : public CItemType {
 
     Item* do_rewrite(Item *i, Analysis &a) const {
         return lookup(i)->do_rewrite(i, a);
+    }
+
+    void do_rewrite_proj(Item *i, Analysis &a, vector<Item *> &l) const {
+        lookup(i)->do_rewrite_proj(i, a, l);
     }
 
  protected:
@@ -589,6 +594,9 @@ class CItemSubtype : public CItemType {
     virtual Item* do_rewrite(Item *i, Analysis & a) const {
         return do_rewrite_type((T*) i, a);
     }
+    virtual void  do_rewrite_proj(Item *i, Analysis & a, vector<Item *> &l) const {
+        do_rewrite_proj_type((T*) i, a, l);
+    }
  private:
     virtual EncSet do_gather_type(T *, const constraints&, Analysis & a) const = 0;
     virtual void   do_enforce_type(T *, const constraints&, Analysis & a) const = 0;
@@ -596,6 +604,9 @@ class CItemSubtype : public CItemType {
         return do_optimize_const_item(i, a);
     }
     virtual Item * do_rewrite_type(T *i, Analysis & a) const { return i; }
+    virtual void   do_rewrite_proj_type(T *i, Analysis & a, vector<Item *> &l) const {
+        l.push_back(do_rewrite_type(i, a));
+    }
 };
 
 template<class T, Item::Type TYPE>
@@ -694,6 +705,7 @@ static class ANON : public CItemSubtypeIT<Item_field, Item::Type::FIELD_ITEM> {
             if (fm) {
                 // bootstrap a new FieldAMeta from the FieldMeta's encdesc
                 a.fieldToAMeta[fieldname] = new FieldAMeta(fm->encdesc);
+                a.itemToFieldMeta[i]      = fm;
                 it = a.fieldToAMeta.find(fieldname);
             } else {
                 // we aren't aware of this field. this is an error
@@ -711,22 +723,47 @@ static class ANON : public CItemSubtypeIT<Item_field, Item::Type::FIELD_ITEM> {
     virtual Item *
     do_rewrite_type(Item_field *i, Analysis & a) const
     {
-        // fix table name
-        size_t l = 0;
-        const char * table = i->table_name;
-        i->table_name = anonymize_table_name(i->table_name,
-                                             strlen(i->table_name),
-                                             l, a);
-        // pick the column corresponding to the onion we want
-        auto it = a.itemToMeta.find(i);
-        if (it == a.itemToMeta.end()) {
-            // this is a bug, we should have recorded this in enforce()
-            fatal() << "should have recorded item meta object in enforce()";
+        auto it = a.itemHasRewrite.find(i);
+        if (it == a.itemHasRewrite.end()) {
+            // fix table name
+            size_t l = 0;
+            const char * table = i->table_name;
+            i->table_name = anonymize_table_name(i->table_name,
+                                                 strlen(i->table_name),
+                                                 l, a);
+            // pick the column corresponding to the onion we want
+            auto it = a.itemToMeta.find(i);
+            if (it == a.itemToMeta.end()) {
+                // this is a bug, we should have recorded this in enforce()
+                fatal() << "should have recorded item meta object in enforce()";
+            }
+            ItemMeta *im = it->second;
+            cerr << "onion is " << im->o << "\n";
+            i->field_name = get_column_name(string(table), string(i->field_name), im->o,  a);
+            a.itemHasRewrite.insert(i);
         }
-        ItemMeta *im = it->second;
-        cerr << "onion is " << im->o << "\n";
-        i->field_name = get_column_name(string(table), string(i->field_name), im->o,  a);
         return i;
+    }
+
+    virtual void
+    do_rewrite_proj_type(Item_field *i, Analysis & a, vector<Item *> &l) const
+    {
+        THD *thd = current_thd;
+        assert(thd);
+        l.push_back(do_rewrite_type(i, a));
+        // if there is a salt for the onion, then extract it
+        auto it = a.itemToFieldMeta.find(i);
+        assert(it != a.itemToFieldMeta.end());
+        FieldMeta *fm = it->second;
+        if (fm->has_salt) {
+            assert(!fm->salt_name.empty());
+            // bootstrap i0 from i
+            Item_field *i0 = new Item_field(thd, i);
+            // clear out alias
+            i0->name = NULL;
+            i0->field_name = thd->strdup(fm->salt_name.c_str());
+            l.push_back(i0);
+        }
     }
 
 } ANON;
@@ -1662,11 +1699,20 @@ static void
 rewrite_select_lex(st_select_lex *select_lex, Analysis & a)
 {
     auto item_it = List_iterator<Item>(select_lex->item_list);
+    List<Item> newList;
     for (;;) {
-        if (!item_it++)
+        Item *item = item_it++;
+        if (!item)
             break;
-        rewrite(item_it.ref(), a);
+        vector<Item *> l;
+        itemTypes.do_rewrite_proj(item, a, l);
+        for (auto it = l.begin(); it != l.end(); ++it) {
+            newList.push_back(*it);
+        }
     }
+
+    // TODO(stephentu): investigate whether or not this is a memory leak
+    select_lex->item_list = newList;
 
     if (select_lex->where)
         rewrite(&select_lex->where, a);

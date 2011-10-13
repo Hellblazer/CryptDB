@@ -211,8 +211,6 @@ public:
 
     }
 
-
-
     ~Analysis() {
         mysql_close(m);
     }
@@ -223,8 +221,10 @@ public:
     }
 
     std::map<std::string, FieldAMeta *> fieldToAMeta;
-    std::map<Item*, ItemMeta *> itemToMeta;
-    SchemaInfo * schema;
+    std::map<Item*, ItemMeta *>         itemToMeta;
+    std::map<Item_field*, FieldMeta*>   itemToFieldMeta;
+    std::set<Item*>                     itemHasRewrite;
+    SchemaInfo *                        schema;
 
 private:
     MYSQL *m;
