@@ -301,6 +301,7 @@ class CItemType {
     virtual Item * do_optimize(Item *, Analysis &) const = 0;
     virtual Item * do_rewrite(Item *, Analysis &) const = 0;
     virtual void   do_rewrite_proj(Item *, Analysis &, vector<Item *> &) const = 0;
+    virtual void   do_rewrite_insert(Item *, Analysis &, vector<Item *> &, FieldMeta *fm) const = 0;
 };
 
 
@@ -335,6 +336,10 @@ class CItemTypeDir : public CItemType {
 
     void do_rewrite_proj(Item *i, Analysis &a, vector<Item *> &l) const {
         lookup(i)->do_rewrite_proj(i, a, l);
+    }
+
+    void do_rewrite_insert(Item *i, Analysis &a, vector<Item *> &l, FieldMeta *fm) const {
+        lookup(i)->do_rewrite_insert(i, a, l, fm);
     }
 
  protected:
@@ -620,6 +625,9 @@ class CItemSubtype : public CItemType {
     virtual void  do_rewrite_proj(Item *i, Analysis & a, vector<Item *> &l) const {
         do_rewrite_proj_type((T*) i, a, l);
     }
+    virtual void  do_rewrite_insert(Item *i, Analysis & a, vector<Item *> &l, FieldMeta *fm) const {
+        do_rewrite_insert_type((T*) i, a, l, fm);
+    }
  private:
     virtual EncSet do_gather_type(T *, const constraints&, Analysis & a) const = 0;
     virtual void   do_enforce_type(T *, const constraints&, Analysis & a) const = 0;
@@ -629,6 +637,10 @@ class CItemSubtype : public CItemType {
     virtual Item * do_rewrite_type(T *i, Analysis & a) const { return i; }
     virtual void   do_rewrite_proj_type(T *i, Analysis & a, vector<Item *> &l) const {
         l.push_back(do_rewrite_type(i, a));
+    }
+    virtual void   do_rewrite_insert_type(T *i, Analysis & a, vector<Item *> &l, FieldMeta *fm) const {
+        // default is un-implemented. we'll implement these as they come
+        UNIMPLEMENTED;
     }
 };
 
@@ -768,11 +780,22 @@ static class ANON : public CItemSubtypeIT<Item_field, Item::Type::FIELD_ITEM> {
         return i;
     }
 
-    virtual void
-    do_rewrite_proj_type(Item_field *i, Analysis & a, vector<Item *> &l) const
+    inline Item_field * make_from_template(Item_field *t, const char *name) const
     {
         THD *thd = current_thd;
         assert(thd);
+        // bootstrap i0 from t
+        Item_field *i0 = new Item_field(thd, t);
+        // clear out alias
+        i0->name = NULL;
+        i0->field_name = thd->strdup(name);
+        return i0;
+    }
+
+    virtual void
+    do_rewrite_proj_type(Item_field *i, Analysis & a, vector<Item *> &l) const
+    {
+
         l.push_back(do_rewrite_type(i, a));
         // if there is a salt for the onion, then extract it
         auto it = a.itemToFieldMeta.find(i);
@@ -780,12 +803,28 @@ static class ANON : public CItemSubtypeIT<Item_field, Item::Type::FIELD_ITEM> {
         FieldMeta *fm = it->second;
         if (fm->has_salt) {
             assert(!fm->salt_name.empty());
-            // bootstrap i0 from i
-            Item_field *i0 = new Item_field(thd, i);
-            // clear out alias
-            i0->name = NULL;
-            i0->field_name = thd->strdup(fm->salt_name.c_str());
-            l.push_back(i0);
+            l.push_back(make_from_template(i, fm->salt_name.c_str()));
+        }
+    }
+
+    virtual void
+    do_rewrite_insert_type(Item_field *i, Analysis & a, vector<Item *> &l, FieldMeta *fm) const
+    {
+        assert(fm == NULL);
+        // need to map this one field into all of its onions
+        // TODO: this is kind of a duplicate of rewrite_create_field(),
+        // but not quite. see if we can somehow reconcile these two
+        // pieces of code
+        fm = get_field_meta(i, a);
+        for (auto it = fm->onionnames.begin();
+             it != fm->onionnames.end();
+             ++it) {
+            const string &name = it->second;
+            l.push_back(make_from_template(i, name.c_str()));
+        }
+        if (fm->has_salt) {
+            assert(!fm->salt_name.empty());
+            l.push_back(make_from_template(i, fm->salt_name.c_str()));
         }
     }
 
@@ -811,6 +850,22 @@ static class ANON : public CItemSubtypeIT<Item_string, Item::Type::STRING_ITEM> 
         // TODO(stephentu): Do some actual encryption of the string here
         return new Item_hex_string(s0->ptr(), s0->length());
     }
+    virtual void
+    do_rewrite_insert_type(Item_string *i, Analysis & a, vector<Item *> &l, FieldMeta *fm) const
+    {
+        assert(fm != NULL);
+        String s;
+        String *s0 = i->val_str(&s);
+        assert(s0 != NULL);
+        for (auto it = fm->onionnames.begin();
+             it != fm->onionnames.end();
+             ++it) {
+            l.push_back(new Item_hex_string(s0->ptr(), s0->length()));
+        }
+        if (fm->has_salt) {
+            l.push_back(new Item_hex_string(s0->ptr(), s0->length()));
+        }
+    }
 } ANON;
 
 static class ANON : public CItemSubtypeIT<Item_num, Item::Type::INT_ITEM> {
@@ -830,6 +885,20 @@ static class ANON : public CItemSubtypeIT<Item_num, Item::Type::INT_ITEM> {
         longlong n = i->val_int();
         // TODO(stephentu): Do some actual encryption of the int here
         return new Item_int( n ^ 0xdeadbeef );
+    }
+    virtual void
+    do_rewrite_insert_type(Item_num *i, Analysis & a, vector<Item *> &l, FieldMeta *fm) const
+    {
+        assert(fm != NULL);
+        longlong n = i->val_int();
+        for (auto it = fm->onionnames.begin();
+             it != fm->onionnames.end();
+             ++it) {
+            l.push_back(new Item_int( n ^ 0xdeadbeef ));
+        }
+        if (fm->has_salt) {
+            l.push_back(new Item_int( n ^ 0xabcdabcd ));
+        }
     }
 } ANON;
 
@@ -852,6 +921,22 @@ static class ANON : public CItemSubtypeIT<Item_decimal, Item::Type::DECIMAL_ITEM
         sprintf(buf, "%x", (unsigned int)n);
         // TODO(stephentu): Do some actual encryption of the double here
         return new Item_hex_string(buf, sizeof(buf));
+    }
+    virtual void
+    do_rewrite_insert_type(Item_decimal *i, Analysis & a, vector<Item *> &l, FieldMeta *fm) const
+    {
+        assert(fm != NULL);
+        double n = i->val_real();
+        char buf[sizeof(double) * 2];
+        sprintf(buf, "%x", (unsigned int)n);
+        for (auto it = fm->onionnames.begin();
+             it != fm->onionnames.end();
+             ++it) {
+            l.push_back(new Item_hex_string(buf, sizeof(buf)));
+        }
+        if (fm->has_salt) {
+            l.push_back(new Item_hex_string(buf, sizeof(buf)));
+        }
     }
 } ANON;
 
@@ -2077,6 +2162,71 @@ rewrite_create_lex(LEX *lex, Analysis &a)
 }
 
 static void
+rewrite_insert_lex(LEX *lex, Analysis &a)
+{
+    // fields
+    vector<FieldMeta *> fmVec;
+    if (lex->field_list.head()) {
+        auto it = List_iterator<Item>(lex->field_list);
+        List<Item> newList;
+        for (;;) {
+            Item *i = it++;
+            if (!i)
+                break;
+            assert(i->type() == Item::FIELD_ITEM);
+            fmVec.push_back(get_field_meta(static_cast<Item_field*>(i), a));
+            vector<Item *> l;
+            itemTypes.do_rewrite_insert(i, a, l, NULL);
+            for (auto it0 = l.begin(); it0 != l.end(); ++it0) {
+                newList.push_back(*it0);
+            }
+        }
+        lex->field_list = newList;
+    }
+
+    if (fmVec.empty()) {
+        // use the table order now
+        const string &table =
+            lex->select_lex.table_list.first->table_name;
+        auto it = a.schema->tableMetaMap.find(table);
+        assert(it != a.schema->tableMetaMap.end());
+        TableMeta *tm = it->second;
+        for (auto it0 = tm->fieldMetaMap.begin();
+             it0 != tm->fieldMetaMap.end(); ++it0) {
+            fmVec.push_back(it0->second);
+        }
+    }
+
+    // values
+    if (lex->many_values.head()) {
+        auto it = List_iterator<List_item>(lex->many_values);
+        List<List_item> newList;
+        for (;;) {
+            List_item *li = it++;
+            if (!li)
+                break;
+            assert(li->elements == fmVec.size());
+            List<Item> *newList0 = new List<Item>();
+            auto it0 = List_iterator<Item>(*li);
+            auto fmVecIt = fmVec.begin();
+            for (;;) {
+                Item *i = it0++;
+                if (!i)
+                    break;
+                vector<Item *> l;
+                itemTypes.do_rewrite_insert(i, a, l, *fmVecIt);
+                for (auto it1 = l.begin(); it1 != l.end(); ++it1) {
+                    newList0->push_back(*it1);
+                }
+                ++fmVecIt;
+            }
+            newList.push_back(newList0);
+        }
+        lex->many_values = newList;
+    }
+}
+
+static void
 do_query_analyze(const std::string &db, const std::string &q, LEX * lex, Analysis & analysis) {
     // iterate over the entire select statement..
     // based on st_select_lex::print in mysql-server/sql/sql_select.cc
@@ -2176,6 +2326,10 @@ lex_rewrite(const string & db, LEX * lex, Analysis & analysis, ReturnMeta & rmet
     switch (lex->sql_command) {
     case SQLCOM_CREATE_TABLE:
         rewrite_create_lex(lex, analysis);
+        break;
+    case SQLCOM_INSERT:
+    case SQLCOM_REPLACE:
+        rewrite_insert_lex(lex, analysis);
         break;
     case SQLCOM_DROP_TABLE:
         rewrite_table_list(&lex->select_lex.table_list, analysis);
