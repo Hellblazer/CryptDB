@@ -75,6 +75,14 @@ const EncDesc FULL_EncDesc = {
         }
 };
 
+const EncDesc NUMERIC_EncDec = {
+        {
+            {oDET, SECLEVEL::SEMANTIC_DET},
+            {oOPE, SECLEVEL::SEMANTIC_OPE},
+            {oAGG, SECLEVEL::SEMANTIC_AGG},
+        }
+};
+
 const EncDesc EQ_SEARCH_EncDesc = {
         {
             {oDET, SECLEVEL::SEMANTIC_DET},

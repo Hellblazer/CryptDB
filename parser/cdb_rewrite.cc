@@ -68,23 +68,46 @@ IsMySQLTypeNumeric(enum_field_types t) {
 }
 
 static FieldMeta *
-get_field_meta(const Item_field *i, Analysis &a)
+get_field_meta(const char *table_name,
+               const char *field_name,
+               Analysis &a)
 {
-    assert(i != NULL);
-    assert(a.schema != NULL);
+    assert(table_name != NULL);
+    assert(field_name != NULL);
+    assert(a.schema   != NULL);
+
     // locate table first
-    auto tblit = a.schema->tableMetaMap.find(i->table_name);
+    auto tblit = a.schema->tableMetaMap.find(table_name);
     if (tblit == a.schema->tableMetaMap.end()) return NULL;
     TableMeta *tm = tblit->second;
     assert(tm != NULL);
 
     // now locate field
-    auto fdit = tm->fieldMetaMap.find(i->field_name);
+    auto fdit = tm->fieldMetaMap.find(field_name);
     if (fdit == tm->fieldMetaMap.end()) return NULL;
     FieldMeta *fm = fdit->second;
     assert(fm != NULL);
 
     return fm;
+}
+
+static FieldMeta *
+get_field_meta(const Item_field *i, Analysis &a)
+{
+    assert(i != NULL);
+    assert(a.schema != NULL);
+    return get_field_meta(i->table_name, i->field_name, a);
+}
+
+static FieldMeta *
+get_field_meta(const char *table_name,
+               const Create_field *f,
+               Analysis &a)
+{
+    assert(table_name != NULL);
+    assert(f != NULL);
+    assert(a.schema != NULL);
+    return get_field_meta(table_name, f->field_name, a);
 }
 
 static
@@ -1850,7 +1873,7 @@ add_table(SchemaInfo * schema, const string & table, LEX *lex) {
         // certain field types cannot have certain onions. for instance,
         // AGG makes no sense for non numeric types
         if (IsMySQLTypeNumeric(field->sql_type)) {
-            fm->encdesc = FULL_EncDesc;
+            fm->encdesc = NUMERIC_EncDec;
         } else {
             fm->encdesc = EQ_SEARCH_EncDesc;
         }
@@ -1871,37 +1894,182 @@ add_table(SchemaInfo * schema, const string & table, LEX *lex) {
     }
 }
 
+class OnionFieldHandler {
+private:
+    int field_length;
+    enum enum_field_types type;
+public:
+    OnionFieldHandler(enum enum_field_types t) :
+        field_length(-1), type(t) {}
+    OnionFieldHandler(enum enum_field_types t, size_t f) :
+        field_length((int)f), type(t) {}
+
+    Create_field*
+    newOnionCreateField(const char * anon_name,
+                        const Create_field *f) const {
+        THD *thd = current_thd;
+        Create_field *f0 = f->clone(thd->mem_root);
+        f0->field_name = thd->strdup(anon_name);
+        if (field_length != -1) {
+            f0->char_length = field_length;
+        }
+        f0->sql_type = type;
+        return f0;
+    }
+};
+
+typedef set< enum enum_field_types >   S;
+typedef pair< S, OnionFieldHandler * > H;
+typedef vector< H >                    V;
+
+// TODO: this list is incomplete
+const map<onion, V> OnionHandlers = {
+    {oDET, V({H(S({MYSQL_TYPE_LONG,
+                   MYSQL_TYPE_INT24}),
+                new OnionFieldHandler(MYSQL_TYPE_LONGLONG)),
+              H(S({MYSQL_TYPE_DECIMAL,
+                   MYSQL_TYPE_DOUBLE,
+                   MYSQL_TYPE_VARCHAR,
+                   MYSQL_TYPE_BLOB}),
+                new OnionFieldHandler(MYSQL_TYPE_BLOB))})},
+
+    {oOPE, V({H(S({MYSQL_TYPE_LONG,
+                   MYSQL_TYPE_INT24}),
+                new OnionFieldHandler(MYSQL_TYPE_LONGLONG)),
+              H(S({MYSQL_TYPE_DECIMAL,
+                   MYSQL_TYPE_DOUBLE,
+                   MYSQL_TYPE_VARCHAR,
+                   MYSQL_TYPE_BLOB}),
+                new OnionFieldHandler(MYSQL_TYPE_BLOB))})},
+
+    {oAGG, V({H(S({MYSQL_TYPE_LONG,
+                   MYSQL_TYPE_INT24,
+                   MYSQL_TYPE_DECIMAL,
+                   MYSQL_TYPE_DOUBLE}),
+                new OnionFieldHandler(MYSQL_TYPE_VARCHAR))})},
+
+    {oSWP, V({H(S({MYSQL_TYPE_VARCHAR,
+                   MYSQL_TYPE_BLOB}),
+                new OnionFieldHandler(MYSQL_TYPE_BLOB))})},
+};
+
+static void rewrite_create_field(const string &table_name,
+                                 Create_field *f,
+                                 Analysis &a,
+                                 vector<Create_field *> &l)
+{
+    FieldMeta *fm = get_field_meta(table_name.c_str(), f, a);
+
+    // create each onion column
+    for (auto it = fm->onionnames.begin();
+         it != fm->onionnames.end();
+         ++it) {
+        auto it_h = OnionHandlers.find(it->first);
+        assert(it_h != OnionHandlers.end());
+        auto v = it_h->second;
+        Create_field *newF = NULL;
+        for (auto h : v) {
+            auto s = h.first;
+            if (s.find(f->sql_type) != s.end()) {
+                newF = h.second->newOnionCreateField(
+                        it->second.c_str(), f);
+                break;
+            }
+        }
+        if (newF == NULL) {
+            fatal() << "Could not rewrite for onion: " <<
+                        it->first << ", type: " << f->sql_type;
+        }
+        l.push_back(newF);
+    }
+
+    // create salt column
+    if (fm->has_salt) {
+        assert(!fm->salt_name.empty());
+        THD *thd = current_thd;
+        Create_field *f0 = f->clone(thd->mem_root);
+        f0->field_name = thd->strdup(fm->salt_name.c_str());
+        f0->sql_type = MYSQL_TYPE_LONGLONG;
+        l.push_back(f0);
+    }
+}
+
+static void rewrite_key(const string &table_name,
+                        Key *k,
+                        Analysis &a,
+                        vector<Key*> &l)
+{
+    fatal() << "No support for rewriting keys. "
+            << "If you see this, please implement me";
+}
+
 /*
  * Analyzes create query.
  * Updates encrypted schema info.
  *
  */
 static void
-process_create_lex(LEX * lex, Analysis & a) {
-
-    cerr << "in process create lex\n";
-
-    // table name
+process_create_lex(LEX * lex, Analysis & a)
+{
     string table = lex->select_lex.table_list.first->table_name;
-
-    cerr << "table " << table << "\n";
     add_table(a.schema, table, lex);
+}
 
-    print(a.schema->tableMetaMap);
+static void
+rewrite_create_lex(LEX *lex, Analysis &a)
+{
+    THD *thd = current_thd;
+    // table name
+    const string &table =
+        lex->select_lex.table_list.first->table_name;
+
+    // anon table name
+    auto tbl_it = a.schema->tableMetaMap.find(table);
+    assert(tbl_it != a.schema->tableMetaMap.end());
+    TableMeta *tm = tbl_it->second;
+    const string &anonTableName = tm->anonTableName;
+
+    // rewrite to anon table name
+    lex->select_lex.table_list.first->table_name =
+        thd->strdup(anonTableName.c_str());
+    lex->select_lex.table_list.first->table_name_length =
+        anonTableName.size();
+
     //TODO: support for "create table like"
-    /*
-    if (lex.create_info.options & HA_LEX_CREATE_TABLE_LIKE) {
-        // create table ... like tbl_name
-        out << " like ";
-        TABLE_LIST *select_tables=
-          lex.create_last_non_select_table->next_global;
-        out << select_tables->alias;
+    if (lex->create_info.options & HA_LEX_CREATE_TABLE_LIKE) {
+        fatal() << "No support for create table like yet. " <<
+                   "If you see this, please implement me";
     } else {
+        // TODO(stephentu): template this pattern away
+        // (borrowed from rewrite_select_lex())
+        auto cl_it = List_iterator<Create_field>(lex->alter_info.create_list);
+        List<Create_field> newList;
+        for (;;) {
+            Create_field *cf = cl_it++;
+            if (!cf)
+                break;
+            vector<Create_field *> l;
+            rewrite_create_field(table, cf, a, l);
+            for (auto it = l.begin(); it != l.end(); ++it) {
+                newList.push_back(*it);
+            }
+        }
+        lex->alter_info.create_list = newList;
 
-    auto cl = lex.alter_info.create_list;
-    auto kl = lex.alter_info.key_list;
-    */
-
+        auto k_it = List_iterator<Key>(lex->alter_info.key_list);
+        List<Key> newList0;
+        for (;;) {
+            Key *k = k_it++;
+            if (!k)
+                break;
+            vector<Key *> l;
+            rewrite_key(table, k, a, l);
+            for (auto it = l.begin(); it != l.end(); ++it) {
+                newList0.push_back(*it);
+            }
+        }
+        lex->alter_info.key_list = newList0;
+    }
 }
 
 static void
@@ -2001,8 +2169,15 @@ TableMeta::~TableMeta()
 static int
 lex_rewrite(const string & db, LEX * lex, Analysis & analysis, ReturnMeta & rmeta)
 {
-    rewrite_table_list(&lex->select_lex.top_join_list, analysis);
-    rewrite_select_lex(&lex->select_lex, analysis);
+    switch (lex->sql_command) {
+    case SQLCOM_CREATE_TABLE:
+        rewrite_create_lex(lex, analysis);
+        break;
+    default:
+        rewrite_table_list(&lex->select_lex.top_join_list, analysis);
+        rewrite_select_lex(&lex->select_lex, analysis);
+        break;
+    }
     return true;
 }
 
