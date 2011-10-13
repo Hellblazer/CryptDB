@@ -803,28 +803,115 @@ KeyAccess::addEquals(string prin1, string prin2)
         if (meta->addEqualsCheck(prin1, prin2) < 0) {
             return -1;
         }
-        //update all the data stored in local sets just now
-        set<Prin> new_keys;
-        for(auto k = keys.begin(); k != keys.end(); k++) {
-            if (k->first.gen == old1) {
-                new_keys.insert(k->first);
-            }
-            if (k->first.gen == old2) {
-                new_keys.insert(k->first);
-            }
-        }
-        for(auto k = new_keys.begin(); k != new_keys.end(); k++) {
-            Prin k_new = Prin(prin1, k->value);
-            k_new.gen = getGeneric(prin1);
-            keys[k_new] = keys[*k];
-            keys.erase(*k);
-        }
-        //TODO: update all the other maps too
+        updateMaps(old1, old2, getGeneric(prin1));
         return 0;
     }
 
     meta->addEquals(prin1, prin2);
     return 0;
+}
+
+void
+KeyAccess::updateMaps(string old1, string old2, string gen) {
+    //note that we only really need to check for old2, since addEquals
+    // links both prins to the first prin's generic if both existed befor
+    
+    assert_s((old1 != "" && old1 == gen) || (old1 == "" && old2 != "" && old2 == gen) || (old1 == "" && old2 == ""), "addEquals chose teh wrong gen...");
+
+    //keys
+    set<Prin> new_keys;
+    for(auto k = keys.begin(); k != keys.end(); k++) {
+        if (k->first.gen == old1) {
+            new_keys.insert(k->first);
+        }
+        if (k->first.gen == old2) {
+            new_keys.insert(k->first);
+        }
+    }
+    for(auto k = new_keys.begin(); k != new_keys.end(); k++) {
+        Prin k_new;
+        k_new.value = k->value;
+        k_new.gen = gen;
+        keys[k_new] = keys[*k];
+        keys.erase(*k);
+    }
+    auto k = uncached_keys.begin();
+
+
+    //uncached_keys
+    while((k = uncached_keys.find(old2)) != uncached_keys.end()) {
+        uncached_keys[gen] = k->second;
+        if (k->first != gen) {
+            uncached_keys.erase(k->first);
+        }
+    }
+    for (auto u = uncached_keys.begin(); u != uncached_keys.end(); u++) {
+        auto uk = u->second.begin();
+        while((uk = u->second.find(old2)) != u->second.end()) {
+            u->second[gen] = uk->second;
+            if (uk->first != gen) {
+                uncached_keys.erase(uk->first);
+            }
+        }
+    }
+        
+
+    //orphansToParents
+    set<Prin> first_tier;
+    for (auto o = orphanToParents.begin(); o != orphanToParents.end(); o++) {
+        if (o->first.gen == old2) {
+            first_tier.insert(o->first);
+        }
+        set<Prin> second_tier;
+        for (auto parent = o->second.begin(); parent != o->second.end(); parent++) {
+            if (parent->gen == old2) {
+                second_tier.insert(*parent);
+            }
+        }
+        for (auto parent = second_tier.begin(); parent != second_tier.end(); parent++) {
+            Prin new_gen;
+            new_gen.gen = gen;
+            new_gen.value = parent->value;
+            o->second.erase(*parent);
+            o->second.insert(new_gen);
+        }
+    }
+    for (auto o = first_tier.begin(); o != first_tier.end(); o++) {
+        Prin new_gen;
+        new_gen.gen = gen;
+        new_gen.value = o->value;
+        orphanToParents[new_gen] = orphanToParents[*o];
+        orphanToParents.erase(*o);
+    }
+
+
+    //orphansToParents
+    first_tier.clear();
+    for (auto o = orphanToChildren.begin(); o != orphanToChildren.end(); o++) {
+        if (o->first.gen == old2) {
+            first_tier.insert(o->first);
+        }
+        set<Prin> second_tier;
+        for (auto child = o->second.begin(); child != o->second.end(); child++) {
+            if (child->gen == old2) {
+                second_tier.insert(*child);
+            }
+        }
+        for (auto child = second_tier.begin(); child != second_tier.end(); child++) {
+            Prin new_gen;
+            new_gen.gen = gen;
+            new_gen.value = child->value;
+            o->second.erase(*child);
+            o->second.insert(new_gen);
+        }
+    }
+    for (auto o = first_tier.begin(); o != first_tier.end(); o++) {
+        Prin new_gen;
+        new_gen.gen = gen;
+        new_gen.value = o->value;
+        orphanToChildren[new_gen] = orphanToChildren[*o];
+        orphanToChildren.erase(*o);
+    }
 }
 
 int

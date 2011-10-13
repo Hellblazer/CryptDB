@@ -322,6 +322,9 @@ class KeyAccess {
     //wrapper for conn->execute, assuming that sql is a query that returns a result set
     ResType execute(std::string sql);
 
+    //updates all the local stored keys and linkages after the meta is alter
+    void updateMaps(std::string old1, std::string old2, std::string gen);
+
     //creates PrinKey
     //requires: hasAccess and accessTo to have gen field set
     PrinKey buildKey(Prin hasAccess, const std::string &sym_key);
