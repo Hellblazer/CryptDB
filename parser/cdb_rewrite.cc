@@ -1818,6 +1818,14 @@ process_table_list(List<TABLE_LIST> *tll, Analysis & a)
     }
 }
 
+static inline void
+rewrite_table_list(TABLE_LIST *t, Analysis &a)
+{
+    t->table_name = anonymize_table_name(t->table_name,
+                                         t->table_name_length,
+                                         t->table_name_length, a);
+}
+
 static void
 rewrite_table_list(List<TABLE_LIST> *tll, Analysis & a)
 {
@@ -1828,10 +1836,7 @@ rewrite_table_list(List<TABLE_LIST> *tll, Analysis & a)
         if (!t)
             break;
 
-
-        t->table_name = anonymize_table_name(t->table_name,
-                                             t->table_name_length,
-                                             t->table_name_length, a);
+        rewrite_table_list(t, a);
 
         if (t->nested_join) {
             rewrite_table_list(&t->nested_join->join_list, a);
@@ -2011,29 +2016,28 @@ static void rewrite_key(const string &table_name,
 static void
 process_create_lex(LEX * lex, Analysis & a)
 {
-    string table = lex->select_lex.table_list.first->table_name;
+    const string &table =
+        lex->select_lex.table_list.first->table_name;
     add_table(a.schema, table, lex);
+}
+
+static void
+rewrite_table_list(SQL_I_List<TABLE_LIST> *tlist, Analysis &a)
+{
+    TABLE_LIST *tbl = tlist->first;
+    for (; tbl; tbl = tbl->next_local) {
+        rewrite_table_list(tbl, a);
+    }
 }
 
 static void
 rewrite_create_lex(LEX *lex, Analysis &a)
 {
-    THD *thd = current_thd;
     // table name
     const string &table =
         lex->select_lex.table_list.first->table_name;
 
-    // anon table name
-    auto tbl_it = a.schema->tableMetaMap.find(table);
-    assert(tbl_it != a.schema->tableMetaMap.end());
-    TableMeta *tm = tbl_it->second;
-    const string &anonTableName = tm->anonTableName;
-
-    // rewrite to anon table name
-    lex->select_lex.table_list.first->table_name =
-        thd->strdup(anonTableName.c_str());
-    lex->select_lex.table_list.first->table_name_length =
-        anonTableName.size();
+    rewrite_table_list(&lex->select_lex.table_list, a);
 
     //TODO: support for "create table like"
     if (lex->create_info.options & HA_LEX_CREATE_TABLE_LIKE) {
@@ -2172,6 +2176,9 @@ lex_rewrite(const string & db, LEX * lex, Analysis & analysis, ReturnMeta & rmet
     switch (lex->sql_command) {
     case SQLCOM_CREATE_TABLE:
         rewrite_create_lex(lex, analysis);
+        break;
+    case SQLCOM_DROP_TABLE:
+        rewrite_table_list(&lex->select_lex.table_list, analysis);
         break;
     default:
         rewrite_table_list(&lex->select_lex.top_join_list, analysis);
