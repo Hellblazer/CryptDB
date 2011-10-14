@@ -1,5 +1,7 @@
 #pragma once
 
+#include <string>
+
 typedef enum fieldType {
     TYPE_TEXT,
     TYPE_INTEGER,
@@ -48,3 +50,6 @@ SECLEVELS(__temp_m)
 #undef __temp_m
 };
 
+//returns max and min levels on onion o
+SECLEVEL getMax(onion o);
+SECLEVEL getMin(onion o);

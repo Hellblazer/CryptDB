@@ -8,13 +8,13 @@ PARSERPROGOBJS	:= $(patsubst %,$(OBJDIR)/parser/%,$(PARSERPROGS))
 
 all:	$(PARSERPROGOBJS) $(OBJDIR)/libedbparser.so
 
-$(PARSERPROGOBJS): %: %.o $(OBJDIR)/libedbparser.so
-	$(CXX) $< -o $@ -ledbparser $(LDFLAGS)
+$(PARSERPROGOBJS): %: %.o $(OBJDIR)/libedbparser.so  $(OBJDIR)/libedbutil.so
+	$(CXX) $< -o $@ -ledbparser  $(LDFLAGS) -ledbutil
 
 EDBPARSER_OBJS	:= $(patsubst %.cc,$(OBJDIR)/parser/%.o,$(PARSERSRC))
-$(OBJDIR)/libedbparser.so: $(EDBPARSER_OBJS) $(OBJDIR)/libedbutil.so
+$(OBJDIR)/libedbparser.so: $(EDBPARSER_OBJS) $(OBJDIR)/libedbutil.so $(OBJDIR)/libedbcrypto.so
 	$(CXX) -shared -o $@ $(EDBPARSER_OBJS) \
 	       -Wl,--whole-archive -L$(MYBUILD)/libmysqld -lmysqld \
-	       -Wl,--no-whole-archive $(LDFLAGS) -ledbutil
+	       -Wl,--no-whole-archive $(LDFLAGS) -ledbutil -ledbcrypto
 
 # vim: set noexpandtab:

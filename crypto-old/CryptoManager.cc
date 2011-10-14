@@ -361,7 +361,7 @@ CryptoManager::crypt(AES_KEY * mkey, string data, fieldType ft,
     onion o2 = getOnion(tolevel);
     isBin = false;
 
-    LOG(crypto_data)
+     LOG(crypto_data)
         << "crypt: salt " << salt << " data len " << data.length() << " data "<< data
         << " fullfieldname " << fullfieldname
         << " fromlevel " << levelnames[(int) fromlevel]

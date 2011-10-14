@@ -1,5 +1,5 @@
 OBJDIRS += util
-UTILSRC := cryptdb_log.cc ctr.cc util.cc
+UTILSRC := cryptdb_log.cc ctr.cc util.cc onions.cc
 
 all:    $(OBJDIR)/libedbutil.so
 $(OBJDIR)/libedbutil.so: $(patsubst %.cc,$(OBJDIR)/util/%.o,$(UTILSRC))
