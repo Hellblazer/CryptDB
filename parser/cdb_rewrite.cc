@@ -846,8 +846,7 @@ static class ANON : public CItemSubtypeIT<Item_string, Item::Type::STRING_ITEM> 
 	uint64_t salt = 0;
 	if (fm->has_salt) {
 	    salt = randomValue();
-            l.push_back(new Item_hex_string(s0->ptr(), s0->length()));
-        } else {
+	} else {
 	    //TODO raluca
 	    //need to use table salt in this case
 	}
@@ -898,15 +897,37 @@ static class ANON : public CItemSubtypeIT<Item_num, Item::Type::INT_ITEM> {
     virtual void
     do_rewrite_insert_type(Item_num *i, Analysis & a, vector<Item *> &l, FieldMeta *fm) const
     {
+
+	//TODO: this part is quite repetitive with string or
+	//any other type -- write a function
+	
         assert(fm != NULL);
         longlong n = i->val_int();
-        for (auto it = fm->onionnames.begin();
+	string plaindata = strFromVal((uint64_t)n);
+
+	uint64_t salt = 0;
+	if (fm->has_salt) {
+	    salt = randomValue();
+        } else {
+	    //TODO raluca
+	    //need to use table salt in this case
+	}
+	
+	
+	for (auto it = fm->onionnames.begin();
              it != fm->onionnames.end();
              ++it) {
-            l.push_back(new Item_int( n ^ 0xdeadbeef ));
+	    string anonName = fullName(it->second, fm->tm->anonTableName); 
+	    bool isBin;
+	    
+	    string enc = a.cm->crypt(a.cm->getmkey(), plaindata, TYPE_INTEGER,
+				   anonName, getMin(it->first),
+				   getMax(it->first), isBin, salt);
+	    	    
+            l.push_back(new Item_int( valFromStr(enc)));
         }
         if (fm->has_salt) {
-            l.push_back(new Item_int( n ^ 0xabcdabcd ));
+            l.push_back(new Item_int(salt));
         }
     }
 } ANON;
