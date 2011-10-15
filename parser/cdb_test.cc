@@ -27,8 +27,6 @@ using namespace std;
 int
 main(int ac, char **av)
 {
-
-    cerr << "before running program \n";
     if (ac != 3) {
         cerr << "Usage: " << av[0] << " schema-db trace-file" << endl;
         exit(1);
@@ -36,8 +34,6 @@ main(int ac, char **av)
 
     char dir_arg[1024];
     snprintf(dir_arg, sizeof(dir_arg), "--datadir=%s", av[1]);
-
-
 
     const char *mysql_av[] =
     { "progname",

@@ -151,6 +151,17 @@ typedef struct FieldMeta {
 
     FieldMeta();
 
+    inline bool hasOnion(onion o) const {
+        return encdesc.olm.find(o) !=
+               encdesc.olm.end();
+    }
+
+    inline SECLEVEL getOnionLevel(onion o) const {
+        auto it = encdesc.olm.find(o);
+        if (it == encdesc.olm.end()) return SECLEVEL::INVALID;
+        return it->second;
+    }
+
 } FieldMeta;
 
 
@@ -201,26 +212,9 @@ extern "C" void *create_embedded_thd(int client_flag);
 
 class Analysis {
 public:
-    Analysis(const string & db, SchemaInfo * schema) : schema(schema) {
-        // create mysql connection to embedded
-        // server
-        m = mysql_init(0);
-        assert(m);
-        mysql_options(m, MYSQL_OPT_USE_EMBEDDED_CONNECTION, 0);
-        if (!mysql_real_connect(m, 0, 0, 0, 0, 0, 0, CLIENT_MULTI_STATEMENTS)) {
-            mysql_close(m);
-            fatal() << "mysql_real_connect: " << mysql_error(m);
-        }
-	string use_q = "USE " + db + ";";
-	if (mysql_query(m, use_q.c_str())) {
-	    fatal() << "failed query : " << use_q <<"\n";
-	}
-	assert(create_embedded_thd(0));
-
-    }
-
-    ~Analysis() {
-        mysql_close(m);
+    Analysis(MYSQL *m, SchemaInfo * schema)
+        : schema(schema), m(m) {
+        assert(m != NULL);
     }
 
     inline MYSQL* conn() {
@@ -235,7 +229,8 @@ public:
     SchemaInfo *                        schema;
 
 private:
-    MYSQL *m;
+    MYSQL * m;
+
 };
 
 class FieldReturned {
@@ -297,17 +292,34 @@ public:
 
 
 class Rewriter {
-
 public:
     Rewriter(const std::string & db);
+    ~Rewriter();
     std::string rewrite(const std::string &q, ReturnMeta &rmeta);
+    inline MYSQL* conn() {
+        mysql_thread_init();
+        return m;
+    }
 private:
+    void initSchema();
+    void createMetaTablesIfNotExists();
 
-    string db;
-
-    SchemaInfo *  schema;
-
+    string       db;
+    SchemaInfo*  schema;
     unsigned int totalTables;
+    MYSQL*       m;
+};
 
-
+class ScopedMySQLRes {
+public:
+    ScopedMySQLRes(MYSQL_RES *r) : r(r) {
+        if (!r) fatal() << "input result set was NULL";
+    }
+    ~ScopedMySQLRes() {
+        assert(r);
+        mysql_free_result(r);
+    }
+    inline MYSQL_RES *res() { return r; }
+private:
+    MYSQL_RES *r;
 };

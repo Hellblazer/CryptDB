@@ -34,6 +34,22 @@
 
 using namespace std;
 
+static inline void
+mysql_query_wrapper(MYSQL *m, const string &q)
+{
+    if (mysql_query(m, q.c_str())) {
+        fatal() << "query failed: " << q
+                << " reason: " << mysql_error(m);
+    }
+
+    // HACK(stephentu):
+    // Calling mysql_query seems to have destructive effects
+    // on the current_thd. Thus, we must call create_embedded_thd
+    // again.
+    void* ret = create_embedded_thd(0);
+    if (!ret) assert(false);
+}
+
 static inline bool
 FieldQualifies(const string &restriction,
                const string &field)
@@ -462,14 +478,7 @@ do_optimize_const_item(T *i, Analysis &a) {
         string q(buf.str());
 
         MYSQL *m = a.conn();
-        if (mysql_query(m, q.c_str()))
-            fatal() << "mysql_query: " << mysql_error(m);
-
-        // HACK(stephentu):
-        // Calling mysql_query seems to have destructive effects
-        // on the current_thd. Thus, we must call create_embedded_thd
-        // again.
-        assert(create_embedded_thd(0));
+        mysql_query_wrapper(m, q);
 
         THD *thd = current_thd;
         assert(thd != NULL);
@@ -774,6 +783,8 @@ static class ANON : public CItemSubtypeIT<Item_field, Item::Type::FIELD_ITEM> {
             }
             ItemMeta *im = it->second;
             cerr << "onion is " << im->o << "\n";
+            cerr << "table: " << table << endl;
+            cerr << "i->field_name: " << i->field_name << endl;
             i->field_name = get_column_name(string(table), string(i->field_name), im->o,  a);
             a.itemHasRewrite.insert(i);
         }
@@ -1940,7 +1951,22 @@ rewrite_table_list(List<TABLE_LIST> *tll, Analysis & a)
 
 static void
 add_table(SchemaInfo * schema, const string & table, LEX *lex) {
-    //cerr << "in add table " << table << " \n";
+    assert(lex->sql_command == SQLCOM_CREATE_TABLE);
+
+    auto it = schema->tableMetaMap.find(table);
+    if (it != schema->tableMetaMap.end()) {
+        // we already hold the in mem data structure representing this
+        // table.
+        //
+        // if this isn't a create table if not exists, then issue a
+        // warning and quit
+        if (!(lex->create_info.options & HA_LEX_CREATE_IF_NOT_EXISTS)) {
+            cerr << "ERROR: Embedded DB possibly"
+                    "out of sync with regular DB (or, just programmer error)"
+                 << endl;
+        }
+        return;
+    }
 
     TableMeta *tm = new TableMeta();
     schema->tableMetaMap[table] = tm;
@@ -1956,7 +1982,7 @@ add_table(SchemaInfo * schema, const string & table, LEX *lex) {
         }
         FieldMeta * fm = new FieldMeta();
 
-        fm->sql_field = field->clone(current_thd->mem_root);//??what inputs?
+        fm->sql_field = field->clone(current_thd->mem_root);
 
         fm->fname = string(fm->sql_field->field_name);
 
@@ -2342,32 +2368,343 @@ lex_rewrite(const string & db, LEX * lex, Analysis & analysis, ReturnMeta & rmet
     return true;
 }
 
-static void
-drop_table(SchemaInfo * schema, const string & table) {
+static inline void
+drop_table(SchemaInfo * schema, const string & table)
+{
     schema->totalTables--;
     schema->tableMetaMap.erase(table);
+
+    // TODO: delete from proxy_db.table_info
+}
+
+static inline string
+sq(const string &s)
+{
+    return string("'") + s + string("'");
+}
+
+static void
+add_table_update_meta(const string &q, LEX *lex, Analysis &a)
+{
+    MYSQL *m = a.conn();
+
+    mysql_query_wrapper(m, "START TRANSACTION");
+
+    const string &table =
+        lex->select_lex.table_list.first->table_name;
+    TableMeta *tm = a.schema->tableMetaMap[table];
+    assert(tm != NULL);
+
+    {
+        ostringstream s;
+        s << "INSERT INTO proxy_db.table_info VALUES ("
+          << tm->tableNo << ", "
+          << sq(table) << ", "
+          << sq(tm->anonTableName)
+          << ")";
+
+        mysql_query_wrapper(m, s.str());
+    }
+
+    size_t id = 0;
+    for (auto it = tm->fieldMetaMap.begin();
+         it != tm->fieldMetaMap.end();
+         ++it, ++id) {
+
+        FieldMeta *fm = it->second;
+        assert(it->first == fm->fname);
+
+        ostringstream s;
+        s << "INSERT INTO proxy_db.column_info VALUES ("
+          << id << ", "
+          << tm->tableNo << ", "
+          << sq(fm->fname) << ", ";
+
+#define __temp_write(o) \
+        { \
+            auto it = fm->onionnames.find(o); \
+            if (it != fm->onionnames.end()) { s << sq(it->second) << ", "; } \
+            else                            { s << "NULL, ";               } \
+        }
+        __temp_write(oDET);
+        __temp_write(oOPE);
+        __temp_write(oAGG);
+        __temp_write(oSWP);
+#undef __temp_write
+
+        s << sq(fm->salt_name) << ", "
+          << "1, " /* is_encrypted */
+          << "1, " /* can_be_null  */
+          << (fm->hasOnion(oOPE) ? "1" : "0") << ", "
+          << (fm->hasOnion(oAGG) ? "1" : "0") << ", "
+          << (fm->hasOnion(oSWP) ? "1" : "0") << ", "
+          << (fm->has_salt       ? "1" : "0") << ", "
+          << (fm->hasOnion(oOPE) ? "1" : "0") << ", " /* ope_used? */
+          << (fm->hasOnion(oAGG) ? "1" : "0") << ", " /* agg_used? */
+          << (fm->hasOnion(oSWP) ? "1" : "0") << ", " /* search_used? */
+          << sq(fm->hasOnion(oOPE) ? levelnames[(int)fm->getOnionLevel(oOPE)] : "INVALID") << ", "
+          << sq(levelnames[(int)fm->getOnionLevel(oDET)])
+          << ")";
+
+        mysql_query_wrapper(m, s.str());
+    }
+
+    //need to update embedded schema with the new table
+    mysql_query_wrapper(m, q);
+
+    mysql_query_wrapper(m, "COMMIT");
 }
 
 static int
-updateMeta(const string & db, const string & q, LEX * lex, Analysis & a) {
-    if (lex->sql_command == SQLCOM_CREATE_TABLE || lex->sql_command == SQLCOM_DROP_TABLE) {
-	if (lex->sql_command == SQLCOM_DROP_TABLE) {
+updateMeta(const string & db, const string & q, LEX * lex, Analysis & a)
+{
+    switch (lex->sql_command) {
+    // TODO: alter tables will need to modify the embedded DB schema
+    case SQLCOM_DROP_TABLE:
 	    drop_table(a.schema, ((TABLE_LIST *)&lex->select_lex.table_list)->table_name);
-	}
-        //need to update embedded schema with the new table
-        if (mysql_query(a.conn(), q.c_str())) {
-            fatal() << "mysql_query: " << mysql_error(a.conn());
-        }
-        assert(create_embedded_thd(0));
+        // fall-through
+    case SQLCOM_CREATE_TABLE:
+        add_table_update_meta(q, lex, a);
+        break;
+    default:
+        // no-op
+        break;
     }
-    
+
     return adjustOnions(db, a);
 }
 
-Rewriter::Rewriter(const std::string & db):db(db){
-    //TODO: load schema
+Rewriter::Rewriter(const std::string & db) : db(db)
+{
+    // create mysql connection to embedded
+    // server
+    m = mysql_init(0);
+    assert(m);
+    mysql_options(m, MYSQL_OPT_USE_EMBEDDED_CONNECTION, 0);
+    if (!mysql_real_connect(m, 0, 0, 0, 0, 0, 0, CLIENT_MULTI_STATEMENTS)) {
+        mysql_close(m);
+        fatal() << "mysql_real_connect: " << mysql_error(m);
+    }
+	string use_q = "USE " + db + ";";
+    mysql_query_wrapper(m, use_q);
+
     schema = new SchemaInfo();
     totalTables = 0;
+    initSchema();
+}
+
+Rewriter::~Rewriter()
+{
+    mysql_close(m);
+}
+
+void
+Rewriter::createMetaTablesIfNotExists()
+{
+    MYSQL *m = conn();
+    mysql_query_wrapper(m, "CREATE DATABASE IF NOT EXISTS proxy_db");
+    mysql_query_wrapper(m, "USE proxy_db");
+
+    mysql_query_wrapper(m,
+                   "CREATE TABLE IF NOT EXISTS table_info"
+                   "( id bigint NOT NULL PRIMARY KEY"
+                   ", name varchar(64) NOT NULL"
+                   ", anon_name varchar(64) NOT NULL"
+                   ", UNIQUE INDEX idx_table_name( name )"
+                   ");");
+
+    mysql_query_wrapper(m,
+                   "CREATE TABLE IF NOT EXISTS column_info"
+                   "( id bigint NOT NULL auto_increment PRIMARY KEY"
+                   ", table_id bigint NOT NULL"
+                   ", name varchar(64) NOT NULL"
+                   ", anon_det_name varchar(64)"
+                   ", anon_ope_name varchar(64)"
+                   ", anon_agg_name varchar(64)"
+                   ", anon_swp_name varchar(64)"
+                   ", salt_name varchar(4096)"
+                   ", is_encrypted tinyint NOT NULL"
+                   ", can_be_null tinyint NOT NULL"
+                   ", has_ope tinyint NOT NULL"
+                   ", has_agg tinyint NOT NULL"
+                   ", has_search tinyint NOT NULL"
+                   ", has_salt tinyint NOT NULL"
+                   ", ope_used tinyint NOT NULL"
+                   ", agg_used tinyint NOT NULL"
+                   ", search_used tinyint NOT NULL"
+                   ", sec_level_ope enum"
+                   "      ( 'INVALID'"
+                   "      , 'PLAIN'"
+                   "      , 'PLAIN_DET'"
+                   "      , 'DETJOIN'"
+                   "      , 'DET'"
+                   "      , 'SEMANTIC_DET'"
+                   "      , 'PLAIN_OPE'"
+                   "      , 'OPEJOIN'"
+                   "      , 'OPE'"
+                   "      , 'SEMANTIC_OPE'"
+                   "      , 'PLAIN_AGG'"
+                   "      , 'SEMANTIC_AGG'"
+                   "      , 'PLAIN_SWP'"
+                   "      , 'SWP'"
+                   "      , 'SEMANTIC_VAL'"
+                   "      , 'SECLEVEL_LAST'"
+                   "      ) NOT NULL DEFAULT 'INVALID'"
+                   ", sec_level_det enum"
+                   "      ( 'INVALID'"
+                   "      , 'PLAIN'"
+                   "      , 'PLAIN_DET'"
+                   "      , 'DETJOIN'"
+                   "      , 'DET'"
+                   "      , 'SEMANTIC_DET'"
+                   "      , 'PLAIN_OPE'"
+                   "      , 'OPEJOIN'"
+                   "      , 'OPE'"
+                   "      , 'SEMANTIC_OPE'"
+                   "      , 'PLAIN_AGG'"
+                   "      , 'SEMANTIC_AGG'"
+                   "      , 'PLAIN_SWP'"
+                   "      , 'SWP'"
+                   "      , 'SEMANTIC_VAL'"
+                   "      , 'SECLEVEL_LAST'"
+                   "      ) NOT NULL DEFAULT 'INVALID'"
+                   ", INDEX idx_column_name( name )"
+                   ", FOREIGN KEY( table_id ) REFERENCES table_info( id ) ON DELETE CASCADE"
+                   ");");
+
+    // restore DB
+	string use_q = "USE " + db + ";";
+    mysql_query_wrapper(m, use_q);
+}
+
+void
+Rewriter::initSchema()
+{
+    createMetaTablesIfNotExists();
+
+    MYSQL *m = conn();
+    vector<string> tablelist;
+
+    {
+        mysql_query_wrapper(m, "SELECT id, name, anon_name FROM proxy_db.table_info");
+        ScopedMySQLRes r(mysql_store_result(m));
+        MYSQL_ROW row;
+        while ((row = mysql_fetch_row(r.res()))) {
+            unsigned long *l = mysql_fetch_lengths(r.res());
+            assert(l != NULL);
+            TableMeta *tm = new TableMeta;
+            tm->tableNo = (unsigned int) atoi(string(row[0], l[0]).c_str());
+            tm->anonTableName = string(row[2], l[2]);
+            tm->has_salt = false;
+            schema->tableMetaMap[string(row[1], l[1])] = tm;
+            schema->totalTables++;
+        }
+    }
+
+    for (auto it = schema->tableMetaMap.begin();
+         it != schema->tableMetaMap.end();
+         ++it) {
+
+        const string &origTableName = it->first;
+        TableMeta *tm = it->second;
+
+        string create_table_query;
+        {
+            string q = "SHOW CREATE TABLE " + origTableName;
+            mysql_query_wrapper(m, q);
+            ScopedMySQLRes r(mysql_store_result(m));
+            assert(mysql_num_rows(r.res()) == 1);
+            assert(mysql_num_fields(r.res()) == 2);
+            MYSQL_ROW row = mysql_fetch_row(r.res());
+            unsigned long *lengths = mysql_fetch_lengths(r.res());
+            create_table_query = string(row[1], lengths[1]);
+        }
+
+        query_parse parser(db, create_table_query);
+        LEX *lex = parser.lex();
+        assert(lex->sql_command == SQLCOM_CREATE_TABLE);
+
+        // fetch all the column info for this table
+        {
+            string q = "SELECT "
+                       "c.name, "
+
+                       "c.has_ope, "
+                       "c.has_agg, "
+                       "c.has_search, "
+
+                       "c.anon_det_name, "
+                       "c.anon_ope_name, "
+                       "c.anon_agg_name, "
+                       "c.anon_swp_name, "
+
+                       "c.sec_level_det, "
+                       "c.sec_level_ope, "
+
+                       "c.salt_name, "
+                       "c.is_encrypted, "
+                       "c.can_be_null, "
+
+                       "c.has_salt "
+
+                       //TODO: what do these fields do?
+                       //"c.ope_used, "
+                       //"c.agg_used, "
+                       //"c.search_used, "
+
+                       "FROM proxy_db.column_info c, proxy_db.table_info t "
+                       "WHERE t.name = '" + origTableName + "' AND c.table_id = t.id";
+            mysql_query_wrapper(m, q);
+            ScopedMySQLRes r(mysql_store_result(m));
+            MYSQL_ROW row;
+            while ((row = mysql_fetch_row(r.res()))) {
+                unsigned long *l = mysql_fetch_lengths(r.res());
+                assert(l != NULL);
+
+                FieldMeta *fm = new FieldMeta;
+                size_t i = 0, j = 0;
+                fm->fname = string(row[i++], l[j++]);
+
+                bool has_ope = string(row[i++], l[j++]) == "1";
+                bool has_agg = string(row[i++], l[j++]) == "1";
+                bool has_swp = string(row[i++], l[j++]) == "1";
+
+                fm->onionnames[oDET] = string(row[i++], l[j++]);
+
+                if (has_ope) { fm->onionnames[oOPE] = string(row[i++], l[j++]); }
+                else         { i++; j++; }
+
+                if (has_agg) { fm->onionnames[oAGG] = string(row[i++], l[j++]); }
+                else         { i++; j++; }
+
+                if (has_swp) { fm->onionnames[oSWP] = string(row[i++], l[j++]); }
+                else         { i++; j++; }
+
+                OnionLevelMap om;
+
+                om[oDET] = string_to_sec_level(string(row[i++], l[j++]));
+
+                if (has_ope) { om[oOPE] = string_to_sec_level(string(row[i++], l[j++])); }
+                else         { i++; j++; }
+
+                if (has_agg) { om[oAGG] = SECLEVEL::PLAIN_AGG; }
+
+                if (has_swp) { om[oSWP] = SECLEVEL::PLAIN_SWP; }
+
+                fm->encdesc = EncDesc(om);
+
+                fm->salt_name = string(row[i++], l[j++]);
+
+                i++; j++; // is_encrypted
+                i++; j++; // can_be_null
+
+                fm->has_salt = string(row[i++], l[j++]) == "1";
+
+                tm->fieldNames.push_back(fm->fname);
+                tm->fieldMetaMap[fm->fname] = fm;
+            }
+        }
+    }
 }
 
 string
@@ -2376,14 +2713,13 @@ Rewriter::rewrite(const string & q, ReturnMeta & rmeta)
     query_parse p(db, q);
     LEX *lex = p.lex();
 
-
     cerr << "query lex is " << *lex << "\n";
 
-    Analysis analysis(db, schema);
+    Analysis analysis(conn(), schema);
     query_analyze(db, q, lex, analysis);
 
-    //print(analysis.schema->tableMetaMap);
-    assert(updateMeta(db, q, lex, analysis) >= 0);
+    int ret = updateMeta(db, q, lex, analysis);
+    if (ret < 0) assert(false);
 
     lex_rewrite(db, lex, analysis, rmeta);
 

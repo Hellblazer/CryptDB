@@ -48,3 +48,11 @@ SECLEVELS(__temp_m)
 #undef __temp_m
 };
 
+inline SECLEVEL string_to_sec_level(const std::string &s)
+{
+#define __temp_m(n) if (strcmp(s.c_str(), #n) == 0) return SECLEVEL::n;
+SECLEVELS(__temp_m)
+#undef __temp_m
+    // TODO: possibly raise an exception
+    return SECLEVEL::INVALID;
+}
