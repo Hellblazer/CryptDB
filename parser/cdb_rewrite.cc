@@ -34,6 +34,12 @@ mysql_query_wrapper(MYSQL *m, const string &q)
     if (!ret) assert(false);
 }
 
+static inline string
+sq(const string &s)
+{
+    return string("'") + s + string("'");
+}
+
 /********  parser utils; TODO: put in separate file **/
 
 static string
@@ -58,7 +64,7 @@ encryptConstantItem(Item * i, const Analysis & a){
     string anonname = fullName(fm->onionnames[im->o], fm->tm->anonTableName);
     bool isBin;
     return a.cm->crypt(a.cm->getmkey(), plaindata, TYPE_TEXT,
-		       anonname, getMin(im->o), fm->encdesc.olm[im->o], isBin);
+                       anonname, getMin(im->o), fm->encdesc.olm[im->o], isBin);
 }
 
 /***********end of parser utils *****************/
@@ -671,12 +677,12 @@ static class ANON : public CItemSubtypeIT<Item_field, Item::Type::FIELD_ITEM> {
 
         string fullfieldname = extract_fieldname(i);
 
-	string fieldname = i->field_name;
-	string table = i->table_name;
+        string fieldname = i->field_name;
+        string table = i->table_name;
 
-	FieldMeta * fm = a.schema->getFieldMeta(table, fieldname);
+        FieldMeta * fm = a.schema->getFieldMeta(table, fieldname);
 
-	// check compatibility for each of the constraints given
+        // check compatibility for each of the constraints given
         // in the incoming enc set, either filtering them out, or
         // by modification
         OnionLevelFieldMap m;
@@ -686,7 +692,7 @@ static class ANON : public CItemSubtypeIT<Item_field, Item::Type::FIELD_ITEM> {
             // if the field is a wildcard, then replace it with this field
             // (or if it's the same field
             if (FieldQualifies(it->second.second, fm)) {
-		m[it->first] = it->second;
+                m[it->first] = it->second;
                 m[it->first].second = fm;
             } else {
                 // in the case of DET_JOIN/OPE_JOIN,
@@ -830,8 +836,7 @@ static class ANON : public CItemSubtypeIT<Item_string, Item::Type::STRING_ITEM> 
     }
 
     virtual Item * do_rewrite_type(Item_string *i, Analysis & a) const {
-       	string enc = encryptConstantItem(i,  a);
-
+        string enc = encryptConstantItem(i,  a);
         return new Item_hex_string(enc.data(), enc.length());
     }
 
@@ -842,36 +847,36 @@ static class ANON : public CItemSubtypeIT<Item_string, Item::Type::STRING_ITEM> 
         String s;
         String *s0 = i->val_str(&s);
 
-	string plaindata = string(s0->ptr(), s0->length());
+        string plaindata = string(s0->ptr(), s0->length());
 
-	uint64_t salt = 0;
-	if (fm->has_salt) {
-	    salt = randomValue();
-	} else {
-	    //TODO raluca
-	    //need to use table salt in this case
-	}
+        uint64_t salt = 0;
+        if (fm->has_salt) {
+            salt = randomValue();
+        } else {
+            //TODO raluca
+            //need to use table salt in this case
+        }
 
         assert(s0 != NULL);
         for (auto it = fm->onionnames.begin();
              it != fm->onionnames.end();
              ++it)
-	{
+        {
 
-	    string anonName = fullName(it->second, fm->tm->anonTableName);
-	    bool isBin;
+            string anonName = fullName(it->second, fm->tm->anonTableName);
+            bool isBin;
 
-	    string enc = a.cm->crypt(a.cm->getmkey(), plaindata, TYPE_TEXT,
-				   anonName, getMin(it->first),
-				   getMax(it->first), isBin, salt);
+            string enc = a.cm->crypt(a.cm->getmkey(), plaindata, TYPE_TEXT,
+                                     anonName, getMin(it->first),
+                                     getMax(it->first), isBin, salt);
 
-	    l.push_back(new Item_hex_string(enc.data(), enc.length()));
+            l.push_back(new Item_hex_string(enc.data(), enc.length()));
 
         }
 
-	if (fm->has_salt) {
-	    string salt_s = strFromVal(salt);
-	    l.push_back(new Item_hex_string(salt_s.data(), salt_s.length()));
+        if (fm->has_salt) {
+            string salt_s = strFromVal(salt);
+            l.push_back(new Item_hex_string(salt_s.data(), salt_s.length()));
         }
 
     }
@@ -892,38 +897,37 @@ static class ANON : public CItemSubtypeIT<Item_num, Item::Type::INT_ITEM> {
     }
     virtual Item * do_rewrite_type(Item_num *i, Analysis & a) const {
         string enc = encryptConstantItem(i, a);
-
         return new Item_int(valFromStr(enc));
     }
     virtual void
     do_rewrite_insert_type(Item_num *i, Analysis & a, vector<Item *> &l, FieldMeta *fm) const
     {
 
-	//TODO: this part is quite repetitive with string or
-	//any other type -- write a function
+        //TODO: this part is quite repetitive with string or
+        //any other type -- write a function
 
         assert(fm != NULL);
         longlong n = i->val_int();
-	string plaindata = strFromVal((uint64_t)n);
+        string plaindata = strFromVal((uint64_t)n);
 
-	uint64_t salt = 0;
-	if (fm->has_salt) {
-	    salt = randomValue();
+        uint64_t salt = 0;
+        if (fm->has_salt) {
+            salt = randomValue();
         } else {
-	    //TODO raluca
-	    //need to use table salt in this case
-	}
+            //TODO raluca
+            //need to use table salt in this case
+        }
 
 
-	for (auto it = fm->onionnames.begin();
+        for (auto it = fm->onionnames.begin();
              it != fm->onionnames.end();
              ++it) {
-	    string anonName = fullName(it->second, fm->tm->anonTableName);
-	    bool isBin;
+            string anonName = fullName(it->second, fm->tm->anonTableName);
+            bool isBin;
 
-	    string enc = a.cm->crypt(a.cm->getmkey(), plaindata, TYPE_INTEGER,
-				   anonName, getMin(it->first),
-				   getMax(it->first), isBin, salt);
+            string enc = a.cm->crypt(a.cm->getmkey(), plaindata, TYPE_INTEGER,
+                                     anonName, getMin(it->first),
+                                     getMax(it->first), isBin, salt);
 
             l.push_back(new Item_int( valFromStr(enc)));
         }
@@ -2281,7 +2285,7 @@ do_query_analyze(const std::string &db, const std::string &q, LEX * lex, Analysi
 
     if (lex->sql_command == SQLCOM_CREATE_TABLE) {
         process_create_lex(lex, analysis);
-	return;
+        return;
     }
 
     process_table_list(&lex->select_lex.top_join_list, analysis);
@@ -2390,22 +2394,38 @@ lex_rewrite(const string & db, LEX * lex, Analysis & analysis, ReturnMeta & rmet
 }
 
 static inline void
-drop_table(SchemaInfo * schema, const string & table)
+drop_table_update_meta(const string &q,
+                       LEX *lex,
+                       Analysis &a)
 {
-    schema->totalTables--;
-    schema->tableMetaMap.erase(table);
+    MYSQL *m = a.conn();
 
-    // TODO: delete from proxy_db.table_info
-}
+    mysql_query_wrapper(m, "START TRANSACTION");
 
-static inline string
-sq(const string &s)
-{
-    return string("'") + s + string("'");
+    TABLE_LIST *tbl = lex->select_lex.table_list.first;
+    for (; tbl; tbl = tbl->next_local) {
+        const string &table = tbl->table_name;
+
+        ostringstream s;
+        s << "DELETE proxy_db.table_info, proxy_db.column_info "
+          << "FROM proxy_db.table_info INNER JOIN proxy_db.column_info "
+          << "WHERE proxy_db.table_info.id = proxy_db.column_info.table_id "
+          << "AND   proxy_db.table_info.name = " << sq(table);
+        mysql_query_wrapper(m, s.str());
+
+        a.schema->totalTables--;
+        a.schema->tableMetaMap.erase(table);
+
+        mysql_query_wrapper(m, q);
+    }
+
+    mysql_query_wrapper(m, "COMMIT");
 }
 
 static void
-add_table_update_meta(const string &q, LEX *lex, Analysis &a)
+add_table_update_meta(const string &q,
+                      LEX *lex,
+                      Analysis &a)
 {
     MYSQL *m = a.conn();
 
@@ -2482,8 +2502,8 @@ updateMeta(const string & db, const string & q, LEX * lex, Analysis & a)
     switch (lex->sql_command) {
     // TODO: alter tables will need to modify the embedded DB schema
     case SQLCOM_DROP_TABLE:
-	    drop_table(a.schema, ((TABLE_LIST *)&lex->select_lex.table_list)->table_name);
-        // fall-through
+        drop_table_update_meta(q, lex, a);
+        break;
     case SQLCOM_CREATE_TABLE:
         add_table_update_meta(q, lex, a);
         break;
@@ -2506,7 +2526,7 @@ Rewriter::Rewriter(const std::string & db) : db(db)
         mysql_close(m);
         fatal() << "mysql_real_connect: " << mysql_error(m);
     }
-	string use_q = "USE " + db + ";";
+    string use_q = "USE " + db + ";";
     mysql_query_wrapper(m, use_q);
 
     schema = new SchemaInfo();
@@ -2536,7 +2556,7 @@ Rewriter::createMetaTablesIfNotExists()
 
     mysql_query_wrapper(m,
                    "CREATE TABLE IF NOT EXISTS column_info"
-                   "( id bigint NOT NULL auto_increment PRIMARY KEY"
+                   "( id bigint NOT NULL PRIMARY KEY"
                    ", table_id bigint NOT NULL"
                    ", name varchar(64) NOT NULL"
                    ", anon_det_name varchar(64)"
@@ -2594,7 +2614,7 @@ Rewriter::createMetaTablesIfNotExists()
                    ");");
 
     // restore DB
-	string use_q = "USE " + db + ";";
+        string use_q = "USE " + db + ";";
     mysql_query_wrapper(m, use_q);
 }
 
