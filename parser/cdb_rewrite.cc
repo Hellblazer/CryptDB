@@ -2046,13 +2046,18 @@ add_table(SchemaInfo * schema, const string & table, LEX *lex) {
 
 class OnionFieldHandler {
 private:
-    int field_length;
+    int                   field_length;
     enum enum_field_types type;
+    CHARSET_INFO *        charset;
 public:
     OnionFieldHandler(enum enum_field_types t) :
-        field_length(-1), type(t) {}
+        field_length(-1), type(t), charset(NULL) {}
     OnionFieldHandler(enum enum_field_types t, size_t f) :
-        field_length((int)f), type(t) {}
+        field_length((int)f), type(t), charset(NULL) {}
+    OnionFieldHandler(enum enum_field_types t,
+                      size_t f,
+                      CHARSET_INFO *charset) :
+        field_length((int)f), type(t), charset(charset) {}
 
     Create_field*
     newOnionCreateField(const char * anon_name,
@@ -2061,9 +2066,12 @@ public:
         Create_field *f0 = f->clone(thd->mem_root);
         f0->field_name = thd->strdup(anon_name);
         if (field_length != -1) {
-            f0->char_length = field_length;
+            f0->length = field_length;
         }
         f0->sql_type = type;
+        if (charset != NULL) {
+            f0->charset = charset;
+        }
         return f0;
     }
 };
@@ -2096,7 +2104,7 @@ const map<onion, V> OnionHandlers = {
                    MYSQL_TYPE_INT24,
                    MYSQL_TYPE_DECIMAL,
                    MYSQL_TYPE_DOUBLE}),
-                new OnionFieldHandler(MYSQL_TYPE_VARCHAR))})},
+                new OnionFieldHandler(MYSQL_TYPE_VARCHAR, 256, &my_charset_bin))})},
 
     {oSWP, V({H(S({MYSQL_TYPE_VARCHAR,
                    MYSQL_TYPE_BLOB}),
@@ -2136,10 +2144,12 @@ static void rewrite_create_field(const string &table_name,
     // create salt column
     if (fm->has_salt) {
         assert(!fm->salt_name.empty());
-        THD *thd = current_thd;
+        THD *thd         = current_thd;
         Create_field *f0 = f->clone(thd->mem_root);
-        f0->field_name = thd->strdup(fm->salt_name.c_str());
-        f0->sql_type = MYSQL_TYPE_LONGLONG;
+        f0->field_name   = thd->strdup(fm->salt_name.c_str());
+        f0->sql_type     = MYSQL_TYPE_VARCHAR;
+        f0->charset      = &my_charset_bin;
+        f0->length       = 8;
         l.push_back(f0);
     }
 }
