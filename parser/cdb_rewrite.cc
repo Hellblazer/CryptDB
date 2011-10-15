@@ -18,11 +18,40 @@
 
 using namespace std;
 
+/********  parser utils; TODO: put in separate file **/
+
+static string
+ItemToString(Item * i) {
+    String s;
+    String *s0 = i->val_str(&s);
+    assert(s0 != NULL);
+    return string(s0->ptr(), s0->length());
+}
+
+// encrypts a constant item based on the information in a
+static string
+encryptConstantItem(Item * i, const Analysis & a){
+    string plaindata = ItemToString(i);
+    
+    auto itemMeta = a.itemToMeta.find(i);
+    assert_s(itemMeta != a.itemToMeta.end(), "there is no meta for item in analysis");
+    
+    ItemMeta * im = itemMeta->second;
+    FieldMeta * fm = im->basefield;
+    
+    string anonname = fullName(fm->onionnames[im->o], fm->tm->anonTableName);
+    bool isBin;
+    return a.cm->crypt(a.cm->getmkey(), plaindata, TYPE_TEXT,
+		       anonname, getMin(im->o), fm->encdesc.olm[im->o], isBin);   
+}
+  
+/***********end of parser utils *****************/
+
 static inline bool
-FieldQualifies(const string &restriction,
-               const string &field)
+FieldQualifies(const FieldMeta * restriction,
+               const FieldMeta * field)
 {
-    return restriction.empty() || restriction == field;
+    return !restriction || restriction == field;
 }
 
 static inline bool
@@ -94,7 +123,7 @@ get_field_meta(const char *table_name,
     return get_field_meta(table_name, f->field_name, a);
 }
 
-static
+/*static
 void print(const map<string, TableMeta*>& t) {
     cerr<<"tables ";
     for (auto p:t) {
@@ -102,7 +131,7 @@ void print(const map<string, TableMeta*>& t) {
     }
     cerr << "\n";
 }
-
+*/
 bool
 EncDesc::restrict(onion o, SECLEVEL maxl)
 {
@@ -132,10 +161,10 @@ EncSet::intersect(const EncSet & es2) const
         if (it != osl.end()) {
             SECLEVEL sl = (SECLEVEL)min((int)it->second.first,
                                         (int)it2->second.first);
-            if (it->second.second.empty()) {
+            if (it->second.second == NULL) {
                 m[it->first] = LevelFieldPair(
                         sl, it2->second.second);
-            } else if (it2->second.second.empty()) {
+            } else if (it2->second.second == NULL) {
                 m[it->first] = LevelFieldPair(
                         sl, it->second.second);
             } else if (it->second.second == it2->second.second) {
@@ -179,7 +208,7 @@ operator<<(ostream &out, const EncSet & es)
     for (auto it : es.osl) {
         out << "(onion " << it.first
             << ", level " << levelnames[(int)it.second.first]
-            << ", field `" << (it.second.second.empty() ? "*" : it.second.second) << "`"
+            << ", field `" << (it.second.second == NULL ? "*" : it.second.second->fname) << "`"
             << ") ";
     }
     return out;
@@ -218,7 +247,7 @@ operator<<(ostream &out, const OnionLevelFieldPair &p)
 {
     out << "(onion " << p.first
         << ", level " << levelnames[(int)p.second.first]
-        << ", field `" << (p.second.second.empty() ? "*" : p.second.second) << "`"
+        << ", field `" << (p.second.second == NULL ? "*" : p.second.second->fname) << "`"
         << ")";
     return out;
 }
@@ -238,7 +267,7 @@ anonymize_table_name(const char *orig_table_name,
     // B) figure out where to actually allocate the memory for strs
     //    (right now, just putting it in the THD mem pools)
     //cerr << "tname is <" << tname << ">\n";
-    print(a.schema->tableMetaMap);
+    
     string tname0;
     //hack for now, will fix soon
     if (a.schema->tableMetaMap.find(tname) == a.schema->tableMetaMap.end()) {
@@ -573,7 +602,7 @@ record_item_meta_for_constraints(Item *i,
     }
     im->o         = c.first;
     im->uptolevel = c.second.first;
-    im->basekey   = c.second.second;
+    im->basefield = c.second.second;
 }
 
 template <class T>
@@ -674,9 +703,14 @@ static class ANON : public CItemSubtypeIT<Item_field, Item::Type::FIELD_ITEM> {
     virtual EncSet do_gather_type(Item_field *i, const constraints &tr, Analysis & a) const {
         cerr << "CItemSubtypeIT do_gather " << *i << "\n";
 
-        string fieldname = extract_fieldname(i);
+        string fullfieldname = extract_fieldname(i);
+	
+	string fieldname = i->field_name;
+	string table = i->table_name;
+	
+	FieldMeta * fm = a.schema->getFieldMeta(table, fieldname);
 
-        // check compatibility for each of the constraints given
+	// check compatibility for each of the constraints given
         // in the incoming enc set, either filtering them out, or
         // by modification
         OnionLevelFieldMap m;
@@ -685,9 +719,9 @@ static class ANON : public CItemSubtypeIT<Item_field, Item::Type::FIELD_ITEM> {
              ++it) {
             // if the field is a wildcard, then replace it with this field
             // (or if it's the same field
-            if (FieldQualifies(it->second.second, fieldname)) {
-                m[it->first] = it->second;
-                m[it->first].second = fieldname;
+            if (FieldQualifies(it->second.second, fm)) {
+		m[it->first] = it->second;
+                m[it->first].second = fm;
             } else {
                 // in the case of DET_JOIN/OPE_JOIN,
                 // we take the constraint regardless of
@@ -698,12 +732,11 @@ static class ANON : public CItemSubtypeIT<Item_field, Item::Type::FIELD_ITEM> {
                     m[it->first] = LevelFieldPair(
                             it->first == oDET ?
                                 SECLEVEL::DETJOIN : SECLEVEL::OPEJOIN,
-                            it->second.second < fieldname ?
-                                it->second.second : fieldname);
+                            it->second.second->fname < fieldname ?
+                                it->second.second : fm);
                 }
             }
         }
-
 
         return EncSet(m);
     }
@@ -827,13 +860,13 @@ static class ANON : public CItemSubtypeIT<Item_string, Item::Type::STRING_ITEM> 
     virtual Item * do_optimize_type(Item_string *i, Analysis & a) const {
         return i;
     }
+
     virtual Item * do_rewrite_type(Item_string *i, Analysis & a) const {
-        String s;
-        String *s0 = i->val_str(&s);
-        assert(s0 != NULL);
-        // TODO(stephentu): Do some actual encryption of the string here
-        return new Item_hex_string(s0->ptr(), s0->length());
+       	string enc = encryptConstantItem(i,  a);
+
+        return new Item_hex_string(enc.data(), enc.length());
     }
+
     virtual void
     do_rewrite_insert_type(Item_string *i, Analysis & a, vector<Item *> &l, FieldMeta *fm) const
     {
@@ -890,9 +923,9 @@ static class ANON : public CItemSubtypeIT<Item_num, Item::Type::INT_ITEM> {
         return i;
     }
     virtual Item * do_rewrite_type(Item_num *i, Analysis & a) const {
-        longlong n = i->val_int();
-        // TODO(stephentu): Do some actual encryption of the int here
-        return new Item_int( n ^ 0xdeadbeef );
+        string enc = encryptConstantItem(i, a);
+
+        return new Item_int(valFromStr(enc));
     }
     virtual void
     do_rewrite_insert_type(Item_num *i, Analysis & a, vector<Item *> &l, FieldMeta *fm) const
@@ -2264,8 +2297,7 @@ do_query_analyze(const std::string &db, const std::string &q, LEX * lex, Analysi
 
     if (lex->sql_command == SQLCOM_CREATE_TABLE) {
         process_create_lex(lex, analysis);
-        print(analysis.schema->tableMetaMap);
-        return;
+	return;
     }
 
     process_table_list(&lex->select_lex.top_join_list, analysis);
@@ -2400,6 +2432,21 @@ Rewriter::Rewriter(const std::string & db):db(db), cm(NULL){
     schema = new SchemaInfo();
     totalTables = 0;
      
+}
+
+TableMeta *
+SchemaInfo::getTableMeta(const string & table) {
+    auto it = tableMetaMap.find(table);
+    assert_s(it != tableMetaMap.end(), "could not find table " + table);
+    return it->second;
+}
+
+FieldMeta *
+SchemaInfo::getFieldMeta(const string & table, const string & field) {
+    TableMeta * tm = getTableMeta(table);
+    auto it = tm->fieldMetaMap.find(field);
+    assert_s(it != tm->fieldMetaMap.end(), "could not find field " + field + " in table " +  table );
+    return it->second;
 }
 
 void

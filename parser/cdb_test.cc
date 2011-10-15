@@ -91,6 +91,7 @@ main(int ac, char **av)
                 cout << "ERROR: " << e.what() << " in query " << q << endl;
                 nerror++;
             }
+
             cerr << "resulting query: " << new_q << " \n";
         }
 
