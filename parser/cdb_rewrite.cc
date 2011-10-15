@@ -1120,6 +1120,15 @@ class CItemCond : public CItemSubtypeFT<Item_cond, FT> {
     virtual Item * do_optimize_type(Item_cond *i, Analysis & a) const {
         return do_optimize_type_self_and_args(i, a);
     }
+    virtual Item * do_rewrite_type(Item_cond *i, Analysis & a) const {
+        auto item_it = List_iterator<Item>(*i->argument_list());
+        for (;;) {
+            if (!item_it++)
+                break;
+            rewrite(item_it.ref(), a);
+        }
+        return i;
+    }
 };
 
 static CItemCond<Item_func::Functype::COND_AND_FUNC, Item_cond_and> ANON;
@@ -2614,7 +2623,7 @@ Rewriter::createMetaTablesIfNotExists()
                    ");");
 
     // restore DB
-        string use_q = "USE " + db + ";";
+    string use_q = "USE " + db + ";";
     mysql_query_wrapper(m, use_q);
 }
 
