@@ -2683,6 +2683,8 @@ Rewriter::initSchema()
                 assert(l != NULL);
 
                 FieldMeta *fm = new FieldMeta;
+                fm->tm = tm;
+
                 size_t i = 0, j = 0;
                 fm->fname = string(row[i++], l[j++]);
 
