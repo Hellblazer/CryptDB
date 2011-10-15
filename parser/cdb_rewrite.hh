@@ -25,13 +25,15 @@
 
 using namespace std;
 
+struct FieldMeta;
+
 /**
  * Field here is either:
  * A) empty string, representing any field or
  * B) the field that the onion is key-ed on. this
  *    only has semantic meaning for DET and OPE
  */
-typedef std::pair<SECLEVEL, std::string> LevelFieldPair;
+typedef std::pair<SECLEVEL, FieldMeta *> LevelFieldPair;
 typedef std::map<onion, LevelFieldPair>  OnionLevelFieldMap;
 typedef std::pair<onion, LevelFieldPair> OnionLevelFieldPair;
 typedef std::map<onion, SECLEVEL>        OnionLevelMap;
@@ -107,36 +109,36 @@ const EncDesc EQ_SEARCH_EncDesc = {
 
 const EncSet EQ_EncSet = {
         {
-            {oDET, LevelFieldPair(SECLEVEL::DET, "")},
-            {oOPE, LevelFieldPair(SECLEVEL::OPE, "")},
+            {oDET, LevelFieldPair(SECLEVEL::DET, NULL)},
+            {oOPE, LevelFieldPair(SECLEVEL::OPE, NULL)},
         }
 };
 
 const EncSet ORD_EncSet = {
         {
-            {oOPE, LevelFieldPair(SECLEVEL::OPE, "")},
+            {oOPE, LevelFieldPair(SECLEVEL::OPE, NULL)},
         }
 };
 
 //todo: there should be a map of FULL_EncSets depending on item type
 const EncSet FULL_EncSet = {
         {
-            {oDET, LevelFieldPair(SECLEVEL::SEMANTIC_DET, "")},
-            {oOPE, LevelFieldPair(SECLEVEL::SEMANTIC_OPE, "")},
-            {oAGG, LevelFieldPair(SECLEVEL::SEMANTIC_AGG, "")},
-            {oSWP, LevelFieldPair(SECLEVEL::SWP,          "")},
+            {oDET, LevelFieldPair(SECLEVEL::SEMANTIC_DET, NULL)},
+            {oOPE, LevelFieldPair(SECLEVEL::SEMANTIC_OPE, NULL)},
+            {oAGG, LevelFieldPair(SECLEVEL::SEMANTIC_AGG, NULL)},
+            {oSWP, LevelFieldPair(SECLEVEL::SWP,          NULL)},
         }
 };
 
 const EncSet Search_EncSet = {
         {
-            {oSWP, LevelFieldPair(SECLEVEL::SWP, "")},
+            {oSWP, LevelFieldPair(SECLEVEL::SWP, NULL)},
         }
 };
 
 const EncSet ADD_EncSet = {
         {
-            {oAGG, LevelFieldPair(SECLEVEL::SEMANTIC_AGG, "")},
+            {oAGG, LevelFieldPair(SECLEVEL::SEMANTIC_AGG, NULL)},
         }
 };
 
@@ -202,6 +204,8 @@ typedef struct SchemaInfo {
 
     SchemaInfo():totalTables(0) {};
     ~SchemaInfo() {cerr << "called schema destructor"; tableMetaMap.clear();}
+    TableMeta * getTableMeta(const string & table);
+    FieldMeta * getFieldMeta(const string & table, const string & field);
 } SchemaInfo;
 
 
@@ -220,7 +224,7 @@ class ItemMeta {
 public:
     onion o;
     SECLEVEL uptolevel;
-    std::string basekey;
+    FieldMeta * basefield;
 };
 extern "C" void *create_embedded_thd(int client_flag);
 
@@ -236,6 +240,7 @@ public:
         return m;
     }
 
+
     std::map<std::string, FieldAMeta *> fieldToAMeta;
     std::map<Item*, ItemMeta *>         itemToMeta;
     std::map<Item_field*, FieldMeta*>   itemToFieldMeta;
@@ -243,6 +248,7 @@ public:
     SchemaInfo *                        schema;
     CryptoManager *                     cm;
 
+    
 private:
     MYSQL * m;
 
