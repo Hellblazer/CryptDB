@@ -96,49 +96,6 @@ IsMySQLTypeNumeric(enum_field_types t) {
     }
 }
 
-static FieldMeta *
-get_field_meta(const char *table_name,
-               const char *field_name,
-               Analysis &a)
-{
-    assert(table_name != NULL);
-    assert(field_name != NULL);
-    assert(a.schema   != NULL);
-
-    // locate table first
-    auto tblit = a.schema->tableMetaMap.find(table_name);
-    if (tblit == a.schema->tableMetaMap.end()) return NULL;
-    TableMeta *tm = tblit->second;
-    assert(tm != NULL);
-
-    // now locate field
-    auto fdit = tm->fieldMetaMap.find(field_name);
-    if (fdit == tm->fieldMetaMap.end()) return NULL;
-    FieldMeta *fm = fdit->second;
-    assert(fm != NULL);
-
-    return fm;
-}
-
-static FieldMeta *
-get_field_meta(const Item_field *i, Analysis &a)
-{
-    assert(i != NULL);
-    assert(a.schema != NULL);
-    return get_field_meta(i->table_name, i->field_name, a);
-}
-
-static FieldMeta *
-get_field_meta(const char *table_name,
-               const Create_field *f,
-               Analysis &a)
-{
-    assert(table_name != NULL);
-    assert(f != NULL);
-    assert(a.schema != NULL);
-    return get_field_meta(table_name, f->field_name, a);
-}
-
 /*static
 void print(const map<string, TableMeta*>& t) {
     cerr<<"tables ";
@@ -762,7 +719,7 @@ static class ANON : public CItemSubtypeIT<Item_field, Item::Type::FIELD_ITEM> {
         string fieldname = extract_fieldname(i);
         auto it = a.fieldToAMeta.find(fieldname);
         if (it == a.fieldToAMeta.end()) {
-            FieldMeta *fm = get_field_meta(i, a);
+            FieldMeta *fm = a.schema->getFieldMeta(i->table_name, i->field_name);
             if (fm) {
                 // bootstrap a new FieldAMeta from the FieldMeta's encdesc
                 a.fieldToAMeta[fieldname] = new FieldAMeta(fm->encdesc);
@@ -843,7 +800,7 @@ static class ANON : public CItemSubtypeIT<Item_field, Item::Type::FIELD_ITEM> {
         // TODO: this is kind of a duplicate of rewrite_create_field(),
         // but not quite. see if we can somehow reconcile these two
         // pieces of code
-        fm = get_field_meta(i, a);
+        fm = a.schema->getFieldMeta(i->table_name, i->field_name);
         for (auto it = fm->onionnames.begin();
              it != fm->onionnames.end();
              ++it) {
@@ -2138,7 +2095,7 @@ static void rewrite_create_field(const string &table_name,
                                  Analysis &a,
                                  vector<Create_field *> &l)
 {
-    FieldMeta *fm = get_field_meta(table_name.c_str(), f, a);
+    FieldMeta *fm = a.schema->getFieldMeta(table_name, f->field_name);
 
     // create each onion column
     for (auto it = fm->onionnames.begin();
@@ -2264,7 +2221,8 @@ rewrite_insert_lex(LEX *lex, Analysis &a)
             if (!i)
                 break;
             assert(i->type() == Item::FIELD_ITEM);
-            fmVec.push_back(get_field_meta(static_cast<Item_field*>(i), a));
+            Item_field *ifd = static_cast<Item_field*>(i);
+            fmVec.push_back(a.schema->getFieldMeta(ifd->table_name, ifd->field_name));
             vector<Item *> l;
             itemTypes.do_rewrite_insert(i, a, l, NULL);
             for (auto it0 = l.begin(); it0 != l.end(); ++it0) {
