@@ -10,17 +10,16 @@
 #include <algorithm>
 #include <stdio.h>
 
-#include <sql_select.h>
-#include <sql_delete.h>
-#include <sql_insert.h>
-#include <sql_update.h>
+#include <parser/cdb_rewrite.hh>
+
+
 
 #include <parser/embedmysql.hh>
 #include <parser/stringify.hh>
 
 #include <util/errstream.hh>
 
-#include <parser/cdb_rewrite.hh>
+
 
 using namespace std;
 
@@ -68,7 +67,12 @@ main(int ac, char **av)
 
         string db = s.substr(0, space);
         cerr << "db: " << db << "\n";
-        if (!r) {r = new Rewriter(db);};
+        if (!r) {
+
+	    r = new Rewriter(db);
+	    r->setMasterKey("2392834");
+	    
+	};
         string q = s.substr(space + 1);
         cerr << "q: " << q << "\n";
         string new_q;

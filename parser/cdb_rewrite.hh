@@ -7,7 +7,21 @@
  *  TODO: need to integrate it with util.h: some declarations are repeated
  */
 
+#include <crypto-old/CryptoManager.hh>
 #include <util/onions.hh>
+#include <parser/Translator.hh>
+
+#include <sql_select.h>
+#include <sql_delete.h>
+#include <sql_insert.h>
+#include <sql_update.h>
+
+#include <parser/embedmysql.hh>
+#include <parser/stringify.hh>
+
+#include <util/errstream.hh>
+#include <util/cleanup.hh>
+#include <util/rob.hh>
 
 using namespace std;
 
@@ -133,13 +147,13 @@ const EncSet EMPTY_EncSet = {
 
 /******* ENCRYPTED SCHEMA INFORMATION ********/
 
-
+struct TableMeta;
 //TODO: FieldMeta and TableMeta are partly duplicates with the original
 // FieldMetadata an TableMetadata
 // which contains data we want to add to this structure soon
 // we can remove old ones when we have needed functionality here
 typedef struct FieldMeta {
-
+    TableMeta * tm; //point to table belonging in
     std::string fname;
     Create_field * sql_field;
 
@@ -212,8 +226,8 @@ extern "C" void *create_embedded_thd(int client_flag);
 
 class Analysis {
 public:
-    Analysis(MYSQL *m, SchemaInfo * schema)
-        : schema(schema), m(m) {
+    Analysis(MYSQL *m, SchemaInfo * schema, CryptoManager *cm)
+        : schema(schema), cm(cm), m(m) {
         assert(m != NULL);
     }
 
@@ -227,6 +241,7 @@ public:
     std::map<Item_field*, FieldMeta*>   itemToFieldMeta;
     std::set<Item*>                     itemHasRewrite;
     SchemaInfo *                        schema;
+    CryptoManager *                     cm;
 
 private:
     MYSQL * m;
@@ -295,6 +310,8 @@ class Rewriter {
 public:
     Rewriter(const std::string & db);
     ~Rewriter();
+
+    void setMasterKey(const std::string &mkey);
     std::string rewrite(const std::string &q, ReturnMeta &rmeta);
     inline MYSQL* conn() {
         mysql_thread_init();
@@ -304,10 +321,11 @@ private:
     void initSchema();
     void createMetaTablesIfNotExists();
 
-    string       db;
-    SchemaInfo*  schema;
-    unsigned int totalTables;
-    MYSQL*       m;
+    std::string    db;
+    SchemaInfo*    schema;
+    CryptoManager* cm;
+    unsigned int   totalTables;
+    MYSQL*         m;
 };
 
 class ScopedMySQLRes {

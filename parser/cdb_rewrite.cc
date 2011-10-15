@@ -10,23 +10,7 @@
 #include <algorithm>
 #include <stdio.h>
 
-#include <parser/Translator.hh>
-
-#include <sql_select.h>
-#include <sql_delete.h>
-#include <sql_insert.h>
-#include <sql_update.h>
-
-#include <parser/embedmysql.hh>
-#include <parser/stringify.hh>
-
-#include <util/errstream.hh>
-#include <util/cleanup.hh>
-#include <util/rob.hh>
-
-
 #include <parser/cdb_rewrite.hh>
-
 
 #define UNIMPLEMENTED \
     throw runtime_error(string("Unimplemented: ") + \
@@ -867,15 +851,39 @@ static class ANON : public CItemSubtypeIT<Item_string, Item::Type::STRING_ITEM> 
         assert(fm != NULL);
         String s;
         String *s0 = i->val_str(&s);
+
+	string plaindata = string(s0->ptr(), s0->length());
+
+	uint64_t salt = 0;
+	if (fm->has_salt) {
+	    salt = randomValue();
+	} else {
+	    //TODO raluca
+	    //need to use table salt in this case
+	}
+
         assert(s0 != NULL);
         for (auto it = fm->onionnames.begin();
              it != fm->onionnames.end();
-             ++it) {
-            l.push_back(new Item_hex_string(s0->ptr(), s0->length()));
+             ++it)
+	{
+
+	    string anonName = fullName(it->second, fm->tm->anonTableName);
+	    bool isBin;
+
+	    string enc = a.cm->crypt(a.cm->getmkey(), plaindata, TYPE_TEXT,
+				   anonName, getMin(it->first),
+				   getMax(it->first), isBin, salt);
+
+	    l.push_back(new Item_hex_string(enc.data(), enc.length()));
+
         }
-        if (fm->has_salt) {
-            l.push_back(new Item_hex_string(s0->ptr(), s0->length()));
+
+	if (fm->has_salt) {
+	    string salt_s = strFromVal(salt);
+	    l.push_back(new Item_hex_string(salt_s.data(), salt_s.length()));
         }
+
     }
 } ANON;
 
@@ -900,15 +908,37 @@ static class ANON : public CItemSubtypeIT<Item_num, Item::Type::INT_ITEM> {
     virtual void
     do_rewrite_insert_type(Item_num *i, Analysis & a, vector<Item *> &l, FieldMeta *fm) const
     {
+
+	//TODO: this part is quite repetitive with string or
+	//any other type -- write a function
+
         assert(fm != NULL);
         longlong n = i->val_int();
-        for (auto it = fm->onionnames.begin();
+	string plaindata = strFromVal((uint64_t)n);
+
+	uint64_t salt = 0;
+	if (fm->has_salt) {
+	    salt = randomValue();
+        } else {
+	    //TODO raluca
+	    //need to use table salt in this case
+	}
+
+
+	for (auto it = fm->onionnames.begin();
              it != fm->onionnames.end();
              ++it) {
-            l.push_back(new Item_int( n ^ 0xdeadbeef ));
+	    string anonName = fullName(it->second, fm->tm->anonTableName);
+	    bool isBin;
+
+	    string enc = a.cm->crypt(a.cm->getmkey(), plaindata, TYPE_INTEGER,
+				   anonName, getMin(it->first),
+				   getMax(it->first), isBin, salt);
+
+            l.push_back(new Item_int( valFromStr(enc)));
         }
         if (fm->has_salt) {
-            l.push_back(new Item_int( n ^ 0xabcdabcd ));
+            l.push_back(new Item_int(salt));
         }
     }
 } ANON;
@@ -1982,6 +2012,7 @@ add_table(SchemaInfo * schema, const string & table, LEX *lex) {
         }
         FieldMeta * fm = new FieldMeta();
 
+        fm->tm        = tm;
         fm->sql_field = field->clone(current_thd->mem_root);
 
         fm->fname = string(fm->sql_field->field_name);
@@ -2707,6 +2738,12 @@ Rewriter::initSchema()
     }
 }
 
+void
+Rewriter::setMasterKey(const string &mkey)
+{
+    cm = new CryptoManager(mkey);
+}
+
 string
 Rewriter::rewrite(const string & q, ReturnMeta & rmeta)
 {
@@ -2715,7 +2752,7 @@ Rewriter::rewrite(const string & q, ReturnMeta & rmeta)
 
     cerr << "query lex is " << *lex << "\n";
 
-    Analysis analysis(conn(), schema);
+    Analysis analysis(conn(), schema, cm);
     query_analyze(db, q, lex, analysis);
 
     int ret = updateMeta(db, q, lex, analysis);
