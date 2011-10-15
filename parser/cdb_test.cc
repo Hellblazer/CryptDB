@@ -12,14 +12,13 @@
 
 #include <parser/cdb_rewrite.hh>
 
-
+#include <readline/readline.h>
+#include <readline/history.h>
 
 #include <parser/embedmysql.hh>
 #include <parser/stringify.hh>
 
 #include <util/errstream.hh>
-
-
 
 using namespace std;
 
@@ -27,7 +26,7 @@ int
 main(int ac, char **av)
 {
     if (ac != 3) {
-        cerr << "Usage: " << av[0] << " schema-db trace-file" << endl;
+        cerr << "Usage: " << av[0] << " schema-db db" << endl;
         exit(1);
     }
 
@@ -47,55 +46,27 @@ main(int ac, char **av)
             (char**) mysql_av, 0));
     assert(0 == mysql_thread_init());
 
-    ifstream f(av[2]);
-    int nquery = 0;
-    int nerror = 0;
-    int nskip = 0;
+	string db(av[2]);
+	Rewriter r(db);
+	r.setMasterKey("2392834");
 
-    Rewriter * r = NULL;
     for (;;) {
-        string s;
-        getline(f, s);
-        if (f.eof())
-            break;
+        char *input = readline("cryptdb=# ");
 
-        size_t space = s.find_first_of(' ');
-        if (space == s.npos) {
-            cerr << "malformed " << s << endl;
-            continue;
+        if (!input) break;
+
+        add_history(input);
+
+		string q(input);
+		if (q.empty()) continue;
+
+		string new_q;
+        try {
+            ReturnMeta rmeta;
+            new_q = r.rewrite(q, rmeta);
+            cout << "SUCCESS: " << new_q << endl;
+        } catch (std::runtime_error &e) {
+            cout << "ERROR: " << e.what() << " in query " << q << endl;
         }
-
-        string db = s.substr(0, space);
-        cerr << "db: " << db << "\n";
-        if (!r) {
-
-	    r = new Rewriter(db);
-	    r->setMasterKey("2392834");
-	    
-	};
-        string q = s.substr(space + 1);
-        cerr << "q: " << q << "\n";
-        string new_q;
-        if (db == "") {
-            nskip++;
-        } else {
-            try {
-                cerr << "before query " << "\n";
-                ReturnMeta rmeta;
-                new_q = r->rewrite(q, rmeta);
-            } catch (std::runtime_error &e) {
-                cout << "ERROR: " << e.what() << " in query " << q << endl;
-                nerror++;
-            }
-
-            cerr << "resulting query: " << new_q << " \n";
-        }
-
-        nquery++;
-        if (!(nquery % 100))
-            cout << " nquery: " << nquery
-            << " nerror: " << nerror
-            << " nskip: " << nskip
-            << endl;
     }
 }
