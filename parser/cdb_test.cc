@@ -1,3 +1,5 @@
+#include <cstdlib>
+#include <cstdio>
 #include <string>
 #include <map>
 #include <iostream>
@@ -8,7 +10,8 @@
 #include <set>
 #include <list>
 #include <algorithm>
-#include <stdio.h>
+
+#include <unistd.h>
 
 #include <parser/cdb_rewrite.hh>
 
@@ -21,6 +24,18 @@
 #include <util/errstream.hh>
 
 using namespace std;
+
+static inline string user_homedir() {
+    return getenv("HOME");
+}
+
+static inline string user_histfile() {
+    return user_homedir() + "/.cryptdb-history";
+}
+
+static void __write_history() {
+    write_history(user_histfile().c_str());
+}
 
 int
 main(int ac, char **av)
@@ -46,21 +61,24 @@ main(int ac, char **av)
             (char**) mysql_av, 0));
     assert(0 == mysql_thread_init());
 
-	string db(av[2]);
-	Rewriter r(db);
-	r.setMasterKey("2392834");
+    using_history();
+    read_history(user_histfile().c_str());
+    atexit(__write_history);
+
+    string db(av[2]);
+    Rewriter r(db);
+    r.setMasterKey("2392834");
 
     for (;;) {
         char *input = readline("cryptdb=# ");
 
         if (!input) break;
 
+        string q(input);
+        if (q.empty()) continue;
+
         add_history(input);
-
-		string q(input);
-		if (q.empty()) continue;
-
-		string new_q;
+        string new_q;
         try {
             ReturnMeta rmeta;
             new_q = r.rewrite(q, rmeta);
