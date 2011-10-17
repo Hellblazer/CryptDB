@@ -897,7 +897,7 @@ static class ANON : public CItemSubtypeIT<Item_num, Item::Type::INT_ITEM> {
     }
     virtual Item * do_rewrite_type(Item_num *i, Analysis & a) const {
         string enc = encryptConstantItem(i, a);
-        return new Item_int(valFromStr(enc));
+        return new Item_int((ulonglong) valFromStr(enc));
     }
     virtual void
     do_rewrite_insert_type(Item_num *i, Analysis & a, vector<Item *> &l, FieldMeta *fm) const
@@ -929,10 +929,10 @@ static class ANON : public CItemSubtypeIT<Item_num, Item::Type::INT_ITEM> {
                                      anonName, getMin(it->first),
                                      getMax(it->first), isBin, salt);
 
-            l.push_back(new Item_int( valFromStr(enc)));
+            l.push_back(new Item_int((ulonglong) valFromStr(enc)));
         }
         if (fm->has_salt) {
-            l.push_back(new Item_int(salt));
+            l.push_back(new Item_int((ulonglong) salt));
         }
     }
 } ANON;
