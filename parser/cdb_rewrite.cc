@@ -2466,17 +2466,16 @@ add_table_update_meta(const string &q,
         mysql_query_wrapper(m, s.str());
     }
 
-    size_t id = 0;
     for (auto it = tm->fieldMetaMap.begin();
          it != tm->fieldMetaMap.end();
-         ++it, ++id) {
+         ++it) {
 
         FieldMeta *fm = it->second;
         assert(it->first == fm->fname);
 
         ostringstream s;
         s << "INSERT INTO proxy_db.column_info VALUES ("
-          << id << ", "
+          << "0, " /* auto assign id */
           << tm->tableNo << ", "
           << sq(fm->fname) << ", ";
 
@@ -2545,7 +2544,10 @@ Rewriter::Rewriter(const std::string & db) : db(db)
         mysql_close(m);
         fatal() << "mysql_real_connect: " << mysql_error(m);
     }
-    string use_q = "USE " + db + ";";
+    // HACK: create this DB if it doesn't exist, for now
+    string create_q = "CREATE DATABASE IF NOT EXISTS " + db;
+    string use_q    = "USE " + db + ";";
+    mysql_query_wrapper(m, create_q);
     mysql_query_wrapper(m, use_q);
 
     schema = new SchemaInfo();
@@ -2575,7 +2577,7 @@ Rewriter::createMetaTablesIfNotExists()
 
     mysql_query_wrapper(m,
                    "CREATE TABLE IF NOT EXISTS column_info"
-                   "( id bigint NOT NULL PRIMARY KEY"
+                   "( id bigint NOT NULL auto_increment PRIMARY KEY"
                    ", table_id bigint NOT NULL"
                    ", name varchar(64) NOT NULL"
                    ", anon_det_name varchar(64)"
