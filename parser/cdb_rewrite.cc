@@ -2565,10 +2565,9 @@ Rewriter::createMetaTablesIfNotExists()
 {
     MYSQL *m = conn();
     mysql_query_wrapper(m, "CREATE DATABASE IF NOT EXISTS proxy_db");
-    mysql_query_wrapper(m, "USE proxy_db");
 
     mysql_query_wrapper(m,
-                   "CREATE TABLE IF NOT EXISTS table_info"
+                   "CREATE TABLE IF NOT EXISTS proxy_db.table_info"
                    "( id bigint NOT NULL PRIMARY KEY"
                    ", name varchar(64) NOT NULL"
                    ", anon_name varchar(64) NOT NULL"
@@ -2576,7 +2575,7 @@ Rewriter::createMetaTablesIfNotExists()
                    ");");
 
     mysql_query_wrapper(m,
-                   "CREATE TABLE IF NOT EXISTS column_info"
+                   "CREATE TABLE IF NOT EXISTS proxy_db.column_info"
                    "( id bigint NOT NULL auto_increment PRIMARY KEY"
                    ", table_id bigint NOT NULL"
                    ", name varchar(64) NOT NULL"
@@ -2633,10 +2632,6 @@ Rewriter::createMetaTablesIfNotExists()
                    ", INDEX idx_column_name( name )"
                    ", FOREIGN KEY( table_id ) REFERENCES table_info( id ) ON DELETE CASCADE"
                    ");");
-
-    // restore DB
-    string use_q = "USE " + db + ";";
-    mysql_query_wrapper(m, use_q);
 }
 
 void
