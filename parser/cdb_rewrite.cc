@@ -232,7 +232,7 @@ operator<<(ostream &out, const OnionLevelFieldPair &p)
 }
 
 static char *
-make_thd_string(const std::string &s, size_t *lenp = 0)
+make_thd_string(const string &s, size_t *lenp = 0)
 {
     THD *thd = current_thd;
     assert(thd);
@@ -242,8 +242,8 @@ make_thd_string(const std::string &s, size_t *lenp = 0)
     return thd->strmake(s.data(), s.size());
 }
 
-static std::string
-anonymize_table_name(const std::string &tname,
+static string
+anonymize_table_name(const string &tname,
                      Analysis & a)
 {
     // TODO(stephentu):
@@ -259,16 +259,7 @@ anonymize_table_name(const std::string &tname,
     }
 }
 
-static char *
-getCStr(const string & v) {
-    unsigned int len = v.length();
-    char * res = (char *)malloc(len+1);
-    memcpy(res, v.data(), len);
-    res[len] = '\0';
-    return res;
-}
-
-static char *
+static string
 get_column_name(const string & table,
                 const string & field,
                 onion o,
@@ -282,7 +273,7 @@ get_column_name(const string & table,
     if (fit == it->second->fieldMetaMap.end()) {
         thrower() << "field " << field << "unknown \n";
     }
-    return getCStr(fit->second->onionnames[o]);
+    return fit->second->onionnames[o];
 }
 
 class CItemType {
@@ -761,7 +752,7 @@ static class ANON : public CItemSubtypeIT<Item_field, Item::Type::FIELD_ITEM> {
             cerr << "onion is " << im->o << "\n";
             cerr << "table: " << table << endl;
             cerr << "i->field_name: " << i->field_name << endl;
-            i->field_name = get_column_name(string(table), string(i->field_name), im->o,  a);
+            i->field_name = make_thd_string(get_column_name(string(table), string(i->field_name), im->o,  a));
             a.itemHasRewrite.insert(i);
         }
         return i;
