@@ -231,33 +231,32 @@ operator<<(ostream &out, const OnionLevelFieldPair &p)
     return out;
 }
 
-static inline char *
-anonymize_table_name(const char *orig_table_name,
-                     size_t      orig_table_name_length,
-                     size_t     &new_table_length,
-                     Analysis & a)
+static char *
+make_thd_string(const std::string &s, size_t *lenp = 0)
 {
-
     THD *thd = current_thd;
     assert(thd);
-    string tname(orig_table_name, orig_table_name_length);
+
+    if (lenp)
+        *lenp = s.size();
+    return thd->strmake(s.data(), s.size());
+}
+
+static std::string
+anonymize_table_name(const std::string &tname,
+                     Analysis & a)
+{
     // TODO(stephentu):
     // A) do an actual mapping
     // B) figure out where to actually allocate the memory for strs
     //    (right now, just putting it in the THD mem pools)
-    //cerr << "tname is <" << tname << ">\n";
 
-    string tname0;
     //hack for now, will fix soon
     if (a.schema->tableMetaMap.find(tname) == a.schema->tableMetaMap.end()) {
-        tname0 = tname;
+        return tname;
     } else {
-        tname0 = a.schema->tableMetaMap[tname]->anonTableName;
+        return a.schema->tableMetaMap[tname]->anonTableName;
     }
-    char *tname0p = thd->strmake(tname0.c_str(), tname0.size());
-    new_table_length = tname0.size();
-
-    return tname0p;
 }
 
 static char *
@@ -750,11 +749,8 @@ static class ANON : public CItemSubtypeIT<Item_field, Item::Type::FIELD_ITEM> {
         auto it = a.itemHasRewrite.find(i);
         if (it == a.itemHasRewrite.end()) {
             // fix table name
-            size_t l = 0;
             const char * table = i->table_name;
-            i->table_name = anonymize_table_name(i->table_name,
-                                                 strlen(i->table_name),
-                                                 l, a);
+            i->table_name = make_thd_string(anonymize_table_name(i->table_name, a));
             // pick the column corresponding to the onion we want
             auto it = a.itemToMeta.find(i);
             if (it == a.itemToMeta.end()) {
@@ -1950,9 +1946,9 @@ process_table_list(List<TABLE_LIST> *tll, Analysis & a)
 static inline void
 rewrite_table_list(TABLE_LIST *t, Analysis &a)
 {
-    t->table_name = anonymize_table_name(t->table_name,
-                                         t->table_name_length,
-                                         t->table_name_length, a);
+    string anon_name = anonymize_table_name(string(t->table_name,
+                                                   t->table_name_length), a);
+    t->table_name = make_thd_string(anon_name, &t->table_name_length);
 }
 
 static void
