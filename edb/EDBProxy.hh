@@ -11,6 +11,7 @@
 #include <parser/embedmysql.hh>
 
 #define TESTING 1
+#define NOTDEMO 0
 
 class EDBProxy {
  public:
@@ -34,7 +35,6 @@ class EDBProxy {
              , bool allDefaultEncrypted = false
              , const std::string& proxy_directory = ""
              );
-
     void setMasterKey(const std::string &mkey);
 
     // ========= QUERIES ===== //
@@ -98,7 +98,9 @@ class EDBProxy {
  private:
     bool isSecure;
     bool allDefaultEncrypted;
+#if NOTDEMO
     embedmysql meta_db; // to connect to the embedded db, persisting meta info
+#endif
     Connect * conn;     // to connect to the DBMs
     CryptoManager * cm;     // for cryptography
     ParserMeta * pm;     // for speeding up parsing
@@ -222,7 +224,9 @@ class EDBProxy {
     //syntax: train are_all_fields_encrypted createsfile indexfile queryfile
     std::list<std::string> rewriteEncryptTrain(const std::string & query);
 
+#if NOTDEMO
     void readMetaInfo( ); // used by ctor to retrieve meta info from embedded database
+#endif
 
  protected:
     //these are protected mostly for testing purposes

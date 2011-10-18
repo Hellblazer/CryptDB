@@ -160,6 +160,7 @@ createAll(Connect * conn)
    }
  */
 
+#if NOTDEMO
 static void sCreateMetaSchema( Connect& pconn ) {
 
     DBResult* reply;
@@ -410,6 +411,7 @@ static string sGetProxyDirectory( const string& proxy_directory, const string& d
 
     return result;
 }
+#endif
 
 //============== Constructors ==================================//
 
@@ -425,7 +427,9 @@ EDBProxy::EDBProxy(const string& server
     , dropOnExit( false )
     , isSecure( false )
     , allDefaultEncrypted( defaultEnc )
+#if NOTDEMO
     , meta_db( sGetProxyDirectory(proxy_directory, dbname) )
+#endif
     , conn( new Connect(server, user, psswd, dbname, port) )
     , pm( nullptr )
     , mp( multiPrinc ? new MultiPrinc(conn) : nullptr )
@@ -441,8 +445,11 @@ EDBProxy::EDBProxy(const string& server
 
     assert_s (!(multiPrinc && defaultEnc), "cannot have fields encrypted by default in multiprinc because we need to know encfor princ");
 
+#if NOTDEMO
     this->readMetaInfo( );
+#endif
 }
+
 
 void
 EDBProxy::setMasterKey(const string &mkey)
@@ -895,7 +902,7 @@ throw (CryptDBError)
 
 
     /* begin update persistent meta information in proxy_db */
-
+#if NOTDEMO
     Connect pconn( meta_db.conn() );
 
     pconn.execute( "BEGIN;" );
@@ -952,7 +959,7 @@ throw (CryptDBError)
     }
 
     pconn.execute( "COMMIT;" );
-
+#endif
     /* end update persistent meta information in proxy_db */
 
     resultQuery += fieldSeq;
@@ -2868,7 +2875,7 @@ throw (CryptDBError)
     tableMetaMap.erase(tableName);
 
     tableNameMap.erase(anonTableName);
-
+#if NOTDEMO
     Connect pconn( meta_db.conn() );
     pconn.execute( "BEGIN;" );
 
@@ -2880,7 +2887,7 @@ throw (CryptDBError)
                   + ";" );
 
     pconn.execute( "COMMIT;" );
-
+#endif
     list<string> resultList;
     resultList.push_back(result);
     return resultList;
