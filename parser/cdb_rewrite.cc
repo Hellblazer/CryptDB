@@ -35,9 +35,11 @@ mysql_query_wrapper(MYSQL *m, const string &q)
 }
 
 static inline string
-sq(const string &s)
+sq(MYSQL *m, const string &s)
 {
-    return string("'") + s + string("'");
+    char buf[s.size() * 2 + 1];
+    size_t len = mysql_real_escape_string(m, buf, s.c_str(), s.size());
+    return string("'") + string(buf, len) + string("'");
 }
 
 /********  parser utils; TODO: put in separate file **/
@@ -2416,7 +2418,7 @@ drop_table_update_meta(const string &q,
         s << "DELETE proxy_db.table_info, proxy_db.column_info "
           << "FROM proxy_db.table_info INNER JOIN proxy_db.column_info "
           << "WHERE proxy_db.table_info.id = proxy_db.column_info.table_id "
-          << "AND   proxy_db.table_info.name = " << sq(table);
+          << "AND   proxy_db.table_info.name = " << sq(m, table);
         mysql_query_wrapper(m, s.str());
 
         a.schema->totalTables--;
@@ -2446,8 +2448,8 @@ add_table_update_meta(const string &q,
         ostringstream s;
         s << "INSERT INTO proxy_db.table_info VALUES ("
           << tm->tableNo << ", "
-          << sq(table) << ", "
-          << sq(tm->anonTableName)
+          << sq(m, table) << ", "
+          << sq(m, tm->anonTableName)
           << ")";
 
         mysql_query_wrapper(m, s.str());
@@ -2464,12 +2466,12 @@ add_table_update_meta(const string &q,
         s << "INSERT INTO proxy_db.column_info VALUES ("
           << "0, " /* auto assign id */
           << tm->tableNo << ", "
-          << sq(fm->fname) << ", ";
+          << sq(m, fm->fname) << ", ";
 
 #define __temp_write(o) \
         { \
             auto it = fm->onionnames.find(o); \
-            if (it != fm->onionnames.end()) { s << sq(it->second) << ", "; } \
+            if (it != fm->onionnames.end()) { s << sq(m, it->second) << ", "; } \
             else                            { s << "NULL, ";               } \
         }
         __temp_write(oDET);
@@ -2478,7 +2480,7 @@ add_table_update_meta(const string &q,
         __temp_write(oSWP);
 #undef __temp_write
 
-        s << sq(fm->salt_name) << ", "
+        s << sq(m, fm->salt_name) << ", "
           << "1, " /* is_encrypted */
           << "1, " /* can_be_null  */
           << (fm->hasOnion(oOPE) ? "1" : "0") << ", "
@@ -2488,8 +2490,8 @@ add_table_update_meta(const string &q,
           << (fm->hasOnion(oOPE) ? "1" : "0") << ", " /* ope_used? */
           << (fm->hasOnion(oAGG) ? "1" : "0") << ", " /* agg_used? */
           << (fm->hasOnion(oSWP) ? "1" : "0") << ", " /* search_used? */
-          << sq(fm->hasOnion(oOPE) ? levelnames[(int)fm->getOnionLevel(oOPE)] : "INVALID") << ", "
-          << sq(levelnames[(int)fm->getOnionLevel(oDET)])
+          << sq(m, fm->hasOnion(oOPE) ? levelnames[(int)fm->getOnionLevel(oOPE)] : "INVALID") << ", "
+          << sq(m, levelnames[(int)fm->getOnionLevel(oDET)])
           << ")";
 
         mysql_query_wrapper(m, s.str());
