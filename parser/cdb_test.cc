@@ -83,22 +83,24 @@ main(int ac, char **av)
         string q(input);
         if (q.empty()) continue;
 
-	if (q == "\\q") {
-	    cerr << "Goodbye!\n";
-	    break;
-	}
+        if (q == "\\q") {
+            cerr << "Goodbye!\n";
+            break;
+        }
         add_history(input);
         string new_q;
         try {
             Analysis analysis;
             new_q = r.rewrite(q, analysis);
             cout << "SUCCESS: " << new_q << endl;
-	    conn.execute(new_q, dbres);
-	    ResType res = dbres->unpack();
-	    ResType dec_res = r.decryptResults(res, analysis);
-	    cerr << "decrypted results are: \n"; printRes(dec_res);
+            conn.execute(new_q, dbres);
+            ResType res = dbres->unpack();
+            ResType dec_res = r.decryptResults(res, analysis);
+            cerr << "decrypted results are: \n"; printRes(dec_res);
         } catch (std::runtime_error &e) {
-            cout << "ERROR: " << e.what() << " in query " << q << endl;
+            cout << "Unexpected Error: " << e.what() << " in query " << q << endl;
+        } catch (CryptDBError &e) {
+            cout << "Interal Error: " << e.msg << " in query " << q << endl;
         }
     }
 }

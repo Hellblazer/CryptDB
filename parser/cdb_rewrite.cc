@@ -22,7 +22,7 @@ static inline void
 mysql_query_wrapper(MYSQL *m, const string &q)
 {
     if (mysql_query(m, q.c_str())) {
-        fatal() << "query failed: " << q
+        cryptdb_err() << "query failed: " << q
                 << " reason: " << mysql_error(m);
     }
 
@@ -751,7 +751,7 @@ static class ANON : public CItemSubtypeIT<Item_field, Item::Type::FIELD_ITEM> {
             } else {
                 // we aren't aware of this field. this is an error
                 // for now
-                fatal() << "Cannot find FieldMeta information for: " << *i;
+                cryptdb_err() << "Cannot find FieldMeta information for: " << *i;
             }
         }
         it->second->exposedLevels.restrict(encpair.first,
@@ -773,7 +773,7 @@ static class ANON : public CItemSubtypeIT<Item_field, Item::Type::FIELD_ITEM> {
             auto it = a.itemToMeta.find(i);
             if (it == a.itemToMeta.end()) {
                 // this is a bug, we should have recorded this in enforce()
-                fatal() << "should have recorded item meta object in enforce()";
+                cryptdb_err() << "should have recorded item meta object in enforce()";
             }
             ItemMeta *im = it->second;
             cerr << "onion is " << im->o << "\n";
@@ -802,14 +802,14 @@ static class ANON : public CItemSubtypeIT<Item_field, Item::Type::FIELD_ITEM> {
     {
 	//rewrite current projection field
         l.push_back(do_rewrite_type(i, a));
-       	
+
         // if there is a salt for the onion, then also fetch the onion from the server
         auto it = a.itemToFieldMeta.find(i);
         assert(it != a.itemToFieldMeta.end());
         FieldMeta *fm = it->second;
 
 	addToReturn(a.rmeta, a.pos++, a.itemToMeta[i], fm->has_salt);
-	
+
 	if (fm->has_salt) {
             assert(!fm->salt_name.empty());
             l.push_back(make_from_template(i, fm->salt_name.c_str()));
@@ -2155,7 +2155,7 @@ static void rewrite_create_field(const string &table_name,
             }
         }
         if (newF == NULL) {
-            fatal() << "Could not rewrite for onion: " <<
+            cryptdb_err() << "Could not rewrite for onion: " <<
                         it->first << ", type: " << f->sql_type;
         }
         l.push_back(newF);
@@ -2179,7 +2179,7 @@ static void rewrite_key(const string &table_name,
                         Analysis &a,
                         vector<Key*> &l)
 {
-    fatal() << "No support for rewriting keys. "
+    cryptdb_err() << "No support for rewriting keys. "
             << "If you see this, please implement me";
 }
 
@@ -2216,7 +2216,7 @@ rewrite_create_lex(LEX *lex, Analysis &a)
 
     //TODO: support for "create table like"
     if (lex->create_info.options & HA_LEX_CREATE_TABLE_LIKE) {
-        fatal() << "No support for create table like yet. " <<
+        cryptdb_err() << "No support for create table like yet. " <<
                    "If you see this, please implement me";
     } else {
         // TODO(stephentu): template this pattern away
@@ -2562,7 +2562,7 @@ Rewriter::Rewriter(const std::string & db) : db(db)
     mysql_options(m, MYSQL_OPT_USE_EMBEDDED_CONNECTION, 0);
     if (!mysql_real_connect(m, 0, 0, 0, 0, 0, 0, CLIENT_MULTI_STATEMENTS)) {
         mysql_close(m);
-        fatal() << "mysql_real_connect: " << mysql_error(m);
+        cryptdb_err() << "mysql_real_connect: " << mysql_error(m);
     }
     // HACK: create this DB if it doesn't exist, for now
     string create_q = "CREATE DATABASE IF NOT EXISTS " + db;
