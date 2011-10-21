@@ -80,8 +80,8 @@ main(int ac, char **av)
         add_history(input);
         string new_q;
         try {
-            ReturnMeta rmeta;
-            new_q = r.rewrite(q, rmeta);
+            Analysis analysis;
+            new_q = r.rewrite(q, analysis);
             cout << "SUCCESS: " << new_q << endl;
         } catch (std::runtime_error &e) {
             cout << "ERROR: " << e.what() << " in query " << q << endl;

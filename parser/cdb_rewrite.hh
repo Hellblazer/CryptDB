@@ -211,7 +211,6 @@ typedef struct SchemaInfo {
 
 /***************************************************/
 
-
 // metadata for field analysis
 class FieldAMeta {
 public:
@@ -228,19 +227,32 @@ public:
 };
 extern "C" void *create_embedded_thd(int client_flag);
 
+typedef struct ReturnField {
+    bool is_salt;
+    ItemMeta *im;
+    int pos_salt; //position of salt of this field in the query results,
+                  // or -1 if such salt was not requested
+} ReturnField;
+
+typedef struct ReturnMeta {
+    map<int, ReturnField> rfmeta;
+} ReturnMeta;
+
+
 class Analysis {
 public:
     Analysis(MYSQL *m, SchemaInfo * schema, CryptoManager *cm)
-        : schema(schema), cm(cm), m(m) {
+        : pos(0), schema(schema), cm(cm), m(m) {
         assert(m != NULL);
     }
-
+    Analysis(): pos(0), schema(NULL), cm(NULL), m(NULL) {
+    }
     inline MYSQL* conn() {
         mysql_thread_init();
         return m;
     }
 
-
+    unsigned int pos; //a counter indicating how many projection fields have been analyzed so far
     std::map<std::string, FieldAMeta *> fieldToAMeta;
     std::map<Item*, ItemMeta *>         itemToMeta;
     std::map<Item_field*, FieldMeta*>   itemToFieldMeta;
@@ -248,6 +260,7 @@ public:
     SchemaInfo *                        schema;
     CryptoManager *                     cm;
 
+    ReturnMeta rmeta;
     
 private:
     MYSQL * m;
@@ -263,10 +276,6 @@ public:
     std::string nameForReturn;
 };
 
-class ReturnMeta {
-public:
-    std::vector<FieldReturned *> retFM;
-};
 
 
 class constraints {
@@ -318,7 +327,8 @@ public:
     ~Rewriter();
 
     void setMasterKey(const std::string &mkey);
-    std::string rewrite(const std::string &q, ReturnMeta &rmeta);
+    std::string rewrite(const std::string &q, Analysis & a);
+    ResType decryptResults(ResType & dbres, const Analysis & a);
     inline MYSQL* conn() {
         mysql_thread_init();
         return m;

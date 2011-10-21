@@ -34,6 +34,31 @@ mysql_query_wrapper(MYSQL *m, const string &q)
     if (!ret) assert(false);
 }
 
+static void
+addToReturn(ReturnMeta & rm, int pos, ItemMeta * im, bool has_salt) {
+    ReturnField rf = ReturnField();
+    rf.is_salt = false;
+    rf.im = im;
+    if (has_salt) {
+	rf.pos_salt = pos+1;
+    } else {
+	rf.pos_salt = -1;
+    }
+    rm.rfmeta[pos] = rf;
+}
+
+
+static void
+addSaltToReturn(ReturnMeta & rm, int pos) {
+    ReturnField rf = ReturnField();
+    rf.is_salt = true;
+    rf.im = NULL;
+    rf.pos_salt = -1;
+    rm.rfmeta[pos] = rf;
+}
+
+
+
 static inline string
 sq(MYSQL *m, const string &s)
 {
@@ -775,15 +800,20 @@ static class ANON : public CItemSubtypeIT<Item_field, Item::Type::FIELD_ITEM> {
     virtual void
     do_rewrite_proj_type(Item_field *i, Analysis & a, vector<Item *> &l) const
     {
-
+	//rewrite current projection field
         l.push_back(do_rewrite_type(i, a));
-        // if there is a salt for the onion, then extract it
+       	
+        // if there is a salt for the onion, then also fetch the onion from the server
         auto it = a.itemToFieldMeta.find(i);
         assert(it != a.itemToFieldMeta.end());
         FieldMeta *fm = it->second;
-        if (fm->has_salt) {
+
+	addToReturn(a.rmeta, a.pos++, a.itemToMeta[i], fm->has_salt);
+	
+	if (fm->has_salt) {
             assert(!fm->salt_name.empty());
             l.push_back(make_from_template(i, fm->salt_name.c_str()));
+	    addSaltToReturn(a.rmeta, a.pos++);
         }
     }
 
@@ -1840,6 +1870,7 @@ static void
 rewrite_select_lex(st_select_lex *select_lex, Analysis & a)
 {
     auto item_it = List_iterator<Item>(select_lex->item_list);
+
     List<Item> newList;
     for (;;) {
         Item *item = item_it++;
@@ -2380,7 +2411,7 @@ TableMeta::~TableMeta()
  * Fills rmeta with information about how to decrypt fields returned.
  */
 static int
-lex_rewrite(const string & db, LEX * lex, Analysis & analysis, ReturnMeta & rmeta)
+lex_rewrite(const string & db, LEX * lex, Analysis & analysis)
 {
     switch (lex->sql_command) {
     case SQLCOM_CREATE_TABLE:
@@ -2777,20 +2808,20 @@ Rewriter::setMasterKey(const string &mkey)
 }
 
 string
-Rewriter::rewrite(const string & q, ReturnMeta & rmeta)
+Rewriter::rewrite(const string & q, Analysis & a)
 {
     query_parse p(db, q);
     LEX *lex = p.lex();
 
     cerr << "query lex is " << *lex << "\n";
 
-    Analysis analysis(conn(), schema, cm);
+    Analysis analysis = Analysis(conn(), schema, cm);
     query_analyze(db, q, lex, analysis);
 
     int ret = updateMeta(db, q, lex, analysis);
     if (ret < 0) assert(false);
 
-    lex_rewrite(db, lex, analysis, rmeta);
+    lex_rewrite(db, lex, analysis);
 
     stringstream ss;
 
@@ -2799,10 +2830,12 @@ Rewriter::rewrite(const string & q, ReturnMeta & rmeta)
     return ss.str();
 }
 
-/*
+
 ResType
-decryptResults(ResType & dbres, const ReturnMeta & rmeta) {
+Rewriter::decryptResults(ResType & dbres, const Analysis & a) {
     //todo
     return dbres;
 }
-*/
+
+
+
