@@ -115,6 +115,11 @@ class ResType {
     AutoInc ai;
 };
 
+
+void
+printRes(const ResType &r);
+
+
 typedef struct CryptDBError {
  public:
     CryptDBError(const std::string &m) : msg(m)

@@ -9,7 +9,7 @@
 
 #include <crypto-old/CryptoManager.hh>
 #include <util/onions.hh>
-#include <parser/Translator.hh>
+#include <edb/Translator.hh>
 
 #include <sql_select.h>
 #include <sql_delete.h>

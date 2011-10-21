@@ -4,7 +4,7 @@
 #include <fstream>
 #include <algorithm>
 
-#include <parser/Translator.hh>
+#include <edb/Translator.hh>
 #include <edb/Connect.hh>
 #include <edb/MultiPrinc.hh>
 

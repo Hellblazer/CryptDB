@@ -4,6 +4,7 @@
 #include <string>
 #include <sstream>
 #include <stdexcept>
+#include <iostream>
 
 
 static inline std::ostream&
@@ -317,9 +318,9 @@ operator<<(std::ostream &out, Key &k)
         const std::string &db_str(convert_lex_str(fk.ref_table->db));
         const std::string &tl_str(convert_lex_str(fk.ref_table->table));
         if (!db_str.empty()) {
-            out << "`" << db_str << "`.`" << tl_str << "`";
+            out << "" << db_str << "." << tl_str << "";
         } else {
-            out << "`" << tl_str << "`";
+            out << "" << tl_str << "";
         }
         out << " " << fk.ref_columns;
     }
@@ -353,7 +354,8 @@ do_create_table(std::ostream &out, LEX &lex)
             out << "if not exists ";
         }
 
-        out << s << " ";
+        out << tl->table_name << " ";
+	std::cerr << "in stringiffy, table name is " << tl->table_name << "\n";
     }
 
     if (lex.create_info.options & HA_LEX_CREATE_TABLE_LIKE) {

@@ -11,6 +11,8 @@
 #include <list>
 #include <algorithm>
 
+#include <edb/Connect.hh>
+
 #include <unistd.h>
 
 #include <parser/cdb_rewrite.hh>
@@ -41,7 +43,7 @@ int
 main(int ac, char **av)
 {
     if (ac != 3) {
-        cerr << "Usage: " << av[0] << " schema-db db" << endl;
+        cerr << "Usage: " << av[0] << " schema-db db " << endl;
         exit(1);
     }
 
@@ -69,20 +71,32 @@ main(int ac, char **av)
     Rewriter r(db);
     r.setMasterKey("2392834");
 
+    cerr << "connecting to localhost db cryptdbtest user root pass letmein" << "\n";
+    Connect conn("localhost", "root", "letmein", "cryptdbtest");
+    DBResult * dbres;
+
     for (;;) {
-        char *input = readline("cryptdb=# ");
+        char *input = readline("CryptDB=# ");
 
         if (!input) break;
 
         string q(input);
         if (q.empty()) continue;
 
+	if (q == "\\q") {
+	    cerr << "Goodbye!\n";
+	    break;
+	}
         add_history(input);
         string new_q;
         try {
             Analysis analysis;
             new_q = r.rewrite(q, analysis);
             cout << "SUCCESS: " << new_q << endl;
+	    conn.execute(new_q, dbres);
+	    ResType res = dbres->unpack();
+	    ResType dec_res = r.decryptResults(res, analysis);
+	    cerr << "decrypted results are: \n"; printRes(dec_res);
         } catch (std::runtime_error &e) {
             cout << "ERROR: " << e.what() << " in query " << q << endl;
         }

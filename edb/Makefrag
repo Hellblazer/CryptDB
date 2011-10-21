@@ -1,13 +1,12 @@
 OBJDIRS	+= edb
 
-CRYPTDB_SRCS := AccessManager.cc EDBProxy.cc Connect.cc MultiPrinc.cc
+CRYPTDB_SRCS := AccessManager.cc Translator.cc EDBProxy.cc Connect.cc MultiPrinc.cc
 
 all:	$(OBJDIR)/libcryptdb.so
 
 CRYPTDB_OBJS := $(patsubst %.cc,$(OBJDIR)/edb/%.o,$(CRYPTDB_SRCS))
 $(OBJDIR)/libcryptdb.so: $(CRYPTDB_OBJS) \
-			 $(OBJDIR)/libedbcrypto.so \
-			 $(OBJDIR)/libedbparser.so
-	$(CXX) -shared -o $@ $(CRYPTDB_OBJS) $(LDFLAGS) -ledbcrypto -ledbparser
+			 $(OBJDIR)/libedbcrypto.so 
+	$(CXX) -shared -o $@ $(CRYPTDB_OBJS) $(LDFLAGS) -ledbcrypto
 
 # vim: set noexpandtab:

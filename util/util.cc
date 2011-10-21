@@ -308,6 +308,33 @@ marshallBinary(const string &s)
     return r;
 }
 
+void
+printRes(const ResType & r) {
+
+    if (!cryptdb_logger::enabled(log_group::log_edb_v))
+        return;
+
+    stringstream ssn;
+    for (unsigned int i = 0; i < r.names.size(); i++) {
+        char buf[400];
+        snprintf(buf, sizeof(buf), "%-20s", r.names[i].c_str());
+        ssn << buf;
+    }
+    LOG(edb_v) << ssn.str();
+
+    /* next, print out the rows */
+    for (unsigned int i = 0; i < r.rows.size(); i++) {
+        stringstream ss;
+        for (unsigned int j = 0; j < r.rows[i].size(); j++) {
+            char buf[400];
+            snprintf(buf, sizeof(buf), "%-20s", r.rows[i][j].to_string().c_str());
+            ss << buf;
+        }
+        LOG(edb_v) << ss.str();
+    }
+}
+
+
 /*
 string
 marshallSalt(const string &s) {
