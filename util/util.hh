@@ -85,7 +85,7 @@ const std::string PWD_TABLE_PREFIX = "pwdcryptdb__";
 //maps the name of an annotation we want to process to the number of fields
 // after this annotation relevant to it
 const std::set<std::string> annotations =
-{"enc", "search", "encfor", "equals", "givespsswd", "hasaccessto"};
+{"enc", "search", "encfor", "equals", "givespsswd", "speaksfor"};
 
 // ============= DATA STRUCTURES ===================================//
 

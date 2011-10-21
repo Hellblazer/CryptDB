@@ -32,10 +32,10 @@ vector<Query> CreateSingle = {
 
 vector<Query> CreateMulti = {
     Query("CREATE TABLE msgs (msgid equals privmsg.msgid integer AUTO_INCREMENT PRIMARY KEY , msgtext encfor msgid text)",true),
-    Query("CREATE TABLE privmsg (msgid integer, recid equals u.userid hasaccessto msgid integer, senderid hasaccessto msgid integer)",true),
+    Query("CREATE TABLE privmsg (msgid integer, recid equals u.userid speaks_for msgid integer, senderid speaks_for msgid integer)",true),
     Query("CREATE TABLE uncrypt (id integer, t text)",true),
     Query("CREATE TABLE forum (forumid integer AUTO_INCREMENT PRIMARY KEY, title text)",true),
-    Query("CREATE TABLE post (postid integer AUTO_INCREMENT PRIMARY KEY, forumid equals forum.forumid integer, posttext encfor forumid text, author equals u.userid hasaccessto forumid integer)",true),
+    Query("CREATE TABLE post (postid integer AUTO_INCREMENT PRIMARY KEY, forumid equals forum.forumid integer, posttext encfor forumid text, author equals u.userid speaks_for forumid integer)",true),
     Query("CREATE TABLE u (userid equals privmsg.senderid integer, username givespsswd userid text)",true),
     Query("COMMIT ANNOTATIONS",true)
 };

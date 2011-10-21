@@ -12,7 +12,6 @@
 
 #include <edb/EDBProxy.hh>
 
-
 using namespace std;
 
 #if MYSQL_S
@@ -166,8 +165,7 @@ static void sCreateMetaSchema( Connect& pconn ) {
     DBResult* reply;
 
     // Create persistent representation for TabledMetadata in edb/util.h
-    //
-    pconn.execute( "CREATE TABLE table_info"
+    //    pconn.execute( "CREATE TABLE table_info"
                    "( id bigint NOT NULL auto_increment PRIMARY KEY"
                    ", name varchar(64) NOT NULL"
                    ", anon_name varchar(64) NOT NULL"
@@ -663,11 +661,9 @@ processAnnotation(MultiPrinc * mp, list<string>::iterator & wordsIt,
     }
 
     fm->isEncrypted = defaultEnc;
-
     while (annotations.find(*wordsIt) != annotations.end()) {
         string annot = toLowerCase(*wordsIt);
 
-       // cerr << "current ann " << annot << "\n";
         if (annot == "enc") {
             fm->isEncrypted = true;
 
@@ -680,7 +676,6 @@ processAnnotation(MultiPrinc * mp, list<string>::iterator & wordsIt,
             wordsIt++;
             continue;
         }
-
         // MULTI-PRINC annotations
         if (mp) {
             if (annot == "encfor") {
@@ -702,6 +697,7 @@ processPostAnnotations(TableMetadata * tm, FieldMetadata * fm, string field, lis
     string res = "";
     /* This function is implemented ad-hoc.. the generic parser will fix this. */
     while ((wordsIt != words.end()) && (*wordsIt != ")") && (*wordsIt != ",")) {
+        //cerr << "post annotate: " << *wordsIt << endl;
         if (equalsIgnoreCase(*wordsIt, "(")) {
             processParen(wordsIt, words);
             continue;
@@ -730,7 +726,7 @@ processPostAnnotations(TableMetadata * tm, FieldMetadata * fm, string field, lis
         }
         wordsIt++;
     }
-
+    //cerr << "arg2 " << *wordsIt << endl;
     return;
 
 }
@@ -864,6 +860,7 @@ throw (CryptDBError)
             LOG(edb_v) << "not enc " << fieldName;
             //record auto increments:
             processPostAnnotations(tm, fm, fieldName, wordsIt, words);
+            //cerr << "arg " << *wordsIt << endl;
             fieldSeq = fieldSeq + fieldName + " " + mirrorUntilTerm(wordsIt, words, {","}, 1, 1);
             continue;
         }
@@ -2484,6 +2481,7 @@ EDBProxy::rewriteDecryptSelect(const string &query, const ResType &dbAnswer)
 
     expandWildCard(words, qm, tableMetaMap);
 
+
     if (VERBOSE) {
         LOG(edb) << "Raw results from the server to decrypt:";
         printRes(dbAnswer);
@@ -3274,7 +3272,7 @@ throw (CryptDBError)
                     queries.push_back(insid_query);
                 }
             }
-            //insert any new hasaccessto instances
+            //insert any new speaksfor instances
             LOG(edb_v) << "before insert relations";
             mp->insertRelations(valnulls, table, fields, tmkm);
         }

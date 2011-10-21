@@ -21,6 +21,7 @@ PrintRes(const ResType &res)
             cerr << inner->to_string() << " | ";
         cerr << endl;
     }
+    cerr << endl;
 }
 
 ResType

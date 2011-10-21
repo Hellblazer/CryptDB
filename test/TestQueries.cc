@@ -269,7 +269,7 @@ static QueryList PrivMessages = QueryList("MultiPrivMessages",
       "CREATE TABLE u_mess (userid integer, username text)",
       "CREATE TABLE "+PWD_TABLE_PREFIX+"u_mess (username text, psswd text)" },
     { "CREATE TABLE msgs (msgid equals privmsg.msgid integer, msgtext encfor msgid text)",
-      "CREATE TABLE privmsg (msgid integer, recid equals u_mess.userid hasaccessto msgid integer, senderid hasaccessto msgid integer)",
+      "CREATE TABLE privmsg (msgid integer, recid equals u_mess.userid speaksfor msgid integer, senderid speaksfor msgid integer)",
       "CREATE TABLE u_mess (userid equals privmsg.senderid integer, username givespsswd userid text)",
       "COMMIT ANNOTATIONS" },
     { Query("INSERT INTO "+PWD_TABLE_PREFIX+"u_mess (username, psswd) VALUES ('alice', 'secretalice')", false),
@@ -308,8 +308,8 @@ static QueryList UserGroupForum = QueryList("UserGroupForum",
       "CREATE TABLE forum (forumid integer, forumtext text)",
       "CREATE TABLE "+PWD_TABLE_PREFIX+"u (username text, psswd text)" },
     { "CREATE TABLE u (userid integer, username givespsswd userid text)",
-      "CREATE TABLE usergroup (userid equals u.userid hasaccessto groupid integer, groupid integer)",
-      "CREATE TABLE groupforum (forumid equals forum.forumid integer, groupid equals usergroup.groupid hasaccessto forumid if test(optionid) integer, optionid integer)",
+      "CREATE TABLE usergroup (userid equals u.userid speaksfor groupid integer, groupid integer)",
+      "CREATE TABLE groupforum (forumid equals forum.forumid integer, groupid equals usergroup.groupid speaksfor forumid if test(optionid) integer, optionid integer)",
       "CREATE TABLE forum (forumid integer, forumtext encfor forumid det text)",
       "COMMIT ANNOTATIONS" },
     { Query("INSERT INTO "+PWD_TABLE_PREFIX+"u (username, psswd) VALUES ('alice', 'secretalice')", false),
@@ -449,7 +449,7 @@ static QueryList Auto = QueryList("AutoInc",
       "CREATE TABLE u_auto (userid enc integer, username enc text)",
       "CREATE TABLE "+PWD_TABLE_PREFIX+"u_auto (username text, psswd text)" },
     { "CREATE TABLE msgs (msgid equals privmsg.msgid integer AUTO_INCREMENT PRIMARY KEY , msgtext encfor msgid text)",
-      "CREATE TABLE privmsg (msgid integer, recid equals u_auto.userid hasaccessto msgid integer, senderid hasaccessto msgid integer)",
+      "CREATE TABLE privmsg (msgid integer, recid equals u_auto.userid speaksfor msgid integer, senderid speaksfor msgid integer)",
       "CREATE TABLE u_auto (userid equals privmsg.senderid integer, username givespsswd userid text)",
       "COMMIT ANNOTATIONS" },
     { Query("INSERT INTO "+PWD_TABLE_PREFIX+"u_auto (username, psswd) VALUES ('alice','secretA')",false),
@@ -526,9 +526,9 @@ static QueryList ManyConnections = QueryList("Multiple connections",
       "CREATE TABLE u_conn (userid enc integer, username enc text)",
       "CREATE TABLE "+PWD_TABLE_PREFIX+"u_conn (username text, psswd text)" },
     { "CREATE TABLE msgs (msgid equals privmsg.msgid integer AUTO_INCREMENT PRIMARY KEY , msgtext encfor msgid text)",
-      "CREATE TABLE privmsg (msgid integer, recid equals u_conn.userid hasaccessto msgid integer, senderid hasaccessto msgid integer)",
+      "CREATE TABLE privmsg (msgid integer, recid equals u_conn.userid speaksfor msgid integer, senderid speaksfor msgid integer)",
       "CREATE TABLE forum (forumid integer AUTO_INCREMENT PRIMARY KEY, title text)",
-      "CREATE TABLE post (postid integer AUTO_INCREMENT PRIMARY KEY, forumid equals forum.forumid integer, posttext encfor forumid text, author equals u_conn.userid hasaccessto forumid integer)",
+      "CREATE TABLE post (postid integer AUTO_INCREMENT PRIMARY KEY, forumid equals forum.forumid integer, posttext encfor forumid text, author equals u_conn.userid speaksfor forumid integer)",
       "CREATE TABLE u_conn (userid equals privmsg.senderid integer, username givespsswd userid text)",
       "COMMIT ANNOTATIONS" },
     { Query("INSERT INTO "+PWD_TABLE_PREFIX+"u_conn (username, psswd) VALUES ('alice','secretA')",false),
@@ -679,6 +679,7 @@ Connection::start() {
         proxy_pid = fork();
         if (proxy_pid == 0) {
             LOG(test) << "starting proxy, pid " << getpid();
+            cerr << tc.edbdir << endl;
             setenv("EDBDIR", tc.edbdir.c_str(), 1);
             setenv("CRYPTDB_LOG", cryptdb_logger::getConf().c_str(), 1);
             setenv("CRYPTDB_USER", tc.user.c_str(), 1);
@@ -692,7 +693,6 @@ Connection::start() {
                 setenv("CRYPTDB_MODE", "plain", 1);
             }
             //setenv("CRYPTDB_PROXY_DEBUG","true",1);
-
             stringstream script_path, address, backend;
             script_path << "--proxy-lua-script=" << tc.edbdir << "/../mysqlproxy/wrapper.lua";
             address << "--proxy-address=" << tc.host << ":" << tc.port;
@@ -848,7 +848,7 @@ static void
 CheckNULL(const TestConfig &tc, string test_query) {
     ntest++;
 
-    cerr << "CHECKING NULL" << endl;
+    //cerr << "CHECKING NULL" << endl;
 
     ResType test_res = test->execute(test_query);
     if (test_res.ok) {
