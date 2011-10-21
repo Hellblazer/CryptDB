@@ -130,13 +130,14 @@ MultiPrinc::processAnnotation(list<string>::iterator & wordsIt,
 
     int countaccessto = 0;
     while (true) {
-        if (equalsIgnoreCase(*wordsIt,"hasaccessto")) {
+        if (equalsIgnoreCase(*wordsIt,"speaksfor")) {
+            //if (equalsIgnoreCase(*wordsIt,"hasaccessto")) {
             tm[tablename]->hasSensitive = true;
             wordsIt++;
             if (countaccessto > 0) {
                 assert_s(
                     false,
-                    "multiple hasaccessto annotations on same field, need to add this in insert relations");
+                    "multiple speaksfor annotations on same field, need to add this in insert relations");
             }
             countaccessto++;
             string field2 = *wordsIt;
@@ -159,7 +160,7 @@ MultiPrinc::processAnnotation(list<string>::iterator & wordsIt,
                 }
                 wordsIt++;
                 mkm.condAccess[AccessRelation(hasAccess, accessto)] = pred;
-                LOG(mp) << hasAccess << " has access to " << accessto << " IF " << pred->name << "\n";
+                LOG(mp) << hasAccess << " speaks for " << accessto << " IF " << pred->name << "\n";
             }
             continue;
         }
