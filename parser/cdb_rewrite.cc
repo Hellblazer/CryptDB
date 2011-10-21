@@ -450,9 +450,8 @@ rewrite(Item **i, Analysis &a) {
         i0->name = (*i)->name; // preserve the name (alias)
         *i = i0;
     }
+    i0->name = NULL; // HACK(stephentu): drop the aliases for now
 }
-
-
 
 template <class T>
 static Item *
@@ -1879,6 +1878,7 @@ rewrite_select_lex(st_select_lex *select_lex, Analysis & a)
         vector<Item *> l;
         itemTypes.do_rewrite_proj(item, a, l);
         for (auto it = l.begin(); it != l.end(); ++it) {
+            (*it)->name = NULL; // TODO: fix this
             newList.push_back(*it);
         }
     }
@@ -1973,6 +1973,8 @@ rewrite_table_list(TABLE_LIST *t, Analysis &a)
     string anon_name = anonymize_table_name(string(t->table_name,
                                                    t->table_name_length), a);
     t->table_name = make_thd_string(anon_name, &t->table_name_length);
+    // TODO: handle correctly
+    t->alias      = make_thd_string(anon_name);
 }
 
 static void
