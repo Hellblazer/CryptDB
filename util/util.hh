@@ -21,6 +21,7 @@
 #include <sstream>
 #include <NTL/ZZ.h>
 
+#include <util/errstream.hh>
 #include <util/onions.hh>
 #include <util/params.hh>
 
@@ -118,15 +119,6 @@ class ResType {
 
 void
 printRes(const ResType &r);
-
-
-typedef struct CryptDBError {
- public:
-    CryptDBError(const std::string &m) : msg(m)
-    {
-    }
-    std::string msg;
-} CryptDBError;
 
 typedef struct ParserMeta {
     std::set<std::string> clauseKeywords_p;

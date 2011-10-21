@@ -213,7 +213,7 @@ operator<<(std::ostream &out, Create_field &f)
                 out << " character set " << f.charset->csname;
             }
             if (f.charset->name) {
-                out << " collate " << f.charset->name;
+                out << " collate '" << f.charset->name << "'";
             }
         }
 

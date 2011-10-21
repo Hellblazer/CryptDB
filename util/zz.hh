@@ -1,7 +1,7 @@
 #include <string>
 #include <NTL/ZZ.h>
 
-static inline std::string
+inline std::string
 StringFromZZ(const NTL::ZZ &x)
 {
     std::string s;
@@ -10,7 +10,7 @@ StringFromZZ(const NTL::ZZ &x)
     return s;
 }
 
-static inline NTL::ZZ
+inline NTL::ZZ
 ZZFromString(const std::string &s)
 {
     return NTL::ZZFromBytes((const uint8_t *) s.data(), s.length());

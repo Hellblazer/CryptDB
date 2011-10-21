@@ -22,7 +22,7 @@ static inline void
 mysql_query_wrapper(MYSQL *m, const string &q)
 {
     if (mysql_query(m, q.c_str())) {
-        fatal() << "query failed: " << q
+        cryptdb_err() << "query failed: " << q
                 << " reason: " << mysql_error(m);
     }
 
@@ -467,9 +467,8 @@ rewrite(Item **i, Analysis &a) {
         i0->name = (*i)->name; // preserve the name (alias)
         *i = i0;
     }
+    i0->name = NULL; // HACK(stephentu): drop the aliases for now
 }
-
-
 
 template <class T>
 static Item *
@@ -768,7 +767,7 @@ static class ANON : public CItemSubtypeIT<Item_field, Item::Type::FIELD_ITEM> {
             } else {
                 // we aren't aware of this field. this is an error
                 // for now
-                fatal() << "Cannot find FieldMeta information for: " << *i;
+                cryptdb_err() << "Cannot find FieldMeta information for: " << *i;
             }
         }
         it->second->exposedLevels.restrict(encpair.first,
@@ -790,7 +789,7 @@ static class ANON : public CItemSubtypeIT<Item_field, Item::Type::FIELD_ITEM> {
             auto it = a.itemToMeta.find(i);
             if (it == a.itemToMeta.end()) {
                 // this is a bug, we should have recorded this in enforce()
-                fatal() << "should have recorded item meta object in enforce()";
+                cryptdb_err() << "should have recorded item meta object in enforce()";
             }
             ItemMeta *im = it->second;
             cerr << "onion is " << im->o << "\n";
@@ -819,14 +818,14 @@ static class ANON : public CItemSubtypeIT<Item_field, Item::Type::FIELD_ITEM> {
     {
 	//rewrite current projection field
         l.push_back(do_rewrite_type(i, a));
-       	
+
         // if there is a salt for the onion, then also fetch the onion from the server
         auto it = a.itemToFieldMeta.find(i);
         assert(it != a.itemToFieldMeta.end());
         FieldMeta *fm = it->second;
 
 	addToReturn(a.rmeta, a.pos++, a.itemToMeta[i], fm->has_salt);
-	
+
 	if (fm->has_salt) {
             assert(!fm->salt_name.empty());
             l.push_back(make_from_template(i, fm->salt_name.c_str()));
@@ -1896,6 +1895,7 @@ rewrite_select_lex(st_select_lex *select_lex, Analysis & a)
         vector<Item *> l;
         itemTypes.do_rewrite_proj(item, a, l);
         for (auto it = l.begin(); it != l.end(); ++it) {
+            (*it)->name = NULL; // TODO: fix this
             newList.push_back(*it);
         }
     }
@@ -1990,6 +1990,8 @@ rewrite_table_list(TABLE_LIST *t, Analysis &a)
     string anon_name = anonymize_table_name(string(t->table_name,
                                                    t->table_name_length), a);
     t->table_name = make_thd_string(anon_name, &t->table_name_length);
+    // TODO: handle correctly
+    t->alias      = make_thd_string(anon_name);
 }
 
 static void
@@ -2172,7 +2174,7 @@ static void rewrite_create_field(const string &table_name,
             }
         }
         if (newF == NULL) {
-            fatal() << "Could not rewrite for onion: " <<
+            cryptdb_err() << "Could not rewrite for onion: " <<
                         it->first << ", type: " << f->sql_type;
         }
         l.push_back(newF);
@@ -2196,7 +2198,7 @@ static void rewrite_key(const string &table_name,
                         Analysis &a,
                         vector<Key*> &l)
 {
-    fatal() << "No support for rewriting keys. "
+    cryptdb_err() << "No support for rewriting keys. "
             << "If you see this, please implement me";
 }
 
@@ -2233,7 +2235,7 @@ rewrite_create_lex(LEX *lex, Analysis &a)
 
     //TODO: support for "create table like"
     if (lex->create_info.options & HA_LEX_CREATE_TABLE_LIKE) {
-        fatal() << "No support for create table like yet. " <<
+        cryptdb_err() << "No support for create table like yet. " <<
                    "If you see this, please implement me";
     } else {
         // TODO(stephentu): template this pattern away
@@ -2579,7 +2581,7 @@ Rewriter::Rewriter(const std::string & db) : db(db)
     mysql_options(m, MYSQL_OPT_USE_EMBEDDED_CONNECTION, 0);
     if (!mysql_real_connect(m, 0, 0, 0, 0, 0, 0, CLIENT_MULTI_STATEMENTS)) {
         mysql_close(m);
-        fatal() << "mysql_real_connect: " << mysql_error(m);
+        cryptdb_err() << "mysql_real_connect: " << mysql_error(m);
     }
     // HACK: create this DB if it doesn't exist, for now
     string create_q = "CREATE DATABASE IF NOT EXISTS " + db;
