@@ -328,7 +328,7 @@ public:
 
     void setMasterKey(const std::string &mkey);
     std::string rewrite(const std::string &q, Analysis & a);
-    ResType decryptResults(ResType & dbres, const Analysis & a);
+    ResType decryptResults(ResType & dbres, Analysis & a);
     inline MYSQL* conn() {
         mysql_thread_init();
         return m;

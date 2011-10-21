@@ -34,6 +34,56 @@ mysql_query_wrapper(MYSQL *m, const string &q)
     if (!ret) assert(false);
 }
 
+
+static inline bool
+FieldQualifies(const FieldMeta * restriction,
+               const FieldMeta * field)
+{
+    return !restriction || restriction == field;
+}
+
+static inline bool
+IsMySQLTypeNumeric(enum_field_types t) {
+    switch (t) {
+        case MYSQL_TYPE_DECIMAL:
+        case MYSQL_TYPE_TINY:
+        case MYSQL_TYPE_SHORT:
+        case MYSQL_TYPE_LONG:
+        case MYSQL_TYPE_FLOAT:
+        case MYSQL_TYPE_DOUBLE:
+        case MYSQL_TYPE_LONGLONG:
+        case MYSQL_TYPE_INT24:
+        case MYSQL_TYPE_NEWDECIMAL:
+
+        // numeric also includes dates for now,
+        // since it makes sense to do +/- on date types
+        case MYSQL_TYPE_TIMESTAMP:
+        case MYSQL_TYPE_DATE:
+        case MYSQL_TYPE_TIME:
+        case MYSQL_TYPE_DATETIME:
+        case MYSQL_TYPE_YEAR:
+        case MYSQL_TYPE_NEWDATE:
+            return true;
+        default: return false;
+    }
+}
+
+static string
+getAnonName(const ItemMeta * im) {
+    return im->basefield->onionnames[im->o];
+}
+
+//TODO raluca: should unify enc/dec for numeric and strings
+static fieldType
+getTypeForDec(const ItemMeta * im) {
+    if (IsMySQLTypeNumeric(im->basefield->sql_field->sql_type)) {
+	return TYPE_INTEGER;
+    } else {
+	return TYPE_TEXT;
+    }
+}
+
+
 static void
 addToReturn(ReturnMeta & rm, int pos, ItemMeta * im, bool has_salt) {
     ReturnField rf = ReturnField();
@@ -95,39 +145,6 @@ encryptConstantItem(Item * i, const Analysis & a){
 }
 
 /***********end of parser utils *****************/
-
-static inline bool
-FieldQualifies(const FieldMeta * restriction,
-               const FieldMeta * field)
-{
-    return !restriction || restriction == field;
-}
-
-static inline bool
-IsMySQLTypeNumeric(enum_field_types t) {
-    switch (t) {
-        case MYSQL_TYPE_DECIMAL:
-        case MYSQL_TYPE_TINY:
-        case MYSQL_TYPE_SHORT:
-        case MYSQL_TYPE_LONG:
-        case MYSQL_TYPE_FLOAT:
-        case MYSQL_TYPE_DOUBLE:
-        case MYSQL_TYPE_LONGLONG:
-        case MYSQL_TYPE_INT24:
-        case MYSQL_TYPE_NEWDECIMAL:
-
-        // numeric also includes dates for now,
-        // since it makes sense to do +/- on date types
-        case MYSQL_TYPE_TIMESTAMP:
-        case MYSQL_TYPE_DATE:
-        case MYSQL_TYPE_TIME:
-        case MYSQL_TYPE_DATETIME:
-        case MYSQL_TYPE_YEAR:
-        case MYSQL_TYPE_NEWDATE:
-            return true;
-        default: return false;
-    }
-}
 
 /*static
 void print(const map<string, TableMeta*>& t) {
@@ -2124,8 +2141,8 @@ const map<onion, V> OnionHandlers = {
                    MYSQL_TYPE_INT24,
                    MYSQL_TYPE_DECIMAL,
                    MYSQL_TYPE_DOUBLE}),
-                new OnionFieldHandler(MYSQL_TYPE_VARCHAR, 256, &my_charset_bin))})},
-
+		    new OnionFieldHandler(MYSQL_TYPE_VARCHAR, 256, &my_charset_bin))})},
+		    
     {oSWP, V({H(S({MYSQL_TYPE_VARCHAR,
                    MYSQL_TYPE_BLOB}),
                 new OnionFieldHandler(MYSQL_TYPE_BLOB))})},
@@ -2832,8 +2849,61 @@ Rewriter::rewrite(const string & q, Analysis & a)
 
 
 ResType
-Rewriter::decryptResults(ResType & dbres, const Analysis & a) {
-    //todo
+Rewriter::decryptResults(ResType & dbres,
+			 Analysis & a) {
+
+    unsigned int rows = dbres.rows.size();
+
+    unsigned int cols = dbres.names.size();
+
+    ResType res = ResType();
+
+    unsigned int index = 0;
+      // un-anonymize the names
+    for (auto it = dbres.names.begin(); it != dbres.names.end(); it++) {
+	ReturnField rf = a.rmeta.rfmeta[index];
+	if (rf.is_salt) {
+	    
+	} else {
+	    //need to return this field
+	    res.names.push_back(rf.im->basefield->fname);
+	    
+	}
+	index++;
+    }
+
+    unsigned int real_cols = dbres.names.size();
+    
+    // switch types to original ones : TODO
+
+    //allocate space in results for decrypted rows
+    res.rows = vector<vector<SqlItem> >(rows);
+    for (unsigned int i = 0; i < rows; i++) {
+	res.rows[i] = vector<SqlItem>(real_cols);
+    }
+    
+    // decrypt rows
+
+    unsigned int col_index = 0;
+    for (unsigned int c = 0; c < cols; c++) {
+	ReturnField rf = a.rmeta.rfmeta[c];
+	ItemMeta * im = rf.im;
+	if (rf.is_salt) {
+	    
+	} else {
+	    for (unsigned int r = 0; r < rows; r++) {
+		bool isBin;
+		res.rows[r][col_index] = dbres.rows[r][c];
+		res.rows[r][col_index].data = a.cm->crypt(cm->getmkey(), dbres.rows[r][c].data,
+					     getTypeForDec(rf.im), getAnonName(rf.im), im->uptolevel, getMin(im->o), isBin);
+	    }
+	    col_index++;
+	}
+	
+    }
+ 
+
+    
     return dbres;
 }
 

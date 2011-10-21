@@ -95,6 +95,10 @@ main(int ac, char **av)
             cout << "SUCCESS: " << new_q << endl;
 	    conn.execute(new_q, dbres);
 	    ResType res = dbres->unpack();
+	    if (!res.ok) {
+		cerr << "issue with query \n";
+		continue;
+	    }
 	    ResType dec_res = r.decryptResults(res, analysis);
 	    cerr << "decrypted results are: \n"; printRes(dec_res);
         } catch (std::runtime_error &e) {
