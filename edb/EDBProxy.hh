@@ -32,7 +32,7 @@ class EDBProxy {
              , const std::string& dbname
              , uint port = 0
              , bool multiPrinc = false
-             , bool allDefaultEncrypted = false
+             , bool allDefaultEncrypted = true
              , const std::string& proxy_directory = ""
              );
     void setMasterKey(const std::string &mkey);

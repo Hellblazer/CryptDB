@@ -1,10 +1,10 @@
 Proxy Setup Notes
 
-setenv EDBDIR [your cryptdb/edb directory]
-setenv CRYPTDB_PROXY_DEBUG true -->gives verbosity
-setenv CRYPTDB_MODE single | multi -->sets either to single or multi principle
+export EDBDIR=[your cryptdb/edb directory]
+export CRYPTDB_PROXY_DEBUG=true -->gives verbosity
+export CRYPTDB_MODE=single | multi -->sets either to single or multi principle
 
-to switch between single and multi princ mode, you also have to toggle allDefaultEncrypted in EDBProxy to true for single and false for multi; this requires you to make again
+to switch between single and multi princ mode, you also have to toggle allDefaultEncrypted in EDBProxy.hh to true for single and false for multi; this requires you to make again
 
 either use cryptdbtest as your database or set CRYPTDB_DB to the databse you want to use
 
@@ -18,6 +18,7 @@ Standard Query Set for MultiPrinc
 CREATE TABLE msgs (msgid equals privmsg.msgid integer, msgtext encfor msgid text);
 CREATE TABLE privmsg (msgid integer, recid equals u_mess.userid speaksfor msgid integer, senderid speaksfor msgid integer);
 CREATE TABLE u_mess (userid equals privmsg.senderid integer, username givespsswd userid text);
-COMMIT ANNOTATIONS;
+INSERT INTO pwdcryptdb__u_mess (username, psswd) VALUES ('alice', 'secretalice');
+
 
 

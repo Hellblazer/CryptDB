@@ -120,12 +120,17 @@ function read_query_result_real(inj)
         else
             local query = inj.query:sub(2)
 
+            -- for DEMO: printing results
+            local f_names = ""
+            local r = ""
+
             -- mysqlproxy doesn't return real lua arrays, so re-package them..
             local resfields = resultset.fields
             local fields = {}
             for i = 1, #resfields do
                 rfi = resfields[i]
                 fields[i] = { type = rfi.type, name = rfi.name }
+                f_names = f_names .. "|" .. rfi.name
             end
 
             local resrows = resultset.rows
@@ -136,10 +141,35 @@ function read_query_result_real(inj)
                 end
             end
 
+            -- DEMO
+            dprint(f_names)
+            for i = 1, #rows do
+                for j = 1, #rows[i] do
+                    r = r .. "|" .. rows[i][j]
+                end
+                dprint(r)
+                r = ""
+            end
+
             dfields, drows = CryptDB.decrypt(proxy.connection.client.src.name,
                                              fields, rows)
 
             if dfields and drows then
+                f_names = ""
+                r = ""
+                for i = 1, #dfields do
+                    f_names = f_names .. " | " .. dfields[i].name
+                end
+                dprint(f_names)
+                dprint("-----")
+                for i = 1, #drows do
+                    for j = 1, #drows[i] do
+                        r = r .. " | " .. drows[i][j]
+                    end
+                    dprint(r)
+                    r = "" 
+                end
+
                 proxy.response.type = proxy.MYSQLD_PACKET_OK
                 proxy.response.affected_rows = resultset.affected_rows
                 proxy.response.insert_id = resultset.insert_id
