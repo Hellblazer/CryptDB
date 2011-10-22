@@ -1,4 +1,4 @@
-assert(package.loadlib(os.getenv("EDBDIR").."/libexecute.so",
+assert(package.loadlib(os.getenv("EDBDIR").."/../obj/libexecute.so",
                        "lua_cryptdb_init"))()
 local proto = assert(require("mysql.proto"))
 

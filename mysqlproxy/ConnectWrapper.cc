@@ -24,7 +24,7 @@ static Timer t;
 static EDBProxy * cl = NULL;
 static pthread_mutex_t big_lock;
 
-static bool DO_CRYPT = false;
+static bool DO_CRYPT = true;
 
 static bool EXECUTE_QUERIES = true;
 
@@ -94,6 +94,7 @@ connect(lua_State *L)
         } else {
             cl = new EDBProxy(server, user, psswd, dbname, port);
         }
+        cerr << mode << endl;
 
         uint64_t mkey = 113341234;  // XXX do not change as it's used for tpcc exps
         cl->setMasterKey(BytesFromInt(mkey, AES_KEY_BYTES));
