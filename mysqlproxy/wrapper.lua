@@ -83,8 +83,9 @@ function read_query_real(packet)
             return proxy.PROXY_SEND_RESULT
         end
 
+	dprint(" ")
         for i, v in pairs(new_queries) do
-            dprint("new query[" .. i .. "]: " .. v)
+            dprint("rewritten query[" .. i .. "]: " .. v)
             local result_key
             if i == table.maxn(new_queries) then
                 result_key = RES_DECRYPT
@@ -142,6 +143,10 @@ function read_query_result_real(inj)
             end
 
             -- DEMO
+	    if #rows > 0 then
+	       dprint(" ")
+	       dprint("Results from server:")
+	    end
             dprint(f_names)
             for i = 1, #rows do
                 for j = 1, #rows[i] do
@@ -160,8 +165,13 @@ function read_query_result_real(inj)
                 for i = 1, #dfields do
                     f_names = f_names .. " | " .. dfields[i].name
                 end
-                dprint(f_names)
-                dprint("-----")
+
+		if #drows > 0 then
+		   dprint(" ")
+		   dprint("Decrypted results:")
+		end
+		dprint(f_names)
+              
                 for i = 1, #drows do
                     for j = 1, #drows[i] do
                         r = r .. " | " .. drows[i][j]

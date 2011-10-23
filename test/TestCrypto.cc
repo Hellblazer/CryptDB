@@ -110,7 +110,7 @@ testOPE()
     LOG(crypto) << "Test OPE";
 
     unsigned int noSizes = 6;
-    unsigned int plaintextSizes[] = {16,  32, 64,  128, 256, 512, 1024};
+    unsigned int plaintextSizes[] = {16, 32, 64,  128, 256, 512, 1024};
     unsigned int ciphertextSizes[] = {32, 64, 128, 256, 288, 768, 1536};
 
     unsigned int noValues = 100;
@@ -123,19 +123,23 @@ testOPE()
         LOG(crypto) << "-- testing plaintext size " << ptextsize << " and ciphertext size " << ctextsize;
 
         OPE * ope = new OPE(string(key, AES_KEY_BYTES), ptextsize, ctextsize);
-
+	
         //Test it on "noValues" random values
         for (unsigned int j = 0; j < noValues; j++) {
 
             string data = randomBytes(ptextsize/bitsPerByte);
 
+	    // cerr << "data is " << stringToByteInts(data) << "\n";
+	      
             string enc = ope->encrypt(data);
-            string dec = ope->decrypt(enc);
-
-            //cerr << "data is " << stringToByteInts(data) << "\n";
+	    //cerr << "enc\n";
+	    string dec = ope->decrypt(enc);
+	    //cerr << "Dec \n";
+          
             //cerr << "enc is " << stringToByteInts(enc) << "\n";
             //cerr << "dec is " << stringToByteInts(dec) << "\n";
-            assert_s(dec == data, "decryption does not match original data "  + StringFromVal(ptextsize) + " " + StringFromVal(ctextsize));
+            assert_s(valFromStr(dec) == valFromStr(data), "decryption does not match original data "  + StringFromVal(ptextsize) + " " + StringFromVal(ctextsize));
+	    //cerr << "After assertions \n";
 
         }
 
@@ -721,7 +725,7 @@ latency_search(unsigned int notests) {
 static void
 testPaillier()
 {
-    for (uint i = 0; i < 1000; i++) {
+    for (uint i = 0; i < 10; i++) {
         CryptoManager cm(randomBytes(128));
         uint32_t v0 = randomValue() & 0xffffffff;
         uint32_t v1 = randomValue() & 0xffffffff;

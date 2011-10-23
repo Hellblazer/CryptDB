@@ -48,6 +48,7 @@ anonymizeTableName(unsigned int tableNo, string tableName, bool multiPrinc)
 string
 anonymizeFieldName(unsigned int index, onion o, string origname, bool multiPrinc)
 {
+    
     switch (o) {
     case oDET: {
         if (multiPrinc) {
@@ -719,8 +720,8 @@ throw (CryptDBError)
             }
             string tableName = *qit;
             //comment for speed
-            //assert_s(tm.find(tableName) != tm.end(), string("table ") + *it
-            // + " is invalid");
+            assert_s(tm.find(tableName) != tm.end(), string("table ") + tableName
+             + " is invalid");
             qm.tables.push_back(tableName);
             qit++;
             string alias = getAlias(qit, query);
@@ -934,17 +935,17 @@ throw (CryptDBError)
         table = token.substr(0, position);
         field = token.substr(position+1, token.length() - position - 1);
         if (tableMetaMap.find(table) == tableMetaMap.end()) {
-            //Comment for SPEED
-            //assert_s(qm.aliasToTab.find(table) != qm.aliasToTab.end(),
-            // "table " + table + "does not exist and is not alias");
+            //Comment out for SPEED
+            assert_s(qm.aliasToTab.find(table) != qm.aliasToTab.end(),
+             "table name " + table + "does not exist and is not alias");
             table = qm.aliasToTab[table];
         }
-        //TableMetadata * tm = tableMetaMap[table];
+        TableMetadata * tm = tableMetaMap[table];
 
         if (field.compare("*") != 0) {
-            //Comment for SPEED
-            //assert_s(tm->fieldMetaMap.find(field) != tm->fieldMetaMap.end(),
-            // "field does not exist inside given table");
+            //Comment out for SPEED
+             assert_s(tm->fieldMetaMap.find(field) != tm->fieldMetaMap.end(),
+             "field does not exist inside given table");
         }
         return;
     }

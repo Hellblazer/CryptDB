@@ -83,8 +83,8 @@ class OPEInternals {
         ZZ ballsPicked = y - lowR;
         //cerr << "white balls " << whiteBalls << " blackBalls " << blackBalls
         // << " ballsPicked " << ballsPicked << "\n";
-        myassert((whiteBalls > 0) && (blackBalls > 0) && (y >= lowR) &&
-                 (y <= highR));
+        myassert((whiteBalls > 0) && (blackBalls >= 0) && (y >= lowR) &&
+                 (y <= highR), "sample hgd problem");
         uint precision = (uint) NumBits(highR-lowR + 1) + 10;
         return lowD +
                HGD(ballsPicked, whiteBalls, blackBalls, coins, coinsLen,
@@ -137,7 +137,7 @@ class OPEInternals {
         ZZ r = lowR - 1;
         ZZ y = r + (N+1)/2;
 
-        myassert(M > 0);
+        myassert(M > 0, "M <= 0");
 
         //cerr << "running encrypt helper with D = [" << lowD << ", " << highD
          //<< "] R= " << lowR <<", " << highR << "]\n";
@@ -184,7 +184,7 @@ class OPEInternals {
 
         //cerr << "running decrypt helper with D = [" << lowD << ", " << highD << "], R = [" << lowR << ", " << highR << "]\n";
 
-        myassert(M > 0);
+        myassert(M > 0, "M <=0");
 
         ZZ coins, m;
 

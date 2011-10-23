@@ -358,7 +358,7 @@ decrypt_text_sem(PG_FUNCTION_ARGS)
         key[i] = getb(ARGS,offset+i);
     }
 
-    uint64_t salt = getui(ARGS, offset + AES_KEY_BYTES);
+     uint64_t salt = getui(ARGS, offset + AES_KEY_BYTES);
 
     AES_KEY *aesKey = get_AES_dec_key(key);
     string value = decrypt_SEM(eValueBytes, eValueLen, aesKey, salt);

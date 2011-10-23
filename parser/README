@@ -1,16 +1,3 @@
-% wget http://yuma.csail.mit.edu/mysql-5.5.14.tar.gz
-% tar zxf mysql-5.5.14.tar.gz
-% cp -R mysql_mods mysql-5.5.14
-% cd mysql-5.5.14
-% mkdir build
-% cd build
-% cmake -DWITH_EMBEDDED_SERVER=ON ..
-% make
-
-now, copy config.mk.sample to config.mk and adjust the path for MYSRC
-may need to sudo apt-get install libbsd-dev 
-
----
 
 note: to debug the embedded server,
 % cmake -DWITH_EMBEDDED_SERVER=ON -DCMAKE_BUILD_TYPE=Debug -DWITH_DEBUG=1 ..

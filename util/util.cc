@@ -82,7 +82,7 @@ FieldMetadata::FieldMetadata()
     //onions used by default
     has_ope = true;
     has_agg = true;
-    has_search = false;
+    has_search = true;
     has_salt = true;
 
     salt_name = "";
