@@ -2144,7 +2144,7 @@ const map<onion, V> OnionHandlers = {
                    MYSQL_TYPE_DECIMAL,
                    MYSQL_TYPE_DOUBLE}),
 		    new OnionFieldHandler(MYSQL_TYPE_VARCHAR, 256, &my_charset_bin))})},
-		    
+
     {oSWP, V({H(S({MYSQL_TYPE_VARCHAR,
                    MYSQL_TYPE_BLOB}),
                 new OnionFieldHandler(MYSQL_TYPE_BLOB))})},
@@ -2611,7 +2611,7 @@ Rewriter::createMetaTablesIfNotExists()
                    ", name varchar(64) NOT NULL"
                    ", anon_name varchar(64) NOT NULL"
                    ", UNIQUE INDEX idx_table_name( name )"
-                   ");");
+                   ") ENGINE=InnoDB;");
 
     mysql_query_wrapper(m,
                    "CREATE TABLE IF NOT EXISTS proxy_db.column_info"
@@ -2670,7 +2670,7 @@ Rewriter::createMetaTablesIfNotExists()
                    "      ) NOT NULL DEFAULT 'INVALID'"
                    ", INDEX idx_column_name( name )"
                    ", FOREIGN KEY( table_id ) REFERENCES table_info( id ) ON DELETE CASCADE"
-                   ");");
+                   ") ENGINE=InnoDB;");
 }
 
 void
@@ -2865,17 +2865,17 @@ Rewriter::decryptResults(ResType & dbres,
     for (auto it = dbres.names.begin(); it != dbres.names.end(); it++) {
 	ReturnField rf = a.rmeta.rfmeta[index];
 	if (rf.is_salt) {
-	    
+
 	} else {
 	    //need to return this field
 	    res.names.push_back(rf.im->basefield->fname);
-	    
+
 	}
 	index++;
     }
 
     unsigned int real_cols = dbres.names.size();
-    
+
     // switch types to original ones : TODO
 
     //allocate space in results for decrypted rows
@@ -2883,7 +2883,7 @@ Rewriter::decryptResults(ResType & dbres,
     for (unsigned int i = 0; i < rows; i++) {
 	res.rows[i] = vector<SqlItem>(real_cols);
     }
-    
+
     // decrypt rows
 
     unsigned int col_index = 0;
@@ -2891,7 +2891,7 @@ Rewriter::decryptResults(ResType & dbres,
 	ReturnField rf = a.rmeta.rfmeta[c];
 	ItemMeta * im = rf.im;
 	if (rf.is_salt) {
-	    
+
 	} else {
 	    for (unsigned int r = 0; r < rows; r++) {
 		bool isBin;
@@ -2901,11 +2901,11 @@ Rewriter::decryptResults(ResType & dbres,
 	    }
 	    col_index++;
 	}
-	
-    }
- 
 
-    
+    }
+
+
+
     return dbres;
 }
 
