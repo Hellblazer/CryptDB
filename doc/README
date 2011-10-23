@@ -1,52 +1,81 @@
-A more general, robust, and better-documented version of CryptDB is under active development and we plan to release it soon. For now, we make available the old prototype, but we recommend using the newer version. Please subscribe to cryptdb-users (at http://css.csail.mit.edu/cryptdb) to hear when we release the new version.
+A more general, robust, and better-documented version of CryptDB
+is under active development and we plan to release it soon. For
+now, we make available the old prototype, but we recommend
+using the newer version. Please subscribe to cryptdb-users (at
+http://css.csail.mit.edu/cryptdb) to hear when we release the
+new version.
 
 A few ways to run CryptDB:
 
 I. Quick demo:
 
+* Build CryptDB, as described in doc/BUILD.
+
 * Start MySQL DB server on port 3306 and create db cryptdbtest
 
-* Start the proxy:  
-mysql-proxy --plugins=proxy --event-threads=4 --max-open-files=1024 --proxy-lua-script=$EDBDIR/../mysqlproxy/wrapper.lua --proxy-address=127.0.0.1:3307 --proxy-backend-addresses=localhost:3306
+* Start the proxy:
+
+export EDBDIR=.../cryptdb/obj
+mysql-proxy --plugins=proxy --event-threads=4 --max-open-files=1024 \
+            --proxy-lua-script=$EDBDIR/../mysqlproxy/wrapper.lua \
+            --proxy-address=127.0.0.1:3307 \
+            --proxy-backend-addresses=localhost:3306
 
 * Connect to CryptDB:
 
 mysql -u root -pletmein -h 127.0.0.1 -P 3307 cryptdbtest
 
--- Type queries that will execute on encrypted data at the DB server! Example queries are in notes/demo_notes.txt 
--- You can also connect to the mysql server directly (e.g., by typing mysql) to see what is in the raw database
+-- Type queries that will execute on encrypted data at the DB
+   server! Example queries are in notes/demo_notes.txt
 
+-- You can also connect to the mysql server directly (e.g., by typing
+   mysql) to see what is in the raw database.
 
 II. Our tests are useful examples!
 
     ./obj/test/test help
-    -- this command shows you the various tests you can run
-	
-    The option -v allows you to control verbosity; for example, -v all shows verbosity from all modules, while -v crypto shows crypto verbosity. The option -s stops tests if a failure occurs.
+    -- This command shows you the various tests you can run
+
+       The option -v allows you to control verbosity; for example,
+       -v all shows verbosity from all modules, while -v crypto shows
+       crypto verbosity. The option -s stops tests if a failure occurs.
 
     ./obj/test/test queries A B
-    -- runs A and B on many test queries and compares their answers; for example"./obj/test/test -v all queries plain single" runs plain MySQL against single key CryptDB and checks if they produce the same results on a variety of queries
-    Of interest may be:
-    ./obj/test/test queries plain multi
-    ./obj/test/test queries plain proxy-single
-    ./tests/test -v all queries plain proxy-multi   :runs queries and compares results between plain MySQL and CryptDB in multi-principal mode with queries going through proxy
+    -- Runs A and B on many test queries and compares their answers;
+       for example"./obj/test/test -v all queries plain single" runs
+       plain MySQL against single key CryptDB and checks if they produce
+       the same results on a variety of queries
 
+       Of particular interest may be:
 
+       ./obj/test/test queries plain multi
+       ./obj/test/test queries plain proxy-single
+       ./obj/test/test -v all queries plain proxy-multi
+         (runs queries and compares results between plain MySQL and CryptDB
+          in multi-principal mode, with queries going through proxy)
 
 III. Using our libraries: edb/EDBProxy.hh
 
--- EDBProxy.hh is the interface for running queries with CryptDB. This file describes two modes for running queries: 1. end-to-end query execution 2. rewrite/encrypt queries and decrypt results
+-- EDBProxy.hh is the interface for running queries with CryptDB. This
+   file describes two modes for running queries:
+     1. end-to-end query execution
+     2. rewrite/encrypt queries and decrypt results
 
--- Switching from single-principal(one-key) to multi-principal(multi-key) mode:
-   - EDBProxy constructor takes as argument a flag indicating if we run in single or multi principal mode
-    1. Single-principal
-    - the allDefaultEncrypted flag controls whether all fields are encrypted by default; if set to false, the programmer has to annotate each field with "enc" in order to have CryptDB encrypt the field (see TestQueries.cc for examples)
+-- Switching from single-principal (one-key) to multi-principal
+   (multi-key) mode:
+
+   - EDBProxy constructor takes as argument a flag indicating if we run
+     in single or multi principal mode
+
+   1. Single-principal
+    - the allDefaultEncrypted flag controls whether all fields are
+      encrypted by default; if set to false, the programmer has to
+      annotate each field with "enc" in order to have CryptDB encrypt
+      the field (see TestQueries.cc for examples)
 
    2. Multi-principal
-   - see examples of how to annotate schema in TestQueries and in notes/demo_notes.txt
-
-
-
+   - see examples of how to annotate schema in TestQueries and in
+     doc/notes/demo_notes.txt
 
 Annotations
 -----------
@@ -54,22 +83,27 @@ Annotations
 I. Schema annotation for single-principal:
 
 * enc :  - if a field is followed by enc, CryptDB will encrypt it
-    - e.g., ".., a enc integer, b enc text, c text", will make only a and b to be encrypted and c will be in plain
-    -  turning on allDefaultEncrypted in edb/EDBProxy.hh automatically encrypts all fields and these annotatiosn are not needed so use them only when allDefaultEncrypted = false
-    
-    
-* search: will make this text searchable with ILIKE; 
-    - e.g.: " ..., name search text, ... "
-    - the programmer can optionally specify the tokenizer function in util.cc which will decide how to split the text in words, else a default tokenizer will be used
-    
+    - e.g., ".., a enc integer, b enc text, c text", will make only a
+      and b to be encrypted and c will be in plain
+
+    - turning on allDefaultEncrypted in edb/EDBProxy.hh automatically
+      encrypts all fields and these annotatiosn are not needed so use
+      them only when allDefaultEncrypted = false
+
+* search: will make this text searchable with ILIKE;
+    - e.g.: " ..., name search text, ... " - the programmer can optionally
+      specify the tokenizer function in util.cc which will decide how
+      to split the text in words, else a default tokenizer will be used
+
 II. Schema annotations for multi-principal:
 
-The annotations in our implementation defer a bit from the ones in the paper, but they work the same:
+The annotations in our implementation defer a bit from the ones in the
+paper, but they work the same:
+
 - speaksfor is the same
-- instead of specifying external principal, we annotate a column with "givespsswd"
-- instead of defining princ types asap, we use equals between columns that correspond to the same principal type
-- see TestQueries and /doc/demo_notes.txt for examples
-
-
-
+- instead of specifying external principal, we annotate a column with
+  "givespsswd"
+- instead of defining princ types asap, we use equals between columns
+  that correspond to the same principal type
+- see TestQueries and doc/notes/demo_notes.txt for examples
 
