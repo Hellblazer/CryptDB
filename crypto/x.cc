@@ -44,7 +44,7 @@ test_block_cipher(T *c, PRNG *u, const std::string &cname)
     cmc_decrypt(c, cbc_ct, &cbc_pt2);
     assert(cbc_pt == cbc_pt2);
 
-    enum { nperf = 100 * 1000 };
+    enum { nperf = 10 * 1000 };
     auto cbc_perf_pt = u->rand_vec<uint8_t>(1024);
     auto cbc_perf_iv = u->rand_vec<uint8_t>(c->blocksize);
     vector<uint8_t> cbc_perf_ct, cbc_perf_pt2;
