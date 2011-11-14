@@ -77,8 +77,8 @@ III. Using our libraries: edb/EDBProxy.hh
    - see examples of how to annotate schema in TestQueries and in
      doc/notes/demo_notes.txt
 
-Annotations
------------
+Notes on annotations
+--------------------
 
 I. Schema annotation for single-principal:
 
